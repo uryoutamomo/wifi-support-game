@@ -8,22 +8,20 @@
 
 ## 1. まずここを読んでください（公開の方法）
 
-**成果物の URL：** https://claude.ai/code/artifact/7589f548-a1fe-4416-b101-4194e009e379
+**成果物の URL：** https://uryoutamomo.github.io/wifi-support-game/
 
-これまで、この Artifact への公開は「こと」のセッションが担当していました。**同じ URL を更新できるのは、URL を明示的に渡した publish だけです。**知らずに publish すると別の Artifact が新規作成され、内田さんの手元のリンクが古いまま取り残されます。
+**GitHubリポジトリ：** https://github.com/uryoutamomo/wifi-support-game
+
+2026-09-01に公開基盤をGitHub Pagesへ移行しました。`main` ブランチのルートが公開元で、同じURLをおとだけで更新できます。
 
 **引き継ぎ後の公開手順：**
 
-1. おとさんは Artifact への公開ができません（Codex CLI にそのツールがありません）。
-2. **内田さんが新しい Claude Code セッションを開き**、次を伝えてください。
+1. `node build.js` と§3の検査を実行します。
+2. 生成された `index.html` と編集ソースをコミットし、`main` へpushします。
+3. GitHub Pagesのビルド成功を確認し、公開HTMLのSHA-256がローカル版と一致することを確認します。
+4. favicon は `📡🌙` で固定です。変えないでください（タブの見た目が変わって別ページに見えます）。
 
-   > `/Users/ryotauchida/wifi-support-game/index.html` を、
-   > URL `https://claude.ai/code/artifact/7589f548-a1fe-4416-b101-4194e009e379` に再公開して。
-
-   Claude 側は Artifact ツールに `file_path` と `url` の両方を渡します。**`url` を渡さないと別物ができます。**ここだけは必ず守ってください。
-3. favicon は `📡🌙` で固定です。変えないでください（タブの見た目が変わって別ページに見えます）。
-
-Artifact は **private のまま**です。共有する場合は内田さんがページの共有メニューから操作します。おともことも共有設定は変更していません。
+旧Artifactは移行前の参照用として残していますが、**削除・変更しません。**
 
 ---
 

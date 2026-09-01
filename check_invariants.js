@@ -65,9 +65,9 @@ const officeColors = Object.values(OFFICE_PALETTE);
 if (officeColors.length > 16 || new Set(officeColors).size > 16) bad('オフィスのドット絵パレットが16色を超えている');
 if (OFFICE_STATIONS.length < 5) bad('島型デスクの席数が不足している');
 if (OFFICE_STATIONS.filter(station => station.active).length !== 1) bad('点灯モニターが自席の1台だけではない');
-if (ARTIFACT_QR.length !== 37) bad('Artifact QRが37行ではない');
-if (ARTIFACT_QR.some(row => row.length !== 37 || /[^01]/.test(row))) bad('Artifact QRが37文字の0/1パターンではない');
-if (ARTIFACT_QR_QUIET_ZONE !== 4) bad('Artifact QRのクワイエットゾーンが4モジュールではない');
+if (ARTIFACT_QR.length !== 33) bad('公開ページQRが33行ではない');
+if (ARTIFACT_QR.some(row => row.length !== 33 || /[^01]/.test(row))) bad('公開ページQRが33文字の0/1パターンではない');
+if (ARTIFACT_QR_QUIET_ZONE !== 4) bad('公開ページQRのクワイエットゾーンが4モジュールではない');
 
 const EXPECTED_FAREWELLS = {
   best:{

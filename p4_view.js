@@ -781,7 +781,7 @@ function showBriefing(){
     '全部の端末なら回線か契約の側、一台だけならその端末の側。ここから枝を折っていってください。</p>' +
 
     '<div class="artifact-qr-card" aria-label="iPhoneで遊ぶためのQRコード">' +
-      '<canvas class="artifact-qr-canvas" id="artifact-qr-canvas" role="img" aria-label="このArtifactを開くQRコード"></canvas>' +
+      '<canvas class="artifact-qr-canvas" id="artifact-qr-canvas" role="img" aria-label="この公開ページを開くQRコード"></canvas>' +
       '<div class="artifact-qr-copy"><b>iPhoneで遊ぶ</b><p>カメラでQRコードを読み取ると、このページが開きます。</p>' +
       '<code class="artifact-qr-url">' + esc(ARTIFACT_URL) + '</code></div>' +
     '</div>' +

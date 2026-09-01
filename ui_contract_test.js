@@ -38,16 +38,19 @@ const publicSource = page + '\n' + game;
 const privateUrl = /\bhttps?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})(?::\d+)?(?:[/?#]|$)/i;
 assert(!privateUrl.test(publicSource), '公開物にローカルIPのURLが含まれている');
 assert(!game.includes('MOBILE_QR') && !publicSource.includes('mobile-qr'), '実機確認用QRが公開物に残っている');
+const PUBLISHED_URL = 'https://uryoutamomo.github.io/wifi-support-game/';
 const handoverArtifactUrl = (handover.match(/\*\*成果物の URL：\*\*\s*(https:\/\/\S+)/) || [])[1];
+assert(ARTIFACT_URL === PUBLISHED_URL, '公開QR URLがGitHub Pagesの正規URLではない');
 assert(handoverArtifactUrl && ARTIFACT_URL === handoverArtifactUrl, 'QRの平文URLがHANDOVERの公開先と一致しない');
+assert(ARTIFACT_QR.length === 33 && ARTIFACT_QR.every(row => row.length === 33 && /^[01]+$/.test(row)), '公開ページQRが33×33の0/1パターンではない');
 const briefingSource = functionSource('showBriefing');
 const qrDrawSource = functionSource('drawArtifactQr');
 assert(briefingSource.includes('artifact-qr-url') && briefingSource.includes('esc(ARTIFACT_URL)'), 'ブリーフィングに省略なしの平文Artifact URLがない');
-assert(briefingSource.includes('<canvas') && !/<img\b/i.test(briefingSource) && !/data:image/i.test(briefingSource), 'Artifact QRがCanvasだけで描画されていない');
-assert(qrDrawSource.includes('const quietZone = ARTIFACT_QR_QUIET_ZONE') && qrDrawSource.includes('size + quietZone * 2'), 'Artifact QRの4モジュール余白が描画寸法に含まれない');
-assert(qrDrawSource.includes("ctx.fillStyle = '#fff'") && qrDrawSource.includes("ctx.fillStyle = '#000'"), 'Artifact QRが純白・純黒ではない');
-assert(page.includes('.artifact-qr-canvas') && page.includes('image-rendering:pixelated'), 'Artifact QRにpixelated指定がない');
-assert(/@media \(max-width:480px\)[\s\S]*?\.artifact-qr-card\{ display:none; \}/.test(page), 'スマホ幅でArtifact QRが隠れない');
+assert(briefingSource.includes('<canvas') && !/<img\b/i.test(briefingSource) && !/data:image/i.test(briefingSource), '公開ページQRがCanvasだけで描画されていない');
+assert(qrDrawSource.includes('const quietZone = ARTIFACT_QR_QUIET_ZONE') && qrDrawSource.includes('size + quietZone * 2'), '公開ページQRの4モジュール余白が描画寸法に含まれない');
+assert(qrDrawSource.includes("ctx.fillStyle = '#fff'") && qrDrawSource.includes("ctx.fillStyle = '#000'"), '公開ページQRが純白・純黒ではない');
+assert(page.includes('.artifact-qr-canvas') && page.includes('image-rendering:pixelated'), '公開ページQRにpixelated指定がない');
+assert(/@media \(max-width:480px\)[\s\S]*?\.artifact-qr-card\{ display:none; \}/.test(page), 'スマホ幅で公開ページQRが隠れない');
 
 // 通話フロー v2: IVRなし、名乗り必須、本人特定まで社内照会不可。
 const actionsSource = functionSource('renderActions');

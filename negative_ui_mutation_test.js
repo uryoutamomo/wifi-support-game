@@ -8,6 +8,27 @@ const { spawnSync } = require('child_process');
 const projectFiles = fs.readdirSync(__dirname).filter(name => !name.startsWith('.'));
 const mutations = [
   {
+    name:'公開QRのURLを1文字変える', file:'p2_data.js',
+    from:'https://uryoutamomo.github.io/wifi-support-game/', to:'https://uryoutamomo.github.io/wifi-support-games/',
+    expected:'公開QR URLがGitHub Pagesの正規URLではない',
+  },
+  {
+    name:'公開QRを32行へ減らす', file:'p2_data.js',
+    from:"  '111111101011010101000011101101010',\n]);", to:']);',
+    expected:'公開ページQRが33×33の0/1パターンではない',
+  },
+  {
+    name:'公開QRをdata:imageへ置き換える', file:'p4_view.js',
+    from:'<canvas class="artifact-qr-canvas" id="artifact-qr-canvas" role="img" aria-label="この公開ページを開くQRコード"></canvas>',
+    to:'<img class="artifact-qr-canvas" src="data:image/png;base64,broken" alt="QRコード">',
+    expected:'公開ページQRがCanvasだけで描画されていない',
+  },
+  {
+    name:'公開QRの余白確保を外す', file:'p4_view.js',
+    from:'size + quietZone * 2', to:'size', all:true,
+    expected:'公開ページQRの4モジュール余白が描画寸法に含まれない',
+  },
+  {
     name:'プレイ中ヘッダーへ進行ステータス行を戻す', file:'p1_head.html',
     from:'    <div class="clock">',
     to:'    <div class="kpis" id="kpis">CSAT ／ 一次解決率 ／ 応答率 ／ AHT ／ 費用</div>\n    <div class="clock">',
