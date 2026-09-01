@@ -28,7 +28,7 @@ function handleOfficeAction(d){
     return true;
   }
   if (d.officeCallback){
-    const t = firstTicketIn('callback', 'callbackDue');
+    const t = state.tickets.filter(ticket => ticket.state === 'callback' && ticket.callbackDue <= state.clock).sort((a,b) => a.callbackDue - b.callbackDue)[0];
     if (t) resumeCallback(t);
     return true;
   }
@@ -36,7 +36,7 @@ function handleOfficeAction(d){
 }
 
 function handleCallNavigation(d){
-  if (d.callbackDestination){ startCallback(d.callbackDestination); return true; }
+  if (d.callbackDestination){ startCarrierCallback(d.callbackDestination); return true; }
   if (d.hangup){
     const t = state.focus;
     if (!t) return true;
@@ -50,6 +50,7 @@ function handleCallNavigation(d){
   if (d.greet){ greetCurrentCustomer(); return true; }
   if (d.command){
     if (d.command === 'record') openRecord();
+    else if (d.command === 'lookup') openLookup();
     else { state.ui = defaultUi(d.command); render(); }
     return true;
   }

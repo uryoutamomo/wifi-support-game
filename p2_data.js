@@ -5,7 +5,6 @@
 const TURN_MIN = 1;          // 時間進行の最小単位＝ゲーム内1分
 const SHIFT_START = 22 * 60; // 22:00 JST
 const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
-const CALLBACKS = 4;         // 1シフトの折り返し枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
@@ -13,6 +12,7 @@ const GAME_FLAGS = {
   dailyTickets: null,
   careerStage: null,
   unlockedBadges: null,
+  solvedScenarios: null,
   soundEnabled: true,
   soundVolume: 0.55,
 };
@@ -27,10 +27,8 @@ const REFUND_POLICY = Object.freeze({
 const COMMAND_DEFS = Object.freeze([
   Object.freeze({ id:'ask',      no:'1', label:'聞く' }),
   Object.freeze({ id:'lookup',   no:'2', label:'調べる' }),
-  Object.freeze({ id:'test',     no:'3', label:'操作' }),
-  Object.freeze({ id:'tell',     no:'4', label:'伝える' }),
-  Object.freeze({ id:'callback', no:'5', label:'折り返す' }),
-  Object.freeze({ id:'record',   no:'6', label:'ログ' }),
+  Object.freeze({ id:'tell',     no:'3', label:'伝える' }),
+  Object.freeze({ id:'record',   no:'4', label:'ログ' }),
 ]);
 
 /* 壁に貼られた今月のスローガン。シフトを始めるたびに1つ選ばれる */
@@ -98,14 +96,14 @@ const CAREER_STAGES = Object.freeze({
   lead:Object.freeze({ label:'リーダー', next:null, condition:'最上位。降格はありません' }),
 });
 const CAREER_BADGES = Object.freeze([
-  Object.freeze({ id:'quiet_night', label:'静かな夜', condition:'全案件で苛立ちが一度も50%を超えない' }),
+  Object.freeze({ id:'quiet_night', label:'静かな夜', condition:'全案件で苛立ちが一度も70%を超えない' }),
   Object.freeze({ id:'no_redial', label:'一度でつながる', condition:'再入電0件・放棄呼0件' }),
-  Object.freeze({ id:'frugal', label:'倹約家', condition:'シフトの総費用0円' }),
-  Object.freeze({ id:'all_first', label:'一発解決', condition:'全案件が一次解決' }),
+  Object.freeze({ id:'frugal', label:'倹約家', condition:'返金と配送をどちらも使わない' }),
+  Object.freeze({ id:'all_first', label:'一発解決', condition:'全案件を解決（再入電があってもよい）' }),
   Object.freeze({ id:'storm', label:'嵐の夜', condition:'同じ夜に苦情と一方的切断の両方が発生' }),
   Object.freeze({ id:'money_talks', label:'お金で解決', condition:'全案件で返金を実施' }),
-  Object.freeze({ id:'ten_nights', label:'十夜勤', condition:'通算10シフトを完了' }),
-  Object.freeze({ id:'clean_record', label:'無苦情記録', condition:'直近3シフトの苦情が0件' }),
+  Object.freeze({ id:'ten_nights', label:'五夜勤', condition:'通算5シフトを完了' }),
+  Object.freeze({ id:'clean_record', label:'無苦情記録', condition:'直近2シフトの苦情が0件' }),
 ]);
 const PRESIDENT_ENDING_LINE = 'ハードワークご苦労様です。あなたが身を粉にして、お値段以上に顧客第一で働いてくれたことを感謝します。明日からもまた夜勤を頑張ってください';
 const MORNING_STAFF = Object.freeze([
@@ -229,11 +227,14 @@ const CALL_FLOW_LINES = Object.freeze({
       expert:'はい。調査結果をお願いします。',
     }),
   }),
+  carrier:Object.freeze({
+    promise:'現地キャリアへの照会には30分ほどかかります。いったんお切りして、結果が分かり次第お電話してもよろしいですか。',
+    consent:'分かりました。お願いします。',
+  }),
   lookup:Object.freeze({
     holdStart:'確認いたしますので、少々お待ちください。',
     talkStart:'お話ししながら確認いたしますね。',
     completePrefix:'お待たせしました。確認結果は、',
-    miss:'該当する記録は確認できませんでした。',
   }),
   recordStart:'少し記録を確認させてください。',
   interrupt:'申し訳ございません、一度お切りします。',
@@ -336,12 +337,15 @@ const REDIAL_STRESS = 25;
 /* ---------- 社内照会プール ---------- */
 
 const LOOKUPS = [
-  { id:'l_plan',    label:'契約プランとデータ使用量を照会', miss:'[契約照会] 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし' },
-  { id:'l_session', label:'ルーターの接続セッション履歴を照会', miss:'[セッション] 直近の異常イベントなし。SIM認識 正常。' },
-  { id:'l_outage',  label:'現地キャリアの障害情報を確認', miss:'[障害情報] 該当エリアの提携キャリア 障害報告なし。' },
-  { id:'l_area',    label:'渡航先の対応エリアと機種対応を確認', miss:'[エリア照会] 渡航先: 対応地域内 ／ 貸出機種: 対応 ✓' },
-  { id:'l_ship',    label:'貸出・返却・配送の記録を照会', miss:'[貸出記録] 通常の貸出。受取済み・返却期限内。特記事項なし。',
+  { id:'l_plan',    label:'契約プランとデータ使用量を照会', title:'契約照会', spoken:'契約は有効で、使用量も制限内でした。', defaultResult:'[契約照会] 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし' },
+  { id:'l_session', label:'ルーターの接続セッション履歴を照会', title:'セッション履歴', spoken:'直近の接続履歴に異常はなく、SIMも正常に認識されています。', defaultResult:'[セッション] 直近の異常イベントなし。SIM認識 正常。' },
+  { id:'l_outage',  label:'現地キャリアの障害情報を確認', title:'障害情報', spoken:'該当エリアの提携キャリアに、障害報告はありませんでした。', defaultResult:'[障害情報] 該当エリアの提携キャリア 障害報告なし。' },
+  { id:'l_area',    label:'渡航先の対応エリアと機種対応を確認', title:'エリア照会', spoken:'渡航先は対応地域内で、貸出機種も対応しています。', defaultResult:'[エリア照会] 渡航先: 対応地域内 ／ 貸出機種: 対応 ✓' },
+  { id:'l_ship',    label:'貸出・返却・配送の記録を照会', title:'貸出記録', spoken:'貸出と返却の記録に問題はなく、特記事項もありませんでした。', defaultResult:'[貸出記録] 通常の貸出。受取済み・返却期限内。特記事項なし。',
     missFact:{ text:'貸出・返却に問題はなく、物流側の案件ではない', out:['logistics'] } },
+  { id:'l_carrier', label:'現地キャリアへ回線契約の状態を問い合わせる', title:'現地キャリア照会', spoken:'現地キャリア側でも契約は有効で、開通状態に問題はありませんでした。', minutes:30, external:true,
+    defaultResult:'[現地キャリア照会] 回線契約: 有効 ／ 開通状態: 正常 ／ 同期エラーなし',
+    missFact:{ text:'現地キャリア側でも回線契約は有効で、開通設定の不備はない', out:['provision'] } },
 ];
 
 /* ---------- 低リスク操作（通話をつないだまま実行） ---------- */
@@ -819,6 +823,46 @@ const SCENARIOS = [
       fact:{ text:'地下から地上へ移動しただけで電波4本となり通信が復旧した', hot:['location'], out:['hardware','sim','carrier','coverage','provision','fup','devices','geo_block','heavy','device_side','device_net','power','logistics'] }, solves:true },
   },
   debrief:'場所が原因なら、設定変更より先に<em>遮蔽物の外へ移動する</em>のが最も速く安全です。地下から地上へ出ただけで電波が1本から4本へ戻りました。場所を変えず再起動を繰り返すのは時間とストレスの無駄です。'
+},
+
+/* === 12. シドニー：日付境界で回線停止。契約終了日の登録不備 === */
+{
+  id:'S12', arrive:68, name:'吉田 和子', age:64, type:'novice', abandonAfter:28, callbackTo:'hotel',
+  contractId:{ minutes:3, text:'予約番号ですね…。箱の裏に、GDW-348621とあります。これで合っていますか？' },
+  city:'シドニー', cityEn:'SYDNEY', localOffset:1, device:'GD-500', plan:'オーストラリア ／ 無制限プラン',
+  opening:'夜になって急に圏外になりました。さっきまで使えていたのに、再起動しても戻りません。私、何か設定を変えてしまったのでしょうか。',
+  smalltalk:[{ id:'st_s12_night', reveal:'q_when', askLabel:'夜になってから、急に使えなくなったのですね？', tellLabel:'遅い時間に突然つながらなくなると、ご不安ですよね', goodReply:'そうなんです。日付が変わる頃までは使えていたのですが…。ゆっくり確認していただけると助かります。', badReply:'ありがとうございます。でも、夜になって急に止まった理由が分からなくて…。' }],
+  panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:73, ssid:'Globaldesk-4826' },
+  trueCause:'provision', best:'r_escalate_prov', partial:[],
+  replies:{
+    q_when:{ text:'時計を見たら、ちょうど日付が変わったあたりです。23時台は使えていて、0時を過ぎた直後から急に圏外になりました。',
+      fact:{ text:'現地の日付が変わる境目までは正常で、その直後に回線だけが停止した', hot:['provision'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','coverage','sim','hardware','logistics'] } },
+    q_lamp:{ text:'「圏外」と出ています。SIMがないという表示はありません。回線名だけが消えています。',
+      fact:{ text:'SIMは認識しているが、回線登録だけが失われている', hot:['provision','carrier'], out:['sim','hardware','device_side','device_net'] } },
+    q_other_device:{ text:'スマートフォンとパソコンの両方が同じです。どちらもWi-Fiにはつながりますが、インターネットが使えません。',
+      fact:{ text:'複数端末が本体には接続できるが、回線通信だけができない', out:['device_side','device_net','devices'] } },
+    q_where:{ text:'シドニー中心部のホテルです。昼間も同じ部屋で普通に使えていました。',
+      fact:{ text:'同じ市内ホテルの部屋で直前まで通信できていた', out:['location','coverage'] } },
+    q_moved:{ text:'ロビーとホテルの外でも試しましたが、圏外のままです。',
+      fact:{ text:'ホテル内外へ移動しても圏外のまま', out:['location'] } },
+    q_battery:{ text:'73%あります。充電もできています。', fact:{ text:'電源と充電は正常', out:['power'] } },
+    q_stay:{ text:'シドニー中心部のホテル、512号室です。折り返しでしたら、こちらへお願いします。' },
+  },
+  lookups:{
+    l_plan:{ text:'[契約照会] 契約: 有効 ／ 利用終了予定: 9/4 ／ 使用量: 制限内 ／ 速度制限なし',
+      fact:{ text:'自社の契約登録では利用期間内で、容量制限もない', hot:['provision'], out:['fup','heavy','logistics'] } },
+    l_session:{ text:'[セッション] 現地時間 23:59 まで通信正常 ／ 00:00 以降、網側から登録拒否 ／ SIM認識: 正常',
+      fact:{ text:'日付境界を挟んで網側の登録拒否へ切り替わった', hot:['provision','carrier'], out:['sim','hardware','power'] } },
+    l_outage:{ text:'[障害情報] シドニー周辺の提携キャリア 障害報告なし。', fact:{ text:'周辺の広域障害は報告されていない', out:['carrier'] } },
+    l_area:{ text:'[エリア照会] シドニー中心部 ／ GD-500: 対応 ✓ ／ 提携キャリア: 対応 ✓', fact:{ text:'地域と機種は対応範囲内', out:['coverage'] } },
+    l_carrier:{ text:'[現地キャリア照会] 当該回線は現地時間 00:00 に契約満了として停止 ／ 自社登録の終了日と同期不一致 ／ 再開通可能',
+      fact:{ text:'現地キャリア側だけ終了日が早く登録され、日付境界で回線を停止していた', hot:['provision'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','carrier','coverage','sim','hardware','logistics'] } },
+  },
+  tests:{
+    t_reboot:{ text:'再起動しましたが、やはり圏外です。SIMがないという表示は出ていません。', fact:{ text:'再起動しても回線登録は戻らない', out:['power','device_side'] } },
+    t_move:{ text:'ホテルの外まで出ましたが、圏外のままです。', fact:{ text:'屋外へ移動しても回線登録は戻らない', out:['location','coverage'] } },
+  },
+  debrief:'現地の日付が変わった直後に突然止まったことが重要な手がかりです。自社の契約照会は有効でも、現地キャリアでは終了日が早く登録され、<em>現地時間0時に契約満了として回線が停止</em>していました。現地照会を使えばほぼ確定できますが、日付境界と各原因の除外だけでもプロビジョニング不備へ到達できます。'
 },
 
 ];

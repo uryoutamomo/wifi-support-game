@@ -5,8 +5,8 @@ const { readGameSource, functionSource: extractFunctionSource } = require('./tes
 
 const game = readGameSource(__dirname);
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,QUESTIONS,TESTS,REMEDIES,SCENARIOS};';
-const { CAUSES, QUESTIONS, TESTS, REMEDIES, SCENARIOS } = new Function(dataSource)();
+  '\nreturn {CAUSES,QUESTIONS,LOOKUPS,TESTS,REMEDIES,SCENARIOS,COMMAND_DEFS};';
+const { CAUSES, QUESTIONS, LOOKUPS, TESTS, REMEDIES, SCENARIOS, COMMAND_DEFS } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -21,7 +21,7 @@ assert.equal(nextInboundDelta([
 assert.equal(nextInboundDelta([{ state:'waiting', arrivedTurn:0 }], 2), null, '未来の着信がないのに待機時間を作る');
 
 const idleSource = functionSource('advanceIdleOffice');
-assert(idleSource.includes("t.state === 'waiting' || t.state === 'callback'"), '応答可能な電話があるのに時刻を飛ばす');
+assert(idleSource.includes("t.state === 'waiting'") && idleSource.includes("t.state === 'callback'") && idleSource.includes('t.callbackDue <= state.clock'), '応答可能な着信または折り返しがあるのに時刻を飛ばす');
 assert(idleSource.includes('activateDueInbound()'), '到着時刻と現在時刻が同じ電話を待機中へ移せない');
 assert(idleSource.includes('nextInboundDelta(state.tickets, state.turn)'), '次の着信まで進める処理がない');
 assert(functionSource('enterOffice').includes('advanceIdleOffice()'), 'オフィスへ戻る際に次の着信を起こしていない');
@@ -40,6 +40,7 @@ const causeIds = new Set(CAUSES.map(cause => cause.id));
 const questionIds = new Set(QUESTIONS.map(question => question.id));
 const testIds = new Set(TESTS.map(test => test.id));
 SCENARIOS.forEach(scenario => {
+  assert(['hotel','mobile'].includes(scenario.callbackTo), scenario.id + ': 将来復帰用callbackToが残っていない');
   assert(causeIds.has(scenario.trueCause), scenario.id + ': trueCause が原因マスタにない');
   const remedies = REMEDIES[scenario.trueCause] || [];
   const best = remedies.find(remedy => remedy.id === scenario.best);
@@ -57,8 +58,29 @@ SCENARIOS.forEach(scenario => {
   if (best.requiresLongStay) assert(scenario.stayDays >= best.requiresLongStay, scenario.id + ': 正解配送なのに滞在期間が条件を満たさない');
   if (best.requiresConsent) assert(scenario.wantsReplacement === true, scenario.id + ': 正解配送なのに顧客が希望していない');
 });
+const carrierLookup = LOOKUPS.find(lookup => lookup.id === 'l_carrier');
+assert(carrierLookup && carrierLookup.minutes === 30 && carrierLookup.external === true, '現地キャリア照会が30分の社外照会ではない');
+assert.deepEqual(COMMAND_DEFS.map(command => command.label), ['聞く','調べる','伝える','ログ'], '折り返しが主コマンドへ戻っている');
+assert(functionSource('startCarrierCallback').includes("state.ui.lookup !== lookup.id") && functionSource('resumeCallback').includes("t.state !== 'callback'"), '現地キャリア照会以外から折り返しを開始できる');
+assert(SCENARIOS.every(scenario => {
+  const best = (REMEDIES[scenario.trueCause] || []).find(remedy => remedy.id === scenario.best);
+  return best && best.needsLookup !== 'l_carrier';
+}), '現地キャリア照会が正解ルートの必須条件になっている');
 
-// 全案件を最短で閉じても、次の着信へ順番に到達して最後まで終われる。
+// §27-3 検査8: 調べる・ログを開けない状態でも、「聞く」で本人特定して全案件の正解ルートへ進める。
+const identificationReady = new Function(functionSource('identificationReady') + '\nreturn identificationReady;')();
+assert(!identificationReady({identified:false,nameKnown:true,destinationKnown:false}), '氏名だけで本人特定してログを開ける');
+assert(identificationReady({identified:true,nameKnown:false,destinationKnown:false}), '契約IDによる本人特定でログを開けない');
+assert(identificationReady({identified:false,nameKnown:true,destinationKnown:true}), '氏名と渡航先による本人特定でログを開けない');
+const requireIdentificationSource = functionSource('requireIdentification');
+const openLookupSource = functionSource('openLookup');
+const openRecordSource = functionSource('openRecord');
+assert(requireIdentificationSource.includes('identificationReady(t)') && requireIdentificationSource.includes("defaultUi('identity_denied')"), '調べる・ログの共通本人確認ガードがない');
+assert(openLookupSource.includes('requireIdentification(t)') && !openLookupSource.includes('spendOnCall'), '本人特定前の調べる拒否が時間無消費でない');
+assert(openRecordSource.includes('requireIdentification(t)') && openRecordSource.indexOf('requireIdentification(t)') < openRecordSource.indexOf('spendOnCall(t, 1, 0)'), '本人特定前のログ拒否が時間無消費でない');
+assert(questionIds.has('q_contract') && questionIds.has('q_name') && questionIds.has('q_destination'), 'ログ拒否後に本人特定へ進む質問がない');
+
+// §25-7 検査9: l_carrierも折り返しも使わず全案件を最短で閉じ、次の着信へ順番に到達して最後まで終われる。
 const simulated = SCENARIOS.map(scenario => ({ state:'inbound', arrivedTurn:scenario.arrive, id:scenario.id }));
 let simulatedTurn = 0;
 const handled = [];

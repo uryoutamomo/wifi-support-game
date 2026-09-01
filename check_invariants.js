@@ -28,6 +28,7 @@ const EXPECT = {
   S9: { cause:'logistics',   best:'r_transfer_logi',   noOut:null,               partial:['r_come_tomorrow'],tone:'brief' },
   S10:{ cause:'hardware',    best:'r_hardware_swap',   noOut:null,               partial:['r_hardware_no_swap'],tone:'warm' },
   S11:{ cause:'location',    best:'r_move_guide',      noOut:null,               partial:['r_window_stationary'],tone:'brief' },
+  S12:{ cause:'provision',   best:'r_escalate_prov',   noOut:null,               partial:[],                 tone:'warm' },
 };
 
 // 依頼で渡した液晶データ
@@ -43,6 +44,7 @@ const PANEL = {
   S9:null,
   S10:{ bars:null, carrier:null,        sim:'none', throttle:false, clients:0, battery:76 },
   S11:{ bars:1, carrier:'TIM',          sim:'ok',   throttle:false, clients:2, battery:68 },
+  S12:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:73 },
 };
 
 let ng = 0;
@@ -51,7 +53,7 @@ const bad = (m) => { console.log('  NG  ' + m); ng++; };
 if (JSON.stringify(SLOGANS) !== JSON.stringify(EXPECTED_SLOGANS)) bad('SLOGANS が確定6文言・順番と一致しない');
 if (SLOGANS.some(slogan => !slogan)) bad('SLOGANS に空文字がある');
 if (LUCK_RATE !== 0.9) bad('運の本来どおり率が0.9ではない');
-if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true,dailyTickets:null,careerStage:null,unlockedBadges:null,soundEnabled:true,soundVolume:0.55})) bad('運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う');
+if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55})) bad('運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う');
 if (JSON.stringify(REFUND_POLICY) !== JSON.stringify({
   amount:2400,
   company:{causes:['hardware','provision','logistics','carrier','coverage'],satisfactionRate:0.5},
@@ -158,8 +160,8 @@ if (!simEscalation || simEscalation.needsTest !== 't_simout' || simEscalation.ne
 const hardwareSwap = D.REMEDIES.hardware.find(r => r.id === 'r_hardware_swap');
 if (!hardwareSwap || hardwareSwap.needsTestCount !== 2 || hardwareSwap.requiresLongStay !== 3 || !hardwareSwap.requiresConsent) bad('機器故障の代替機配送条件が確定仕様と違う');
 
-// 5-2〜5-4: 通話料、折り返し枠、折り返し先の仕様はゲーム本体とは独立して固定する。
-const CALLBACK_TO = { S1:'hotel', S2:'mobile', S3:'mobile', S4:'hotel', S5:'hotel', S6:'mobile', S7:'mobile', S8:'hotel', S9:'mobile', S10:'hotel', S11:'mobile' };
+// §25: 折り返し先データは12案件すべてに持たせる。
+const CALLBACK_TO = { S1:'hotel', S2:'mobile', S3:'mobile', S4:'hotel', S5:'hotel', S6:'mobile', S7:'mobile', S8:'hotel', S9:'mobile', S10:'hotel', S11:'mobile', S12:'hotel' };
 SCENARIOS.forEach(s => {
   if (s.callbackTo !== CALLBACK_TO[s.id]) bad(s.id + ': callbackTo が ' + CALLBACK_TO[s.id] + ' のはずが ' + s.callbackTo);
 });
@@ -187,12 +189,81 @@ if (!gameSource.includes("$('queue-count').textContent")) bad('待ち件数のco
 if (gameSource.includes('mobilePane')) bad('廃止したペイン切替状態 mobilePane が残っている');
 if ((gameSource.match(/farewellLine\(/g) || []).length !== 3 || !gameSource.includes("if (satisfied){") || !gameSource.includes("farewellLine(t.s, 'partial')")) bad('別れの言葉が通常解決と満足した返金だけに限定されていない');
 if (!/const CALL_RATE_PER_MIN = 180;/.test(gameSource)) bad('国際通話料が1分¥180ではない');
-if (!/const CALLBACKS = 4;/.test(fs.readFileSync(__dirname + '/p2_data.js', 'utf8'))) bad('折り返し枠が4回ではない');
-if (!/t\.callbackPenalty = t\.callbackDestination === 'hotel' \? 1\.0 : 0\.5;/.test(gameSource)) bad('誤った折り返し先のCSATペナルティが hotel:-1.0 / mobile:-0.5 ではない');
-const resumeCallbackStart = gameSource.indexOf('function resumeCallback(');
-const resumeCallbackEnd = gameSource.indexOf('\nfunction spendOnCall', resumeCallbackStart);
-const resumeCallbackSource = resumeCallbackStart < 0 || resumeCallbackEnd < 0 ? '' : gameSource.slice(resumeCallbackStart, resumeCallbackEnd);
-if (!/t\.callbackDestination !== t\.s\.callbackTo[\s\S]*?spendOnCall\(t, 2, 0\);/.test(resumeCallbackSource)) bad('誤った折り返し先の2分の時間ロスがない');
+if (/const CALLBACKS|callbacksLeft/.test(gameSource)) bad('現地キャリア照会と無関係な折り返し枠が戻っている');
+const carrierLookup25 = LOOKUPS.find(lookup => lookup.id === 'l_carrier');
+if (!carrierLookup25 || carrierLookup25.minutes !== 30 || carrierLookup25.external !== true) bad('l_carrierが30分の社外照会ではない');
+if (!sourceOf('doLookup').includes('if (l.external) return') || !sourceOf('startCarrierCallback').includes("state.ui.lookup !== lookup.id")) bad('l_carrier以外または通話継続から折り返しを開始できる');
+if (COMMAND_DEFS.length !== 4 || COMMAND_DEFS.some(command => command.id === 'callback')) bad('折り返すが5つ目の主コマンドへ戻っている');
+if (!pageSource.includes('data-office-callback="1"') || !pageSource.includes('id="office-tray-status"')) bad('オフィスの電話をかけるボタンまたは折り返し待ち表示がない');
+if (!sourceOf('resumeCallback').includes('t.callbackDestination !== t.s.callbackTo') || !sourceOf('doClose').includes('base -= t.callbackPenalty || 0')) bad('折り返し先違いの罰が戻っていない');
+if (!sourceOf('resumeCallback').includes('callbackOperatorLine(t)') || !sourceOf('resumeCallback').includes('CALL_FLOW_LINES.callback.replies[t.s.type]')) bad('折り返し再接続の会話が戻っていない');
+const s12Carrier25 = SCENARIOS.find(s => s.id === 'S12');
+if (!s12Carrier25 || !s12Carrier25.lookups.l_plan.text.includes('契約: 有効') || !s12Carrier25.lookups.l_carrier.text.includes('00:00 に契約満了として停止') || (s12Carrier25.lookups.l_carrier.fact.hot || []).join(',') !== 'provision' || s12Carrier25.lookups.l_carrier.fact.out.length !== CAUSES.length - 1) bad('S12の自社契約照会と現地キャリア照会の食い違い・provision確定力がない');
+if (/00:00|0時|日付が変わ/.test(s12Carrier25.opening) || !(s12Carrier25.replies.q_when.fact.hot || []).includes('provision')) bad('S12の第一声が正確な日付境界を漏らす、またはq_whenで手がかりを得られない');
+if (!sourceOf('advanceIdleOffice').includes("t.state === 'waiting'") || !sourceOf('advanceIdleOffice').includes("t.state === 'callback'") || !sourceOf('handleOfficeAction').includes("firstTicketIn('waiting', 'arrivedTurn')")) bad('折り返し中にほかの電話を取れない');
+const fiveNightBadge25 = CAREER_BADGES.find(badge => badge.id === 'ten_nights');
+if (!fiveNightBadge25 || fiveNightBadge25.label !== '五夜勤' || fiveNightBadge25.condition !== '通算5シフトを完了') bad('ten_nightsのID互換を保った「五夜勤」表示になっていない');
+
+// §26: 既定照会結果と顧客向け要約を分離し、共通のシステム画面で見せる。
+if (Object.prototype.hasOwnProperty.call(CALL_FLOW_LINES.lookup, 'miss') || gameSource.includes('CALL_FLOW_LINES.lookup.miss') || gameSource.includes('該当する記録は確認できませんでした')) bad('§26 矛盾した照会miss要約が残っている');
+if (!LOOKUPS.every(lookup => lookup.spoken && lookup.defaultResult && lookup.title && !Object.prototype.hasOwnProperty.call(lookup, 'miss'))) bad('§26 LOOKUPSのspoken・defaultResult・titleが揃っていない');
+if (!QUESTIONS.every(question => typeof question.miss === 'string' && question.miss.length)) bad('§26 QUESTIONSの二度聞き用missを損なっている');
+const finishLookup26 = sourceOf('finishLookup');
+const lookupSystemLine26 = sourceOf('lookupSystemLine');
+const recentTranscript26 = sourceOf('recentTranscriptLines');
+if (!finishLookup26.includes('lookupSystemLine(l, null)') || !finishLookup26.includes('l.spoken') || finishLookup26.includes('lookup.miss')) bad('§26 案件固有結果なしで既定結果とspokenを使わない');
+if (!lookupSystemLine26.includes('typed:true') || !recentTranscript26.includes('latestLookupIndex') || !recentTranscript26.includes('return [delivered[latestLookupIndex], playerAfter]')) bad('§26 照会直後にシステム結果画面と読み上げ要約が表示されない');
+const lookupScreen26 = sourceOf('renderLookupSystemScreen');
+const lookupRows26 = sourceOf('lookupResultRows');
+if (!lookupScreen26.includes('system-screen lookup-system-screen') || !lookupScreen26.includes('lookupTitle') || !pageSource.includes('.system-screen{') || !pageSource.includes('font-family: var(--mono)')) bad('§26 照会結果が枠・タイトル・等幅のシステム画面ではない');
+if (!lookupRows26.includes('／') || !lookupScreen26.includes('lookup-system-row')) bad('§26 照会結果を項目ごとの行へ分けられない');
+if (!pageSource.includes('.lcd,.lcd.obscured,.lcd.missing,.system-screen{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }')) bad('§26 システム画面の配色がROUTER DISPLAYと揃っていない');
+if (!lookupScreen26.includes("line.viz ? renderLookupViz(line.viz) : ''") || !lookupScreen26.includes("line.external ? ' external'") || !lookupScreen26.includes('外部照会')) bad('§26 vizの画面内表示またはl_carrierの外部照会表示がない');
+
+// §27: 調べる・ログは常時押せ、未特定なら共通の時間無消費システム画面で拒否する。
+const commandMenu27 = sourceOf('renderCommandMenu');
+const requireIdentification27 = sourceOf('requireIdentification');
+const openLookup27 = sourceOf('openLookup');
+const openRecord27 = sourceOf('openRecord');
+const denied27 = sourceOf('renderIdentityDenied');
+const record27 = sourceOf('renderRecord');
+const recordTranscript27 = sourceOf('renderRecordTranscript');
+if (/record:\{[^}]*disabled/.test(commandMenu27)) bad('§27 ログが本人特定前に無効化されている');
+if (/lookup:\{[^}]*disabled/.test(commandMenu27) || commandMenu27.includes('disabled:!t.identified')) bad('§27 調べるが本人特定前に無効化されている');
+if (!requireIdentification27.includes('identificationReady(t)') || /nameKnown\s*&&\s*t\.destinationKnown/.test(requireIdentification27)) bad('§27 共通ガードが既存のidentificationReady以外で判定している');
+if (!openRecord27.includes('requireIdentification(t)') || !openLookup27.includes('requireIdentification(t)')) bad('§27 調べる・ログが共通の本人確認ガードを通らない');
+const denyIndex27 = requireIdentification27.indexOf("defaultUi('identity_denied')");
+const spendIndex27 = openRecord27.indexOf('spendOnCall(t, 1, 0)');
+if (denyIndex27 < 0 || spendIndex27 < 0 || openRecord27.indexOf('requireIdentification(t)') >= spendIndex27 || requireIdentification27.includes('spendOnCall') || openLookup27.includes('spendOnCall')) bad('§27 本人特定前の拒否で時間を消費する');
+if (!denied27.includes('system-screen record-system-screen identity-denied-screen denied') || !denied27.includes('フルネームと渡航先、または契約IDを確認してください。')) bad('§27 本人特定前の要件を共通システム画面で案内しない');
+if (!record27.includes('system-screen record-system-screen') || !record27.includes('<b>通話記録</b>') || !record27.includes('renderRecordTranscript(t)')) bad('§27 通話記録が共通システム画面で全履歴を表示しない');
+if (!recordTranscript27.includes('t.transcript.map') || !recordTranscript27.includes("cust:'客'") || !recordTranscript27.includes("sys:'社内システム'") || !recordTranscript27.includes('line.text')) bad('§27 通話記録から従来の発言・メモ・システム応答が欠ける');
+
+// §28: 12案件解決の表エンディングと、8バッジの裏エンディングを独立して管理する。
+const freshCareer28 = sourceOf('freshCareerRecord');
+const validCareer28 = sourceOf('validCareerRecord');
+const normalizeCareer28 = sourceOf('normalizeCareerRecord');
+const appendCareer28 = sourceOf('appendCareerShift');
+const solvedIds28 = sourceOf('solvedScenarioIdsFromTickets');
+const endingQueue28 = sourceOf('careerEndingQueue');
+const careerFlags28 = sourceOf('careerWithFlags');
+const careerContext28 = sourceOf('careerShiftContext');
+const careerDebrief28 = sourceOf('careerDebriefHtml');
+const secretEnding28 = sourceOf('showSecretEnding');
+const nextEnding28 = sourceOf('pendingCareerEndingType');
+const balance28 = sourceOf('showBalanceConsole');
+if (!freshCareer28.includes('solvedScenarios:[]') || !freshCareer28.includes('secretEnding:false') || !validCareer28.includes('value.solvedScenarios') || !validCareer28.includes("typeof value.secretEnding !== 'boolean'")) bad('§28 表裏エンディングの保存項目が揃っていない');
+if (!normalizeCareer28.includes('next.solvedScenarios === undefined') || !normalizeCareer28.includes('next.secretEnding === undefined') || !sourceOf('readCareerRecord').includes('normalizeCareerRecord')) bad('§28 旧v1勤務記録を新しい保存形式へ移行できない');
+if (!solvedIds28.includes("result.kind === 'closed'") || !solvedIds28.includes("result.kind === 'refunded' && result.satisfied === true") || !solvedIds28.includes('new Set')) bad('§28 解決・満足返金だけを重複なしで数えない');
+if (!appendCareer28.includes('career.solvedScenarios.concat(context.solvedScenarioIds || [])') || appendCareer28.indexOf('career.shifts = career.shifts.slice(-30)') > appendCareer28.indexOf('career.solvedScenarios =')) bad('§28 solvedScenariosが30日制限と分離されていない');
+if (endingQueue28.indexOf("queue.push('career')") < 0 || endingQueue28.indexOf("queue.push('secret')") < 0 || endingQueue28.indexOf("queue.push('career')") > endingQueue28.indexOf("queue.push('secret')")) bad('§28 表と裏の条件または同時達成時の表示順が違う');
+if (!endingQueue28.includes('career.solvedScenarios.length === SCENARIOS.length') || !endingQueue28.includes('!career.ending') || !endingQueue28.includes('career.badges.length === CAREER_BADGES.length') || !endingQueue28.includes('!career.secretEnding')) bad('§28 表・裏を独立判定できない、または閲覧済みが再発火する');
+if (!careerContext28.includes('solvedScenarioIds:solvedScenarioIdsFromTickets(tickets)')) bad('§28 シフト結果から解決済み案件を保存経路へ渡さない');
+if (!secretEnding28.includes("showCareerEnding(replay, 'secret')") || secretEnding28.includes('準備中') || !sourceOf('showCareerEnding').includes("endingType === 'secret'") || !sourceOf('showCareerEnding').includes('state.career.secretEnding = true')) bad('§28 裏エンディングが表と同じ演出を使わない、または閲覧済みを保存しない');
+if (!sourceOf('careerEndingEyebrowHtml').includes("state.endingType === 'secret'") || !sourceOf('careerEndingEyebrowHtml').includes('aria-label="裏エンディング">裏</span>')) bad('§28 同じ朝礼演出の裏エンディングに小さな印がない');
+if (!nextEnding28.includes("type === 'career' ? !state.career.ending : !state.career.secretEnding") || !sourceOf('continueAfterCareerEnding').includes("if (next === 'secret')")) bad('§28 表の後に裏を続ける、または両方を一度ずつにする制御がない');
+if (!careerDebrief28.includes("解決した案件 ' + career.solvedScenarios.length + ' / ' + SCENARIOS.length") || careerDebrief28.includes('SCENARIOS.map') || careerDebrief28.includes('scenario.name')) bad('§28 レポートが解決数を出さない、または未解決案件名を漏らす');
+if (!Object.prototype.hasOwnProperty.call(GAME_FLAGS,'solvedScenarios') || GAME_FLAGS.solvedScenarios !== null || !careerFlags28.includes('flags.solvedScenarios') || !balance28.includes('showCareerEnding(true)') || !balance28.includes('showSecretEnding(true)')) bad('§28 GAME_FLAGSと調から表・裏エンディングを再現できない');
 
 // 通話フロー v2: 本人確認の3問は診断の手がかりを増やさない。
 const IDENTITY_QUESTIONS = ['q_name', 'q_destination', 'q_contract'];
@@ -232,6 +303,7 @@ const CONTRACT_IDS = {
   S9:{ minutes:1, number:'GDW-091774' },
   S10:{ minutes:2, number:'GDW-814263' },
   S11:{ minutes:1, number:'GDW-562940' },
+  S12:{ minutes:3, number:'GDW-348621' },
 };
 SCENARIOS.forEach(s => {
   const want = CONTRACT_IDS[s.id];
@@ -364,7 +436,7 @@ if (JSON.stringify(SOOTHE_EFFECTS) !== JSON.stringify(SOOTHE_BY_TYPE)) bad('タ�
 if (JSON.stringify(SMALLTALK_EFFECTS) !== JSON.stringify({anxious:-10,novice:-12,hurried:14,expert:6})) bad('タイプ別の雑談効果が確定表と違う');
 if (JSON.stringify(IDENTITY_CALMING_EFFECTS) !== JSON.stringify({anxious:-10,novice:-8,hurried:-4,expert:0})) bad('高ストレス本人確認のタイプ別効果が確定表と違う');
 const requiredTopicFields = ['id','reveal','askLabel','tellLabel','goodReply','badReply'];
-if (SCENARIOS.length !== 11 || !SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0)))) bad('全11シナリオの雑談話題6項目が揃っていない');
+if (SCENARIOS.length !== 12 || !SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0)))) bad('全12シナリオの雑談話題6項目が揃っていない');
 const section13QuestionIds = new Set(QUESTIONS.map(question => question.id));
 const universallyReachableQuestions = new Set(['q_name','q_destination','q_contract']);
 if (!SCENARIOS.every(scenario => scenario.smalltalk.every(topic => topic.reveal === 'opening' || (section13QuestionIds.has(topic.reveal) && (universallyReachableQuestions.has(topic.reveal) || Boolean((scenario.replies || {})[topic.reveal])))))) bad('雑談話題のrevealが実際に到達できる質問へ接続されていない');
@@ -484,7 +556,7 @@ if (!gameSource.includes("result.kind === 'closed' || result.kind === 'refunded'
 const outageRefundRemedy = REMEDIES.carrier.find(remedy => remedy.id === 'r_outage_explain');
 if (!outageRefundRemedy || outageRefundRemedy.cost !== 2400 || !outageRefundRemedy.needsOutage || outageRefundRemedy.kind !== 'resolve') bad('広域障害の正規対処 r_outage_explain が損なわれている');
 
-// §15-5: 1日は11案件から2〜5件を重複なく選び、先頭の到着枠へ詰める。
+// §15-5/§25: 1日は12案件から2〜5件を重複なく選び、先頭の到着枠へ詰める。
 try {
   const dailyCount15 = new Function(sourceOf('dailyTicketCount') + '\nreturn dailyTicketCount;')();
   const shuffle15 = new Function(sourceOf('shuffleScenarios') + '\nreturn shuffleScenarios;')();
@@ -509,7 +581,7 @@ try {
   bad('日次案件の選択ロジックを検査できない: ' + error.message);
 }
 // 5. 非選択案件を参照せず、その日のstate.ticketsだけを表示する。
-if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('renderWorldStrip').includes('state.tickets.filter') || !sourceOf('renderOffice').includes('state.tickets.filter')) bad('未選択案件が待機・折り返し・世界地図から除外されない');
+if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('renderWorldStrip').includes('state.tickets.filter') || !sourceOf('renderOffice').includes('state.tickets.filter')) bad('未選択案件が待機・世界地図から除外されない');
 // 6. 実際の全件closedで既存日報へ進む。
 if (!sourceOf('checkShiftEnd').includes("state.tickets.some(t => t.state !== 'closed')") || !sourceOf('checkShiftEnd').includes("state.phase = 'report'; renderReport()")) bad('その日の全件終了でシフト終了レポートへ到達しない');
 // 7. 集計と表示が実件数を使い、2件の日の空欄にも表示を持つ。
@@ -533,11 +605,6 @@ const misFailure21 = close21.indexOf('CALL_FLOW_LINES.misdiagnosis.failure');
 const misApology21 = close21.indexOf('CALL_FLOW_LINES.misdiagnosis.apology');
 const misStage21 = close21.indexOf("pendingConversation = { kind:'second_misdiagnosis'");
 if (misFailure21 < 0 || misFailure21 >= misApology21 || misApology21 >= misStage21 || !sourceOf('advanceConversationFlow').includes('endAngryCall(t, reason)')) bad('誤診2回目が不調報告・謝罪・最終怒りの順ではない');
-// 5-6. 折り返しの双方発話と、宛先違い・遅刻の発話化。
-const callback21 = sourceOf('resumeCallback');
-const callbackLine21 = sourceOf('callbackOperatorLine');
-if (!callback21.includes("{ who:'me', text:callbackOperatorLine(t) }") || !callback21.includes("{ who:'cust', text:CALL_FLOW_LINES.callback.replies[t.s.type] }")) bad('折り返し再接続に双方の発話がない');
-if (callback21.includes("who:'note'") || !callbackLine21.includes('lateWrongHotel') || !callbackLine21.includes('lateWrongMobile')) bad('折り返しの宛先違い・遅刻が発話になっていない');
 // 7. 社内照会の開始・完了・要約。
 const lookupStart21 = sourceOf('doLookup');
 const lookupFinish21 = sourceOf('finishLookup');

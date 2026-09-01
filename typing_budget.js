@@ -30,7 +30,7 @@ SCENARIOS.forEach(s => {
     lines.push([s.id + ' 雑談失敗 ' + topic.id, topic.badReply]);
   });
 });
-LOOKUPS.forEach(l => lines.push(['(空振り) ' + l.id, l.miss]));
+LOOKUPS.forEach(l => lines.push(['(既定結果) ' + l.id, l.defaultResult], ['(顧客向け要約) ' + l.id, l.spoken]));
 Object.entries(TYPES).forEach(([type, data]) => {
   ['irritated','angry','furious'].forEach(stage => data[stage].forEach((text, index) => lines.push([type + ' ' + stage + '#' + (index + 1), text])));
   ['sootheReply','sootheMissReply','sootheRepeatReply'].forEach(key => lines.push([type + ' ' + key, data[key]]));

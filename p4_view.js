@@ -173,7 +173,7 @@ function renderWorldStrip(){
     else if (t.state === 'callback') cls = 'callback';
     else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
 
-    const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '折り返し待ち' : cls === 'abandoned' ? '放棄呼' : '完了';
+    const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '現地キャリア照会中' : cls === 'abandoned' ? '放棄呼' : '完了';
     return '<span class="world-pin ' + cls + '" style="left:' + pos.toFixed(2) + '%;--stack:' + stack + '" ' +
       'title="' + esc(t.s.city) + ' ' + esc(localClock(t)) + ' ' + status + '" aria-label="' + esc(t.s.city) + ' ' + status + '">' +
       '<i class="world-pin-dot"></i><span class="world-pin-label">' + esc(t.s.id) + '</span></span>';
@@ -195,8 +195,8 @@ function renderQueue(){
   const callbacks = state.tickets.filter(t => t.state === 'callback');
   const longest = q.length ? Math.max(0, ...q.map(t => state.turn - t.arrivedTurn)) : 0;
   $('queue-count').textContent = q.length + '件';
-  $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>折り返し待ち <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
-  $('queue-hint').innerHTML = '終話後はオフィスで、新しい電話を取るか、約束した相手へ電話をかけるかを選びます。';
+  $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>現地キャリア照会中 <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
+  $('queue-hint').innerHTML = '終話後はオフィスで、新しい電話を取るか、照会結果が出た相手へ電話をかけます。';
 }
 
 function pixelRect(ctx, color, x, y, width, height){
@@ -369,6 +369,7 @@ function renderOffice(){
   renderWorldStrip();
   const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
   const callbacks = state.tickets.filter(t => t.state === 'callback').sort((a,b) => a.callbackDue - b.callbackDue);
+  const readyCallbacks = callbacks.filter(t => t.callbackDue <= state.clock);
   const redials = waiting.filter(t => t.redialOpening);
   const shipments = state.tickets.filter(t => t.shipment).length;
   $('office-phone').classList.toggle('ringing', waiting.length > 0);
@@ -388,9 +389,9 @@ function renderOffice(){
     : '<div class="blank">特記事項なし</div>';
   $('office-answer').disabled = !waiting.length;
   $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
-  $('office-callback').disabled = !callbacks.length;
+  $('office-callback').disabled = !readyCallbacks.length;
   $('office-callback-status').textContent = callbacks.length
-    ? '折り返し ' + callbacks.length + '件 ／ 最短 ' + fmtClock(callbacks[0].callbackDue)
+    ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '照会中 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
     : '折り返し 0件';
 }
 
@@ -455,6 +456,17 @@ function renderStressPanel(t){
 function recentTranscriptLines(t){
   const pending = pendingTypedLine(t);
   const end = pending ? t.transcript.indexOf(pending) + 1 : t.transcript.length;
+  const delivered = t.transcript.slice(0, end);
+  let latestLookupIndex = -1;
+  for (let i = delivered.length - 1; i >= 0; i--){
+    if (delivered[i].who === 'sys' && delivered[i].lookupTitle){ latestLookupIndex = i; break; }
+  }
+  if (latestLookupIndex >= 0){
+    const afterLookup = delivered.slice(latestLookupIndex + 1);
+    const customerAfter = afterLookup.some(line => line.who === 'cust');
+    const playerAfter = afterLookup.slice().reverse().find(line => line.who === 'me');
+    if (!customerAfter && playerAfter) return [delivered[latestLookupIndex], playerAfter];
+  }
   const spoken = t.transcript.slice(0, end).filter(line => line.who === 'cust' || line.who === 'me');
   if (spoken.length && spoken[spoken.length - 1].who === 'me'){
     const player = spoken[spoken.length - 1];
@@ -478,8 +490,10 @@ function renderTranscript(t, full){
     if ((l.who === 'cust' || l.who === 'sys') && !l.typed && l !== pending) return '';
     const who = { cust:'客', me:'あなた', sys:'社内システム', note:'メモ' }[l.who];
     const typing = l === pending;
-    return '<div class="line ' + l.who + (typing ? ' typing' : '') + '"><span class="who">' + who + '</span>' +
-      '<span class="say">' + (typing ? '' : esc(l.text) + (l.viz ? renderLookupViz(l.viz) : '')) + '</span></div>';
+    const lookupResult = l.who === 'sys' && l.lookupTitle;
+    const content = typing ? '' : lookupResult ? renderLookupSystemScreen(l) : esc(l.text) + (l.viz ? renderLookupViz(l.viz) : '');
+    return '<div class="line ' + l.who + (lookupResult ? ' lookup-result' : '') + (typing ? ' typing' : '') + '"><span class="who">' + who + '</span>' +
+      '<span class="say">' + content + '</span></div>';
   }).join('');
 }
 
@@ -497,12 +511,11 @@ function renderActions(t){
   if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation() + '</div>';
   if (state.ui.tab === 'refund_confirm') return '<div class="actions">' + renderRefundConfirmation() + '</div>';
 
-  if (!t.greeted) return '<div class="actions"><div class="command-box"><div class="command-title"><span>CALL</span><b>まず名乗ってください</b></div><button class="command-choice" data-greet="1"><span class="command-no">1</span><span class="command-copy"><b>名乗る</b><small>お電話ありがとうございます。グローバルデスクでございます</small></span></button></div>' + renderHangupButton() + '</div>';
+  if (!t.greeted && !customerHasSpoken(t)) return '<div class="actions"><div class="command-box"><div class="command-title"><span>CALL</span><b>まず名乗ってください</b></div><button class="command-choice" data-greet="1"><span class="command-no">1</span><span class="command-copy"><b>名乗る</b><small>お電話ありがとうございます。グローバルデスクでございます</small></span></button></div>' + renderHangupButton() + '</div>';
 
   const tab = state.ui.tab || 'command';
   const actionClass = 'actions' + (pendingTypedLine(t) ? ' is-typing' : '');
   if (tab === 'command') return renderCommandMenu(t, actionClass);
-  if (tab === 'callback') return renderCallbackDestination(t, actionClass);
   if (tab === 'ask'){
     const group = QUESTION_GROUPS.find(item => item.id === state.ui.askGroup);
     return '<div class="' + actionClass + '">' +
@@ -515,16 +528,17 @@ function renderActions(t){
 
   const bodyByCommand = {
     lookup: () => renderLookupOptions(t),
-    test: () => renderTestOptions(t),
+    try: () => renderTestOptions(t),
     soothe: () => renderSootheOptions(t),
     apologize: () => renderApologyOptions(t),
     smalltalk: () => renderSmalltalkOptions(t, 'tell'),
     record: () => renderRecord(t),
+    identity_denied: () => renderIdentityDenied(),
     close: () => renderCloseFlow(t),
   };
   const renderBody = bodyByCommand[tab] || bodyByCommand.close;
   const [command, prompt] = commandPrompt(tab);
-  const backTarget = ['close','soothe','apologize'].includes(tab) ? 'tell' : 'command';
+  const backTarget = ['close','try','soothe','apologize'].includes(tab) ? 'tell' : 'command';
   return '<div class="' + actionClass + '">' + renderCommandHead(command, prompt, backTarget) + renderBody() + renderHangupButton() + '</div>';
 }
 
@@ -545,24 +559,15 @@ function renderRefundConfirmation(){
 }
 
 function renderCommandMenu(t, actionClass){
-  const runtime = {
-    lookup:{ meta:t.identified ? '' : '本人特定が必要', disabled:!t.identified },
-    callback:{ meta:state.callbacksLeft <= 0 ? '折り返し枠を使い切っています' : '', disabled:state.callbacksLeft <= 0 },
-  };
-  const commands = COMMAND_DEFS.map(command => Object.assign({}, command, runtime[command.id] || {}));
-  const choices = commands.map(c =>
+  const choices = COMMAND_DEFS.map(c =>
     '<button class="command-choice" data-command="' + c.id + '" ' + (c.disabled ? 'disabled' : '') + '>' +
       '<span class="command-no">' + c.no + '</span><span class="command-copy"><b>' + c.label + '</b></span>' + (c.meta ? '<span class="command-meta">' + c.meta + '</span>' : '') +
     '</button>'
   ).join('');
-  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div><div class="command-grid">' + choices + '</div></div>' + renderHangupButton() + '</div>';
-}
-
-function renderCallbackDestination(t, actionClass){
-  const hotelReady = t.asked.has('q_stay');
-  return '<div class="' + actionClass + '">' + renderCommandHead('折り返す', 'どこへ折り返しますか？') +
-    '<div class="opts"><button class="opt" data-callback-destination="mobile"><span class="opt-label">お客様の携帯へ<span class="opt-sub">移動中でも確実につながるが、国際ローミング通話料が発生します</span></span></button><button class="opt" data-callback-destination="hotel" ' + (hotelReady ? '' : 'disabled') + '><span class="opt-label">滞在先のホテル客室へ<span class="opt-sub">客側の通話料は不要。滞在先の確認が必要です</span></span></button></div>' +
-    (hotelReady ? '' : '<p class="hint-bar">滞在先が未確認です。「聞く」で確認してください。</p>') + renderHangupButton() + '</div>';
+  const optionalGreeting = !t.greeted && customerHasSpoken(t)
+    ? '<button class="command-choice optional-greeting" data-greet="1"><span class="command-no">任意</span><span class="command-copy"><b>名乗る</b><small>急いでいるお客様には省略できます</small></span></button>'
+    : '';
+  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div>' + optionalGreeting + '<div class="command-grid">' + choices + '</div></div>' + renderHangupButton() + '</div>';
 }
 
 function renderAskGroups(t){
@@ -582,10 +587,11 @@ function renderAskOptions(t, group){
 function renderTellOptions(t){
   return '<div class="opts">' +
     '<button class="opt" data-tell="close"><span class="command-no">1</span><span class="opt-label">対処を伝える<span class="opt-sub">原因を見立てて、対処をご案内します。</span></span></button>' +
-    '<button class="opt" data-refund="refund"><span class="command-no">2</span><span class="opt-label">返金をご案内する</span><span class="cost">¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + '</span></button>' +
-    '<button class="opt" data-tell="soothe"><span class="command-no">3</span><span class="opt-label">気持ちを落ち着ける</span></button>' +
-    '<button class="opt" data-tell="apologize"><span class="command-no">4</span><span class="opt-label">お詫びする</span></button>' +
-    '<button class="opt" data-tell="smalltalk"><span class="command-no">5</span><span class="opt-label">一言かける</span></button>' +
+    '<button class="opt" data-tell="try"><span class="command-no">2</span><span class="opt-label">やってみてもらう<span class="opt-sub">機器や端末で試していただくことを選びます。</span></span></button>' +
+    '<button class="opt" data-refund="refund"><span class="command-no">3</span><span class="opt-label">返金をご案内する</span><span class="cost">¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + '</span></button>' +
+    '<button class="opt" data-tell="soothe"><span class="command-no">4</span><span class="opt-label">気持ちを落ち着ける</span></button>' +
+    '<button class="opt" data-tell="apologize"><span class="command-no">5</span><span class="opt-label">お詫びする</span></button>' +
+    '<button class="opt" data-tell="smalltalk"><span class="command-no">6</span><span class="opt-label">一言かける</span></button>' +
     '</div>';
 }
 
@@ -607,16 +613,27 @@ function renderSmalltalkOptions(t, mode){
 }
 
 function renderLookupOptions(t){
-  if (!t.identified) return '<p class="hint-bar">お客様の特定ができていません。お名前と渡航先、または契約番号をうかがってください。</p>';
   if (!state.ui.lookup){
     return '<div class="opts">' + LOOKUPS.map(l =>
-      '<button class="opt" data-lookup="' + l.id + '" ' + (t.lookedUp.has(l.id) ? 'disabled' : '') + '><span class="opt-label">' + esc(l.label) + '</span></button>'
+      '<button class="opt" data-lookup="' + l.id + '" ' + (t.lookedUp.has(l.id) || t.carrierLookupStarted ? 'disabled' : '') + '><span class="opt-label">' + esc(l.label) + (l.external ? '<span class="opt-sub">社外照会。通話を切り、30分後に折り返します</span>' : '') + '</span>' + (l.external ? '<span class="cost">30分</span>' : '') + '</button>'
     ).join('') + '</div><p class="hint-bar">照会項目を選んだあと、保留にするか話しながら調べるかを選びます。</p>';
   }
   const lookup = LOOKUPS.find(x => x.id === state.ui.lookup);
+  if (lookup && lookup.external) return renderCarrierLookupOptions(t, lookup);
   return '<div class="opts"><button class="opt" data-lookup-back="1"><span class="opt-label">← 照会項目の選び直し</span></button>' +
     '<button class="opt" data-lookup-mode="hold"><span class="opt-label">保留にして調べる<span class="opt-sub">相手を待たせるが速い</span></span><span class="cost">2分</span></button>' +
     '<button class="opt" data-lookup-mode="talk"><span class="opt-label">話しながら調べる<span class="opt-sub">相手を待たせないが通話が長引く</span></span><span class="cost">3分</span></button></div><p class="hint-bar">照会: ' + esc(lookup.label) + '</p>';
+}
+
+function renderCarrierLookupOptions(t, lookup){
+  const hotelReady = t.asked.has('q_stay');
+  return '<div class="opts"><button class="opt" data-lookup-back="1"><span class="opt-label">← 照会項目の選び直し</span></button>' +
+    '<button class="opt" disabled><span class="opt-label">保留にして調べる<span class="opt-sub">30分かかるため、通話をつないだままでは実行できません</span></span><span class="cost">不可</span></button>' +
+    '<button class="opt" disabled><span class="opt-label">話しながら調べる<span class="opt-sub">社外への問い合わせのため、通話継続では実行できません</span></span><span class="cost">不可</span></button></div>' +
+    '<p class="hint-bar"><b>30分ほどお時間をいただきます。折り返しでもよろしいですか。</b><br>折り返し先を選ぶと、通話を終えて現地キャリアへの照会を始めます。</p>' +
+    '<div class="opts"><button class="opt" data-callback-destination="mobile"><span class="opt-label">携帯へ折り返す<span class="opt-sub">移動中でもつながるが、宛先違いなら国際ローミング通話料の罰があります</span></span><span class="cost">' + lookup.minutes + '分</span></button>' +
+    '<button class="opt" data-callback-destination="hotel" ' + (hotelReady ? '' : 'disabled') + '><span class="opt-label">ホテル客室へ折り返す<span class="opt-sub">滞在先の確認が必要です</span></span><span class="cost">' + lookup.minutes + '分</span></button></div>' +
+    (hotelReady ? '' : '<p class="hint-bar">ホテル客室は滞在先が未確認です。「聞く」で確認してください。</p>');
 }
 
 function simCleaningRecommended(t){
@@ -659,15 +676,35 @@ function renderRecord(t){
     ? remaining.map(cause => esc(cause.label)).join(' ／ ')
     : '候補なし';
   return '<div class="log-view"><p class="hint-bar">1分かけてログを確認しています。お客様は通話口で待っています。</p>' +
-    '<section class="log-section"><h3>お客様</h3><div class="log-customer">' +
+    '<section class="system-screen record-system-screen"><header><span>GLOBALDESK OPS</span><b>通話記録</b><em>社内システム</em></header><div class="record-system-body">' +
+    '<section class="record-system-block"><h3>お客様</h3><div class="log-customer">' +
       '<p><b>お名前</b><span>' + esc(t.nameKnown ? t.s.name : '未特定') + '</span></p>' +
       '<p><b>渡航先・現地時刻</b><span>' + (t.destinationKnown ? esc(t.s.city) + ' ／ ' + localClock(t) : '未確認') + '</span></p>' +
       '<p><b>機種・プラン</b><span>' + (t.identified ? esc(t.s.device) + ' ／ ' + esc(t.s.plan) : '本人特定後に確認できます') + '</span></p>' +
       '<p><b>タイプ・対応メモ</b><span>' + esc(ty.label) + ' ／ ' + esc(ty.note) + '</span></p>' +
     '</div></section>' +
-    '<section class="log-section"><h3>ここまでの状況</h3>' + facts + '<p class="log-candidates"><b>残っている原因の候補</b><span>' + candidateText + '</span></p></section>' +
-    '<section class="log-section"><h3>次にできること</h3><p>' + esc(nextActionGuide(t)) + '</p></section>' +
-    '<section class="log-section"><h3>会話の全履歴</h3><div class="record-transcript">' + renderTranscript(t, true) + '</div></section></div>';
+    '<section class="record-system-block"><h3>ここまでの状況</h3>' + facts + '<p class="log-candidates"><b>残っている原因の候補</b><span>' + candidateText + '</span></p></section>' +
+    '<section class="record-system-block"><h3>次にできること</h3><p>' + esc(nextActionGuide(t)) + '</p></section>' +
+    '<section class="record-system-block"><h3>会話の全履歴</h3><div class="record-system-transcript">' + renderRecordTranscript(t) + '</div></section>' +
+    '</div><footer>RECORD ／ VERIFIED</footer></section></div>';
+}
+
+function renderIdentityDenied(){
+  return '<div class="log-view"><section class="system-screen record-system-screen identity-denied-screen denied"><header>' +
+    '<span>GLOBALDESK OPS</span><b>本人確認</b><em>アクセス拒否</em></header>' +
+    '<div class="record-denied-message"><b>本人確認が完了していません。</b>' +
+    '<p>フルネームと渡航先、または契約IDを確認してください。</p></div>' +
+    '<footer>ACCESS ／ DENIED</footer></section></div>';
+}
+
+function renderRecordTranscript(t){
+  return t.transcript.map(line => {
+    const who = { cust:'客', me:'あなた', sys:'社内システム', note:'メモ' }[line.who];
+    const content = line.who === 'sys' && line.lookupTitle
+      ? renderLookupSystemScreen(line)
+      : esc(line.text) + (line.viz ? renderLookupViz(line.viz) : '');
+    return '<div class="record-system-entry ' + line.who + '"><b>' + who + '</b><span>' + content + '</span></div>';
+  }).join('');
 }
 
 function remainingCauseCandidates(t){
@@ -685,11 +722,12 @@ function nextActionGuide(t){
 function commandPrompt(tab){
   return {
     lookup:['調べる', state.ui.lookup ? 'どの方法で調べますか？' : '何を調べますか？'],
-    test:['操作', 'どの操作を頼みますか？'],
+    try:['やってみてもらう', '何を試していただきますか？'],
     soothe:['気持ちを落ち着ける', 'どの言葉をかけますか？'],
     apologize:['お詫びする', 'どの深さでお詫びしますか？'],
     smalltalk:['一言かける', '会話に出た話題から選んでください'],
     record:['ログ', 'この通話の状況と全履歴'],
+    identity_denied:['本人確認', '本人確認が必要です'],
     close:['対処を伝える', state.ui.cause ? 'どのように対処を伝えますか？' : '原因を選んでください'],
   }[tab] || ['コマンド', '次の行動を選んでください'];
 }
@@ -776,6 +814,31 @@ function renderLookupViz(v){
     '<span class="lookup-viz-head"><span>' + esc(v.label) + '</span><b>' + esc(value) + ' / ' + esc(ceiling) + '</b></span>' +
     '<span class="lookup-viz-track"><i class="lookup-viz-fill ' + (over ? 'over' : unlimited ? 'unlimited' : '') + '" style="width:' + ratio + '%"></i></span>' +
     '<span class="lookup-viz-note">' + esc(v.note || '') + '</span></span>';
+}
+
+function lookupResultRows(text){
+  const body = String(text || '').replace(/^\[[^\]]+\]\s*/, '').trim();
+  return body.split(/\s*／\s*|\s*。\s*(?=\S)/).map(part => part.trim()).filter(Boolean).map(part => {
+    const split = part.search(/[:：]/);
+    if (split < 0) return { label:'', value:part.replace(/。$/, '') };
+    return { label:part.slice(0, split).trim(), value:part.slice(split + 1).trim().replace(/。$/, '') };
+  });
+}
+
+function renderLookupSystemScreen(line){
+  const rows = lookupResultRows(line.text).map(row =>
+    '<div class="lookup-system-row">' +
+      (row.label ? '<b>' + esc(row.label) + '</b>' : '<b aria-hidden="true">—</b>') +
+      '<span>' + esc(row.value) + '</span></div>'
+  ).join('');
+  const external = line.external
+    ? '<em class="lookup-system-external">外部照会</em>'
+    : '<em>社内システム</em>';
+  return '<section class="system-screen lookup-system-screen' + (line.external ? ' external' : '') + '" data-lookup-screen="' + esc(line.lookupId || '') + '">' +
+    '<header><span>GLOBALDESK OPS</span><b>' + esc(line.lookupTitle) + '</b>' + external + '</header>' +
+    '<div class="lookup-system-fields">' + rows + '</div>' +
+    (line.viz ? renderLookupViz(line.viz) : '') +
+    '<footer>STATUS ／ COMPLETE</footer></section>';
 }
 
 function renderDevicePanel(t){
@@ -901,7 +964,7 @@ function readCareerRecord(storage = getCareerStorage()){
     if (!storage) return freshCareerRecord();
     const raw = storage.getItem(CAREER_STORAGE_KEY);
     if (!raw) return freshCareerRecord();
-    const parsed = JSON.parse(raw);
+    const parsed = normalizeCareerRecord(JSON.parse(raw));
     return validCareerRecord(parsed) ? parsed : freshCareerRecord();
   } catch (error){ return freshCareerRecord(); }
 }
@@ -917,6 +980,8 @@ function writeCareerRecord(record, storage = getCareerStorage()){
 function initializeCareer(){
   state.career = careerWithFlags(readCareerRecord());
   state.careerUpdate = null;
+  state.endingReplay = false;
+  state.endingType = 'career';
 }
 
 function careerBriefingHtml(){
@@ -941,7 +1006,7 @@ function showBriefing(){
       '<li><strong>電話は1本ずつしか取れません。</strong>話している間、ほかの電話は鳴り続けます。</li>' +
       '<li>無駄な質問1つが通話を1分延ばし、その1分だけ、待っている誰かが切りやすくなります。</li>' +
       '<li>調べものは保留にすれば速く済みますが、相手は無音のまま待たされます。話しながら調べると保留は増えませんが、通話が長引きます。</li>' +
-      '<li>どうしても時間がかかるなら、折り返しにして一度切る手もあります。枠は' + CALLBACKS + '回だけです。</li>' +
+      '<li>現地キャリアへの照会だけは30分かかります。通話を切って折り返す間に、ほかの電話を対応できます。</li>' +
       '<li>遠隔では直せないもの（回線障害・本体故障・機種の非対応）は<strong>エスカレーション</strong>が正解です。枠は' + ESCALATIONS + '回だけ。</li>' +
       '<li>相手によって刺さる話し方が違います。急いでいる人に前置きは要りません。</li>' +
     '</ul>' +
@@ -1039,12 +1104,12 @@ function scenarioRoute(s){
   if (hotLookups.length) route.push('調べる: ' + hotLookups.join(' ／ '));
   if (remedy && remedy.needsTest){
     const test = TESTS.find(item => item.id === remedy.needsTest);
-    route.push('操作: ' + (test ? test.label : remedy.needsTest) + ' × ' + (remedy.needsTestCount || 1));
+    route.push('伝える→やってみてもらう: ' + (test ? test.label : remedy.needsTest) + ' × ' + (remedy.needsTestCount || 1));
   } else {
     const solving = Object.entries(s.tests || {}).filter(([,test]) => test.solves || (test.sequence || []).some(step => step.solves));
     if (solving.length){
       const test = TESTS.find(item => item.id === solving[0][0]);
-      route.push('操作: ' + (test ? test.label : solving[0][0]));
+      route.push('伝える→やってみてもらう: ' + (test ? test.label : solving[0][0]));
     }
   }
   const cause = CAUSES.find(item => item.id === s.trueCause);
@@ -1061,7 +1126,7 @@ function showBalanceWarning(){
   $('sheet').innerHTML =
     '<p class="eyebrow">BALANCE CONSOLE ／ CONFIRM</p>' +
     '<h1>正解ルートを表示します</h1>' +
-    '<p class="lead"><strong>11件の真因と正解対処がすべて表示されます。</strong>プレイ中に見ると、そのシフトの答えが分かります。ゲーム調整のために開きますか？</p>' +
+    '<p class="lead"><strong>' + SCENARIOS.length + '件の真因と正解対処がすべて表示されます。</strong>プレイ中に見ると、そのシフトの答えが分かります。ゲーム調整のために開きますか？</p>' +
     '<button class="btn-primary" id="btn-confirm-balance">正解を表示する</button>' +
     '<button class="btn-ghost" id="btn-cancel-balance">表示しない</button>';
   openSheet();
@@ -1104,7 +1169,8 @@ function showBalanceConsole(){
       '<p>OFFにすると従来の決定論的な挙動へ戻ります。抽選結果はプレイ画面や会話記録には表示されません。</p>' +
     '</div>' +
     '<h2>キャリア記録</h2><div class="balance-career-actions">' +
-      '<button class="btn-ghost" id="balance-replay-ending">翌朝の全体朝礼を再生する</button>' +
+      '<button class="btn-ghost" id="balance-replay-ending">表エンディング（翌朝の全体朝礼）を再生する</button>' +
+      '<button class="btn-ghost" id="balance-replay-secret-ending">裏エンディングを再生する</button>' +
       '<button class="btn-ghost danger" id="balance-clear-career">勤務記録を消去する</button>' +
       '<p>消去は一度確認してから実行します。次回は1日目から始まります。</p>' +
     '</div>' +
@@ -1125,6 +1191,7 @@ function showBalanceConsole(){
     GAME_FLAGS.soundVolume = clamp(Number(event.target.value), 0, 1);
   };
   $('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };
+  $('balance-replay-secret-ending').onclick = event => { event.stopImmediatePropagation(); showSecretEnding(true); };
   $('balance-clear-career').onclick = () => clearCareerRecord();
   $('btn-close-balance').onclick = () => {
     if (wasPhase === 'briefing'){ showBriefing(); return; }
@@ -1155,7 +1222,6 @@ function reportOptions(){
   if (state.outageKnown) handoff.push({ id:'outage_watch', required:true, ticketId:'S5', text:'米国北東部の障害は未復旧。朝の入電増に注意' });
   const s8 = byId('S8');
   if (s8 && s8.shipment) handoff.push({ id:'s8_delivery', required:true, ticketId:'S8', text:'ドバイ宛の代替機が現地' + fmtClock(s8.shipment.eta) + '到着予定。着荷確認が必要' });
-  // 全件終了前には報告へ移れないため、折り返し待ちの必須項目は候補に出ない。
   return { special, handoff };
 }
 
@@ -1188,8 +1254,10 @@ function careerShiftContext(){
     redials:tickets.reduce((sum, ticket) => sum + ticket.redialCount, 0),
     abandoned:tickets.filter(ticket => ticket.result && ticket.result.kind === 'abandoned').length,
     resultKinds:tickets.map(ticket => ticket.result && ticket.result.kind).filter(Boolean),
-    allFirst:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.firstCallResolved === true),
+    noRefundsOrShipments:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind !== 'refunded' && !ticket.shipment),
+    allResolved:tickets.length > 0 && tickets.every(ticket => ticket.result && ['closed','refunded'].includes(ticket.result.kind)),
     allRefunded:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind === 'refunded'),
+    solvedScenarioIds:solvedScenarioIdsFromTickets(tickets),
   };
 }
 
@@ -1279,7 +1347,8 @@ function careerDebriefHtml(){
     '<section class="career-panel"><h2>勤務記録</h2>' +
       '<div class="career-summary"><b>' + esc(stage.label) + '</b><span>通算 ' + career.totals.days + '日</span><span>直近5回 ' + esc(recent) + '</span></div>' +
       '<p class="career-next">次の段階：' + esc(stage.next || 'なし') + ' ／ ' + esc(stage.condition) + '</p>' +
-      '<div class="career-badge-count">バッジ ' + career.badges.length + ' / ' + CAREER_BADGES.length + '</div>' +
+      '<div class="career-ending-progress"><b>表エンディング</b><span>解決した案件 ' + career.solvedScenarios.length + ' / ' + SCENARIOS.length + '</span></div>' +
+      '<div class="career-badge-count">裏エンディング ／ バッジ ' + career.badges.length + ' / ' + CAREER_BADGES.length + '</div>' +
       '<div class="career-badge-grid">' + badgeCards + '</div>' +
     '</section>';
 }
@@ -1304,12 +1373,19 @@ function endingBadgeHtml(career){
 
 function careerEndingDetailsHtml(career){
   return '<div class="ending-totals"><b>通算 ' + career.totals.days + '日</b><span>平均CSAT ' + career.totals.averageCsat.toFixed(2) + '</span><span>苦情 ' + career.totals.complaints + '件</span></div>' +
-    '<h2>集めた8つのバッジ</h2><div class="ending-badge-grid">' + endingBadgeHtml(career) + '</div>';
+    '<h2>集めたバッジ</h2><div class="ending-badge-grid">' + endingBadgeHtml(career) + '</div>';
 }
 
 function careerEndingFinalHtml(){
   return '<div class="ending-end" id="ending-end">END</div>' +
     '<button class="btn-primary" id="ending-back-to-shift">深夜シフトへ戻る</button>';
+}
+
+function careerEndingEyebrowHtml(){
+  const secretMark = state.endingType === 'secret'
+    ? '<span class="ending-variant-mark" aria-label="裏エンディング">裏</span>'
+    : '';
+  return '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING' + secretMark + '</p>';
 }
 
 function clearEndingRevealTimer(){
@@ -1328,7 +1404,30 @@ function revealCareerEndingFinal(){
   const slot = $('ending-finale');
   if (!slot) return;
   slot.innerHTML = careerEndingFinalHtml();
-  $('ending-back-to-shift').onclick = () => { resetGame(); showBriefing(); };
+  $('ending-back-to-shift').onclick = () => continueAfterCareerEnding();
+}
+
+function pendingCareerEndingType(){
+  if (state.endingReplay || !state.careerUpdate) return null;
+  return (state.careerUpdate.endingQueue || []).find(type =>
+    type === 'career' ? !state.career.ending : !state.career.secretEnding
+  ) || null;
+}
+
+function continueAfterCareerEnding(){
+  const next = pendingCareerEndingType();
+  if (next === 'career'){ showCareerEnding(false); return; }
+  if (next === 'secret'){ showSecretEnding(false); return; }
+  state.endingReplay = false;
+  resetGame();
+  showBriefing();
+}
+
+function showNextCareerEnding(){
+  const next = pendingCareerEndingType();
+  if (next === 'career'){ showCareerEnding(false); return; }
+  if (next === 'secret'){ showSecretEnding(false); return; }
+  continueAfterCareerEnding();
 }
 
 function renderCareerEndingComplete(skipEndingBeat = false){
@@ -1337,7 +1436,7 @@ function renderCareerEndingComplete(skipEndingBeat = false){
   clearEndingTapGuard();
   state.endingSpeech = null;
   $('sheet').innerHTML =
-    '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING</p>' +
+    careerEndingEyebrowHtml() +
     '<h1>翌朝、全体朝礼</h1>' +
     '<canvas class="ending-office-canvas" id="ending-office-canvas" width="192" height="168" role="img" aria-label="朝の明るいオフィスに社員が集まり、社長が笑顔で立っている"></canvas>' +
     '<section class="ending-speech"><b>社長</b><p>' + esc(PRESIDENT_ENDING_LINE) + '</p></section>' +
@@ -1347,21 +1446,24 @@ function renderCareerEndingComplete(skipEndingBeat = false){
   else endingRevealTimer = setTimeout(revealCareerEndingFinal, 1000);
 }
 
-function showCareerEnding(replay = false){
+function showCareerEnding(replay = false, endingType = 'career'){
   stopOfficeRing();
   clearEndingRevealTimer();
   clearEndingTapGuard();
   endingTapGuard = true;
   if (!state.career) state.career = freshCareerRecord();
+  state.endingReplay = replay;
+  state.endingType = endingType;
   state.phase = 'ending';
   if (!replay){
-    state.career.ending = true;
+    if (endingType === 'secret') state.career.secretEnding = true;
+    else state.career.ending = true;
     writeCareerRecord(state.career);
   }
   playCareerEndingSound();
   state.endingSpeech = { transcript:[{ who:'cust', text:PRESIDENT_ENDING_LINE, typed:false }] };
   $('sheet').innerHTML =
-    '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING</p>' +
+    careerEndingEyebrowHtml() +
     '<h1>翌朝、全体朝礼</h1>' +
     '<canvas class="ending-office-canvas" id="ending-office-canvas" width="192" height="168" role="img" aria-label="朝の明るいオフィスに社員が集まり、社長が笑顔で立っている"></canvas>' +
     '<section class="ending-speech"><b>社長</b>' +
@@ -1371,6 +1473,10 @@ function showCareerEnding(replay = false){
   // 再生ボタンの同じclickが、document側の「タップで送り切る」に重ならないよう次のtaskで始める。
   setTimeout(() => startTyping(state.endingSpeech), 0);
   tapGuardTimer = setTimeout(clearEndingTapGuard, 400);
+}
+
+function showSecretEnding(replay = false){
+  showCareerEnding(replay, 'secret');
 }
 
 function renderDebrief(){
@@ -1436,12 +1542,12 @@ function renderDebrief(){
     complaintMailbox +
     '<h2>一件ずつの振り返り</h2>' + reviews +
 
-    '<button class="btn-primary" id="btn-again">' + (state.careerUpdate && state.careerUpdate.shouldEnd ? '勤務記録を閉じる' : 'もう一度シフトに入る') + '</button>' +
+    '<button class="btn-primary" id="btn-again">' + (state.careerUpdate && state.careerUpdate.endingQueue.length ? '勤務記録を閉じる' : 'もう一度シフトに入る') + '</button>' +
     '<button class="btn-ghost" id="btn-manual2">マニュアルを読む</button>';
 
   openSheet();
   $('btn-again').onclick = event => {
-    if (state.careerUpdate && state.careerUpdate.shouldEnd){ event.stopImmediatePropagation(); showCareerEnding(false); }
+    if (state.careerUpdate && state.careerUpdate.endingQueue.length){ event.stopImmediatePropagation(); showNextCareerEnding(); }
     else { resetGame(); showBriefing(); }
   };
   $('btn-manual2').onclick = showManual;

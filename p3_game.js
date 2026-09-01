@@ -32,7 +32,6 @@ const state = {
   tickets: [],
   focus: null,          // 表示中のチケット
   escLeft: ESCALATIONS,
-  callbacksLeft: CALLBACKS,
   cost: 0,
   outageKnown: false,
   holdVisual: false,
@@ -42,6 +41,8 @@ const state = {
   report: null,
   career: null,
   careerUpdate: null,
+  endingReplay: false,
+  endingType: 'career',
   officeEvents: [],
   random: Math.random,
 };
@@ -86,17 +87,30 @@ function freshCareerRecord(){
     shifts:[],
     stage:'probation',
     badges:[],
+    solvedScenarios:[],
     ending:false,
+    secretEnding:false,
     totals:{ days:0, averageCsat:0, complaints:0 },
   };
 }
 
+function normalizeCareerRecord(value){
+  if (!value || typeof value !== 'object') return value;
+  const next = JSON.parse(JSON.stringify(value));
+  // v1公開済み記録には§28の2項目がないため、その場合だけ安全な初期値を補う。
+  if (next.version === CAREER_VERSION && next.solvedScenarios === undefined) next.solvedScenarios = [];
+  if (next.version === CAREER_VERSION && next.secretEnding === undefined) next.secretEnding = false;
+  return next;
+}
+
 function validCareerRecord(value){
   if (!value || value.version !== CAREER_VERSION || !Array.isArray(value.shifts)) return false;
-  if (!Object.prototype.hasOwnProperty.call(CAREER_STAGES, value.stage) || !Array.isArray(value.badges) || typeof value.ending !== 'boolean') return false;
+  if (!Object.prototype.hasOwnProperty.call(CAREER_STAGES, value.stage) || !Array.isArray(value.badges) || !Array.isArray(value.solvedScenarios) || typeof value.ending !== 'boolean' || typeof value.secretEnding !== 'boolean') return false;
   if (!value.totals || !Number.isInteger(value.totals.days) || value.totals.days < 0 || !Number.isFinite(value.totals.averageCsat) || !Number.isInteger(value.totals.complaints) || value.totals.complaints < 0) return false;
   const badgeIds = new Set(CAREER_BADGES.map(badge => badge.id));
+  const scenarioIds = new Set(SCENARIOS.map(scenario => scenario.id));
   if (value.badges.some(id => !badgeIds.has(id)) || new Set(value.badges).size !== value.badges.length) return false;
+  if (value.solvedScenarios.some(id => !scenarioIds.has(id)) || new Set(value.solvedScenarios).size !== value.solvedScenarios.length) return false;
   return value.shifts.every(shift => shift && typeof shift.endedAt === 'string' && !Number.isNaN(Date.parse(shift.endedAt)) &&
     Number.isInteger(shift.tickets) && shift.tickets >= 2 && shift.tickets <= 5 && /^[SABCDE]$/.test(shift.grade) &&
     shift.scores && ['csat','fcr','answer','cost','report'].every(key => Number.isFinite(shift.scores[key])) &&
@@ -110,7 +124,25 @@ function careerWithFlags(record, flags = GAME_FLAGS){
     const known = new Set(CAREER_BADGES.map(badge => badge.id));
     next.badges = [...new Set(flags.unlockedBadges.filter(id => known.has(id)))];
   }
+  if (Array.isArray(flags.solvedScenarios)){
+    const known = new Set(SCENARIOS.map(scenario => scenario.id));
+    next.solvedScenarios = [...new Set(flags.solvedScenarios.filter(id => known.has(id)))];
+  }
   return next;
+}
+
+function solvedScenarioIdsFromTickets(tickets){
+  return [...new Set(tickets.filter(ticket => {
+    const result = ticket && ticket.result;
+    return result && (result.kind === 'closed' || (result.kind === 'refunded' && result.satisfied === true));
+  }).map(ticket => ticket.s.id))];
+}
+
+function careerEndingQueue(career){
+  const queue = [];
+  if (career.solvedScenarios.length === SCENARIOS.length && !career.ending) queue.push('career');
+  if (career.badges.length === CAREER_BADGES.length && !career.secretEnding) queue.push('secret');
+  return queue;
 }
 
 function gradeAtLeast(grade, minimum){
@@ -128,14 +160,14 @@ function promotedCareerStage(stage, totalDays, recentShifts){
 function earnedBadgeIds(career, shift, context){
   const resultKinds = context.resultKinds || [];
   const candidates = [];
-  if ((context.maxStresses || []).length === shift.tickets && context.maxStresses.every(value => value <= 50)) candidates.push('quiet_night');
+  if ((context.maxStresses || []).length === shift.tickets && context.maxStresses.every(value => value <= 70)) candidates.push('quiet_night');
   if (context.redials === 0 && context.abandoned === 0) candidates.push('no_redial');
-  if (shift.scores.cost === 0) candidates.push('frugal');
-  if (context.allFirst) candidates.push('all_first');
+  if (context.noRefundsOrShipments) candidates.push('frugal');
+  if (context.allResolved) candidates.push('all_first');
   if (resultKinds.includes('complaint') && resultKinds.includes('hangup')) candidates.push('storm');
   if (context.allRefunded) candidates.push('money_talks');
-  if (career.totals.days >= 10) candidates.push('ten_nights');
-  if (career.shifts.length >= 3 && career.shifts.slice(-3).every(item => item.complaints === 0)) candidates.push('clean_record');
+  if (career.totals.days >= 5) candidates.push('ten_nights');
+  if (career.shifts.length >= 2 && career.shifts.slice(-2).every(item => item.complaints === 0)) candidates.push('clean_record');
   return candidates;
 }
 
@@ -152,12 +184,14 @@ function appendCareerShift(record, shift, context){
   const earned = earnedBadgeIds(career, shift, context);
   const newBadges = earned.filter(id => !career.badges.includes(id));
   career.badges = [...new Set(career.badges.concat(newBadges))];
+  career.solvedScenarios = [...new Set(career.solvedScenarios.concat(context.solvedScenarioIds || []))];
+  const endingQueue = careerEndingQueue(career);
   return {
     career,
     previousStage,
     promoted:career.stage !== previousStage,
     newBadges,
-    shouldEnd:career.badges.length === CAREER_BADGES.length && !career.ending,
+    endingQueue,
   };
 }
 
@@ -189,7 +223,7 @@ function newTicket(s){
     transcript:[], callTranscriptStart:0, greeted:false, identified:false, nameKnown:false, destinationKnown:false,
     stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, holdMinutes:0,
-    callbackCount:0, callbackDue:null, callbackLate:false, callbackDestination:null, callbackPenalty:0,
+    callbackCount:0, callbackDue:null, callbackLate:false, callbackDestination:null, callbackPenalty:0, carrierLookupStarted:false,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
     complaintEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
@@ -204,7 +238,6 @@ function resetGame(){
   state.tickets = prepareDailyScenarios(SCENARIOS, state.random).map(newTicket);
   state.focus = null;
   state.escLeft = ESCALATIONS;
-  state.callbacksLeft = CALLBACKS;
   state.cost = 0;
   state.outageKnown = false;
   state.holdVisual = false;
@@ -244,7 +277,6 @@ function advance(turns){
     state.tickets.forEach(t => {
       if (t.state === 'waiting') t.patience -= 100 / t.s.abandonAfter;
       else if (t.state === 'callback' && state.clock > t.callbackDue) t.patience -= 100 / CALLBACK_OVERDUE_MIN;
-
       if (t.patience <= 0 && (t.state === 'waiting' || t.state === 'callback')){
         t.patience = 0;
         t.state = 'closed';
@@ -307,21 +339,21 @@ function greetCurrentCustomer(){
 }
 
 function resumeCallback(t){
-  if (state.focus) return;
-  if (!t || t.state !== 'callback') return;
+  if (state.focus || !t || t.state !== 'callback' || state.clock < t.callbackDue) return;
   playPickupSound();
-  t.callbackLate = t.callbackLate || state.clock > t.callbackDue;
-  if (t.callbackDestination !== t.s.callbackTo){
-    t.callbackPenalty = t.callbackDestination === 'hotel' ? 1.0 : 0.5;
-    spendOnCall(t, 2, 0);
-  }
+  t.callbackLate = state.clock > t.callbackDue;
   t.state = 'open';
   t.callTranscriptStart = t.transcript.length;
+  state.focus = t;
+  if (t.callbackDestination !== t.s.callbackTo){
+    t.callbackPenalty = t.callbackDestination === 'hotel' ? 1.0 : 0.5;
+    if (!spendOnCall(t, 2, 0)){ render(); return; }
+  }
   pushFlowLines(t, [
     { who:'me', text:callbackOperatorLine(t) },
     { who:'cust', text:CALL_FLOW_LINES.callback.replies[t.s.type] },
   ]);
-  state.focus = t;
+  finishCarrierLookup(t);
   state.ui = defaultUi();
   enterCall();
 }
@@ -476,6 +508,13 @@ function identificationReady(t){
   return t.identified || (t.nameKnown && t.destinationKnown);
 }
 
+function requireIdentification(t){
+  if (identificationReady(t)) return true;
+  state.ui = defaultUi('identity_denied');
+  render();
+  return false;
+}
+
 function identityQuestionStress(t, qid, normalBase){
   if (!['q_name','q_contract'].includes(qid) || t.stress < 50) return addStress(t, normalBase);
   const delta = IDENTITY_CALMING_EFFECTS[t.s.type];
@@ -593,9 +632,16 @@ function doApologize(id){
   state.ui = defaultUi(); render();
 }
 
+function openLookup(){
+  const t = state.focus;
+  if (!t || !requireIdentification(t)) return;
+  state.ui = defaultUi('lookup');
+  render();
+}
+
 function openRecord(){
   const t = state.focus;
-  if (!t) return;
+  if (!t || !requireIdentification(t)) return;
   pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.recordStart }]);
   t.transcript.push({ who:'note', text:'ログを1分かけて確認しました。' });
   if (!addStress(t, 4)) return;
@@ -699,6 +745,7 @@ function doLookup(lid, mode){
   if (!t || state.busy || !['hold','talk'].includes(mode)) return;
   const l = LOOKUPS.find(x => x.id === lid);
   if (!l || t.lookedUp.has(lid)) return;
+  if (l.external) return;
   if (!t.identified) return;
   const minutes = mode === 'hold' ? 2 : 3;
   const hold = mode === 'hold' ? 2 : 0;
@@ -713,6 +760,18 @@ function doLookup(lid, mode){
   setTimeout(() => finishLookup(t, l, minutes, hold), mode === 'hold' ? 420 : 0);
 }
 
+function lookupSystemLine(lookup, result){
+  return {
+    who:'sys',
+    typed:true,
+    text:result ? result.text : lookup.defaultResult,
+    viz:result && result.viz ? result.viz : null,
+    lookupId:lookup.id,
+    lookupTitle:lookup.title,
+    external:Boolean(lookup.external),
+  };
+}
+
 function finishLookup(t, l, minutes, hold){
   if (state.focus !== t || t.state !== 'open'){
     state.busy = false;
@@ -724,11 +783,11 @@ function finishLookup(t, l, minutes, hold){
 
   const r = (t.s.lookups || {})[lid];
   if (r){
-    t.transcript.push({ who:'sys', text:r.text, viz:r.viz || null });
+    t.transcript.push(lookupSystemLine(l, r));
     if (r.fact) addFact(t, r.fact, '社内照会');
     if (r.outage) triggerOutage(t);
   } else {
-    t.transcript.push({ who:'sys', text:l.miss });
+    t.transcript.push(lookupSystemLine(l, null));
     if (l.missFact) addFact(t, l.missFact, '社内照会');
     else t.wasted++;
   }
@@ -737,10 +796,30 @@ function finishLookup(t, l, minutes, hold){
   state.busy = false;
   state.holdVisual = false;
   if (!continued){ render(); return; }
-  const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : CALL_FLOW_LINES.lookup.miss);
+  const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : l.spoken);
   pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);
   state.ui = defaultUi();
   render();
+}
+
+function finishCarrierLookup(t){
+  if (!t || !t.carrierLookupStarted || t.lookedUp.has('l_carrier')) return false;
+  const l = LOOKUPS.find(item => item.id === 'l_carrier');
+  if (!l) return false;
+  t.lookedUp.add(l.id);
+  t.carrierLookupStarted = false;
+  const result = (t.s.lookups || {})[l.id];
+  if (result){
+    t.transcript.push(lookupSystemLine(l, result));
+    if (result.fact) addFact(t, result.fact, '現地キャリア照会');
+  } else {
+    t.transcript.push(lookupSystemLine(l, null));
+    if (l.missFact) addFact(t, l.missFact, '現地キャリア照会');
+    else t.wasted++;
+  }
+  const spokenSummary = result && result.fact ? result.fact.text : (result ? result.text : l.spoken);
+  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);
+  return true;
 }
 
 function doTest(tid){
@@ -781,20 +860,22 @@ function doTest(tid){
   render();
 }
 
-function startCallback(destination){
+function startCarrierCallback(destination){
   const t = state.focus;
-  if (!t || !['hotel','mobile'].includes(destination)) return;
-  if (destination === 'hotel' && !t.asked.has('q_stay')){
-    state.ui = defaultUi('ask');
-    render(); return;
-  }
-  t.transcript.push({ who:'me', text:'一度お切りして、調べてから折り返します。30分以内にご連絡します。' });
-  t.transcript.push({ who:'note', text:(destination === 'hotel' ? 'ホテル客室' : '携帯') + 'へ30分以内に折り返す約束を記録しました。' });
+  const lookup = LOOKUPS.find(item => item.id === 'l_carrier');
+  if (!t || !lookup || state.ui.tab !== 'lookup' || state.ui.lookup !== lookup.id || t.carrierLookupStarted || t.lookedUp.has(lookup.id)) return;
+  if (!['hotel','mobile'].includes(destination)) return;
+  if (destination === 'hotel' && !t.asked.has('q_stay')){ render(); return; }
+  pushFlowLines(t, [
+    { who:'me', text:CALL_FLOW_LINES.carrier.promise },
+    { who:'cust', text:CALL_FLOW_LINES.carrier.consent },
+  ]);
+  t.transcript.push({ who:'note', text:(destination === 'hotel' ? 'ホテル客室' : '携帯') + 'へ30分後に折り返す約束と、現地キャリアへの照会を記録しました。' });
   t.callbackCount++;
   t.callbackDestination = destination;
-  state.callbacksLeft--;
+  t.carrierLookupStarted = true;
   if (!spendOnCall(t, 1, 0)) return;
-  t.callbackDue = state.clock + 30;
+  t.callbackDue = state.clock + lookup.minutes;
   t.state = 'callback';
   state.focus = null;
   state.ui = defaultUi();
@@ -812,7 +893,7 @@ function remedyBlockReason(t, remedy){
   if (remedy.needsTest){
     const required = remedy.needsTestCount || 1;
     const count = t.testCounts.get(remedy.needsTest) || 0;
-    if (count < required) return '先に「操作」を ' + required + '回行ってください（現在 ' + count + '回）';
+    if (count < required) return '先に「伝える」→「やってみてもらう」を ' + required + '回行ってください（現在 ' + count + '回）';
   }
   const missing = (remedy.requiresQuestions || []).filter(id => !t.asked.has(id));
   if (missing.length) return '配送判断に必要な聞き取りが不足しています';
@@ -1108,9 +1189,12 @@ function nextInboundDelta(tickets, turn){
 function advanceIdleOffice(){
   if (state.focus) return 0;
   activateDueInbound();
-  const actionable = state.tickets.some(t => t.state === 'waiting' || t.state === 'callback');
+  const actionable = state.tickets.some(t => t.state === 'waiting' || (t.state === 'callback' && t.callbackDue <= state.clock));
   if (actionable) return 0;
-  const delta = nextInboundDelta(state.tickets, state.turn);
+  const inboundDelta = nextInboundDelta(state.tickets, state.turn);
+  const callbackDeltas = state.tickets.filter(t => t.state === 'callback' && t.callbackDue > state.clock).map(t => t.callbackDue - state.clock);
+  const callbackDelta = callbackDeltas.length ? Math.min(...callbackDeltas) : null;
+  const delta = [inboundDelta, callbackDelta].filter(value => value !== null && value > 0).sort((a,b) => a - b)[0] || null;
   if (delta && delta > 0) advance(delta);
   return delta || 0;
 }

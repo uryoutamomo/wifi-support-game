@@ -233,8 +233,6 @@ button:focus-visible, [tabindex]:focus-visible{
 }
 .world-pin.waiting .world-pin-dot{ background: var(--amber); border-color: var(--amber); animation: pinpulse 1.8s ease-in-out infinite; }
 .world-pin.active .world-pin-dot{ background: var(--signal); border-color: var(--signal); }
-.world-pin.callback{ color: var(--signal); }
-.world-pin.callback .world-pin-dot{ background: var(--signal-deep); border-color: var(--signal); }
 .world-pin.closed{ color: var(--faint); opacity: .62; }
 .world-pin.abandoned{ color: var(--crit); opacity: 1; }
 .world-pin.abandoned .world-pin-dot{ background: var(--crit); border-color: var(--crit); }
@@ -810,6 +808,94 @@ body.sheet-open .console{ display: none; }
 .lcd-battery-wrap{ display: flex; align-items: center; gap: 5px; }
 .lcd-ssid{ min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 
+/* 照会結果はROUTER DISPLAYと同じ暗い機械画面として見せる */
+.line.sys.lookup-result .say{
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.system-screen{
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--signal-deep);
+  border-radius: 3px;
+  background: var(--panel-2);
+  color: var(--signal);
+  font-family: var(--mono);
+  font-size: 11px;
+  box-shadow: inset 0 0 18px var(--ink);
+}
+.system-screen header{
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--signal-deep);
+  font-family: var(--display);
+  letter-spacing: .08em;
+}
+.system-screen header span{ color: var(--dim); font-size: 9px; }
+.system-screen header b{ color: var(--text); font-size: 12px; }
+.system-screen header em{
+  padding: 1px 5px;
+  border: 1px solid var(--signal-deep);
+  color: var(--signal);
+  font-size: 9px;
+  font-style: normal;
+}
+.lookup-system-fields{ padding: 7px 10px; }
+.lookup-system-row{
+  display: grid;
+  grid-template-columns: minmax(82px, .42fr) 1fr;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--signal-deep);
+}
+.lookup-system-row:last-child{ border-bottom: 0; }
+.lookup-system-row b{ color: var(--dim); font-weight: 400; }
+.lookup-system-row span{ color: var(--signal); min-width: 0; overflow-wrap: anywhere; }
+.system-screen footer{
+  padding: 5px 10px;
+  border-top: 1px solid var(--signal-deep);
+  color: var(--dim);
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-align: right;
+}
+.lookup-system-screen.external{ border-color: var(--amber-deep); }
+.lookup-system-screen.external header,
+.lookup-system-screen.external footer{ border-color: var(--amber-deep); }
+.lookup-system-screen .lookup-system-external{ border-color: var(--amber-deep); color: var(--amber); }
+
+.record-system-screen{ margin-top: 8px; }
+.record-system-body{ padding: 2px 10px 8px; }
+.record-system-block{ padding: 10px 0; border-bottom: 1px solid var(--signal-deep); }
+.record-system-block:last-child{ border-bottom: 0; }
+.record-system-block h3{ margin: 0 0 7px; color: var(--signal); font: 600 11px/1.4 var(--display); letter-spacing: .1em; }
+.record-system-block p,
+.record-system-block li{ color: var(--text); font-size: 11px; line-height: 1.6; }
+.record-system-block ul{ margin: 4px 0; padding-left: 1.3em; }
+.record-system-screen .log-customer p{ display: grid; grid-template-columns: minmax(110px,.38fr) 1fr; gap: 12px; margin: 0; padding: 4px 0; border-bottom: 1px dotted var(--signal-deep); }
+.record-system-screen .log-customer p:last-child{ border-bottom: 0; }
+.record-system-screen .log-customer b,
+.record-system-screen .log-candidates b{ color: var(--dim); font-weight: 400; }
+.record-system-screen .log-customer span,
+.record-system-screen .log-candidates span{ color: var(--signal); }
+.record-system-transcript{ display: flex; flex-direction: column; gap: 0; }
+.record-system-entry{ display: grid; grid-template-columns: minmax(88px,.28fr) 1fr; gap: 12px; padding: 6px 0; border-bottom: 1px dotted var(--signal-deep); }
+.record-system-entry:last-child{ border-bottom: 0; }
+.record-system-entry > b{ color: var(--dim); font: 400 10px/1.6 var(--display); letter-spacing: .06em; }
+.record-system-entry > span{ min-width: 0; color: var(--text); font: 11px/1.6 var(--mono); overflow-wrap: anywhere; }
+.record-system-entry.me > b{ color: var(--amber); }
+.record-system-entry.cust > b{ color: var(--signal); }
+.record-system-entry.note{ opacity: .78; }
+.record-system-entry .lookup-system-screen{ margin: 0; }
+.record-denied-message{ padding: 22px 14px; text-align: center; }
+.record-denied-message b{ display: block; color: var(--amber); font: 600 13px/1.6 var(--display); }
+.record-denied-message p{ margin: 8px 0 0; color: var(--text); font: 12px/1.7 var(--mono); }
+
 /* 社内照会に添える単一型のメトリックバー */
 .lookup-viz{
   display: block;
@@ -1122,6 +1208,8 @@ body.sheet-open .console{ display: none; }
 .ending-speech{ margin:16px 0; padding:16px; border-left:4px solid var(--amber); background:var(--amber-glow); }.ending-speech>b{ display:inline-block; margin-bottom:6px; color:var(--amber-deep); font:800 17px/1.4 var(--display); }.ending-speech p{ margin:7px 0; color:var(--text); font-size:15px; line-height:1.7; }
 .ending-line.line{ display:block; max-width:100%; }.ending-line.line .say{ display:block; min-height:1.7em; padding:0; border:0; border-radius:0; background:transparent; color:inherit; font:inherit; }
 .ending-totals{ display:flex; flex-wrap:wrap; gap:8px 14px; margin:16px 0; padding:12px; border:1px solid var(--line); background:var(--surface-2); }.ending-totals b{ width:100%; font-size:18px; }.ending-totals span{ color:var(--dim); font:600 12px/1.5 var(--mono); }
+.career-ending-progress{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0 6px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); }.career-ending-progress b{ color:var(--text); }.career-ending-progress span{ color:var(--accent); font:700 12px/1.5 var(--mono); }
+.ending-variant-mark{ display:inline-block; margin-left:8px; padding:1px 5px; border:1px solid currentColor; border-radius:999px; font-size:9px; line-height:1.35; letter-spacing:0; vertical-align:middle; }
 .ending-end{ margin:28px 0 20px; color:var(--text); font:800 34px/1 var(--display); letter-spacing:.36em; text-align:center; text-indent:.36em; }
 
 .tbl{ width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -1159,7 +1247,13 @@ body.sheet-open .console{ display: none; }
 .line.typing .say::before{ content:""; display:inline-block; width:7px; height:12px; margin-left:2px; background:var(--accent); vertical-align:-1px; animation:type-cursor .7s steps(1,end) infinite; }.line.typing .say:empty::before{ margin-left:0; }.actions.is-typing{ opacity:.48; pointer-events:none; user-select:none; }@keyframes type-cursor{ 50%{ opacity:0; } }
 .opt{ padding:12px 13px; font-size:15px; }.opt:hover:not(:disabled),.tone:hover,.report-check:hover{ background:var(--surface-3); border-color:var(--accent-line); }.opt:focus-visible,.tone:focus-visible,.board-toggle:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .opts{ max-height:min(32vh,300px); }.transcript{ flex:5 1 0; min-height:125px; max-height:none; }.line .say{ font-size:15px; }.actions{ flex:4 1 0; min-height:0; overflow:auto; padding:14px; }
-.device-card{ background:var(--surface); }.lcd,.lcd.obscured,.lcd.missing{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.lcd.obscured::before{ background:repeating-linear-gradient(110deg,transparent 0 6px,#183746 6px 10px); }.lcd-placeholder b,.lcd-clients,.lcd-ssid{ color:#E4F6F4; }
+.device-card{ background:var(--surface); }.lcd,.lcd.obscured,.lcd.missing,.system-screen{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.lcd.obscured::before{ background:repeating-linear-gradient(110deg,transparent 0 6px,#183746 6px 10px); }.lcd-placeholder b,.lcd-clients,.lcd-ssid,.system-screen header b,.record-system-block p,.record-system-block li,.record-system-entry > span{ color:#E4F6F4; }
+.system-screen header span,.system-screen footer,.system-screen .lookup-system-row b,.system-screen .record-system-entry > b{ color:#78B8B3; }
+.system-screen header em{ color:#A8E4DF; border-color:#3F7E79; }
+.system-screen .record-system-block h3,.system-screen .log-customer span,.system-screen .log-candidates span{ color:#A8E4DF; }
+.system-screen .log-customer b,.system-screen .log-candidates b{ color:#78B8B3; }
+.system-screen .record-denied-message b{ color:#F6C56A; }
+.system-screen .record-denied-message p{ color:#E4F6F4; }
 .board-toggle{ width:100%; display:flex; justify-content:space-between; margin:10px 0; padding:9px 10px; border:1px solid var(--line); background:var(--surface-2); color:var(--text-2); font-size:13px; font-weight:600; }.board-toggle span{ color:var(--accent); font-weight:500; }.board-excluded{ border-top:1px solid var(--line-soft); }
 .cause{ color:var(--text-2); }.cause.hot{ color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); }.cause.out{ opacity:.7; color:var(--text-3); }
 .sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover{ border-color:var(--accent-line); color:var(--accent); }
@@ -1336,7 +1430,7 @@ body.office-view .office-scene{ gap:14px; }
 <section class="office-scene" id="office" aria-label="深夜のグローバルデスク オフィス">
   <div class="office-head">
     <div><p class="eyebrow">NIGHT SHIFT FIELD</p><h1>深夜のグローバルデスク</h1></div>
-    <p>新しい電話を取るか、約束した相手へ電話をかけます。</p>
+    <p>新しい電話を取るか、照会結果が出た相手へ電話をかけます。</p>
   </div>
   <div class="office-floor">
     <div class="office-wall">

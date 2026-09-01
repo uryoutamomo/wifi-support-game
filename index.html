@@ -233,8 +233,6 @@ button:focus-visible, [tabindex]:focus-visible{
 }
 .world-pin.waiting .world-pin-dot{ background: var(--amber); border-color: var(--amber); animation: pinpulse 1.8s ease-in-out infinite; }
 .world-pin.active .world-pin-dot{ background: var(--signal); border-color: var(--signal); }
-.world-pin.callback{ color: var(--signal); }
-.world-pin.callback .world-pin-dot{ background: var(--signal-deep); border-color: var(--signal); }
 .world-pin.closed{ color: var(--faint); opacity: .62; }
 .world-pin.abandoned{ color: var(--crit); opacity: 1; }
 .world-pin.abandoned .world-pin-dot{ background: var(--crit); border-color: var(--crit); }
@@ -810,6 +808,94 @@ body.sheet-open .console{ display: none; }
 .lcd-battery-wrap{ display: flex; align-items: center; gap: 5px; }
 .lcd-ssid{ min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 
+/* 照会結果はROUTER DISPLAYと同じ暗い機械画面として見せる */
+.line.sys.lookup-result .say{
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.system-screen{
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--signal-deep);
+  border-radius: 3px;
+  background: var(--panel-2);
+  color: var(--signal);
+  font-family: var(--mono);
+  font-size: 11px;
+  box-shadow: inset 0 0 18px var(--ink);
+}
+.system-screen header{
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--signal-deep);
+  font-family: var(--display);
+  letter-spacing: .08em;
+}
+.system-screen header span{ color: var(--dim); font-size: 9px; }
+.system-screen header b{ color: var(--text); font-size: 12px; }
+.system-screen header em{
+  padding: 1px 5px;
+  border: 1px solid var(--signal-deep);
+  color: var(--signal);
+  font-size: 9px;
+  font-style: normal;
+}
+.lookup-system-fields{ padding: 7px 10px; }
+.lookup-system-row{
+  display: grid;
+  grid-template-columns: minmax(82px, .42fr) 1fr;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--signal-deep);
+}
+.lookup-system-row:last-child{ border-bottom: 0; }
+.lookup-system-row b{ color: var(--dim); font-weight: 400; }
+.lookup-system-row span{ color: var(--signal); min-width: 0; overflow-wrap: anywhere; }
+.system-screen footer{
+  padding: 5px 10px;
+  border-top: 1px solid var(--signal-deep);
+  color: var(--dim);
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-align: right;
+}
+.lookup-system-screen.external{ border-color: var(--amber-deep); }
+.lookup-system-screen.external header,
+.lookup-system-screen.external footer{ border-color: var(--amber-deep); }
+.lookup-system-screen .lookup-system-external{ border-color: var(--amber-deep); color: var(--amber); }
+
+.record-system-screen{ margin-top: 8px; }
+.record-system-body{ padding: 2px 10px 8px; }
+.record-system-block{ padding: 10px 0; border-bottom: 1px solid var(--signal-deep); }
+.record-system-block:last-child{ border-bottom: 0; }
+.record-system-block h3{ margin: 0 0 7px; color: var(--signal); font: 600 11px/1.4 var(--display); letter-spacing: .1em; }
+.record-system-block p,
+.record-system-block li{ color: var(--text); font-size: 11px; line-height: 1.6; }
+.record-system-block ul{ margin: 4px 0; padding-left: 1.3em; }
+.record-system-screen .log-customer p{ display: grid; grid-template-columns: minmax(110px,.38fr) 1fr; gap: 12px; margin: 0; padding: 4px 0; border-bottom: 1px dotted var(--signal-deep); }
+.record-system-screen .log-customer p:last-child{ border-bottom: 0; }
+.record-system-screen .log-customer b,
+.record-system-screen .log-candidates b{ color: var(--dim); font-weight: 400; }
+.record-system-screen .log-customer span,
+.record-system-screen .log-candidates span{ color: var(--signal); }
+.record-system-transcript{ display: flex; flex-direction: column; gap: 0; }
+.record-system-entry{ display: grid; grid-template-columns: minmax(88px,.28fr) 1fr; gap: 12px; padding: 6px 0; border-bottom: 1px dotted var(--signal-deep); }
+.record-system-entry:last-child{ border-bottom: 0; }
+.record-system-entry > b{ color: var(--dim); font: 400 10px/1.6 var(--display); letter-spacing: .06em; }
+.record-system-entry > span{ min-width: 0; color: var(--text); font: 11px/1.6 var(--mono); overflow-wrap: anywhere; }
+.record-system-entry.me > b{ color: var(--amber); }
+.record-system-entry.cust > b{ color: var(--signal); }
+.record-system-entry.note{ opacity: .78; }
+.record-system-entry .lookup-system-screen{ margin: 0; }
+.record-denied-message{ padding: 22px 14px; text-align: center; }
+.record-denied-message b{ display: block; color: var(--amber); font: 600 13px/1.6 var(--display); }
+.record-denied-message p{ margin: 8px 0 0; color: var(--text); font: 12px/1.7 var(--mono); }
+
 /* 社内照会に添える単一型のメトリックバー */
 .lookup-viz{
   display: block;
@@ -1122,6 +1208,8 @@ body.sheet-open .console{ display: none; }
 .ending-speech{ margin:16px 0; padding:16px; border-left:4px solid var(--amber); background:var(--amber-glow); }.ending-speech>b{ display:inline-block; margin-bottom:6px; color:var(--amber-deep); font:800 17px/1.4 var(--display); }.ending-speech p{ margin:7px 0; color:var(--text); font-size:15px; line-height:1.7; }
 .ending-line.line{ display:block; max-width:100%; }.ending-line.line .say{ display:block; min-height:1.7em; padding:0; border:0; border-radius:0; background:transparent; color:inherit; font:inherit; }
 .ending-totals{ display:flex; flex-wrap:wrap; gap:8px 14px; margin:16px 0; padding:12px; border:1px solid var(--line); background:var(--surface-2); }.ending-totals b{ width:100%; font-size:18px; }.ending-totals span{ color:var(--dim); font:600 12px/1.5 var(--mono); }
+.career-ending-progress{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0 6px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); }.career-ending-progress b{ color:var(--text); }.career-ending-progress span{ color:var(--accent); font:700 12px/1.5 var(--mono); }
+.ending-variant-mark{ display:inline-block; margin-left:8px; padding:1px 5px; border:1px solid currentColor; border-radius:999px; font-size:9px; line-height:1.35; letter-spacing:0; vertical-align:middle; }
 .ending-end{ margin:28px 0 20px; color:var(--text); font:800 34px/1 var(--display); letter-spacing:.36em; text-align:center; text-indent:.36em; }
 
 .tbl{ width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -1159,7 +1247,13 @@ body.sheet-open .console{ display: none; }
 .line.typing .say::before{ content:""; display:inline-block; width:7px; height:12px; margin-left:2px; background:var(--accent); vertical-align:-1px; animation:type-cursor .7s steps(1,end) infinite; }.line.typing .say:empty::before{ margin-left:0; }.actions.is-typing{ opacity:.48; pointer-events:none; user-select:none; }@keyframes type-cursor{ 50%{ opacity:0; } }
 .opt{ padding:12px 13px; font-size:15px; }.opt:hover:not(:disabled),.tone:hover,.report-check:hover{ background:var(--surface-3); border-color:var(--accent-line); }.opt:focus-visible,.tone:focus-visible,.board-toggle:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .opts{ max-height:min(32vh,300px); }.transcript{ flex:5 1 0; min-height:125px; max-height:none; }.line .say{ font-size:15px; }.actions{ flex:4 1 0; min-height:0; overflow:auto; padding:14px; }
-.device-card{ background:var(--surface); }.lcd,.lcd.obscured,.lcd.missing{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.lcd.obscured::before{ background:repeating-linear-gradient(110deg,transparent 0 6px,#183746 6px 10px); }.lcd-placeholder b,.lcd-clients,.lcd-ssid{ color:#E4F6F4; }
+.device-card{ background:var(--surface); }.lcd,.lcd.obscured,.lcd.missing,.system-screen{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.lcd.obscured::before{ background:repeating-linear-gradient(110deg,transparent 0 6px,#183746 6px 10px); }.lcd-placeholder b,.lcd-clients,.lcd-ssid,.system-screen header b,.record-system-block p,.record-system-block li,.record-system-entry > span{ color:#E4F6F4; }
+.system-screen header span,.system-screen footer,.system-screen .lookup-system-row b,.system-screen .record-system-entry > b{ color:#78B8B3; }
+.system-screen header em{ color:#A8E4DF; border-color:#3F7E79; }
+.system-screen .record-system-block h3,.system-screen .log-customer span,.system-screen .log-candidates span{ color:#A8E4DF; }
+.system-screen .log-customer b,.system-screen .log-candidates b{ color:#78B8B3; }
+.system-screen .record-denied-message b{ color:#F6C56A; }
+.system-screen .record-denied-message p{ color:#E4F6F4; }
 .board-toggle{ width:100%; display:flex; justify-content:space-between; margin:10px 0; padding:9px 10px; border:1px solid var(--line); background:var(--surface-2); color:var(--text-2); font-size:13px; font-weight:600; }.board-toggle span{ color:var(--accent); font-weight:500; }.board-excluded{ border-top:1px solid var(--line-soft); }
 .cause{ color:var(--text-2); }.cause.hot{ color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); }.cause.out{ opacity:.7; color:var(--text-3); }
 .sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover{ border-color:var(--accent-line); color:var(--accent); }
@@ -1336,7 +1430,7 @@ body.office-view .office-scene{ gap:14px; }
 <section class="office-scene" id="office" aria-label="深夜のグローバルデスク オフィス">
   <div class="office-head">
     <div><p class="eyebrow">NIGHT SHIFT FIELD</p><h1>深夜のグローバルデスク</h1></div>
-    <p>新しい電話を取るか、約束した相手へ電話をかけます。</p>
+    <p>新しい電話を取るか、照会結果が出た相手へ電話をかけます。</p>
   </div>
   <div class="office-floor">
     <div class="office-wall">
@@ -1401,7 +1495,6 @@ body.office-view .office-scene{ gap:14px; }
 const TURN_MIN = 1;          // 時間進行の最小単位＝ゲーム内1分
 const SHIFT_START = 22 * 60; // 22:00 JST
 const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
-const CALLBACKS = 4;         // 1シフトの折り返し枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
@@ -1409,6 +1502,7 @@ const GAME_FLAGS = {
   dailyTickets: null,
   careerStage: null,
   unlockedBadges: null,
+  solvedScenarios: null,
   soundEnabled: true,
   soundVolume: 0.55,
 };
@@ -1423,10 +1517,8 @@ const REFUND_POLICY = Object.freeze({
 const COMMAND_DEFS = Object.freeze([
   Object.freeze({ id:'ask',      no:'1', label:'聞く' }),
   Object.freeze({ id:'lookup',   no:'2', label:'調べる' }),
-  Object.freeze({ id:'test',     no:'3', label:'操作' }),
-  Object.freeze({ id:'tell',     no:'4', label:'伝える' }),
-  Object.freeze({ id:'callback', no:'5', label:'折り返す' }),
-  Object.freeze({ id:'record',   no:'6', label:'ログ' }),
+  Object.freeze({ id:'tell',     no:'3', label:'伝える' }),
+  Object.freeze({ id:'record',   no:'4', label:'ログ' }),
 ]);
 
 /* 壁に貼られた今月のスローガン。シフトを始めるたびに1つ選ばれる */
@@ -1494,14 +1586,14 @@ const CAREER_STAGES = Object.freeze({
   lead:Object.freeze({ label:'リーダー', next:null, condition:'最上位。降格はありません' }),
 });
 const CAREER_BADGES = Object.freeze([
-  Object.freeze({ id:'quiet_night', label:'静かな夜', condition:'全案件で苛立ちが一度も50%を超えない' }),
+  Object.freeze({ id:'quiet_night', label:'静かな夜', condition:'全案件で苛立ちが一度も70%を超えない' }),
   Object.freeze({ id:'no_redial', label:'一度でつながる', condition:'再入電0件・放棄呼0件' }),
-  Object.freeze({ id:'frugal', label:'倹約家', condition:'シフトの総費用0円' }),
-  Object.freeze({ id:'all_first', label:'一発解決', condition:'全案件が一次解決' }),
+  Object.freeze({ id:'frugal', label:'倹約家', condition:'返金と配送をどちらも使わない' }),
+  Object.freeze({ id:'all_first', label:'一発解決', condition:'全案件を解決（再入電があってもよい）' }),
   Object.freeze({ id:'storm', label:'嵐の夜', condition:'同じ夜に苦情と一方的切断の両方が発生' }),
   Object.freeze({ id:'money_talks', label:'お金で解決', condition:'全案件で返金を実施' }),
-  Object.freeze({ id:'ten_nights', label:'十夜勤', condition:'通算10シフトを完了' }),
-  Object.freeze({ id:'clean_record', label:'無苦情記録', condition:'直近3シフトの苦情が0件' }),
+  Object.freeze({ id:'ten_nights', label:'五夜勤', condition:'通算5シフトを完了' }),
+  Object.freeze({ id:'clean_record', label:'無苦情記録', condition:'直近2シフトの苦情が0件' }),
 ]);
 const PRESIDENT_ENDING_LINE = 'ハードワークご苦労様です。あなたが身を粉にして、お値段以上に顧客第一で働いてくれたことを感謝します。明日からもまた夜勤を頑張ってください';
 const MORNING_STAFF = Object.freeze([
@@ -1625,11 +1717,14 @@ const CALL_FLOW_LINES = Object.freeze({
       expert:'はい。調査結果をお願いします。',
     }),
   }),
+  carrier:Object.freeze({
+    promise:'現地キャリアへの照会には30分ほどかかります。いったんお切りして、結果が分かり次第お電話してもよろしいですか。',
+    consent:'分かりました。お願いします。',
+  }),
   lookup:Object.freeze({
     holdStart:'確認いたしますので、少々お待ちください。',
     talkStart:'お話ししながら確認いたしますね。',
     completePrefix:'お待たせしました。確認結果は、',
-    miss:'該当する記録は確認できませんでした。',
   }),
   recordStart:'少し記録を確認させてください。',
   interrupt:'申し訳ございません、一度お切りします。',
@@ -1732,12 +1827,15 @@ const REDIAL_STRESS = 25;
 /* ---------- 社内照会プール ---------- */
 
 const LOOKUPS = [
-  { id:'l_plan',    label:'契約プランとデータ使用量を照会', miss:'[契約照会] 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし' },
-  { id:'l_session', label:'ルーターの接続セッション履歴を照会', miss:'[セッション] 直近の異常イベントなし。SIM認識 正常。' },
-  { id:'l_outage',  label:'現地キャリアの障害情報を確認', miss:'[障害情報] 該当エリアの提携キャリア 障害報告なし。' },
-  { id:'l_area',    label:'渡航先の対応エリアと機種対応を確認', miss:'[エリア照会] 渡航先: 対応地域内 ／ 貸出機種: 対応 ✓' },
-  { id:'l_ship',    label:'貸出・返却・配送の記録を照会', miss:'[貸出記録] 通常の貸出。受取済み・返却期限内。特記事項なし。',
+  { id:'l_plan',    label:'契約プランとデータ使用量を照会', title:'契約照会', spoken:'契約は有効で、使用量も制限内でした。', defaultResult:'[契約照会] 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし' },
+  { id:'l_session', label:'ルーターの接続セッション履歴を照会', title:'セッション履歴', spoken:'直近の接続履歴に異常はなく、SIMも正常に認識されています。', defaultResult:'[セッション] 直近の異常イベントなし。SIM認識 正常。' },
+  { id:'l_outage',  label:'現地キャリアの障害情報を確認', title:'障害情報', spoken:'該当エリアの提携キャリアに、障害報告はありませんでした。', defaultResult:'[障害情報] 該当エリアの提携キャリア 障害報告なし。' },
+  { id:'l_area',    label:'渡航先の対応エリアと機種対応を確認', title:'エリア照会', spoken:'渡航先は対応地域内で、貸出機種も対応しています。', defaultResult:'[エリア照会] 渡航先: 対応地域内 ／ 貸出機種: 対応 ✓' },
+  { id:'l_ship',    label:'貸出・返却・配送の記録を照会', title:'貸出記録', spoken:'貸出と返却の記録に問題はなく、特記事項もありませんでした。', defaultResult:'[貸出記録] 通常の貸出。受取済み・返却期限内。特記事項なし。',
     missFact:{ text:'貸出・返却に問題はなく、物流側の案件ではない', out:['logistics'] } },
+  { id:'l_carrier', label:'現地キャリアへ回線契約の状態を問い合わせる', title:'現地キャリア照会', spoken:'現地キャリア側でも契約は有効で、開通状態に問題はありませんでした。', minutes:30, external:true,
+    defaultResult:'[現地キャリア照会] 回線契約: 有効 ／ 開通状態: 正常 ／ 同期エラーなし',
+    missFact:{ text:'現地キャリア側でも回線契約は有効で、開通設定の不備はない', out:['provision'] } },
 ];
 
 /* ---------- 低リスク操作（通話をつないだまま実行） ---------- */
@@ -2217,6 +2315,46 @@ const SCENARIOS = [
   debrief:'場所が原因なら、設定変更より先に<em>遮蔽物の外へ移動する</em>のが最も速く安全です。地下から地上へ出ただけで電波が1本から4本へ戻りました。場所を変えず再起動を繰り返すのは時間とストレスの無駄です。'
 },
 
+/* === 12. シドニー：日付境界で回線停止。契約終了日の登録不備 === */
+{
+  id:'S12', arrive:68, name:'吉田 和子', age:64, type:'novice', abandonAfter:28, callbackTo:'hotel',
+  contractId:{ minutes:3, text:'予約番号ですね…。箱の裏に、GDW-348621とあります。これで合っていますか？' },
+  city:'シドニー', cityEn:'SYDNEY', localOffset:1, device:'GD-500', plan:'オーストラリア ／ 無制限プラン',
+  opening:'夜になって急に圏外になりました。さっきまで使えていたのに、再起動しても戻りません。私、何か設定を変えてしまったのでしょうか。',
+  smalltalk:[{ id:'st_s12_night', reveal:'q_when', askLabel:'夜になってから、急に使えなくなったのですね？', tellLabel:'遅い時間に突然つながらなくなると、ご不安ですよね', goodReply:'そうなんです。日付が変わる頃までは使えていたのですが…。ゆっくり確認していただけると助かります。', badReply:'ありがとうございます。でも、夜になって急に止まった理由が分からなくて…。' }],
+  panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:73, ssid:'Globaldesk-4826' },
+  trueCause:'provision', best:'r_escalate_prov', partial:[],
+  replies:{
+    q_when:{ text:'時計を見たら、ちょうど日付が変わったあたりです。23時台は使えていて、0時を過ぎた直後から急に圏外になりました。',
+      fact:{ text:'現地の日付が変わる境目までは正常で、その直後に回線だけが停止した', hot:['provision'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','coverage','sim','hardware','logistics'] } },
+    q_lamp:{ text:'「圏外」と出ています。SIMがないという表示はありません。回線名だけが消えています。',
+      fact:{ text:'SIMは認識しているが、回線登録だけが失われている', hot:['provision','carrier'], out:['sim','hardware','device_side','device_net'] } },
+    q_other_device:{ text:'スマートフォンとパソコンの両方が同じです。どちらもWi-Fiにはつながりますが、インターネットが使えません。',
+      fact:{ text:'複数端末が本体には接続できるが、回線通信だけができない', out:['device_side','device_net','devices'] } },
+    q_where:{ text:'シドニー中心部のホテルです。昼間も同じ部屋で普通に使えていました。',
+      fact:{ text:'同じ市内ホテルの部屋で直前まで通信できていた', out:['location','coverage'] } },
+    q_moved:{ text:'ロビーとホテルの外でも試しましたが、圏外のままです。',
+      fact:{ text:'ホテル内外へ移動しても圏外のまま', out:['location'] } },
+    q_battery:{ text:'73%あります。充電もできています。', fact:{ text:'電源と充電は正常', out:['power'] } },
+    q_stay:{ text:'シドニー中心部のホテル、512号室です。折り返しでしたら、こちらへお願いします。' },
+  },
+  lookups:{
+    l_plan:{ text:'[契約照会] 契約: 有効 ／ 利用終了予定: 9/4 ／ 使用量: 制限内 ／ 速度制限なし',
+      fact:{ text:'自社の契約登録では利用期間内で、容量制限もない', hot:['provision'], out:['fup','heavy','logistics'] } },
+    l_session:{ text:'[セッション] 現地時間 23:59 まで通信正常 ／ 00:00 以降、網側から登録拒否 ／ SIM認識: 正常',
+      fact:{ text:'日付境界を挟んで網側の登録拒否へ切り替わった', hot:['provision','carrier'], out:['sim','hardware','power'] } },
+    l_outage:{ text:'[障害情報] シドニー周辺の提携キャリア 障害報告なし。', fact:{ text:'周辺の広域障害は報告されていない', out:['carrier'] } },
+    l_area:{ text:'[エリア照会] シドニー中心部 ／ GD-500: 対応 ✓ ／ 提携キャリア: 対応 ✓', fact:{ text:'地域と機種は対応範囲内', out:['coverage'] } },
+    l_carrier:{ text:'[現地キャリア照会] 当該回線は現地時間 00:00 に契約満了として停止 ／ 自社登録の終了日と同期不一致 ／ 再開通可能',
+      fact:{ text:'現地キャリア側だけ終了日が早く登録され、日付境界で回線を停止していた', hot:['provision'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','carrier','coverage','sim','hardware','logistics'] } },
+  },
+  tests:{
+    t_reboot:{ text:'再起動しましたが、やはり圏外です。SIMがないという表示は出ていません。', fact:{ text:'再起動しても回線登録は戻らない', out:['power','device_side'] } },
+    t_move:{ text:'ホテルの外まで出ましたが、圏外のままです。', fact:{ text:'屋外へ移動しても回線登録は戻らない', out:['location','coverage'] } },
+  },
+  debrief:'現地の日付が変わった直後に突然止まったことが重要な手がかりです。自社の契約照会は有効でも、現地キャリアでは終了日が早く登録され、<em>現地時間0時に契約満了として回線が停止</em>していました。現地照会を使えばほぼ確定できますが、日付境界と各原因の除外だけでもプロビジョニング不備へ到達できます。'
+},
+
 ];
 
 /* ============================================================
@@ -2253,7 +2391,6 @@ const state = {
   tickets: [],
   focus: null,          // 表示中のチケット
   escLeft: ESCALATIONS,
-  callbacksLeft: CALLBACKS,
   cost: 0,
   outageKnown: false,
   holdVisual: false,
@@ -2263,6 +2400,8 @@ const state = {
   report: null,
   career: null,
   careerUpdate: null,
+  endingReplay: false,
+  endingType: 'career',
   officeEvents: [],
   random: Math.random,
 };
@@ -2307,17 +2446,30 @@ function freshCareerRecord(){
     shifts:[],
     stage:'probation',
     badges:[],
+    solvedScenarios:[],
     ending:false,
+    secretEnding:false,
     totals:{ days:0, averageCsat:0, complaints:0 },
   };
 }
 
+function normalizeCareerRecord(value){
+  if (!value || typeof value !== 'object') return value;
+  const next = JSON.parse(JSON.stringify(value));
+  // v1公開済み記録には§28の2項目がないため、その場合だけ安全な初期値を補う。
+  if (next.version === CAREER_VERSION && next.solvedScenarios === undefined) next.solvedScenarios = [];
+  if (next.version === CAREER_VERSION && next.secretEnding === undefined) next.secretEnding = false;
+  return next;
+}
+
 function validCareerRecord(value){
   if (!value || value.version !== CAREER_VERSION || !Array.isArray(value.shifts)) return false;
-  if (!Object.prototype.hasOwnProperty.call(CAREER_STAGES, value.stage) || !Array.isArray(value.badges) || typeof value.ending !== 'boolean') return false;
+  if (!Object.prototype.hasOwnProperty.call(CAREER_STAGES, value.stage) || !Array.isArray(value.badges) || !Array.isArray(value.solvedScenarios) || typeof value.ending !== 'boolean' || typeof value.secretEnding !== 'boolean') return false;
   if (!value.totals || !Number.isInteger(value.totals.days) || value.totals.days < 0 || !Number.isFinite(value.totals.averageCsat) || !Number.isInteger(value.totals.complaints) || value.totals.complaints < 0) return false;
   const badgeIds = new Set(CAREER_BADGES.map(badge => badge.id));
+  const scenarioIds = new Set(SCENARIOS.map(scenario => scenario.id));
   if (value.badges.some(id => !badgeIds.has(id)) || new Set(value.badges).size !== value.badges.length) return false;
+  if (value.solvedScenarios.some(id => !scenarioIds.has(id)) || new Set(value.solvedScenarios).size !== value.solvedScenarios.length) return false;
   return value.shifts.every(shift => shift && typeof shift.endedAt === 'string' && !Number.isNaN(Date.parse(shift.endedAt)) &&
     Number.isInteger(shift.tickets) && shift.tickets >= 2 && shift.tickets <= 5 && /^[SABCDE]$/.test(shift.grade) &&
     shift.scores && ['csat','fcr','answer','cost','report'].every(key => Number.isFinite(shift.scores[key])) &&
@@ -2331,7 +2483,25 @@ function careerWithFlags(record, flags = GAME_FLAGS){
     const known = new Set(CAREER_BADGES.map(badge => badge.id));
     next.badges = [...new Set(flags.unlockedBadges.filter(id => known.has(id)))];
   }
+  if (Array.isArray(flags.solvedScenarios)){
+    const known = new Set(SCENARIOS.map(scenario => scenario.id));
+    next.solvedScenarios = [...new Set(flags.solvedScenarios.filter(id => known.has(id)))];
+  }
   return next;
+}
+
+function solvedScenarioIdsFromTickets(tickets){
+  return [...new Set(tickets.filter(ticket => {
+    const result = ticket && ticket.result;
+    return result && (result.kind === 'closed' || (result.kind === 'refunded' && result.satisfied === true));
+  }).map(ticket => ticket.s.id))];
+}
+
+function careerEndingQueue(career){
+  const queue = [];
+  if (career.solvedScenarios.length === SCENARIOS.length && !career.ending) queue.push('career');
+  if (career.badges.length === CAREER_BADGES.length && !career.secretEnding) queue.push('secret');
+  return queue;
 }
 
 function gradeAtLeast(grade, minimum){
@@ -2349,14 +2519,14 @@ function promotedCareerStage(stage, totalDays, recentShifts){
 function earnedBadgeIds(career, shift, context){
   const resultKinds = context.resultKinds || [];
   const candidates = [];
-  if ((context.maxStresses || []).length === shift.tickets && context.maxStresses.every(value => value <= 50)) candidates.push('quiet_night');
+  if ((context.maxStresses || []).length === shift.tickets && context.maxStresses.every(value => value <= 70)) candidates.push('quiet_night');
   if (context.redials === 0 && context.abandoned === 0) candidates.push('no_redial');
-  if (shift.scores.cost === 0) candidates.push('frugal');
-  if (context.allFirst) candidates.push('all_first');
+  if (context.noRefundsOrShipments) candidates.push('frugal');
+  if (context.allResolved) candidates.push('all_first');
   if (resultKinds.includes('complaint') && resultKinds.includes('hangup')) candidates.push('storm');
   if (context.allRefunded) candidates.push('money_talks');
-  if (career.totals.days >= 10) candidates.push('ten_nights');
-  if (career.shifts.length >= 3 && career.shifts.slice(-3).every(item => item.complaints === 0)) candidates.push('clean_record');
+  if (career.totals.days >= 5) candidates.push('ten_nights');
+  if (career.shifts.length >= 2 && career.shifts.slice(-2).every(item => item.complaints === 0)) candidates.push('clean_record');
   return candidates;
 }
 
@@ -2373,12 +2543,14 @@ function appendCareerShift(record, shift, context){
   const earned = earnedBadgeIds(career, shift, context);
   const newBadges = earned.filter(id => !career.badges.includes(id));
   career.badges = [...new Set(career.badges.concat(newBadges))];
+  career.solvedScenarios = [...new Set(career.solvedScenarios.concat(context.solvedScenarioIds || []))];
+  const endingQueue = careerEndingQueue(career);
   return {
     career,
     previousStage,
     promoted:career.stage !== previousStage,
     newBadges,
-    shouldEnd:career.badges.length === CAREER_BADGES.length && !career.ending,
+    endingQueue,
   };
 }
 
@@ -2410,7 +2582,7 @@ function newTicket(s){
     transcript:[], callTranscriptStart:0, greeted:false, identified:false, nameKnown:false, destinationKnown:false,
     stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, holdMinutes:0,
-    callbackCount:0, callbackDue:null, callbackLate:false, callbackDestination:null, callbackPenalty:0,
+    callbackCount:0, callbackDue:null, callbackLate:false, callbackDestination:null, callbackPenalty:0, carrierLookupStarted:false,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
     complaintEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
@@ -2425,7 +2597,6 @@ function resetGame(){
   state.tickets = prepareDailyScenarios(SCENARIOS, state.random).map(newTicket);
   state.focus = null;
   state.escLeft = ESCALATIONS;
-  state.callbacksLeft = CALLBACKS;
   state.cost = 0;
   state.outageKnown = false;
   state.holdVisual = false;
@@ -2465,7 +2636,6 @@ function advance(turns){
     state.tickets.forEach(t => {
       if (t.state === 'waiting') t.patience -= 100 / t.s.abandonAfter;
       else if (t.state === 'callback' && state.clock > t.callbackDue) t.patience -= 100 / CALLBACK_OVERDUE_MIN;
-
       if (t.patience <= 0 && (t.state === 'waiting' || t.state === 'callback')){
         t.patience = 0;
         t.state = 'closed';
@@ -2528,21 +2698,21 @@ function greetCurrentCustomer(){
 }
 
 function resumeCallback(t){
-  if (state.focus) return;
-  if (!t || t.state !== 'callback') return;
+  if (state.focus || !t || t.state !== 'callback' || state.clock < t.callbackDue) return;
   playPickupSound();
-  t.callbackLate = t.callbackLate || state.clock > t.callbackDue;
-  if (t.callbackDestination !== t.s.callbackTo){
-    t.callbackPenalty = t.callbackDestination === 'hotel' ? 1.0 : 0.5;
-    spendOnCall(t, 2, 0);
-  }
+  t.callbackLate = state.clock > t.callbackDue;
   t.state = 'open';
   t.callTranscriptStart = t.transcript.length;
+  state.focus = t;
+  if (t.callbackDestination !== t.s.callbackTo){
+    t.callbackPenalty = t.callbackDestination === 'hotel' ? 1.0 : 0.5;
+    if (!spendOnCall(t, 2, 0)){ render(); return; }
+  }
   pushFlowLines(t, [
     { who:'me', text:callbackOperatorLine(t) },
     { who:'cust', text:CALL_FLOW_LINES.callback.replies[t.s.type] },
   ]);
-  state.focus = t;
+  finishCarrierLookup(t);
   state.ui = defaultUi();
   enterCall();
 }
@@ -2697,6 +2867,13 @@ function identificationReady(t){
   return t.identified || (t.nameKnown && t.destinationKnown);
 }
 
+function requireIdentification(t){
+  if (identificationReady(t)) return true;
+  state.ui = defaultUi('identity_denied');
+  render();
+  return false;
+}
+
 function identityQuestionStress(t, qid, normalBase){
   if (!['q_name','q_contract'].includes(qid) || t.stress < 50) return addStress(t, normalBase);
   const delta = IDENTITY_CALMING_EFFECTS[t.s.type];
@@ -2814,9 +2991,16 @@ function doApologize(id){
   state.ui = defaultUi(); render();
 }
 
+function openLookup(){
+  const t = state.focus;
+  if (!t || !requireIdentification(t)) return;
+  state.ui = defaultUi('lookup');
+  render();
+}
+
 function openRecord(){
   const t = state.focus;
-  if (!t) return;
+  if (!t || !requireIdentification(t)) return;
   pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.recordStart }]);
   t.transcript.push({ who:'note', text:'ログを1分かけて確認しました。' });
   if (!addStress(t, 4)) return;
@@ -2920,6 +3104,7 @@ function doLookup(lid, mode){
   if (!t || state.busy || !['hold','talk'].includes(mode)) return;
   const l = LOOKUPS.find(x => x.id === lid);
   if (!l || t.lookedUp.has(lid)) return;
+  if (l.external) return;
   if (!t.identified) return;
   const minutes = mode === 'hold' ? 2 : 3;
   const hold = mode === 'hold' ? 2 : 0;
@@ -2934,6 +3119,18 @@ function doLookup(lid, mode){
   setTimeout(() => finishLookup(t, l, minutes, hold), mode === 'hold' ? 420 : 0);
 }
 
+function lookupSystemLine(lookup, result){
+  return {
+    who:'sys',
+    typed:true,
+    text:result ? result.text : lookup.defaultResult,
+    viz:result && result.viz ? result.viz : null,
+    lookupId:lookup.id,
+    lookupTitle:lookup.title,
+    external:Boolean(lookup.external),
+  };
+}
+
 function finishLookup(t, l, minutes, hold){
   if (state.focus !== t || t.state !== 'open'){
     state.busy = false;
@@ -2945,11 +3142,11 @@ function finishLookup(t, l, minutes, hold){
 
   const r = (t.s.lookups || {})[lid];
   if (r){
-    t.transcript.push({ who:'sys', text:r.text, viz:r.viz || null });
+    t.transcript.push(lookupSystemLine(l, r));
     if (r.fact) addFact(t, r.fact, '社内照会');
     if (r.outage) triggerOutage(t);
   } else {
-    t.transcript.push({ who:'sys', text:l.miss });
+    t.transcript.push(lookupSystemLine(l, null));
     if (l.missFact) addFact(t, l.missFact, '社内照会');
     else t.wasted++;
   }
@@ -2958,10 +3155,30 @@ function finishLookup(t, l, minutes, hold){
   state.busy = false;
   state.holdVisual = false;
   if (!continued){ render(); return; }
-  const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : CALL_FLOW_LINES.lookup.miss);
+  const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : l.spoken);
   pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);
   state.ui = defaultUi();
   render();
+}
+
+function finishCarrierLookup(t){
+  if (!t || !t.carrierLookupStarted || t.lookedUp.has('l_carrier')) return false;
+  const l = LOOKUPS.find(item => item.id === 'l_carrier');
+  if (!l) return false;
+  t.lookedUp.add(l.id);
+  t.carrierLookupStarted = false;
+  const result = (t.s.lookups || {})[l.id];
+  if (result){
+    t.transcript.push(lookupSystemLine(l, result));
+    if (result.fact) addFact(t, result.fact, '現地キャリア照会');
+  } else {
+    t.transcript.push(lookupSystemLine(l, null));
+    if (l.missFact) addFact(t, l.missFact, '現地キャリア照会');
+    else t.wasted++;
+  }
+  const spokenSummary = result && result.fact ? result.fact.text : (result ? result.text : l.spoken);
+  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);
+  return true;
 }
 
 function doTest(tid){
@@ -3002,20 +3219,22 @@ function doTest(tid){
   render();
 }
 
-function startCallback(destination){
+function startCarrierCallback(destination){
   const t = state.focus;
-  if (!t || !['hotel','mobile'].includes(destination)) return;
-  if (destination === 'hotel' && !t.asked.has('q_stay')){
-    state.ui = defaultUi('ask');
-    render(); return;
-  }
-  t.transcript.push({ who:'me', text:'一度お切りして、調べてから折り返します。30分以内にご連絡します。' });
-  t.transcript.push({ who:'note', text:(destination === 'hotel' ? 'ホテル客室' : '携帯') + 'へ30分以内に折り返す約束を記録しました。' });
+  const lookup = LOOKUPS.find(item => item.id === 'l_carrier');
+  if (!t || !lookup || state.ui.tab !== 'lookup' || state.ui.lookup !== lookup.id || t.carrierLookupStarted || t.lookedUp.has(lookup.id)) return;
+  if (!['hotel','mobile'].includes(destination)) return;
+  if (destination === 'hotel' && !t.asked.has('q_stay')){ render(); return; }
+  pushFlowLines(t, [
+    { who:'me', text:CALL_FLOW_LINES.carrier.promise },
+    { who:'cust', text:CALL_FLOW_LINES.carrier.consent },
+  ]);
+  t.transcript.push({ who:'note', text:(destination === 'hotel' ? 'ホテル客室' : '携帯') + 'へ30分後に折り返す約束と、現地キャリアへの照会を記録しました。' });
   t.callbackCount++;
   t.callbackDestination = destination;
-  state.callbacksLeft--;
+  t.carrierLookupStarted = true;
   if (!spendOnCall(t, 1, 0)) return;
-  t.callbackDue = state.clock + 30;
+  t.callbackDue = state.clock + lookup.minutes;
   t.state = 'callback';
   state.focus = null;
   state.ui = defaultUi();
@@ -3033,7 +3252,7 @@ function remedyBlockReason(t, remedy){
   if (remedy.needsTest){
     const required = remedy.needsTestCount || 1;
     const count = t.testCounts.get(remedy.needsTest) || 0;
-    if (count < required) return '先に「操作」を ' + required + '回行ってください（現在 ' + count + '回）';
+    if (count < required) return '先に「伝える」→「やってみてもらう」を ' + required + '回行ってください（現在 ' + count + '回）';
   }
   const missing = (remedy.requiresQuestions || []).filter(id => !t.asked.has(id));
   if (missing.length) return '配送判断に必要な聞き取りが不足しています';
@@ -3329,9 +3548,12 @@ function nextInboundDelta(tickets, turn){
 function advanceIdleOffice(){
   if (state.focus) return 0;
   activateDueInbound();
-  const actionable = state.tickets.some(t => t.state === 'waiting' || t.state === 'callback');
+  const actionable = state.tickets.some(t => t.state === 'waiting' || (t.state === 'callback' && t.callbackDue <= state.clock));
   if (actionable) return 0;
-  const delta = nextInboundDelta(state.tickets, state.turn);
+  const inboundDelta = nextInboundDelta(state.tickets, state.turn);
+  const callbackDeltas = state.tickets.filter(t => t.state === 'callback' && t.callbackDue > state.clock).map(t => t.callbackDue - state.clock);
+  const callbackDelta = callbackDeltas.length ? Math.min(...callbackDeltas) : null;
+  const delta = [inboundDelta, callbackDelta].filter(value => value !== null && value > 0).sort((a,b) => a - b)[0] || null;
   if (delta && delta > 0) advance(delta);
   return delta || 0;
 }
@@ -3511,7 +3733,7 @@ function renderWorldStrip(){
     else if (t.state === 'callback') cls = 'callback';
     else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
 
-    const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '折り返し待ち' : cls === 'abandoned' ? '放棄呼' : '完了';
+    const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '現地キャリア照会中' : cls === 'abandoned' ? '放棄呼' : '完了';
     return '<span class="world-pin ' + cls + '" style="left:' + pos.toFixed(2) + '%;--stack:' + stack + '" ' +
       'title="' + esc(t.s.city) + ' ' + esc(localClock(t)) + ' ' + status + '" aria-label="' + esc(t.s.city) + ' ' + status + '">' +
       '<i class="world-pin-dot"></i><span class="world-pin-label">' + esc(t.s.id) + '</span></span>';
@@ -3533,8 +3755,8 @@ function renderQueue(){
   const callbacks = state.tickets.filter(t => t.state === 'callback');
   const longest = q.length ? Math.max(0, ...q.map(t => state.turn - t.arrivedTurn)) : 0;
   $('queue-count').textContent = q.length + '件';
-  $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>折り返し待ち <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
-  $('queue-hint').innerHTML = '終話後はオフィスで、新しい電話を取るか、約束した相手へ電話をかけるかを選びます。';
+  $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>現地キャリア照会中 <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
+  $('queue-hint').innerHTML = '終話後はオフィスで、新しい電話を取るか、照会結果が出た相手へ電話をかけます。';
 }
 
 function pixelRect(ctx, color, x, y, width, height){
@@ -3707,6 +3929,7 @@ function renderOffice(){
   renderWorldStrip();
   const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
   const callbacks = state.tickets.filter(t => t.state === 'callback').sort((a,b) => a.callbackDue - b.callbackDue);
+  const readyCallbacks = callbacks.filter(t => t.callbackDue <= state.clock);
   const redials = waiting.filter(t => t.redialOpening);
   const shipments = state.tickets.filter(t => t.shipment).length;
   $('office-phone').classList.toggle('ringing', waiting.length > 0);
@@ -3726,9 +3949,9 @@ function renderOffice(){
     : '<div class="blank">特記事項なし</div>';
   $('office-answer').disabled = !waiting.length;
   $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
-  $('office-callback').disabled = !callbacks.length;
+  $('office-callback').disabled = !readyCallbacks.length;
   $('office-callback-status').textContent = callbacks.length
-    ? '折り返し ' + callbacks.length + '件 ／ 最短 ' + fmtClock(callbacks[0].callbackDue)
+    ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '照会中 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
     : '折り返し 0件';
 }
 
@@ -3793,6 +4016,17 @@ function renderStressPanel(t){
 function recentTranscriptLines(t){
   const pending = pendingTypedLine(t);
   const end = pending ? t.transcript.indexOf(pending) + 1 : t.transcript.length;
+  const delivered = t.transcript.slice(0, end);
+  let latestLookupIndex = -1;
+  for (let i = delivered.length - 1; i >= 0; i--){
+    if (delivered[i].who === 'sys' && delivered[i].lookupTitle){ latestLookupIndex = i; break; }
+  }
+  if (latestLookupIndex >= 0){
+    const afterLookup = delivered.slice(latestLookupIndex + 1);
+    const customerAfter = afterLookup.some(line => line.who === 'cust');
+    const playerAfter = afterLookup.slice().reverse().find(line => line.who === 'me');
+    if (!customerAfter && playerAfter) return [delivered[latestLookupIndex], playerAfter];
+  }
   const spoken = t.transcript.slice(0, end).filter(line => line.who === 'cust' || line.who === 'me');
   if (spoken.length && spoken[spoken.length - 1].who === 'me'){
     const player = spoken[spoken.length - 1];
@@ -3816,8 +4050,10 @@ function renderTranscript(t, full){
     if ((l.who === 'cust' || l.who === 'sys') && !l.typed && l !== pending) return '';
     const who = { cust:'客', me:'あなた', sys:'社内システム', note:'メモ' }[l.who];
     const typing = l === pending;
-    return '<div class="line ' + l.who + (typing ? ' typing' : '') + '"><span class="who">' + who + '</span>' +
-      '<span class="say">' + (typing ? '' : esc(l.text) + (l.viz ? renderLookupViz(l.viz) : '')) + '</span></div>';
+    const lookupResult = l.who === 'sys' && l.lookupTitle;
+    const content = typing ? '' : lookupResult ? renderLookupSystemScreen(l) : esc(l.text) + (l.viz ? renderLookupViz(l.viz) : '');
+    return '<div class="line ' + l.who + (lookupResult ? ' lookup-result' : '') + (typing ? ' typing' : '') + '"><span class="who">' + who + '</span>' +
+      '<span class="say">' + content + '</span></div>';
   }).join('');
 }
 
@@ -3835,12 +4071,11 @@ function renderActions(t){
   if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation() + '</div>';
   if (state.ui.tab === 'refund_confirm') return '<div class="actions">' + renderRefundConfirmation() + '</div>';
 
-  if (!t.greeted) return '<div class="actions"><div class="command-box"><div class="command-title"><span>CALL</span><b>まず名乗ってください</b></div><button class="command-choice" data-greet="1"><span class="command-no">1</span><span class="command-copy"><b>名乗る</b><small>お電話ありがとうございます。グローバルデスクでございます</small></span></button></div>' + renderHangupButton() + '</div>';
+  if (!t.greeted && !customerHasSpoken(t)) return '<div class="actions"><div class="command-box"><div class="command-title"><span>CALL</span><b>まず名乗ってください</b></div><button class="command-choice" data-greet="1"><span class="command-no">1</span><span class="command-copy"><b>名乗る</b><small>お電話ありがとうございます。グローバルデスクでございます</small></span></button></div>' + renderHangupButton() + '</div>';
 
   const tab = state.ui.tab || 'command';
   const actionClass = 'actions' + (pendingTypedLine(t) ? ' is-typing' : '');
   if (tab === 'command') return renderCommandMenu(t, actionClass);
-  if (tab === 'callback') return renderCallbackDestination(t, actionClass);
   if (tab === 'ask'){
     const group = QUESTION_GROUPS.find(item => item.id === state.ui.askGroup);
     return '<div class="' + actionClass + '">' +
@@ -3853,16 +4088,17 @@ function renderActions(t){
 
   const bodyByCommand = {
     lookup: () => renderLookupOptions(t),
-    test: () => renderTestOptions(t),
+    try: () => renderTestOptions(t),
     soothe: () => renderSootheOptions(t),
     apologize: () => renderApologyOptions(t),
     smalltalk: () => renderSmalltalkOptions(t, 'tell'),
     record: () => renderRecord(t),
+    identity_denied: () => renderIdentityDenied(),
     close: () => renderCloseFlow(t),
   };
   const renderBody = bodyByCommand[tab] || bodyByCommand.close;
   const [command, prompt] = commandPrompt(tab);
-  const backTarget = ['close','soothe','apologize'].includes(tab) ? 'tell' : 'command';
+  const backTarget = ['close','try','soothe','apologize'].includes(tab) ? 'tell' : 'command';
   return '<div class="' + actionClass + '">' + renderCommandHead(command, prompt, backTarget) + renderBody() + renderHangupButton() + '</div>';
 }
 
@@ -3883,24 +4119,15 @@ function renderRefundConfirmation(){
 }
 
 function renderCommandMenu(t, actionClass){
-  const runtime = {
-    lookup:{ meta:t.identified ? '' : '本人特定が必要', disabled:!t.identified },
-    callback:{ meta:state.callbacksLeft <= 0 ? '折り返し枠を使い切っています' : '', disabled:state.callbacksLeft <= 0 },
-  };
-  const commands = COMMAND_DEFS.map(command => Object.assign({}, command, runtime[command.id] || {}));
-  const choices = commands.map(c =>
+  const choices = COMMAND_DEFS.map(c =>
     '<button class="command-choice" data-command="' + c.id + '" ' + (c.disabled ? 'disabled' : '') + '>' +
       '<span class="command-no">' + c.no + '</span><span class="command-copy"><b>' + c.label + '</b></span>' + (c.meta ? '<span class="command-meta">' + c.meta + '</span>' : '') +
     '</button>'
   ).join('');
-  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div><div class="command-grid">' + choices + '</div></div>' + renderHangupButton() + '</div>';
-}
-
-function renderCallbackDestination(t, actionClass){
-  const hotelReady = t.asked.has('q_stay');
-  return '<div class="' + actionClass + '">' + renderCommandHead('折り返す', 'どこへ折り返しますか？') +
-    '<div class="opts"><button class="opt" data-callback-destination="mobile"><span class="opt-label">お客様の携帯へ<span class="opt-sub">移動中でも確実につながるが、国際ローミング通話料が発生します</span></span></button><button class="opt" data-callback-destination="hotel" ' + (hotelReady ? '' : 'disabled') + '><span class="opt-label">滞在先のホテル客室へ<span class="opt-sub">客側の通話料は不要。滞在先の確認が必要です</span></span></button></div>' +
-    (hotelReady ? '' : '<p class="hint-bar">滞在先が未確認です。「聞く」で確認してください。</p>') + renderHangupButton() + '</div>';
+  const optionalGreeting = !t.greeted && customerHasSpoken(t)
+    ? '<button class="command-choice optional-greeting" data-greet="1"><span class="command-no">任意</span><span class="command-copy"><b>名乗る</b><small>急いでいるお客様には省略できます</small></span></button>'
+    : '';
+  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div>' + optionalGreeting + '<div class="command-grid">' + choices + '</div></div>' + renderHangupButton() + '</div>';
 }
 
 function renderAskGroups(t){
@@ -3920,10 +4147,11 @@ function renderAskOptions(t, group){
 function renderTellOptions(t){
   return '<div class="opts">' +
     '<button class="opt" data-tell="close"><span class="command-no">1</span><span class="opt-label">対処を伝える<span class="opt-sub">原因を見立てて、対処をご案内します。</span></span></button>' +
-    '<button class="opt" data-refund="refund"><span class="command-no">2</span><span class="opt-label">返金をご案内する</span><span class="cost">¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + '</span></button>' +
-    '<button class="opt" data-tell="soothe"><span class="command-no">3</span><span class="opt-label">気持ちを落ち着ける</span></button>' +
-    '<button class="opt" data-tell="apologize"><span class="command-no">4</span><span class="opt-label">お詫びする</span></button>' +
-    '<button class="opt" data-tell="smalltalk"><span class="command-no">5</span><span class="opt-label">一言かける</span></button>' +
+    '<button class="opt" data-tell="try"><span class="command-no">2</span><span class="opt-label">やってみてもらう<span class="opt-sub">機器や端末で試していただくことを選びます。</span></span></button>' +
+    '<button class="opt" data-refund="refund"><span class="command-no">3</span><span class="opt-label">返金をご案内する</span><span class="cost">¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + '</span></button>' +
+    '<button class="opt" data-tell="soothe"><span class="command-no">4</span><span class="opt-label">気持ちを落ち着ける</span></button>' +
+    '<button class="opt" data-tell="apologize"><span class="command-no">5</span><span class="opt-label">お詫びする</span></button>' +
+    '<button class="opt" data-tell="smalltalk"><span class="command-no">6</span><span class="opt-label">一言かける</span></button>' +
     '</div>';
 }
 
@@ -3945,16 +4173,27 @@ function renderSmalltalkOptions(t, mode){
 }
 
 function renderLookupOptions(t){
-  if (!t.identified) return '<p class="hint-bar">お客様の特定ができていません。お名前と渡航先、または契約番号をうかがってください。</p>';
   if (!state.ui.lookup){
     return '<div class="opts">' + LOOKUPS.map(l =>
-      '<button class="opt" data-lookup="' + l.id + '" ' + (t.lookedUp.has(l.id) ? 'disabled' : '') + '><span class="opt-label">' + esc(l.label) + '</span></button>'
+      '<button class="opt" data-lookup="' + l.id + '" ' + (t.lookedUp.has(l.id) || t.carrierLookupStarted ? 'disabled' : '') + '><span class="opt-label">' + esc(l.label) + (l.external ? '<span class="opt-sub">社外照会。通話を切り、30分後に折り返します</span>' : '') + '</span>' + (l.external ? '<span class="cost">30分</span>' : '') + '</button>'
     ).join('') + '</div><p class="hint-bar">照会項目を選んだあと、保留にするか話しながら調べるかを選びます。</p>';
   }
   const lookup = LOOKUPS.find(x => x.id === state.ui.lookup);
+  if (lookup && lookup.external) return renderCarrierLookupOptions(t, lookup);
   return '<div class="opts"><button class="opt" data-lookup-back="1"><span class="opt-label">← 照会項目の選び直し</span></button>' +
     '<button class="opt" data-lookup-mode="hold"><span class="opt-label">保留にして調べる<span class="opt-sub">相手を待たせるが速い</span></span><span class="cost">2分</span></button>' +
     '<button class="opt" data-lookup-mode="talk"><span class="opt-label">話しながら調べる<span class="opt-sub">相手を待たせないが通話が長引く</span></span><span class="cost">3分</span></button></div><p class="hint-bar">照会: ' + esc(lookup.label) + '</p>';
+}
+
+function renderCarrierLookupOptions(t, lookup){
+  const hotelReady = t.asked.has('q_stay');
+  return '<div class="opts"><button class="opt" data-lookup-back="1"><span class="opt-label">← 照会項目の選び直し</span></button>' +
+    '<button class="opt" disabled><span class="opt-label">保留にして調べる<span class="opt-sub">30分かかるため、通話をつないだままでは実行できません</span></span><span class="cost">不可</span></button>' +
+    '<button class="opt" disabled><span class="opt-label">話しながら調べる<span class="opt-sub">社外への問い合わせのため、通話継続では実行できません</span></span><span class="cost">不可</span></button></div>' +
+    '<p class="hint-bar"><b>30分ほどお時間をいただきます。折り返しでもよろしいですか。</b><br>折り返し先を選ぶと、通話を終えて現地キャリアへの照会を始めます。</p>' +
+    '<div class="opts"><button class="opt" data-callback-destination="mobile"><span class="opt-label">携帯へ折り返す<span class="opt-sub">移動中でもつながるが、宛先違いなら国際ローミング通話料の罰があります</span></span><span class="cost">' + lookup.minutes + '分</span></button>' +
+    '<button class="opt" data-callback-destination="hotel" ' + (hotelReady ? '' : 'disabled') + '><span class="opt-label">ホテル客室へ折り返す<span class="opt-sub">滞在先の確認が必要です</span></span><span class="cost">' + lookup.minutes + '分</span></button></div>' +
+    (hotelReady ? '' : '<p class="hint-bar">ホテル客室は滞在先が未確認です。「聞く」で確認してください。</p>');
 }
 
 function simCleaningRecommended(t){
@@ -3997,15 +4236,35 @@ function renderRecord(t){
     ? remaining.map(cause => esc(cause.label)).join(' ／ ')
     : '候補なし';
   return '<div class="log-view"><p class="hint-bar">1分かけてログを確認しています。お客様は通話口で待っています。</p>' +
-    '<section class="log-section"><h3>お客様</h3><div class="log-customer">' +
+    '<section class="system-screen record-system-screen"><header><span>GLOBALDESK OPS</span><b>通話記録</b><em>社内システム</em></header><div class="record-system-body">' +
+    '<section class="record-system-block"><h3>お客様</h3><div class="log-customer">' +
       '<p><b>お名前</b><span>' + esc(t.nameKnown ? t.s.name : '未特定') + '</span></p>' +
       '<p><b>渡航先・現地時刻</b><span>' + (t.destinationKnown ? esc(t.s.city) + ' ／ ' + localClock(t) : '未確認') + '</span></p>' +
       '<p><b>機種・プラン</b><span>' + (t.identified ? esc(t.s.device) + ' ／ ' + esc(t.s.plan) : '本人特定後に確認できます') + '</span></p>' +
       '<p><b>タイプ・対応メモ</b><span>' + esc(ty.label) + ' ／ ' + esc(ty.note) + '</span></p>' +
     '</div></section>' +
-    '<section class="log-section"><h3>ここまでの状況</h3>' + facts + '<p class="log-candidates"><b>残っている原因の候補</b><span>' + candidateText + '</span></p></section>' +
-    '<section class="log-section"><h3>次にできること</h3><p>' + esc(nextActionGuide(t)) + '</p></section>' +
-    '<section class="log-section"><h3>会話の全履歴</h3><div class="record-transcript">' + renderTranscript(t, true) + '</div></section></div>';
+    '<section class="record-system-block"><h3>ここまでの状況</h3>' + facts + '<p class="log-candidates"><b>残っている原因の候補</b><span>' + candidateText + '</span></p></section>' +
+    '<section class="record-system-block"><h3>次にできること</h3><p>' + esc(nextActionGuide(t)) + '</p></section>' +
+    '<section class="record-system-block"><h3>会話の全履歴</h3><div class="record-system-transcript">' + renderRecordTranscript(t) + '</div></section>' +
+    '</div><footer>RECORD ／ VERIFIED</footer></section></div>';
+}
+
+function renderIdentityDenied(){
+  return '<div class="log-view"><section class="system-screen record-system-screen identity-denied-screen denied"><header>' +
+    '<span>GLOBALDESK OPS</span><b>本人確認</b><em>アクセス拒否</em></header>' +
+    '<div class="record-denied-message"><b>本人確認が完了していません。</b>' +
+    '<p>フルネームと渡航先、または契約IDを確認してください。</p></div>' +
+    '<footer>ACCESS ／ DENIED</footer></section></div>';
+}
+
+function renderRecordTranscript(t){
+  return t.transcript.map(line => {
+    const who = { cust:'客', me:'あなた', sys:'社内システム', note:'メモ' }[line.who];
+    const content = line.who === 'sys' && line.lookupTitle
+      ? renderLookupSystemScreen(line)
+      : esc(line.text) + (line.viz ? renderLookupViz(line.viz) : '');
+    return '<div class="record-system-entry ' + line.who + '"><b>' + who + '</b><span>' + content + '</span></div>';
+  }).join('');
 }
 
 function remainingCauseCandidates(t){
@@ -4023,11 +4282,12 @@ function nextActionGuide(t){
 function commandPrompt(tab){
   return {
     lookup:['調べる', state.ui.lookup ? 'どの方法で調べますか？' : '何を調べますか？'],
-    test:['操作', 'どの操作を頼みますか？'],
+    try:['やってみてもらう', '何を試していただきますか？'],
     soothe:['気持ちを落ち着ける', 'どの言葉をかけますか？'],
     apologize:['お詫びする', 'どの深さでお詫びしますか？'],
     smalltalk:['一言かける', '会話に出た話題から選んでください'],
     record:['ログ', 'この通話の状況と全履歴'],
+    identity_denied:['本人確認', '本人確認が必要です'],
     close:['対処を伝える', state.ui.cause ? 'どのように対処を伝えますか？' : '原因を選んでください'],
   }[tab] || ['コマンド', '次の行動を選んでください'];
 }
@@ -4114,6 +4374,31 @@ function renderLookupViz(v){
     '<span class="lookup-viz-head"><span>' + esc(v.label) + '</span><b>' + esc(value) + ' / ' + esc(ceiling) + '</b></span>' +
     '<span class="lookup-viz-track"><i class="lookup-viz-fill ' + (over ? 'over' : unlimited ? 'unlimited' : '') + '" style="width:' + ratio + '%"></i></span>' +
     '<span class="lookup-viz-note">' + esc(v.note || '') + '</span></span>';
+}
+
+function lookupResultRows(text){
+  const body = String(text || '').replace(/^\[[^\]]+\]\s*/, '').trim();
+  return body.split(/\s*／\s*|\s*。\s*(?=\S)/).map(part => part.trim()).filter(Boolean).map(part => {
+    const split = part.search(/[:：]/);
+    if (split < 0) return { label:'', value:part.replace(/。$/, '') };
+    return { label:part.slice(0, split).trim(), value:part.slice(split + 1).trim().replace(/。$/, '') };
+  });
+}
+
+function renderLookupSystemScreen(line){
+  const rows = lookupResultRows(line.text).map(row =>
+    '<div class="lookup-system-row">' +
+      (row.label ? '<b>' + esc(row.label) + '</b>' : '<b aria-hidden="true">—</b>') +
+      '<span>' + esc(row.value) + '</span></div>'
+  ).join('');
+  const external = line.external
+    ? '<em class="lookup-system-external">外部照会</em>'
+    : '<em>社内システム</em>';
+  return '<section class="system-screen lookup-system-screen' + (line.external ? ' external' : '') + '" data-lookup-screen="' + esc(line.lookupId || '') + '">' +
+    '<header><span>GLOBALDESK OPS</span><b>' + esc(line.lookupTitle) + '</b>' + external + '</header>' +
+    '<div class="lookup-system-fields">' + rows + '</div>' +
+    (line.viz ? renderLookupViz(line.viz) : '') +
+    '<footer>STATUS ／ COMPLETE</footer></section>';
 }
 
 function renderDevicePanel(t){
@@ -4239,7 +4524,7 @@ function readCareerRecord(storage = getCareerStorage()){
     if (!storage) return freshCareerRecord();
     const raw = storage.getItem(CAREER_STORAGE_KEY);
     if (!raw) return freshCareerRecord();
-    const parsed = JSON.parse(raw);
+    const parsed = normalizeCareerRecord(JSON.parse(raw));
     return validCareerRecord(parsed) ? parsed : freshCareerRecord();
   } catch (error){ return freshCareerRecord(); }
 }
@@ -4255,6 +4540,8 @@ function writeCareerRecord(record, storage = getCareerStorage()){
 function initializeCareer(){
   state.career = careerWithFlags(readCareerRecord());
   state.careerUpdate = null;
+  state.endingReplay = false;
+  state.endingType = 'career';
 }
 
 function careerBriefingHtml(){
@@ -4279,7 +4566,7 @@ function showBriefing(){
       '<li><strong>電話は1本ずつしか取れません。</strong>話している間、ほかの電話は鳴り続けます。</li>' +
       '<li>無駄な質問1つが通話を1分延ばし、その1分だけ、待っている誰かが切りやすくなります。</li>' +
       '<li>調べものは保留にすれば速く済みますが、相手は無音のまま待たされます。話しながら調べると保留は増えませんが、通話が長引きます。</li>' +
-      '<li>どうしても時間がかかるなら、折り返しにして一度切る手もあります。枠は' + CALLBACKS + '回だけです。</li>' +
+      '<li>現地キャリアへの照会だけは30分かかります。通話を切って折り返す間に、ほかの電話を対応できます。</li>' +
       '<li>遠隔では直せないもの（回線障害・本体故障・機種の非対応）は<strong>エスカレーション</strong>が正解です。枠は' + ESCALATIONS + '回だけ。</li>' +
       '<li>相手によって刺さる話し方が違います。急いでいる人に前置きは要りません。</li>' +
     '</ul>' +
@@ -4377,12 +4664,12 @@ function scenarioRoute(s){
   if (hotLookups.length) route.push('調べる: ' + hotLookups.join(' ／ '));
   if (remedy && remedy.needsTest){
     const test = TESTS.find(item => item.id === remedy.needsTest);
-    route.push('操作: ' + (test ? test.label : remedy.needsTest) + ' × ' + (remedy.needsTestCount || 1));
+    route.push('伝える→やってみてもらう: ' + (test ? test.label : remedy.needsTest) + ' × ' + (remedy.needsTestCount || 1));
   } else {
     const solving = Object.entries(s.tests || {}).filter(([,test]) => test.solves || (test.sequence || []).some(step => step.solves));
     if (solving.length){
       const test = TESTS.find(item => item.id === solving[0][0]);
-      route.push('操作: ' + (test ? test.label : solving[0][0]));
+      route.push('伝える→やってみてもらう: ' + (test ? test.label : solving[0][0]));
     }
   }
   const cause = CAUSES.find(item => item.id === s.trueCause);
@@ -4399,7 +4686,7 @@ function showBalanceWarning(){
   $('sheet').innerHTML =
     '<p class="eyebrow">BALANCE CONSOLE ／ CONFIRM</p>' +
     '<h1>正解ルートを表示します</h1>' +
-    '<p class="lead"><strong>11件の真因と正解対処がすべて表示されます。</strong>プレイ中に見ると、そのシフトの答えが分かります。ゲーム調整のために開きますか？</p>' +
+    '<p class="lead"><strong>' + SCENARIOS.length + '件の真因と正解対処がすべて表示されます。</strong>プレイ中に見ると、そのシフトの答えが分かります。ゲーム調整のために開きますか？</p>' +
     '<button class="btn-primary" id="btn-confirm-balance">正解を表示する</button>' +
     '<button class="btn-ghost" id="btn-cancel-balance">表示しない</button>';
   openSheet();
@@ -4442,7 +4729,8 @@ function showBalanceConsole(){
       '<p>OFFにすると従来の決定論的な挙動へ戻ります。抽選結果はプレイ画面や会話記録には表示されません。</p>' +
     '</div>' +
     '<h2>キャリア記録</h2><div class="balance-career-actions">' +
-      '<button class="btn-ghost" id="balance-replay-ending">翌朝の全体朝礼を再生する</button>' +
+      '<button class="btn-ghost" id="balance-replay-ending">表エンディング（翌朝の全体朝礼）を再生する</button>' +
+      '<button class="btn-ghost" id="balance-replay-secret-ending">裏エンディングを再生する</button>' +
       '<button class="btn-ghost danger" id="balance-clear-career">勤務記録を消去する</button>' +
       '<p>消去は一度確認してから実行します。次回は1日目から始まります。</p>' +
     '</div>' +
@@ -4463,6 +4751,7 @@ function showBalanceConsole(){
     GAME_FLAGS.soundVolume = clamp(Number(event.target.value), 0, 1);
   };
   $('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };
+  $('balance-replay-secret-ending').onclick = event => { event.stopImmediatePropagation(); showSecretEnding(true); };
   $('balance-clear-career').onclick = () => clearCareerRecord();
   $('btn-close-balance').onclick = () => {
     if (wasPhase === 'briefing'){ showBriefing(); return; }
@@ -4493,7 +4782,6 @@ function reportOptions(){
   if (state.outageKnown) handoff.push({ id:'outage_watch', required:true, ticketId:'S5', text:'米国北東部の障害は未復旧。朝の入電増に注意' });
   const s8 = byId('S8');
   if (s8 && s8.shipment) handoff.push({ id:'s8_delivery', required:true, ticketId:'S8', text:'ドバイ宛の代替機が現地' + fmtClock(s8.shipment.eta) + '到着予定。着荷確認が必要' });
-  // 全件終了前には報告へ移れないため、折り返し待ちの必須項目は候補に出ない。
   return { special, handoff };
 }
 
@@ -4526,8 +4814,10 @@ function careerShiftContext(){
     redials:tickets.reduce((sum, ticket) => sum + ticket.redialCount, 0),
     abandoned:tickets.filter(ticket => ticket.result && ticket.result.kind === 'abandoned').length,
     resultKinds:tickets.map(ticket => ticket.result && ticket.result.kind).filter(Boolean),
-    allFirst:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.firstCallResolved === true),
+    noRefundsOrShipments:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind !== 'refunded' && !ticket.shipment),
+    allResolved:tickets.length > 0 && tickets.every(ticket => ticket.result && ['closed','refunded'].includes(ticket.result.kind)),
     allRefunded:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind === 'refunded'),
+    solvedScenarioIds:solvedScenarioIdsFromTickets(tickets),
   };
 }
 
@@ -4617,7 +4907,8 @@ function careerDebriefHtml(){
     '<section class="career-panel"><h2>勤務記録</h2>' +
       '<div class="career-summary"><b>' + esc(stage.label) + '</b><span>通算 ' + career.totals.days + '日</span><span>直近5回 ' + esc(recent) + '</span></div>' +
       '<p class="career-next">次の段階：' + esc(stage.next || 'なし') + ' ／ ' + esc(stage.condition) + '</p>' +
-      '<div class="career-badge-count">バッジ ' + career.badges.length + ' / ' + CAREER_BADGES.length + '</div>' +
+      '<div class="career-ending-progress"><b>表エンディング</b><span>解決した案件 ' + career.solvedScenarios.length + ' / ' + SCENARIOS.length + '</span></div>' +
+      '<div class="career-badge-count">裏エンディング ／ バッジ ' + career.badges.length + ' / ' + CAREER_BADGES.length + '</div>' +
       '<div class="career-badge-grid">' + badgeCards + '</div>' +
     '</section>';
 }
@@ -4642,12 +4933,19 @@ function endingBadgeHtml(career){
 
 function careerEndingDetailsHtml(career){
   return '<div class="ending-totals"><b>通算 ' + career.totals.days + '日</b><span>平均CSAT ' + career.totals.averageCsat.toFixed(2) + '</span><span>苦情 ' + career.totals.complaints + '件</span></div>' +
-    '<h2>集めた8つのバッジ</h2><div class="ending-badge-grid">' + endingBadgeHtml(career) + '</div>';
+    '<h2>集めたバッジ</h2><div class="ending-badge-grid">' + endingBadgeHtml(career) + '</div>';
 }
 
 function careerEndingFinalHtml(){
   return '<div class="ending-end" id="ending-end">END</div>' +
     '<button class="btn-primary" id="ending-back-to-shift">深夜シフトへ戻る</button>';
+}
+
+function careerEndingEyebrowHtml(){
+  const secretMark = state.endingType === 'secret'
+    ? '<span class="ending-variant-mark" aria-label="裏エンディング">裏</span>'
+    : '';
+  return '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING' + secretMark + '</p>';
 }
 
 function clearEndingRevealTimer(){
@@ -4666,7 +4964,30 @@ function revealCareerEndingFinal(){
   const slot = $('ending-finale');
   if (!slot) return;
   slot.innerHTML = careerEndingFinalHtml();
-  $('ending-back-to-shift').onclick = () => { resetGame(); showBriefing(); };
+  $('ending-back-to-shift').onclick = () => continueAfterCareerEnding();
+}
+
+function pendingCareerEndingType(){
+  if (state.endingReplay || !state.careerUpdate) return null;
+  return (state.careerUpdate.endingQueue || []).find(type =>
+    type === 'career' ? !state.career.ending : !state.career.secretEnding
+  ) || null;
+}
+
+function continueAfterCareerEnding(){
+  const next = pendingCareerEndingType();
+  if (next === 'career'){ showCareerEnding(false); return; }
+  if (next === 'secret'){ showSecretEnding(false); return; }
+  state.endingReplay = false;
+  resetGame();
+  showBriefing();
+}
+
+function showNextCareerEnding(){
+  const next = pendingCareerEndingType();
+  if (next === 'career'){ showCareerEnding(false); return; }
+  if (next === 'secret'){ showSecretEnding(false); return; }
+  continueAfterCareerEnding();
 }
 
 function renderCareerEndingComplete(skipEndingBeat = false){
@@ -4675,7 +4996,7 @@ function renderCareerEndingComplete(skipEndingBeat = false){
   clearEndingTapGuard();
   state.endingSpeech = null;
   $('sheet').innerHTML =
-    '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING</p>' +
+    careerEndingEyebrowHtml() +
     '<h1>翌朝、全体朝礼</h1>' +
     '<canvas class="ending-office-canvas" id="ending-office-canvas" width="192" height="168" role="img" aria-label="朝の明るいオフィスに社員が集まり、社長が笑顔で立っている"></canvas>' +
     '<section class="ending-speech"><b>社長</b><p>' + esc(PRESIDENT_ENDING_LINE) + '</p></section>' +
@@ -4685,21 +5006,24 @@ function renderCareerEndingComplete(skipEndingBeat = false){
   else endingRevealTimer = setTimeout(revealCareerEndingFinal, 1000);
 }
 
-function showCareerEnding(replay = false){
+function showCareerEnding(replay = false, endingType = 'career'){
   stopOfficeRing();
   clearEndingRevealTimer();
   clearEndingTapGuard();
   endingTapGuard = true;
   if (!state.career) state.career = freshCareerRecord();
+  state.endingReplay = replay;
+  state.endingType = endingType;
   state.phase = 'ending';
   if (!replay){
-    state.career.ending = true;
+    if (endingType === 'secret') state.career.secretEnding = true;
+    else state.career.ending = true;
     writeCareerRecord(state.career);
   }
   playCareerEndingSound();
   state.endingSpeech = { transcript:[{ who:'cust', text:PRESIDENT_ENDING_LINE, typed:false }] };
   $('sheet').innerHTML =
-    '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING</p>' +
+    careerEndingEyebrowHtml() +
     '<h1>翌朝、全体朝礼</h1>' +
     '<canvas class="ending-office-canvas" id="ending-office-canvas" width="192" height="168" role="img" aria-label="朝の明るいオフィスに社員が集まり、社長が笑顔で立っている"></canvas>' +
     '<section class="ending-speech"><b>社長</b>' +
@@ -4709,6 +5033,10 @@ function showCareerEnding(replay = false){
   // 再生ボタンの同じclickが、document側の「タップで送り切る」に重ならないよう次のtaskで始める。
   setTimeout(() => startTyping(state.endingSpeech), 0);
   tapGuardTimer = setTimeout(clearEndingTapGuard, 400);
+}
+
+function showSecretEnding(replay = false){
+  showCareerEnding(replay, 'secret');
 }
 
 function renderDebrief(){
@@ -4774,12 +5102,12 @@ function renderDebrief(){
     complaintMailbox +
     '<h2>一件ずつの振り返り</h2>' + reviews +
 
-    '<button class="btn-primary" id="btn-again">' + (state.careerUpdate && state.careerUpdate.shouldEnd ? '勤務記録を閉じる' : 'もう一度シフトに入る') + '</button>' +
+    '<button class="btn-primary" id="btn-again">' + (state.careerUpdate && state.careerUpdate.endingQueue.length ? '勤務記録を閉じる' : 'もう一度シフトに入る') + '</button>' +
     '<button class="btn-ghost" id="btn-manual2">マニュアルを読む</button>';
 
   openSheet();
   $('btn-again').onclick = event => {
-    if (state.careerUpdate && state.careerUpdate.shouldEnd){ event.stopImmediatePropagation(); showCareerEnding(false); }
+    if (state.careerUpdate && state.careerUpdate.endingQueue.length){ event.stopImmediatePropagation(); showNextCareerEnding(); }
     else { resetGame(); showBriefing(); }
   };
   $('btn-manual2').onclick = showManual;
@@ -4818,7 +5146,7 @@ function handleOfficeAction(d){
     return true;
   }
   if (d.officeCallback){
-    const t = firstTicketIn('callback', 'callbackDue');
+    const t = state.tickets.filter(ticket => ticket.state === 'callback' && ticket.callbackDue <= state.clock).sort((a,b) => a.callbackDue - b.callbackDue)[0];
     if (t) resumeCallback(t);
     return true;
   }
@@ -4826,7 +5154,7 @@ function handleOfficeAction(d){
 }
 
 function handleCallNavigation(d){
-  if (d.callbackDestination){ startCallback(d.callbackDestination); return true; }
+  if (d.callbackDestination){ startCarrierCallback(d.callbackDestination); return true; }
   if (d.hangup){
     const t = state.focus;
     if (!t) return true;
@@ -4840,6 +5168,7 @@ function handleCallNavigation(d){
   if (d.greet){ greetCurrentCustomer(); return true; }
   if (d.command){
     if (d.command === 'record') openRecord();
+    else if (d.command === 'lookup') openLookup();
     else { state.ui = defaultUi(d.command); render(); }
     return true;
   }
