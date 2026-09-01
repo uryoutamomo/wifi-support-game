@@ -244,7 +244,7 @@ button:focus-visible, [tabindex]:focus-visible{
 }
 
 /* ============================================================
-   コンソール ― スマホでは画面切替で一面ずつ表示
+   コンソール ― 対応デスク、診断、待機状況を縦にまとめる
    ============================================================ */
 
 .console{
@@ -362,8 +362,7 @@ body.call-view .console{ animation: call-in .22s ease both; }
 
 /* シート表示中はコンソールを隠す */
 body.sheet-open .topbar,
-body.sheet-open .console,
-body.sheet-open .toast-wrap{ display: none; }
+body.sheet-open .console{ display: none; }
 
 .pane{
   background: var(--ink);
@@ -1100,6 +1099,13 @@ body.sheet-open .toast-wrap{ display: none; }
 .review-csat i{ display: block; height: 100%; background: var(--good); }
 .review.mid .review-csat i{ background: var(--warn); }
 .review.bad .review-csat i{ background: var(--crit); }
+.complaint-mailbox{ margin:24px 0; padding:16px; border:2px solid var(--crit); border-radius:10px; background:var(--crit-glow); }
+.complaint-mailbox h2{ margin:0 0 4px; color:var(--crit); }
+.complaint-mailbox>p{ margin:0 0 12px; color:var(--text-2); font:700 13px/1.4 var(--mono); }
+.complaint-email{ margin-top:10px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+.complaint-email b,.complaint-email span{ display:block; }
+.complaint-email span{ margin-top:3px; color:var(--crit); font:700 12px/1.4 var(--display); }
+.complaint-email p{ margin:8px 0 0; color:var(--text-2); font-size:14px; line-height:1.65; }
 .report-auto{ margin:14px 0; padding:11px 13px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font-family:var(--mono); font-size:12px; line-height:1.75; }
 .report-list{ display:flex; flex-direction:column; gap:6px; }.report-check{ display:flex; gap:9px; align-items:flex-start; padding:9px 10px; border:1px solid var(--line-soft); background:var(--panel-2); cursor:pointer; font-size:12.5px; line-height:1.6; }.report-check:hover{ border-color:var(--amber-deep); }.report-check input{ margin-top:5px; accent-color:var(--amber); }.report-check span{ flex:1; }.report-check i{ display:block; margin-top:2px; color:var(--faint); font-size:11px; font-style:normal; }.report-miss{ margin-top:8px; padding:7px 9px; border-left:2px solid var(--crit); background:var(--crit-glow); color:var(--text); font-size:11.5px; }
 
@@ -1118,34 +1124,6 @@ body.sheet-open .toast-wrap{ display: none; }
   color: var(--faint);
   font-weight: 600;
 }
-
-/* トースト */
-.toast-wrap{
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-  max-width: 340px;
-}
-.toast{
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-left: 2px solid var(--amber);
-  border-radius: 2px;
-  padding: 10px 14px;
-  font-size: 12.5px;
-  line-height: 1.6;
-  box-shadow: 0 8px 24px rgba(0,0,0,.5);
-  animation: slidein .25s ease;
-}
-.toast.crit{ border-left-color: var(--crit); }
-.toast.good{ border-left-color: var(--good); }
-.toast.sig{ border-left-color: var(--signal); }
-.toast b{ display: block; font-family: var(--display); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
 
 /* ---------- ライト業務画面の仕上げ ---------- */
 .topbar{ background:var(--surface); box-shadow:0 1px 0 var(--line-soft),0 5px 16px rgba(21,32,43,.06); }
@@ -1169,12 +1147,7 @@ body.sheet-open .toast-wrap{ display: none; }
 .device-card{ background:var(--surface); }.lcd,.lcd.obscured,.lcd.missing{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.lcd.obscured::before{ background:repeating-linear-gradient(110deg,transparent 0 6px,#183746 6px 10px); }.lcd-placeholder b,.lcd-clients,.lcd-ssid{ color:#E4F6F4; }
 .board-toggle{ width:100%; display:flex; justify-content:space-between; margin:10px 0; padding:9px 10px; border:1px solid var(--line); background:var(--surface-2); color:var(--text-2); font-size:13px; font-weight:600; }.board-toggle span{ color:var(--accent); font-weight:500; }.board-excluded{ border-top:1px solid var(--line-soft); }
 .cause{ color:var(--text-2); }.cause.hot{ color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); }.cause.out{ opacity:.7; color:var(--text-3); }
-.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover{ border-color:var(--accent-line); color:var(--accent); }.toast{ box-shadow:0 8px 24px rgba(21,32,43,.14); }
-
-@keyframes slidein{
-  from{ opacity: 0; transform: translateX(14px); }
-  to{ opacity: 1; transform: none; }
-}
+.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover{ border-color:var(--accent-line); color:var(--accent); }
 
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -1220,44 +1193,16 @@ body.playing{ display:block; height:auto; min-height:100dvh; overflow:auto; }
 .world-zone-label,.world-jst span{ font-size:12px; }
 .world-pin-label{ display:none; }
 
-.console{ display:block; min-height:calc(100dvh - 170px); background:var(--bg); }
-.mobile-pane-nav{
-  position:sticky;
-  top:0;
-  z-index:24;
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  padding:10px 12px;
-  background:rgba(244,247,250,.96);
-  border-bottom:1px solid var(--line);
-  backdrop-filter:blur(10px);
-}
-.mobile-pane-tab{
-  min-height:54px;
-  padding:7px 5px;
-  border:1px solid var(--line);
-  border-radius:10px;
-  background:var(--surface);
-  color:var(--text-2);
-  font-size:17px;
-  font-weight:700;
-  line-height:1.2;
-}
-.mobile-pane-tab span{ display:block; margin-top:3px; color:var(--text-3); font:600 12px/1.2 var(--mono); }
-.mobile-pane-tab.on{ border-color:var(--accent); background:var(--accent); color:#fff; }
-.mobile-pane-tab.on span{ color:#fff; opacity:.88; }
+.console{ display:flex; flex-direction:column; min-height:calc(100dvh - 170px); background:var(--bg); }
 .pane,body.playing .pane{
-  display:none;
-  min-height:calc(100dvh - 234px);
+  display:flex;
+  min-height:0;
   padding:16px;
   gap:16px;
   overflow:visible;
   border:0;
 }
-body[data-mobile-pane="desk"] .pane.desk,
-body[data-mobile-pane="summary"] .pane.call-summary,
-body[data-mobile-pane="board"] .pane.board{ display:flex; }
+.pane + .pane{ border-top:1px solid var(--line); }
 .pane-head{ padding-bottom:10px; }
 .pane-title{ font-size:22px; letter-spacing:.08em; }
 .count-chip{ padding:3px 9px; font-size:15px; border-radius:8px; }
@@ -1272,7 +1217,7 @@ body.playing .transcript{
   gap:12px;
 }
 body.playing .transcript.recent{ min-height:150px; max-height:31dvh; overflow:auto; }
-.stress-panel{ top:75px; z-index:23; margin:12px; padding:15px; }
+.stress-panel{ top:0; z-index:23; margin:12px; padding:15px; }
 .stress-panel-head span{ font-size:16px; }.stress-panel-head b{ font-size:36px; }.stress-panel-head strong{ font-size:15px; }
 .stress-track{ height:20px; }
 .record-transcript{ max-height:56dvh; }
@@ -1349,8 +1294,6 @@ body.office-view .office-scene{ gap:14px; }
 .sheet h2{ margin-top:32px; font-size:23px; letter-spacing:.07em; }
 .sheet .lead,.sheet p,.sheet li{ max-width:none; font-size:20px; line-height:1.8; }
 .sheet ul{ max-width:none; padding-left:24px; }
-.toast-wrap{ width:min(456px,calc(100% - 24px)); right:50%; transform:translateX(50%); }
-
 @media (max-width:480px){
   body{ width:100%; box-shadow:none; }
   .artifact-qr-card{ display:none; }
@@ -1405,21 +1348,6 @@ body.office-view .office-scene{ gap:14px; }
 
 <div class="console">
 
-  <nav class="mobile-pane-nav" aria-label="ゲーム画面の切り替え">
-    <button class="mobile-pane-tab on" type="button" data-mobile-pane="desk" aria-pressed="true">通話<span id="mobile-call-state">待機</span></button>
-    <button class="mobile-pane-tab" type="button" data-mobile-pane="summary" aria-pressed="false">待機<span id="mobile-queue-state">0件</span></button>
-    <button class="mobile-pane-tab" type="button" data-mobile-pane="board" aria-pressed="false">診断<span id="mobile-fact-state">0件</span></button>
-  </nav>
-
-  <section class="pane call-summary">
-    <div class="pane-head">
-      <h2 class="pane-title">待機状況</h2>
-      <span class="count-chip mono" id="queue-count">要約</span>
-    </div>
-    <div class="summary-figure" id="call-summary"></div>
-    <div class="hint-bar" id="queue-hint"></div>
-  </section>
-
   <section class="pane desk">
     <div class="pane-head">
       <h2 class="pane-title">対応デスク</h2>
@@ -1431,14 +1359,22 @@ body.office-view .office-scene{ gap:14px; }
   <section class="pane board">
     <div class="pane-head">
       <h2 class="pane-title">診断ボード</h2>
-      <span class="count-chip mono" id="fact-count">0</span>
+      <span class="count-chip mono" id="fact-count">0件</span>
     </div>
     <div id="board"></div>
   </section>
 
+  <section class="pane call-summary">
+    <div class="pane-head">
+      <h2 class="pane-title">待機状況</h2>
+      <span class="count-chip mono" id="queue-count">0件</span>
+    </div>
+    <div class="summary-figure" id="call-summary"></div>
+    <div class="hint-bar" id="queue-hint"></div>
+  </section>
+
 </div>
 
-<div class="toast-wrap" id="toasts"></div>
 <div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
 
 <script>

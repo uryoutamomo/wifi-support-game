@@ -10,13 +10,15 @@ const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
   shuffleArrival: true,
+  soundEnabled: true,
+  soundVolume: 0.55,
 };
 
 const REFUND_POLICY = Object.freeze({
   amount: 2400,
-  company: Object.freeze({ causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), delta:-25, csat:0.4 }),
-  customer: Object.freeze({ causes:Object.freeze(['fup','devices','heavy','device_side','device_net','power']), delta:15, csat:-0.6 }),
-  neutral: Object.freeze({ causes:Object.freeze(['location','geo_block','sim']), delta:-5, csat:0 }),
+  company: Object.freeze({ causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), satisfactionRate:0.5 }),
+  customer: Object.freeze({ causes:Object.freeze(['fup','devices','heavy','device_side','device_net','power']), satisfactionRate:0.1 }),
+  neutral: Object.freeze({ causes:Object.freeze(['location','geo_block','sim']), satisfactionRate:0.25 }),
 });
 
 const COMMAND_DEFS = Object.freeze([
@@ -133,6 +135,40 @@ const TYPES = {
     angry:['その話、後。結論を言って。', '時計見てます？ 会議が始まる。急いで。'],
     furious:['もう待てない。責任者に代わって。今。', 'ここで終わらせる。解約の手順だけ言って。'] },
 };
+
+/* 怒りが限界に達した通話の終わり方と、翌日に届く苦情メール。 */
+const ANGRY_DEFAULT_OUTCOMES = Object.freeze({
+  anxious:'hangup',
+  novice:'complaint',
+  expert:'complaint',
+  hurried:'hangup',
+});
+
+const ANGRY_END_LINES = Object.freeze({
+  anxious:Object.freeze({
+    complaint:'もう限界です…。この対応について、あとで正式に連絡します。',
+    hangup:'もう無理です…。これ以上お話しできません。',
+  }),
+  novice:Object.freeze({
+    complaint:'私にはもう分かりません。この対応は、あとで相談させてください。',
+    hangup:'すみません、もう怖いので切ります。',
+  }),
+  expert:Object.freeze({
+    complaint:'この対応品質は正式に問題として連絡します。記録を残してください。',
+    hangup:'これ以上の通話に意味はありません。ここで切ります。',
+  }),
+  hurried:Object.freeze({
+    complaint:'もう時間切れ。この対応はあとで正式に連絡する。',
+    hangup:'もう待てない。切る。',
+  }),
+});
+
+const COMPLAINT_EMAIL_TEMPLATES = Object.freeze({
+  anxious:Object.freeze({ lines:Object.freeze(['「{symptom}」とお伝えしたのに、不安なまま通話を終えることになりました。', '海外で一人取り残されたようで、本当に怖かったです。最後まで安心できる説明をしてほしかったです。']) }),
+  novice:Object.freeze({ lines:Object.freeze(['「{symptom}」と相談しましたが、説明が難しく、何をすればよいのか最後まで分かりませんでした。', '機械に詳しくない人にも分かるよう、一つずつ案内していただきたかったです。']) }),
+  expert:Object.freeze({ lines:Object.freeze(['「{symptom}」という事象に対し、仮説と観測結果の対応が示されないまま終話となりました。', 'この切り分け品質は看過できません。対応記録を確認し、根拠を明示して回答してください。']) }),
+  hurried:Object.freeze({ lines:Object.freeze(['「{symptom}」と急ぎで伝えたのに、結論が出ないまま大切な予定に間に合いませんでした。', '前置きではなく必要な対応をすぐ示すべきです。失った時間をどう考えているのか回答してください。']) }),
+});
 
 const TONES = [
   { id:'technical', name:'技術的に', sub:'用語をそのまま使い、手順を番号で正確に伝える' },

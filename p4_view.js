@@ -8,6 +8,71 @@ let typeTimer = null;
 let typingLine = null;
 let officeRingTimer = null;
 let officeRingLit = false;
+let audioContext = null;
+
+function initAudio(){
+  try {
+    if (audioContext) return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) audioContext = new AudioContextClass();
+  } catch (error){ audioContext = null; }
+}
+
+function withAudio(makeSound){
+  if (!GAME_FLAGS.soundEnabled || !audioContext) return;
+  try {
+    if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+    makeSound(audioContext, clamp(GAME_FLAGS.soundVolume, 0, 1));
+  } catch (error){ /* 音が出せなくてもゲーム進行は続ける */ }
+}
+
+function synthTone(ctx, volume, frequency, delay, duration, options = {}){
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const start = ctx.currentTime + delay;
+  const end = start + duration;
+  oscillator.type = options.type || 'sine';
+  oscillator.frequency.setValueAtTime(frequency, start);
+  if (options.endFrequency) oscillator.frequency.exponentialRampToValueAtTime(options.endFrequency, end);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume * (options.level || 0.12)), start + Math.min(0.02, duration / 3));
+  gain.gain.exponentialRampToValueAtTime(0.0001, end);
+  oscillator.connect(gain); gain.connect(ctx.destination);
+  oscillator.start(start); oscillator.stop(end + 0.02);
+}
+
+function playOfficeRing(){ withAudio((ctx, volume) => synthTone(ctx, volume, 400, 0, .22, {type:'sine',level:.1})); }
+function playPickupSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 1150, 0, .035, {type:'square',level:.08}); synthTone(ctx, volume, 520, .04, .045, {type:'square',level:.07}); }); }
+function playDisconnectSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 400, 0, .18, {level:.07}); synthTone(ctx, volume, 400, .28, .18, {level:.07}); }); }
+function playTypeSound(index){ if (index % 4) return; withAudio((ctx, volume) => synthTone(ctx, volume, 760 + (index % 3) * 35, 0, .018, {type:'square',level:.025})); }
+function playCommandSound(){ withAudio((ctx, volume) => synthTone(ctx, volume, 880, 0, .045, {type:'square',level:.055})); }
+function playStressWarning(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 980, 0, .11, {type:'square',level:.12}); synthTone(ctx, volume, 980, .17, .11, {type:'square',level:.12}); }); }
+function playClueSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 660, 0, .07, {level:.06}); synthTone(ctx, volume, 880, .08, .1, {level:.07}); }); }
+function playBadActionSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 155, 0, .42, {type:'sawtooth',level:.1,endFrequency:105}); synthTone(ctx, volume, 164, 0, .36, {type:'square',level:.045,endFrequency:110}); }); }
+
+function closeSoundKind(result){
+  if (result.kind === 'complaint' || result.kind === 'hangup') return 'accident';
+  if (result.kind === 'abandoned' || result.csat < 2) return 'failure';
+  if (result.csat >= 4) return 'fanfare';
+  if (result.csat >= 3) return 'success';
+  return 'neutral';
+}
+
+function playCloseJingle(result){
+  const kind = closeSoundKind(result);
+  withAudio((ctx, volume) => {
+    if (kind === 'fanfare') [[523,0,.1],[659,.1,.1],[784,.2,.1],[1047,.3,.32]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'square',level:.09}));
+    else if (kind === 'success') [[784,0,.1],[1047,.11,.2]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'square',level:.075}));
+    else if (kind === 'neutral') synthTone(ctx, volume, 440, 0, .18, {type:'triangle',level:.065});
+    else if (kind === 'failure') [[294,0,.24],[220,.2,.32],[147,.45,.5]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'sawtooth',level:.08}));
+    else {
+      synthTone(ctx, volume, 155.56, 0, 1.2, {type:'sawtooth',level:.105,endFrequency:82});
+      synthTone(ctx, volume, 164.81, 0, 1.2, {type:'square',level:.085,endFrequency:87});
+    }
+  });
+}
+
+function playShiftEndSound(){ withAudio((ctx, volume) => [[392,0,.16],[523,.18,.16],[659,.36,.16],[784,.54,.48]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'triangle',level:.065}))); }
 
 function typewriterOff(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
@@ -34,25 +99,16 @@ function startTyping(t){
     if (typingLine !== line) return;
     pos++;
     say.textContent = line.text.slice(0, pos);
+    playTypeSound(pos);
     if (pos >= line.text.length){ finishTyping(); return; }
     typeTimer = setTimeout(step, /[、。！？!?]/.test(line.text[pos - 1]) ? 175 : 25);
   };
   typeTimer = setTimeout(step, 25);
 }
 
-function toast(title, body, kind){
-  const el = document.createElement('div');
-  el.className = 'toast ' + (kind || '');
-  el.innerHTML = '<b>' + esc(title) + '</b>' + esc(body);
-  $('toasts').appendChild(el);
-  setTimeout(() => { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; }, 5200);
-  setTimeout(() => el.remove(), 5700);
-}
-
 function render(){
   if (state.phase === 'office'){ renderOffice(); return; }
   if (state.phase !== 'call') return;
-  renderMobilePane();
   $('clock').textContent = fmtClock(state.clock);
   renderWorldStrip();
   renderQueue();
@@ -121,7 +177,6 @@ function renderQueue(){
   const callbacks = state.tickets.filter(t => t.state === 'callback');
   const longest = q.length ? Math.max(0, ...q.map(t => state.turn - t.arrivedTurn)) : 0;
   $('queue-count').textContent = q.length + '件';
-  $('mobile-queue-state').textContent = q.length + '件';
   $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>折り返し待ち <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
   $('queue-hint').innerHTML = '終話後はオフィスで、新しい電話を取るか、約束した相手へ電話をかけるかを選びます。';
 }
@@ -220,11 +275,13 @@ function syncOfficeRing(ringing){
   stopOfficeRing();
   officeRingLit = Boolean(ringing);
   drawOfficePixelArt(officeRingLit);
+  if (officeRingLit) playOfficeRing();
   if (!ringing) return;
   officeRingTimer = setInterval(() => {
     officeRingLit = !officeRingLit;
     if (state.phase !== 'office'){ stopOfficeRing(); return; }
     drawOfficePixelArt(officeRingLit);
+    if (officeRingLit) playOfficeRing();
   }, 420);
 }
 
@@ -237,15 +294,23 @@ function renderOffice(){
   renderWorldStrip();
   const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
   const callbacks = state.tickets.filter(t => t.state === 'callback').sort((a,b) => a.callbackDue - b.callbackDue);
+  const redials = waiting.filter(t => t.redialOpening);
   const shipments = state.tickets.filter(t => t.shipment).length;
   $('office-phone').classList.toggle('ringing', waiting.length > 0);
-  $('office-phone-status').textContent = waiting.length ? '着信 ' + waiting.length + '件' : '着信待ち';
+  $('office-phone-status').textContent = redials.length
+    ? '再着信 ' + redials.length + '件 ／ 着信 ' + waiting.length + '件'
+    : waiting.length ? '着信 ' + waiting.length + '件' : '着信待ち';
   syncOfficeRing(waiting.length > 0);
   $('office-sv').classList.toggle('busy', state.escLeft === 0);
   $('office-sv-status').textContent = state.escLeft ? 'ESC枠 ' + state.escLeft + ' / ' + ESCALATIONS : '別件対応中';
   $('office-ship-status').textContent = '手配 ' + shipments + '件 ／ 費用 ¥' + state.tickets.reduce((n,t) => n + (t.shipment ? t.shipment.fee : 0), 0).toLocaleString('ja-JP');
   $('office-tray-status').textContent = callbacks.length ? '折り返し待ち ' + callbacks.length + '件 ／ 最短 ' + fmtClock(callbacks[0].callbackDue) : '折り返し待ち 0件';
-  $('office-notice').innerHTML = state.outageKnown ? '<div class="notice">米国北東部：提携キャリアの広域障害<br>復旧見込み 未定</div>' : '<div class="blank">特記事項なし</div>';
+  const officeNotices = [];
+  if (state.outageKnown) officeNotices.push('米国北東部：提携キャリアの広域障害<br>復旧見込み 未定');
+  state.officeEvents.slice(-3).forEach(event => officeNotices.push(esc(event.text)));
+  $('office-notice').innerHTML = officeNotices.length
+    ? officeNotices.map(text => '<div class="notice">' + text + '</div>').join('')
+    : '<div class="blank">特記事項なし</div>';
   $('office-answer').disabled = !waiting.length;
   $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
   $('office-callback').disabled = !callbacks.length;
@@ -263,24 +328,13 @@ function enterOffice(){
 function enterCall(){
   stopOfficeRing();
   state.phase = 'call';
-  state.mobilePane = 'desk';
   document.body.classList.remove('office-view'); document.body.classList.add('call-view'); render();
   window.scrollTo(0, 0);
-}
-
-function renderMobilePane(){
-  document.body.dataset.mobilePane = state.mobilePane;
-  document.querySelectorAll('[data-mobile-pane]').forEach(button => {
-    const selected = button.dataset.mobilePane === state.mobilePane;
-    button.classList.toggle('on', selected);
-    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-  });
 }
 
 function renderCall(){
   const t = state.focus;
   $('line-state').textContent = t ? '通話中' : '待機';
-  $('mobile-call-state').textContent = t ? '通話中' : '待機';
   $('call').classList.toggle('on-hold', !!(t && state.holdVisual));
   if (!t){
     $('call').innerHTML = '<div class="transcript"><p class="empty-note">' +
@@ -357,6 +411,7 @@ function renderActions(t){
 
   if (t.pendingResult) return '<div class="actions">' + renderHangupButton('お客様との会話が終わりました。電話を切って終話してください。') + '</div>';
   if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation() + '</div>';
+  if (state.ui.tab === 'refund_confirm') return '<div class="actions">' + renderRefundConfirmation() + '</div>';
 
   if (!t.greeted) return '<div class="actions"><div class="command-box"><div class="command-title"><span>CALL</span><b>まず名乗ってください</b></div><button class="command-choice" data-greet="1"><span class="command-no">1</span><span class="command-copy"><b>名乗る</b><small>お電話ありがとうございます。グローバルデスクでございます</small></span></button></div>' + renderHangupButton() + '</div>';
 
@@ -395,6 +450,10 @@ function renderHangupButton(note){
 
 function renderHangupConfirmation(){
   return '<div class="hangup-confirm"><b>まだ対応が終わっていません。このまま切りますか？</b><div><button class="hangup-button" data-hangup-confirm="1">電話を切る</button><button class="command-back" data-hangup-cancel="1">対応に戻る</button></div></div>';
+}
+
+function renderRefundConfirmation(){
+  return '<div class="hangup-confirm"><b>¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + 'を返金します。この電話はこれで終わります。よろしいですか？</b><div><button class="hangup-button" data-refund-confirm="1">返金して終わる</button><button class="command-back" data-refund-cancel="1">対応に戻る</button></div></div>';
 }
 
 function renderCommandMenu(t, actionClass){
@@ -662,15 +721,13 @@ function renderDevicePanel(t){
 function renderBoard(){
   const t = state.focus;
   if (!t){
-    $('fact-count').textContent = '0';
-    $('mobile-fact-state').textContent = '0件';
+    $('fact-count').textContent = '0件';
     $('board').innerHTML = '<p class="empty-note">案件を開くと、ここに原因の候補と<br>集まった手がかりが並びます。</p>';
     return;
   }
   const ruled = ruledOut(t);
   const hot = hotCauses(t);
-  $('fact-count').textContent = String(t.facts.length);
-  $('mobile-fact-state').textContent = t.facts.length + '件';
+  $('fact-count').textContent = t.facts.length + '件';
 
   const causeRow = c => {
     const out = ruled.has(c.id) && !hot.has(c.id);
@@ -791,6 +848,7 @@ function showBriefing(){
   openSheet();
   drawArtifactQr();
   $('btn-start').onclick = () => {
+    initAudio();
     closeSheet();
     advance(0);
     enterOffice();
@@ -918,6 +976,8 @@ function showBalanceConsole(){
     '<h2>比較設定</h2><div class="balance-flags">' +
       '<label><input type="checkbox" id="balance-luck"' + (luckEnabled ? ' checked' : '') + '> 運を入れる（本来どおり ' + Math.round(LUCK_RATE * 100) + '%）</label>' +
       '<label><input type="checkbox" id="balance-shuffle"' + (GAME_FLAGS.shuffleArrival ? ' checked' : '') + '> 案件の登場順をシャッフルする（次のシフトから反映）</label>' +
+      '<label><input type="checkbox" id="balance-sound"' + (GAME_FLAGS.soundEnabled ? ' checked' : '') + '> 効果音を鳴らす</label>' +
+      '<label>音量 <input type="range" id="balance-volume" min="0" max="1" step="0.05" value="' + GAME_FLAGS.soundVolume + '"></label>' +
       '<p>OFFにすると従来の決定論的な挙動へ戻ります。抽選結果はプレイ画面や会話記録には表示されません。</p>' +
     '</div>' +
     '<h2>コマンド一覧</h2><div class="balance-table-wrap"><table class="balance-table"><tr><th>No.</th><th>コマンド</th></tr>' + commandRows + '</table></div>' +
@@ -929,6 +989,12 @@ function showBalanceConsole(){
   };
   $('balance-shuffle').onchange = event => {
     GAME_FLAGS.shuffleArrival = event.target.checked;
+  };
+  $('balance-sound').onchange = event => {
+    GAME_FLAGS.soundEnabled = event.target.checked;
+  };
+  $('balance-volume').oninput = event => {
+    GAME_FLAGS.soundVolume = clamp(Number(event.target.value), 0, 1);
   };
   $('btn-close-balance').onclick = () => {
     if (wasPhase === 'briefing'){ showBriefing(); return; }
@@ -1039,9 +1105,8 @@ function renderDebrief(){
     const cls = r.csat >= 4 ? 'win' : r.csat >= 2.5 ? 'mid' : 'bad';
     let judge;
     if (r.kind === 'abandoned') judge = '呼び出しに応答できず、放棄呼になりました。';
-    else if (r.kind === 'supervisor' && r.reason === 'stress') judge = 'お客様の苛立ちが限界に達し、上長が引き取りました。';
-    else if (r.kind === 'supervisor' && r.reason === 'misdiagnosis') judge = '見立てが二度外れ、上長が引き取りました。';
-    else if (r.kind === 'supervisor') judge = '対応を継続できず、上長が引き取りました。';
+    else if (r.kind === 'complaint') judge = r.reason === 'misdiagnosis' ? '見立てが二度外れ、お客様が強い苦情を述べて終話しました。' : 'お客様の苛立ちが限界に達し、強い苦情を述べて終話しました。';
+    else if (r.kind === 'hangup') judge = r.reason === 'misdiagnosis' ? '見立てが二度外れ、お客様が一方的に通話を切りました。' : 'お客様の苛立ちが限界に達し、一方的に通話を切りました。';
     else if (r.causeMatched === false) judge = '選んだ対応のあと通信は復旧し、一次解決になりました。' + (r.toneOk ? '伝え方も相手に合っていました。' : 'ただし話し方が相手に合っていませんでした。');
     else if (r.grade === 'best') judge = '原因も対処も最適でした。' + (r.toneOk ? '伝え方も相手に合っていました。' : 'ただし話し方が相手に合っていませんでした。');
     else if (r.grade === 'partial') judge = '原因は当たっていましたが、対処は次善どまりでした。';
@@ -1056,6 +1121,15 @@ function renderDebrief(){
       '<div class="rb"><b style="color:var(--text);font-weight:500">真の原因：' + esc(causeName(t.s.trueCause)) + '</b><br>' +
       esc(judge) + '<br>' + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
   }).join('');
+
+  const complaintEmails = ts.filter(t => t.complaintEmail).map(t => {
+    const template = COMPLAINT_EMAIL_TEMPLATES[t.s.type];
+    const lines = template.lines.map(line => esc(line.replace('{symptom}', t.s.opening))).join('<br>');
+    return '<div class="complaint-email"><b>' + esc(t.s.name) + '様からの苦情メール</b><p>' + lines + '</p></div>';
+  }).join('');
+  const complaintMailbox = complaintEmails
+    ? '<section class="complaint-mailbox"><h2>翌日、次の苦情が届いています</h2><p>' + ts.filter(t => t.complaintEmail).length + '件</p>' + complaintEmails + '</section>'
+    : '';
 
   $('sheet').innerHTML =
     '<p class="eyebrow">SHIFT DEBRIEF ／ ' + fmtClock(state.clock) + ' JST</p>' +
@@ -1072,6 +1146,7 @@ function renderDebrief(){
       cell('所要', (state.clock - SHIFT_START) + '分', '22:00 〜 ' + fmtClock(state.clock)) +
     '</div>' +
 
+    complaintMailbox +
     '<h2>一件ずつの振り返り</h2>' + reviews +
 
     '<button class="btn-primary" id="btn-again">もう一度シフトに入る</button>' +

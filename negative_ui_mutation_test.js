@@ -6,7 +6,45 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const projectFiles = fs.readdirSync(__dirname).filter(name => !name.startsWith('.'));
+const deskPane = `  <section class="pane desk">
+    <div class="pane-head">
+      <h2 class="pane-title">対応デスク</h2>
+      <span class="count-chip mono" id="line-state">待機</span>
+    </div>
+    <div class="call" id="call"></div>
+  </section>`;
+const boardPane = `  <section class="pane board">
+    <div class="pane-head">
+      <h2 class="pane-title">診断ボード</h2>
+      <span class="count-chip mono" id="fact-count">0件</span>
+    </div>
+    <div id="board"></div>
+  </section>`;
 const mutations = [
+  {
+    name:'上部の通話・待機・診断タブを復活させる', file:'p1_head.html',
+    from:'<div class="console">\n\n  <section class="pane desk">',
+    to:'<div class="console">\n\n  <nav class="mobile-pane-nav">通話／待機／診断</nav>\n\n  <section class="pane desk">',
+    expected:'上部の通話・待機・診断タブが戻っている',
+  },
+  {
+    name:'診断ペインをdisplay noneへ戻す', file:'p1_head.html',
+    from:'.pane-head{ padding-bottom:10px; }',
+    to:'.pane.board{ display:none; }\n.pane-head{ padding-bottom:10px; }',
+    expected:'3ペインの一部が非表示になっている',
+  },
+  {
+    name:'pane単独セレクタで全ペインをdisplay noneにする', file:'p1_head.html',
+    from:'.pane-head{ padding-bottom:10px; }',
+    to:'.pane{ display:none; }\n.pane-head{ padding-bottom:10px; }',
+    expected:'3ペインの一部が非表示になっている',
+  },
+  {
+    name:'対応デスクと診断ボードのDOM順を入れ替える', file:'p1_head.html',
+    from:deskPane + '\n\n' + boardPane,
+    to:boardPane + '\n\n' + deskPane,
+    expected:'3ペインのDOM順が対応デスク→診断ボード→待機状況ではない',
+  },
   {
     name:'公開QRのURLを1文字変える', file:'p2_data.js',
     from:'https://uryoutamomo.github.io/wifi-support-game/', to:'https://uryoutamomo.github.io/wifi-support-games/',
@@ -87,9 +125,9 @@ const mutations = [
     expected:'ログの4見出しが完全一致しない',
   },
   {
-    name:'ストレス引き取り文へ接尾辞を足す', file:'p4_view.js',
-    from:'お客様の苛立ちが限界に達し、上長が引き取りました。', to:'お客様の苛立ちが限界に達し、上長が引き取りました。_x',
-    expected:'ストレス由来の振り返り文が完全一致しない',
+    name:'ストレス終話を上長引き取りへ戻す', file:'p3_game.js',
+    from:"endAngryCall(t, 'stress');", to:"closeTicket(t, { kind:'supervisor', reason:'stress' });",
+    expected:'ストレス100が怒り終話の共通経路を通らない',
   },
   {
     name:'電話を取る文言へ接尾辞を足す', file:'p1_head.html',
@@ -102,9 +140,89 @@ const mutations = [
     expected:'「電話をかける」ボタンがない',
   },
   {
-    name:'着信文言へ接尾辞を足す', file:'p3_game.js',
-    from:"toast('着信', '新しい着信です', '');", to:"toast('着信', '新しい着信です_x', '');",
-    expected:'着信トーストが全件通常色ではない',
+    name:'着信トーストを復活させる', file:'p3_game.js',
+    from:'      activated++;', to:"      activated++;\n      toast('着信', '新しい着信です', '');",
+    expected:'トーストの関数・呼び出し・DOM・CSSが残っている',
+  },
+  {
+    name:'expertの既定終話を切断へ変える', file:'p2_data.js',
+    from:"  expert:'complaint',", to:"  expert:'hangup',",
+    expected:'顧客タイプ別の既定終話が確定仕様と違う',
+  },
+  {
+    name:'クレームCSATを上げる', file:'p3_game.js',
+    from:"csat:kind === 'complaint' ? 1.0 : 0.5", to:"csat:kind === 'complaint' ? 1.1 : 0.5",
+    expected:'クレーム／切断のCSATが1.0／0.5ではない',
+  },
+  {
+    name:'苦情メール低CSAT境界を1へ下げる', file:'p3_game.js',
+    from:"(result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false", to:"(result.kind === 'closed' || result.kind === 'refunded') && result.csat < 1 ? rollLuck() : false",
+    expected:'不満足な返金が後日の苦情メール対象に入らない',
+  },
+  {
+    name:'苦情メールをデブリーフから消す', file:'p4_view.js',
+    from:'翌日、次の苦情が届いています', to:'翌日の連絡',
+    expected:'翌日デブリーフの苦情メール別枠・件数表示がない',
+  },
+  {
+    name:'苛立ち点滅境界を90超へずらす', file:'p4_view.js',
+    from:"t.stress > 80 ? ' alert' : ''", to:"t.stress > 90 ? ' alert' : ''",
+    expected:'ストレス80超でメーターが点滅しない',
+  },
+  {
+    name:'再着信をオフィス記録から外す', file:'p3_game.js',
+    from:"recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');", to:"void customerLabel(t, true);",
+    expected:'再着信の情報が状態表示・会話メモ・無効理由へ移っていない',
+  },
+  {
+    name:'AudioContextをシフト開始前に作る', file:'p4_view.js',
+    from:"  $('btn-start').onclick = () => {\n    initAudio();", to:"  initAudio();\n  $('btn-start').onclick = () => {",
+    expected:'AudioContextが「シフトを始める」操作の中で生成されない',
+  },
+  {
+    name:'音声例外をゲームへ投げ直す', file:'p4_view.js',
+    from:'} catch (error){ /* 音が出せなくてもゲーム進行は続ける */ }', to:'} catch (error){ throw error; }',
+    expected:'音声処理の例外でゲーム進行が止まる',
+  },
+  {
+    name:'ミュート判定を無視する', file:'p4_view.js',
+    from:'if (!GAME_FLAGS.soundEnabled || !audioContext) return;', to:'if (!audioContext) return;',
+    expected:'soundEnabled:falseでも発音処理が起きる',
+  },
+  {
+    name:'ファンファーレ境界を4超へずらす', file:'p4_view.js',
+    from:'if (result.csat >= 4) return \'fanfare\';', to:'if (result.csat > 4) return \'fanfare\';',
+    expected:'クローズ音のCSAT 4.0／3.0／2.0境界または放棄呼の分類が違う',
+  },
+  {
+    name:'事故音を失敗音と同じにする', file:'p4_view.js',
+    from:"if (result.kind === 'complaint' || result.kind === 'hangup') return 'accident';", to:"if (result.kind === 'complaint' || result.kind === 'hangup') return 'failure';",
+    expected:'complaint／hangupが事故音へ分類されない',
+  },
+  {
+    name:'タイプ音を毎文字鳴らす', file:'p4_view.js',
+    from:'function playTypeSound(index){ if (index % 4) return;', to:'function playTypeSound(index){',
+    expected:'タイプ音が1文字ごとではなく間引かれていない',
+  },
+  {
+    name:'通話開始時に着信音を止めない', file:'p4_view.js',
+    from:'function enterCall(){\n  stopOfficeRing();', to:'function enterCall(){',
+    expected:'通話画面へ移ってもオフィス着信音が止まらない',
+  },
+  {
+    name:'苦情メールを第三者要約1行へ戻す', file:'p2_data.js',
+    from:"lines:Object.freeze(['「{symptom}」とお伝えしたのに、不安なまま通話を終えることになりました。', '海外で一人取り残されたようで、本当に怖かったです。最後まで安心できる説明をしてほしかったです。'])", to:"lines:Object.freeze(['{symptom}について不安が残ったとの訴えです。'])",
+    expected:'苦情メールが客自身の感情ある2〜3行の文面ではない',
+  },
+  {
+    name:'苦情メールへ真因を差し込む', file:'p4_view.js',
+    from:"line.replace('{symptom}', t.s.opening)", to:"line.replace('{symptom}', causeName(t.s.trueCause))",
+    expected:'苦情メールが症状ではなく客の知らない真因を漏らしている',
+  },
+  {
+    name:'クローズ結果をオフィスから消す', file:'p3_game.js',
+    from:"  recordOfficeEvent('closed', t.s.id + '：' + result.label + ' CSAT ' + result.csat.toFixed(1));\n", to:'',
+    expected:'クローズ結果の情報が状態表示・会話メモ・無効理由へ移っていない',
   },
   {
     name:'ネタバレ警告へ接尾辞を足す', file:'p4_view.js',
@@ -192,7 +310,7 @@ const mutations = [
   {
     name:'GAME_FLAGSの初期運率を変える', file:'p2_data.js',
     from:'luckRate: LUCK_RATE,', to:'luckRate: 0.8,',
-    expected:'運の初期GAME_FLAGSが確定値と違う',
+    expected:'運・音の初期GAME_FLAGSが確定値と違う',
   },
   {
     name:'注入可能な乱数源を固定値へ置き換える', file:'p3_game.js',
@@ -301,10 +419,10 @@ const mutations = [
     expected:'裏目の誤診が解決扱いにならない',
   },
   {
-    name:'会社側返金の符号を反転する', file:'p2_data.js',
-    from:"causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), delta:-25, csat:0.4",
-    to:"causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), delta:25, csat:0.4",
-    expected:'会社側の返金分類・効果が確定値と違う',
+    name:'会社側返金満足率を60%へ変える', file:'p2_data.js',
+    from:"causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), satisfactionRate:0.5",
+    to:"causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), satisfactionRate:0.6",
+    expected:'会社側の返金満足率が50%ではない',
   },
   {
     name:'返金額を0円にする', file:'p2_data.js',
@@ -317,26 +435,24 @@ const mutations = [
     expected:'返金の責任所在一覧が画面・ログ・ラベルに漏れる',
   },
   {
-    name:'返金2回目の式を変える', file:'p3_game.js',
-    from:'let delta = effect.delta;\n  if (times > 0) delta = delta / 2 + 5;',
-    to:'let delta = effect.delta;\n  if (times > 0) delta = delta / 2 + 4;',
-    expected:'返金2回目がdelta/2+5にならない',
+    name:'返金の確認を飛ばす', file:'p5_events.js',
+    from:"if (d.refund){ state.ui = defaultUi('refund_confirm'); render(); return true; }", to:"if (d.refund){ doRefund(); return true; }",
+    expected:'返金が確認を挟まず実行される',
   },
   {
-    name:'返金から運の反転を外す', file:'p3_game.js',
-    from:"return flipReaction({ delta, scaled:false, csat:times > 0 ? 0 : effect.csat, reply:delta < 0 ? goodReply : badReply }, goodReply, badReply);",
-    to:"return { delta, scaled:false, csat:times > 0 ? 0 : effect.csat, reply:delta < 0 ? goodReply : badReply };",
-    expected:'会社側の返金が裏目で反対結果にならない',
+    name:'返金確認から終話明示を消す', file:'p4_view.js',
+    from:'この電話はこれで終わります。', to:'返金を実行します。',
+    expected:'返金確認に金額・終話の明示・確認ボタンが揃っていない',
   },
   {
-    name:'返金2回目にもCSATを加点する', file:'p3_game.js',
-    from:'csat:times > 0 ? 0 : effect.csat', to:'csat:effect.csat',
-    expected:'返金2回目にもCSAT補正が累積する',
+    name:'返金費用を加算しない', file:'p3_game.js',
+    from:'state.cost += REFUND_POLICY.amount;', to:'state.cost += 0;',
+    expected:'満足した返金で2,400円が加算されない',
   },
   {
-    name:'返金費用を初回だけにする', file:'p3_game.js',
-    from:'state.cost += REFUND_POLICY.amount;', to:'if (!times) state.cost += REFUND_POLICY.amount;',
-    expected:'返金費用が実行のたびに必ず加算されない',
+    name:'luckRate 1でも中立を満足させる', file:'p3_game.js',
+    from:"if (GAME_FLAGS.luckRate === 1) return group === 'company';", to:"if (GAME_FLAGS.luckRate === 1) return group !== 'customer';",
+    expected:'luckRate 1.0で会社側だけが返金に満足する決定論へ戻らない',
   },
   {
     name:'返金クリック監視を外す', file:'p5_events.js',
@@ -344,14 +460,35 @@ const mutations = [
     expected:'返金ボタンが実行処理へ接続されていない',
   },
   {
-    name:'返金CSATを解決評価へ反映しない', file:'p3_game.js',
-    from:'base += t.refundCsat || 0;', to:'base += 0;',
-    expected:'返金のCSAT補正が解決時の評価へ反映されない',
+    name:'満足返金CSATを4.0へ上げる', file:'p3_game.js',
+    from:'csat:satisfied ? 3.0 : 1.0', to:'csat:satisfied ? 4.0 : 1.0',
+    expected:'満足した返金のkind／satisfied／CSATが違う',
   },
   {
     name:'中立分類からsimを落とす', file:'p2_data.js',
     from:"causes:Object.freeze(['location','geo_block','sim'])", to:"causes:Object.freeze(['location','geo_block'])",
-    expected:'中立の返金分類・効果が確定値と違う',
+    expected:'中立の返金満足率が25%ではない',
+  },
+  {
+    name:'不満足返金にも別れの言葉を付ける', file:'p3_game.js',
+    from:"  } else {\n    pushCustomerLine(t, 'お金の話ではなく", to:"  } else {\n    pushCustomerLine(t, farewellLine(t.s, 'partial'), { plain:true });\n    pushCustomerLine(t, 'お金の話ではなく",
+    expected:'不満足な返金に別れの言葉が付く',
+  },
+  {
+    name:'不満足返金を苦情メール対象から外す', file:'p3_game.js',
+    from:"(result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2", to:"result.kind === 'closed' && result.csat < 2",
+    expected:'不満足な返金が後日の苦情メール対象に入らない',
+  },
+  {
+    name:'旧refunds回数管理を戻す', file:'p3_game.js',
+    from:'const satisfied = refundSatisfied(t.s.trueCause);', to:'t.refunds = (t.refunds || 0) + 1;\n  const satisfied = refundSatisfied(t.s.trueCause);',
+    expected:'旧返金の回数管理・CSAT逓減がコードに残っている',
+  },
+  {
+    name:'広域障害正規対処の費用を消す', file:'p2_data.js',
+    from:"{ id:'r_outage_explain', label:'広域障害であることと復旧見込みを説明し、日割りの返金を案内する', sub:'原因が判明している場合の正規対応', kind:'resolve', needsOutage:true, cost:2400 }",
+    to:"{ id:'r_outage_explain', label:'広域障害であることと復旧見込みを説明する', sub:'原因が判明している場合の正規対応', kind:'resolve', needsOutage:true, cost:0 }",
+    expected:'広域障害の正規対処 r_outage_explain が損なわれている',
   },
   {
     name:'anxiousの苛立ち段階を空にする', file:'p2_data.js',
@@ -422,6 +559,12 @@ const mutations = [
     expected:'第一声に渡航先・旅行目的・同行者の情報が残っている',
   },
   {
+    name:'固定都市リストにないcityを通常案件の第一声へ入れる', file:'p2_data.js',
+    from:"city:'バンコク', cityEn:'BANGKOK', localOffset:-2, device:'GD-500', plan:'タイ ／ 500MBプラン',\n  opening:'あの…地図が全然開かないんです。",
+    to:"city:'架空都市', cityEn:'BANGKOK', localOffset:-2, device:'GD-500', plan:'タイ ／ 500MBプラン',\n  opening:'架空都市です。あの…地図が全然開かないんです。",
+    expected:'通常案件の第一声に自身のcityが残っている',
+  },
+  {
     name:'雑談revealを答えのない質問へ付け替える', file:'p2_data.js',
     from:"id:'st_s2_tour', reveal:'q_other_device'", to:"id:'st_s2_tour', reveal:'q_stay_length'",
     expected:'雑談話題のrevealが実際に到達できる質問へ接続されていない',
@@ -443,6 +586,12 @@ const mutations = [
     expected:'本人確認の鎮静が裏目でも通常の質問ストレスへ戻らない',
   },
   {
+    name:'expertの高ストレス本人確認でも運を先に抽選する', file:'p3_game.js',
+    from:'if (delta === 0) return changeStress(t, 0, true);\n  const expectedOutcome = rollLuck();',
+    to:'const expectedOutcome = rollLuck();\n  if (delta === 0) return changeStress(t, 0, true);',
+    expected:'expertの高ストレス本人確認が無駄に運の抽選を消費する',
+  },
+  {
     name:'氏名だけで本人特定できるようにする', file:'p3_game.js',
     from:'t.nameKnown && t.destinationKnown', to:'t.nameKnown || t.destinationKnown',
     expected:'渡航先を聞かずに氏名だけで本人特定へ到達する',
@@ -451,6 +600,11 @@ const mutations = [
     name:'q_nameを本人確認専用ストレスから外す', file:'p3_game.js',
     from:'identityQuestionStress(t, qid, askStressBase(t, 3))', to:'addStress(t, askStressBase(t, 3))',
     expected:'q_nameとq_contractだけが本人確認専用のストレス経路を通っていない',
+  },
+  {
+    name:'廃止したmobilePane状態を戻す', file:'p3_game.js',
+    from:'  ui: defaultUi(),', to:"  mobilePane: 'desk',\n  ui: defaultUi(),",
+    expected:'廃止したペイン切替状態 mobilePane が残っている',
   },
   {
     name:'1タイプの謝罪反応を欠落させる', file:'p2_data.js',

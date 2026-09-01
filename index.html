@@ -244,7 +244,7 @@ button:focus-visible, [tabindex]:focus-visible{
 }
 
 /* ============================================================
-   コンソール ― スマホでは画面切替で一面ずつ表示
+   コンソール ― 対応デスク、診断、待機状況を縦にまとめる
    ============================================================ */
 
 .console{
@@ -362,8 +362,7 @@ body.call-view .console{ animation: call-in .22s ease both; }
 
 /* シート表示中はコンソールを隠す */
 body.sheet-open .topbar,
-body.sheet-open .console,
-body.sheet-open .toast-wrap{ display: none; }
+body.sheet-open .console{ display: none; }
 
 .pane{
   background: var(--ink);
@@ -1100,6 +1099,13 @@ body.sheet-open .toast-wrap{ display: none; }
 .review-csat i{ display: block; height: 100%; background: var(--good); }
 .review.mid .review-csat i{ background: var(--warn); }
 .review.bad .review-csat i{ background: var(--crit); }
+.complaint-mailbox{ margin:24px 0; padding:16px; border:2px solid var(--crit); border-radius:10px; background:var(--crit-glow); }
+.complaint-mailbox h2{ margin:0 0 4px; color:var(--crit); }
+.complaint-mailbox>p{ margin:0 0 12px; color:var(--text-2); font:700 13px/1.4 var(--mono); }
+.complaint-email{ margin-top:10px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+.complaint-email b,.complaint-email span{ display:block; }
+.complaint-email span{ margin-top:3px; color:var(--crit); font:700 12px/1.4 var(--display); }
+.complaint-email p{ margin:8px 0 0; color:var(--text-2); font-size:14px; line-height:1.65; }
 .report-auto{ margin:14px 0; padding:11px 13px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font-family:var(--mono); font-size:12px; line-height:1.75; }
 .report-list{ display:flex; flex-direction:column; gap:6px; }.report-check{ display:flex; gap:9px; align-items:flex-start; padding:9px 10px; border:1px solid var(--line-soft); background:var(--panel-2); cursor:pointer; font-size:12.5px; line-height:1.6; }.report-check:hover{ border-color:var(--amber-deep); }.report-check input{ margin-top:5px; accent-color:var(--amber); }.report-check span{ flex:1; }.report-check i{ display:block; margin-top:2px; color:var(--faint); font-size:11px; font-style:normal; }.report-miss{ margin-top:8px; padding:7px 9px; border-left:2px solid var(--crit); background:var(--crit-glow); color:var(--text); font-size:11.5px; }
 
@@ -1118,34 +1124,6 @@ body.sheet-open .toast-wrap{ display: none; }
   color: var(--faint);
   font-weight: 600;
 }
-
-/* トースト */
-.toast-wrap{
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-  max-width: 340px;
-}
-.toast{
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-left: 2px solid var(--amber);
-  border-radius: 2px;
-  padding: 10px 14px;
-  font-size: 12.5px;
-  line-height: 1.6;
-  box-shadow: 0 8px 24px rgba(0,0,0,.5);
-  animation: slidein .25s ease;
-}
-.toast.crit{ border-left-color: var(--crit); }
-.toast.good{ border-left-color: var(--good); }
-.toast.sig{ border-left-color: var(--signal); }
-.toast b{ display: block; font-family: var(--display); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
 
 /* ---------- ライト業務画面の仕上げ ---------- */
 .topbar{ background:var(--surface); box-shadow:0 1px 0 var(--line-soft),0 5px 16px rgba(21,32,43,.06); }
@@ -1169,12 +1147,7 @@ body.sheet-open .toast-wrap{ display: none; }
 .device-card{ background:var(--surface); }.lcd,.lcd.obscured,.lcd.missing{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.lcd.obscured::before{ background:repeating-linear-gradient(110deg,transparent 0 6px,#183746 6px 10px); }.lcd-placeholder b,.lcd-clients,.lcd-ssid{ color:#E4F6F4; }
 .board-toggle{ width:100%; display:flex; justify-content:space-between; margin:10px 0; padding:9px 10px; border:1px solid var(--line); background:var(--surface-2); color:var(--text-2); font-size:13px; font-weight:600; }.board-toggle span{ color:var(--accent); font-weight:500; }.board-excluded{ border-top:1px solid var(--line-soft); }
 .cause{ color:var(--text-2); }.cause.hot{ color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); }.cause.out{ opacity:.7; color:var(--text-3); }
-.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover{ border-color:var(--accent-line); color:var(--accent); }.toast{ box-shadow:0 8px 24px rgba(21,32,43,.14); }
-
-@keyframes slidein{
-  from{ opacity: 0; transform: translateX(14px); }
-  to{ opacity: 1; transform: none; }
-}
+.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover{ border-color:var(--accent-line); color:var(--accent); }
 
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -1220,44 +1193,16 @@ body.playing{ display:block; height:auto; min-height:100dvh; overflow:auto; }
 .world-zone-label,.world-jst span{ font-size:12px; }
 .world-pin-label{ display:none; }
 
-.console{ display:block; min-height:calc(100dvh - 170px); background:var(--bg); }
-.mobile-pane-nav{
-  position:sticky;
-  top:0;
-  z-index:24;
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  padding:10px 12px;
-  background:rgba(244,247,250,.96);
-  border-bottom:1px solid var(--line);
-  backdrop-filter:blur(10px);
-}
-.mobile-pane-tab{
-  min-height:54px;
-  padding:7px 5px;
-  border:1px solid var(--line);
-  border-radius:10px;
-  background:var(--surface);
-  color:var(--text-2);
-  font-size:17px;
-  font-weight:700;
-  line-height:1.2;
-}
-.mobile-pane-tab span{ display:block; margin-top:3px; color:var(--text-3); font:600 12px/1.2 var(--mono); }
-.mobile-pane-tab.on{ border-color:var(--accent); background:var(--accent); color:#fff; }
-.mobile-pane-tab.on span{ color:#fff; opacity:.88; }
+.console{ display:flex; flex-direction:column; min-height:calc(100dvh - 170px); background:var(--bg); }
 .pane,body.playing .pane{
-  display:none;
-  min-height:calc(100dvh - 234px);
+  display:flex;
+  min-height:0;
   padding:16px;
   gap:16px;
   overflow:visible;
   border:0;
 }
-body[data-mobile-pane="desk"] .pane.desk,
-body[data-mobile-pane="summary"] .pane.call-summary,
-body[data-mobile-pane="board"] .pane.board{ display:flex; }
+.pane + .pane{ border-top:1px solid var(--line); }
 .pane-head{ padding-bottom:10px; }
 .pane-title{ font-size:22px; letter-spacing:.08em; }
 .count-chip{ padding:3px 9px; font-size:15px; border-radius:8px; }
@@ -1272,7 +1217,7 @@ body.playing .transcript{
   gap:12px;
 }
 body.playing .transcript.recent{ min-height:150px; max-height:31dvh; overflow:auto; }
-.stress-panel{ top:75px; z-index:23; margin:12px; padding:15px; }
+.stress-panel{ top:0; z-index:23; margin:12px; padding:15px; }
 .stress-panel-head span{ font-size:16px; }.stress-panel-head b{ font-size:36px; }.stress-panel-head strong{ font-size:15px; }
 .stress-track{ height:20px; }
 .record-transcript{ max-height:56dvh; }
@@ -1349,8 +1294,6 @@ body.office-view .office-scene{ gap:14px; }
 .sheet h2{ margin-top:32px; font-size:23px; letter-spacing:.07em; }
 .sheet .lead,.sheet p,.sheet li{ max-width:none; font-size:20px; line-height:1.8; }
 .sheet ul{ max-width:none; padding-left:24px; }
-.toast-wrap{ width:min(456px,calc(100% - 24px)); right:50%; transform:translateX(50%); }
-
 @media (max-width:480px){
   body{ width:100%; box-shadow:none; }
   .artifact-qr-card{ display:none; }
@@ -1405,21 +1348,6 @@ body.office-view .office-scene{ gap:14px; }
 
 <div class="console">
 
-  <nav class="mobile-pane-nav" aria-label="ゲーム画面の切り替え">
-    <button class="mobile-pane-tab on" type="button" data-mobile-pane="desk" aria-pressed="true">通話<span id="mobile-call-state">待機</span></button>
-    <button class="mobile-pane-tab" type="button" data-mobile-pane="summary" aria-pressed="false">待機<span id="mobile-queue-state">0件</span></button>
-    <button class="mobile-pane-tab" type="button" data-mobile-pane="board" aria-pressed="false">診断<span id="mobile-fact-state">0件</span></button>
-  </nav>
-
-  <section class="pane call-summary">
-    <div class="pane-head">
-      <h2 class="pane-title">待機状況</h2>
-      <span class="count-chip mono" id="queue-count">要約</span>
-    </div>
-    <div class="summary-figure" id="call-summary"></div>
-    <div class="hint-bar" id="queue-hint"></div>
-  </section>
-
   <section class="pane desk">
     <div class="pane-head">
       <h2 class="pane-title">対応デスク</h2>
@@ -1431,14 +1359,22 @@ body.office-view .office-scene{ gap:14px; }
   <section class="pane board">
     <div class="pane-head">
       <h2 class="pane-title">診断ボード</h2>
-      <span class="count-chip mono" id="fact-count">0</span>
+      <span class="count-chip mono" id="fact-count">0件</span>
     </div>
     <div id="board"></div>
   </section>
 
+  <section class="pane call-summary">
+    <div class="pane-head">
+      <h2 class="pane-title">待機状況</h2>
+      <span class="count-chip mono" id="queue-count">0件</span>
+    </div>
+    <div class="summary-figure" id="call-summary"></div>
+    <div class="hint-bar" id="queue-hint"></div>
+  </section>
+
 </div>
 
-<div class="toast-wrap" id="toasts"></div>
 <div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
 
 <script>
@@ -1455,13 +1391,15 @@ const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
   shuffleArrival: true,
+  soundEnabled: true,
+  soundVolume: 0.55,
 };
 
 const REFUND_POLICY = Object.freeze({
   amount: 2400,
-  company: Object.freeze({ causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), delta:-25, csat:0.4 }),
-  customer: Object.freeze({ causes:Object.freeze(['fup','devices','heavy','device_side','device_net','power']), delta:15, csat:-0.6 }),
-  neutral: Object.freeze({ causes:Object.freeze(['location','geo_block','sim']), delta:-5, csat:0 }),
+  company: Object.freeze({ causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), satisfactionRate:0.5 }),
+  customer: Object.freeze({ causes:Object.freeze(['fup','devices','heavy','device_side','device_net','power']), satisfactionRate:0.1 }),
+  neutral: Object.freeze({ causes:Object.freeze(['location','geo_block','sim']), satisfactionRate:0.25 }),
 });
 
 const COMMAND_DEFS = Object.freeze([
@@ -1578,6 +1516,40 @@ const TYPES = {
     angry:['その話、後。結論を言って。', '時計見てます？ 会議が始まる。急いで。'],
     furious:['もう待てない。責任者に代わって。今。', 'ここで終わらせる。解約の手順だけ言って。'] },
 };
+
+/* 怒りが限界に達した通話の終わり方と、翌日に届く苦情メール。 */
+const ANGRY_DEFAULT_OUTCOMES = Object.freeze({
+  anxious:'hangup',
+  novice:'complaint',
+  expert:'complaint',
+  hurried:'hangup',
+});
+
+const ANGRY_END_LINES = Object.freeze({
+  anxious:Object.freeze({
+    complaint:'もう限界です…。この対応について、あとで正式に連絡します。',
+    hangup:'もう無理です…。これ以上お話しできません。',
+  }),
+  novice:Object.freeze({
+    complaint:'私にはもう分かりません。この対応は、あとで相談させてください。',
+    hangup:'すみません、もう怖いので切ります。',
+  }),
+  expert:Object.freeze({
+    complaint:'この対応品質は正式に問題として連絡します。記録を残してください。',
+    hangup:'これ以上の通話に意味はありません。ここで切ります。',
+  }),
+  hurried:Object.freeze({
+    complaint:'もう時間切れ。この対応はあとで正式に連絡する。',
+    hangup:'もう待てない。切る。',
+  }),
+});
+
+const COMPLAINT_EMAIL_TEMPLATES = Object.freeze({
+  anxious:Object.freeze({ lines:Object.freeze(['「{symptom}」とお伝えしたのに、不安なまま通話を終えることになりました。', '海外で一人取り残されたようで、本当に怖かったです。最後まで安心できる説明をしてほしかったです。']) }),
+  novice:Object.freeze({ lines:Object.freeze(['「{symptom}」と相談しましたが、説明が難しく、何をすればよいのか最後まで分かりませんでした。', '機械に詳しくない人にも分かるよう、一つずつ案内していただきたかったです。']) }),
+  expert:Object.freeze({ lines:Object.freeze(['「{symptom}」という事象に対し、仮説と観測結果の対応が示されないまま終話となりました。', 'この切り分け品質は看過できません。対応記録を確認し、根拠を明示して回答してください。']) }),
+  hurried:Object.freeze({ lines:Object.freeze(['「{symptom}」と急ぎで伝えたのに、結論が出ないまま大切な予定に間に合いませんでした。', '前置きではなく必要な対応をすぐ示すべきです。失った時間をどう考えているのか回答してください。']) }),
+});
 
 const TONES = [
   { id:'technical', name:'技術的に', sub:'用語をそのまま使い、手順を番号で正確に伝える' },
@@ -2189,10 +2161,10 @@ const state = {
   outageKnown: false,
   holdVisual: false,
   busy: false,
-  mobilePane: 'desk',
   ui: defaultUi(),
   slogan: '',
   report: null,
+  officeEvents: [],
   random: Math.random,
 };
 
@@ -2235,11 +2207,11 @@ function newTicket(s){
     s, state:'inbound', patience:100, arrivedTurn:s.arrive,
     facts:[], asked:new Set(), askCounts:new Map(), questionCount:0, lookedUp:new Set(), tested:new Set(), testCounts:new Map(),
     transcript:[], callTranscriptStart:0, greeted:false, identified:false, nameKnown:false, destinationKnown:false,
-    stress:TYPES[s.type].stressStart, stressWarned:false, soothed:new Map(), smalltalkCounts:new Map(),
+    stress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, holdMinutes:0,
     callbackCount:0, callbackDue:null, callbackLate:false, callbackDestination:null, callbackPenalty:0,
-    stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, shipment:null, apologies:new Map(), refunds:0, refundCsat:0,
-    misdiagnoses:0, damage:0, wasted:0, result:null, pendingResult:null, redialOpening:null, redialSpoken:false, escUsed:false,
+    stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, shipment:null, apologies:new Map(),
+    misdiagnoses:0, damage:0, wasted:0, result:null, pendingResult:null, complaintEmail:false, redialOpening:null, redialSpoken:false, escUsed:false,
   };
 }
 
@@ -2262,10 +2234,15 @@ function resetGame(){
   state.outageKnown = false;
   state.holdVisual = false;
   state.busy = false;
-  state.mobilePane = 'desk';
   state.ui = defaultUi();
   state.slogan = SLOGANS[Math.floor(state.random() * SLOGANS.length)];
   state.report = null;
+  state.officeEvents = [];
+}
+
+function recordOfficeEvent(kind, text){
+  state.officeEvents.push({ kind, text });
+  if (state.officeEvents.length > 6) state.officeEvents.shift();
 }
 
 /* ---------- ターン進行 ---------- */
@@ -2276,7 +2253,6 @@ function activateDueInbound(){
     if (t.state === 'inbound' && t.arrivedTurn <= state.turn){
       t.state = 'waiting';
       activated++;
-      toast('着信', '新しい着信です', '');
     }
   });
   return activated;
@@ -2297,7 +2273,8 @@ function advance(turns){
         t.patience = 0;
         t.state = 'closed';
         t.result = { kind:'abandoned', csat:0, label:'放棄呼', firstCallResolved:false };
-        toast('放棄呼', '呼び出しに応答できず、切られました', 'crit');
+        playCloseJingle(t.result);
+        recordOfficeEvent('abandoned', t.s.id + '：応答前に切断され、放棄呼になりました。');
       }
     });
 
@@ -2308,6 +2285,7 @@ function advance(turns){
 
 function addFact(t, fact, src){
   t.facts.push({ text:fact.text, src:src, out:fact.out || [], hot:fact.hot || [] });
+  if (t === state.focus) playClueSound();
 }
 
 /* ---------- 広域障害の判明（シフトの山場） ---------- */
@@ -2315,7 +2293,7 @@ function addFact(t, fact, src){
 function triggerOutage(origin){
   if (state.outageKnown) return;
   state.outageKnown = true;
-  toast('障害情報', '北東部の広域障害を確認。同一エリアの他チケットにも当てはまります', 'sig');
+  origin.transcript.push({ who:'note', text:'[全社通知] 米国北東部 提携キャリアの広域障害を確認。同一エリアの他チケットにも当てはまります。' });
 
   state.tickets.forEach(t => {
     if (t === origin) return;
@@ -2329,7 +2307,8 @@ function triggerOutage(origin){
 /* ---------- プレイヤーの行動 ---------- */
 
 function pickup(t){
-  if (state.focus){ toast('通話中', '通話中です。いまの電話を終えないと次を取れません', 'crit'); return; }
+  if (state.focus) return;
+  playPickupSound();
   t.state = 'open';
   t.callTranscriptStart = t.transcript.length;
   deliverCustomerOpening(t, true);
@@ -2348,8 +2327,9 @@ function greetCurrentCustomer(){
 }
 
 function resumeCallback(t){
-  if (state.focus){ toast('通話中', '通話中です。いまの電話を終えないと次を取れません', 'crit'); return; }
+  if (state.focus) return;
   if (!t || t.state !== 'callback') return;
+  playPickupSound();
   t.callbackLate = t.callbackLate || state.clock > t.callbackDue;
   if (t.callbackDestination !== t.s.callbackTo){
     t.callbackPenalty = t.callbackDestination === 'hotel' ? 1.0 : 0.5;
@@ -2379,18 +2359,39 @@ function addStress(t, base, miss, expectedOutcome){
   return changeStress(t, base * type.stressRate * (miss ? type.missRate : 1), expectedOutcome);
 }
 function changeStress(t, delta, expectedOutcome = rollLuck()){
+  const previousStress = t.stress;
   if (!expectedOutcome) delta = 0;
   t.stress = clamp(t.stress + delta, 0, 100);
-  if (t.stress > 80 && !t.stressWarned){
-    t.stressWarned = true;
-    toast('苛立ち警告', customerHonorific(t) + 'の苛立ちが強まっています', 'crit');
-  }
+  if (previousStress <= 80 && t.stress > 80) playStressWarning();
   if (t.stress >= 100 && t.state === 'open'){
-    pushCustomerLine(t, TYPES[t.s.type].furious[1], { plain:true });
-    closeTicket(t, { kind:'supervisor', reason:'stress', csat:1.5, label:'上長が引き取り' });
-    toast('引き取り', customerLabel(t) + 'の苛立ちが限界に達し、上長が引き取りました', 'crit');
+    endAngryCall(t, 'stress');
   }
   return t.state === 'open';
+}
+
+function angryOutcomeKind(t){
+  const normal = ANGRY_DEFAULT_OUTCOMES[t.s.type];
+  if (rollLuck()) return normal;
+  return normal === 'complaint' ? 'hangup' : 'complaint';
+}
+
+function endAngryCall(t, reason){
+  const kind = angryOutcomeKind(t);
+  pushCustomerLine(t, ANGRY_END_LINES[t.s.type][kind], { plain:true });
+  t.transcript.push({
+    who:'note',
+    text:kind === 'complaint'
+      ? 'お客様は強い苦情を述べて通話を終えました。'
+      : 'お客様は一方的に通話を切りました。',
+  });
+  closeTicket(t, {
+    kind,
+    reason,
+    csat:kind === 'complaint' ? 1.0 : 0.5,
+    label:kind === 'complaint' ? 'クレーム終話' : '一方的な切断',
+    firstCallResolved:false,
+  });
+  return false;
 }
 function stressPenalty(v){ return v <= 25 ? 0 : v <= 50 ? .3 : v <= 70 ? .8 : v <= 90 ? 1.5 : 2.2; }
 
@@ -2463,8 +2464,8 @@ function identificationReady(t){
 function identityQuestionStress(t, qid, normalBase){
   if (!['q_name','q_contract'].includes(qid) || t.stress < 50) return addStress(t, normalBase);
   const delta = IDENTITY_CALMING_EFFECTS[t.s.type];
-  const expectedOutcome = rollLuck();
   if (delta === 0) return changeStress(t, 0, true);
+  const expectedOutcome = rollLuck();
   return expectedOutcome
     ? changeStress(t, delta, true)
     : addStress(t, normalBase, false, true);
@@ -2587,32 +2588,32 @@ function openRecord(){
   render();
 }
 
-function refundEffect(causeId){
-  return Object.values(REFUND_POLICY).find(effect => effect && effect.causes && effect.causes.includes(causeId));
+function refundResponsibility(causeId){
+  return ['company','neutral','customer'].find(group => REFUND_POLICY[group].causes.includes(causeId));
 }
 
-function refundResult(t, times){
-  const effect = refundEffect(t.s.trueCause);
-  let delta = effect.delta;
-  if (times > 0) delta = delta / 2 + 5;
-  const goodReply = '返金していただけるなら助かります。ありがとうございます。';
-  const badReply = 'いえ、そういうことでは…。返金より、まず使えるようにしていただけますか。';
-  return flipReaction({ delta, scaled:false, csat:times > 0 ? 0 : effect.csat, reply:delta < 0 ? goodReply : badReply }, goodReply, badReply);
+function refundSatisfied(causeId){
+  const group = refundResponsibility(causeId);
+  if (GAME_FLAGS.luckRate === 1) return group === 'company';
+  return state.random() < REFUND_POLICY[group].satisfactionRate;
 }
 
 function doRefund(){
   const t = state.focus;
-  if (!t) return;
-  const times = t.refunds || 0;
-  t.refunds = times + 1;
-  t.transcript.push({ who:'me', text:'利用料金の一部を返金する旨をご案内します' });
-  const result = refundResult(t, times);
+  if (!t || state.ui.tab !== 'refund_confirm') return;
+  const satisfied = refundSatisfied(t.s.trueCause);
   state.cost += REFUND_POLICY.amount;
-  t.refundCsat += result.csat;
-  pushCustomerLine(t, result.reply);
-  if (!applyReactionStress(t, result)) return;
-  if (!spendOnCall(t, 1, 0)) return;
-  state.ui = defaultUi();
+  t.transcript.push({ who:'me', text:'ご不便のお詫びとして、今回のご利用料金から2,400円を返金いたします。' });
+  if (satisfied){
+    pushCustomerLine(t, '返金の件、分かりました。それなら今回は受け取ります。', { plain:true });
+    pushCustomerLine(t, farewellLine(t.s, 'partial'), { plain:true });
+  } else {
+    pushCustomerLine(t, 'お金の話ではなく、いま使えないことに困っているんです。これで終わりには納得できません。', { plain:true });
+  }
+  closeTicket(t, {
+    kind:'refunded', satisfied, csat:satisfied ? 3.0 : 1.0,
+    label:satisfied ? '返金で終結（満足）' : '返金で終結（不満）', firstCallResolved:false,
+  });
   render();
 }
 
@@ -2740,14 +2741,15 @@ function doTest(tid){
     pushCustomerLine(t, risky.result);
     t.transcript.push({ who:'note', text:'【まずい対応】' + risky.note });
     t.damage += risky.damage;
-    toast('悪化', customerLabel(t) + 'の状況が悪くなりました', 'crit');
+    playBadActionSound();
   } else if (def && !redundant){
     pushCustomerLine(t, def.text);
+    t.transcript.push({ who:'note', text:'操作結果：' + def.text });
     if (def.fact) addFact(t, def.fact, '操作の結果');
     if (def.solves) t.transcript.push({ who:'note', text:'この操作で症状が解消しました。原因を確定して案内できます。' });
-    toast('結果', customerLabel(t) + 'の操作が終わりました', 'sig');
   } else {
     pushCustomerLine(t, previous > 0 ? '同じ操作はもう行いました。もう一度やっても変わりません。' : 'やってみましたが、変わりませんでした。');
+    t.transcript.push({ who:'note', text:'操作結果：症状に変化はありませんでした。' });
     t.wasted++;
   }
   state.ui = defaultUi();
@@ -2759,10 +2761,10 @@ function startCallback(destination){
   if (!t || !['hotel','mobile'].includes(destination)) return;
   if (destination === 'hotel' && !t.asked.has('q_stay')){
     state.ui = defaultUi('ask');
-    toast('折り返し先未確認', '滞在先が未確認です。ホテルへは折り返せません', 'crit');
     render(); return;
   }
   t.transcript.push({ who:'me', text:'一度お切りして、調べてから折り返します。30分以内にご連絡します。' });
+  t.transcript.push({ who:'note', text:(destination === 'hotel' ? 'ホテル客室' : '携帯') + 'へ30分以内に折り返す約束を記録しました。' });
   t.callbackCount++;
   t.callbackDestination = destination;
   state.callbacksLeft--;
@@ -2771,7 +2773,7 @@ function startCallback(destination){
   t.state = 'callback';
   state.focus = null;
   state.ui = defaultUi();
-  toast('折り返し', customerLabel(t) + 'へ' + (destination === 'hotel' ? 'ホテル客室' : '携帯') + 'に折り返す約束をしました', 'sig');
+  playDisconnectSound();
   enterOffice();
 }
 
@@ -2789,6 +2791,7 @@ function remedyBlockReason(t, remedy){
   }
   const missing = (remedy.requiresQuestions || []).filter(id => !t.asked.has(id));
   if (missing.length) return '配送判断に必要な聞き取りが不足しています';
+  if (remedyNeedsShipping(remedy.id) && !t.stayAddress) return '配送先が未確認です。先に滞在先を確認してください';
   if (remedy.requiresLongStay && (!t.stayDaysKnown || t.s.stayDays < remedy.requiresLongStay)) return '残り滞在期間が短く、到着後に使える期間が足りません';
   if (remedy.requiresConsent && (!t.replacementConsentKnown || !t.s.wantsReplacement)) return 'お客様の代替機配送希望を確認できていません';
   return '';
@@ -2798,7 +2801,7 @@ function chooseRemedy(remedyId){
   const t = state.focus;
   const remedy = (REMEDIES[state.ui.cause] || []).find(item => item.id === remedyId);
   const blocked = remedy && remedyBlockReason(t, remedy);
-  if (blocked){ toast('対処の前提不足', blocked, 'crit'); render(); return; }
+  if (blocked){ render(); return; }
   state.ui.remedy = remedyId;
   if (remedyNeedsShipping(remedyId)) startShipping(remedyId);
   else render();
@@ -2816,7 +2819,6 @@ function startShipping(remedyId){
     t.transcript.push({ who:'note', text:'配送先が未確認です。手配を中断して滞在先を確認します。' });
     if (!spendOnCall(t, 2, 0)) return;
     state.ui = defaultUi('ask');
-    toast('TGX手配中断', '配送先が未確認です', 'crit');
     render();
     return;
   }
@@ -2857,8 +2859,8 @@ function confirmShipment(){
   t.shipment = { remedyId:ship.remedyId, level:level.id, label:level.label, fee:level.fee, awb:shipmentAwb(t), eta, tooSlow:need ? level.rank < need.rank : false };
   state.cost += level.fee;
   t.transcript.push({ who:'me', text:'TGX の追跡番号 ' + t.shipment.awb + ' で手配しました。現地時間の' + fmtClock(eta) + 'までにホテルへお届けします。' });
+  t.transcript.push({ who:'note', text:'TGX ' + level.label + 'の手配を確定しました。追跡番号：' + t.shipment.awb });
   state.ui.shipping = null;
-  toast('TGX手配', customerLabel(t) + '宛てに' + level.label + 'を確定しました', 'sig');
   render();
 }
 
@@ -2872,12 +2874,13 @@ function doClose(causeId, remedyId, toneId){
   const remedy = (REMEDIES[causeId] || []).find(r => r.id === remedyId);
   if (!remedy) return;
   const blocked = remedyBlockReason(t, remedy);
-  if (blocked){ toast('対処の前提不足', blocked, 'crit'); render(); return; }
+  if (blocked){ render(); return; }
 
   t.transcript.push({ who:'me', text:'【' + toneLabel(toneId) + '】' + remedy.label });
   if (!spendOnCall(t, 2, 0)) return;
 
   const causeMatched = causeId === s.trueCause;
+  if (causeMatched) playClueSound();
   const treatmentWorked = treatmentSucceeds(causeMatched);
   // 見立て違いのやり直し時間は選択内容で決まり、抽選結果では揺らさない。
   if (!causeMatched) advance(2);
@@ -2891,10 +2894,7 @@ function doClose(causeId, remedyId, toneId){
     if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
 
     if (!causeMatched && t.misdiagnoses >= 2){
-      pushCustomerLine(t, '…もういいです。上の方に代わってもらえますか。');
-      t.transcript.push({ who:'note', text:'上長が引き取り、正しい原因（' + causeName(s.trueCause) + '）で対応を引き継ぎました。' });
-      closeTicket(t, { kind:'supervisor', reason:'misdiagnosis', csat:1.5, label:'上長が引き取り' });
-      toast('引き取り', customerLabel(t) + 'の対応を上長が引き取りました', 'crit');
+      endAngryCall(t, 'misdiagnosis');
     } else {
       pushCustomerLine(t, causeMatched ? '試してみましたが、変わりません…。まだ繋がらないです。' : '言われたとおりにしましたが、やっぱり直りません。まだ繋がらないんですけど。');
       if (!causeMatched) t.transcript.push({ who:'note', text:'原因の見立てが外れていました。もう一度切り分けをやり直せます。' });
@@ -2902,7 +2902,6 @@ function doClose(causeId, remedyId, toneId){
       t.patience -= 20;
       t.state = 'open';
       state.ui = defaultUi();
-      toast('再入電', customerLabel(t) + 'の症状が解消していません', 'crit');
     }
     render();
     return;
@@ -2933,7 +2932,6 @@ function doClose(causeId, remedyId, toneId){
   base -= stressPenalty(t.stress);
   if (t.callbackCount > 0) base -= t.callbackLate ? 1.5 : 0.2;
   base -= t.callbackPenalty || 0;
-  base += t.refundCsat || 0;
   if (t.shipment && t.shipment.remedyId === remedyId && t.shipment.tooSlow) base -= 1.0;
 
   const csat = clamp(Math.round(base * 10) / 10, 1.0, 5.0);
@@ -2946,8 +2944,8 @@ function doClose(causeId, remedyId, toneId){
   pushCustomerLine(t, resolutionReply, { plain:true });
   pushCustomerLine(t, farewellLine(s, grade), { plain:true });
   t.pendingResult = result;
+  t.transcript.push({ who:'note', text:'対応結果が確定しました。電話を切って終話してください。' });
   state.ui = defaultUi();
-  toast('対応完了', customerLabel(t) + ' ／ 電話を切って終話してください', csat >= 4 ? 'good' : (csat >= 3 ? '' : 'crit'));
   render();
 }
 
@@ -3002,7 +3000,6 @@ function finishResolvedCall(t){
   const result = t.pendingResult;
   t.pendingResult = null;
   closeTicket(t, result);
-  toast('クローズ', customerLabel(t) + ' ／ CSAT ' + result.csat.toFixed(1), result.csat >= 4 ? 'good' : (result.csat >= 3 ? '' : 'crit'));
   render();
 }
 
@@ -3021,17 +3018,27 @@ function interruptCall(t){
   t.redialSpoken = false;
   state.focus = null;
   state.ui = defaultUi();
-  toast('再着信', customerLabel(t, true) + 'から再着信しています', 'crit');
+  playDisconnectSound();
+  recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');
   enterOffice();
 }
 
 function closeTicket(t, result){
+  t.complaintEmail = complaintEmailArrives(result);
   t.state = 'closed';
   t.result = result;
+  playDisconnectSound();
+  playCloseJingle(result);
+  recordOfficeEvent('closed', t.s.id + '：' + result.label + ' CSAT ' + result.csat.toFixed(1));
   if (state.focus === t) state.focus = null;
   state.ui = defaultUi();
   checkShiftEnd();
   if (state.phase === 'office') return;
+}
+
+function complaintEmailArrives(result){
+  if (result.kind === 'complaint' || result.kind === 'hangup') return true;
+  return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false;
 }
 
 function causeName(id){
@@ -3041,7 +3048,7 @@ function causeName(id){
 
 function checkShiftEnd(){
   const live = state.tickets.some(t => t.state !== 'closed');
-  if (!live){ state.phase = 'report'; renderReport(); }
+  if (!live){ playShiftEndSound(); state.phase = 'report'; renderReport(); }
   else { enterOffice(); }
 }
 
@@ -3071,6 +3078,71 @@ let typeTimer = null;
 let typingLine = null;
 let officeRingTimer = null;
 let officeRingLit = false;
+let audioContext = null;
+
+function initAudio(){
+  try {
+    if (audioContext) return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) audioContext = new AudioContextClass();
+  } catch (error){ audioContext = null; }
+}
+
+function withAudio(makeSound){
+  if (!GAME_FLAGS.soundEnabled || !audioContext) return;
+  try {
+    if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+    makeSound(audioContext, clamp(GAME_FLAGS.soundVolume, 0, 1));
+  } catch (error){ /* 音が出せなくてもゲーム進行は続ける */ }
+}
+
+function synthTone(ctx, volume, frequency, delay, duration, options = {}){
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const start = ctx.currentTime + delay;
+  const end = start + duration;
+  oscillator.type = options.type || 'sine';
+  oscillator.frequency.setValueAtTime(frequency, start);
+  if (options.endFrequency) oscillator.frequency.exponentialRampToValueAtTime(options.endFrequency, end);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume * (options.level || 0.12)), start + Math.min(0.02, duration / 3));
+  gain.gain.exponentialRampToValueAtTime(0.0001, end);
+  oscillator.connect(gain); gain.connect(ctx.destination);
+  oscillator.start(start); oscillator.stop(end + 0.02);
+}
+
+function playOfficeRing(){ withAudio((ctx, volume) => synthTone(ctx, volume, 400, 0, .22, {type:'sine',level:.1})); }
+function playPickupSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 1150, 0, .035, {type:'square',level:.08}); synthTone(ctx, volume, 520, .04, .045, {type:'square',level:.07}); }); }
+function playDisconnectSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 400, 0, .18, {level:.07}); synthTone(ctx, volume, 400, .28, .18, {level:.07}); }); }
+function playTypeSound(index){ if (index % 4) return; withAudio((ctx, volume) => synthTone(ctx, volume, 760 + (index % 3) * 35, 0, .018, {type:'square',level:.025})); }
+function playCommandSound(){ withAudio((ctx, volume) => synthTone(ctx, volume, 880, 0, .045, {type:'square',level:.055})); }
+function playStressWarning(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 980, 0, .11, {type:'square',level:.12}); synthTone(ctx, volume, 980, .17, .11, {type:'square',level:.12}); }); }
+function playClueSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 660, 0, .07, {level:.06}); synthTone(ctx, volume, 880, .08, .1, {level:.07}); }); }
+function playBadActionSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 155, 0, .42, {type:'sawtooth',level:.1,endFrequency:105}); synthTone(ctx, volume, 164, 0, .36, {type:'square',level:.045,endFrequency:110}); }); }
+
+function closeSoundKind(result){
+  if (result.kind === 'complaint' || result.kind === 'hangup') return 'accident';
+  if (result.kind === 'abandoned' || result.csat < 2) return 'failure';
+  if (result.csat >= 4) return 'fanfare';
+  if (result.csat >= 3) return 'success';
+  return 'neutral';
+}
+
+function playCloseJingle(result){
+  const kind = closeSoundKind(result);
+  withAudio((ctx, volume) => {
+    if (kind === 'fanfare') [[523,0,.1],[659,.1,.1],[784,.2,.1],[1047,.3,.32]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'square',level:.09}));
+    else if (kind === 'success') [[784,0,.1],[1047,.11,.2]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'square',level:.075}));
+    else if (kind === 'neutral') synthTone(ctx, volume, 440, 0, .18, {type:'triangle',level:.065});
+    else if (kind === 'failure') [[294,0,.24],[220,.2,.32],[147,.45,.5]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'sawtooth',level:.08}));
+    else {
+      synthTone(ctx, volume, 155.56, 0, 1.2, {type:'sawtooth',level:.105,endFrequency:82});
+      synthTone(ctx, volume, 164.81, 0, 1.2, {type:'square',level:.085,endFrequency:87});
+    }
+  });
+}
+
+function playShiftEndSound(){ withAudio((ctx, volume) => [[392,0,.16],[523,.18,.16],[659,.36,.16],[784,.54,.48]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'triangle',level:.065}))); }
 
 function typewriterOff(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
@@ -3097,25 +3169,16 @@ function startTyping(t){
     if (typingLine !== line) return;
     pos++;
     say.textContent = line.text.slice(0, pos);
+    playTypeSound(pos);
     if (pos >= line.text.length){ finishTyping(); return; }
     typeTimer = setTimeout(step, /[、。！？!?]/.test(line.text[pos - 1]) ? 175 : 25);
   };
   typeTimer = setTimeout(step, 25);
 }
 
-function toast(title, body, kind){
-  const el = document.createElement('div');
-  el.className = 'toast ' + (kind || '');
-  el.innerHTML = '<b>' + esc(title) + '</b>' + esc(body);
-  $('toasts').appendChild(el);
-  setTimeout(() => { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; }, 5200);
-  setTimeout(() => el.remove(), 5700);
-}
-
 function render(){
   if (state.phase === 'office'){ renderOffice(); return; }
   if (state.phase !== 'call') return;
-  renderMobilePane();
   $('clock').textContent = fmtClock(state.clock);
   renderWorldStrip();
   renderQueue();
@@ -3184,7 +3247,6 @@ function renderQueue(){
   const callbacks = state.tickets.filter(t => t.state === 'callback');
   const longest = q.length ? Math.max(0, ...q.map(t => state.turn - t.arrivedTurn)) : 0;
   $('queue-count').textContent = q.length + '件';
-  $('mobile-queue-state').textContent = q.length + '件';
   $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>折り返し待ち <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
   $('queue-hint').innerHTML = '終話後はオフィスで、新しい電話を取るか、約束した相手へ電話をかけるかを選びます。';
 }
@@ -3283,11 +3345,13 @@ function syncOfficeRing(ringing){
   stopOfficeRing();
   officeRingLit = Boolean(ringing);
   drawOfficePixelArt(officeRingLit);
+  if (officeRingLit) playOfficeRing();
   if (!ringing) return;
   officeRingTimer = setInterval(() => {
     officeRingLit = !officeRingLit;
     if (state.phase !== 'office'){ stopOfficeRing(); return; }
     drawOfficePixelArt(officeRingLit);
+    if (officeRingLit) playOfficeRing();
   }, 420);
 }
 
@@ -3300,15 +3364,23 @@ function renderOffice(){
   renderWorldStrip();
   const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
   const callbacks = state.tickets.filter(t => t.state === 'callback').sort((a,b) => a.callbackDue - b.callbackDue);
+  const redials = waiting.filter(t => t.redialOpening);
   const shipments = state.tickets.filter(t => t.shipment).length;
   $('office-phone').classList.toggle('ringing', waiting.length > 0);
-  $('office-phone-status').textContent = waiting.length ? '着信 ' + waiting.length + '件' : '着信待ち';
+  $('office-phone-status').textContent = redials.length
+    ? '再着信 ' + redials.length + '件 ／ 着信 ' + waiting.length + '件'
+    : waiting.length ? '着信 ' + waiting.length + '件' : '着信待ち';
   syncOfficeRing(waiting.length > 0);
   $('office-sv').classList.toggle('busy', state.escLeft === 0);
   $('office-sv-status').textContent = state.escLeft ? 'ESC枠 ' + state.escLeft + ' / ' + ESCALATIONS : '別件対応中';
   $('office-ship-status').textContent = '手配 ' + shipments + '件 ／ 費用 ¥' + state.tickets.reduce((n,t) => n + (t.shipment ? t.shipment.fee : 0), 0).toLocaleString('ja-JP');
   $('office-tray-status').textContent = callbacks.length ? '折り返し待ち ' + callbacks.length + '件 ／ 最短 ' + fmtClock(callbacks[0].callbackDue) : '折り返し待ち 0件';
-  $('office-notice').innerHTML = state.outageKnown ? '<div class="notice">米国北東部：提携キャリアの広域障害<br>復旧見込み 未定</div>' : '<div class="blank">特記事項なし</div>';
+  const officeNotices = [];
+  if (state.outageKnown) officeNotices.push('米国北東部：提携キャリアの広域障害<br>復旧見込み 未定');
+  state.officeEvents.slice(-3).forEach(event => officeNotices.push(esc(event.text)));
+  $('office-notice').innerHTML = officeNotices.length
+    ? officeNotices.map(text => '<div class="notice">' + text + '</div>').join('')
+    : '<div class="blank">特記事項なし</div>';
   $('office-answer').disabled = !waiting.length;
   $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
   $('office-callback').disabled = !callbacks.length;
@@ -3326,24 +3398,13 @@ function enterOffice(){
 function enterCall(){
   stopOfficeRing();
   state.phase = 'call';
-  state.mobilePane = 'desk';
   document.body.classList.remove('office-view'); document.body.classList.add('call-view'); render();
   window.scrollTo(0, 0);
-}
-
-function renderMobilePane(){
-  document.body.dataset.mobilePane = state.mobilePane;
-  document.querySelectorAll('[data-mobile-pane]').forEach(button => {
-    const selected = button.dataset.mobilePane === state.mobilePane;
-    button.classList.toggle('on', selected);
-    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-  });
 }
 
 function renderCall(){
   const t = state.focus;
   $('line-state').textContent = t ? '通話中' : '待機';
-  $('mobile-call-state').textContent = t ? '通話中' : '待機';
   $('call').classList.toggle('on-hold', !!(t && state.holdVisual));
   if (!t){
     $('call').innerHTML = '<div class="transcript"><p class="empty-note">' +
@@ -3420,6 +3481,7 @@ function renderActions(t){
 
   if (t.pendingResult) return '<div class="actions">' + renderHangupButton('お客様との会話が終わりました。電話を切って終話してください。') + '</div>';
   if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation() + '</div>';
+  if (state.ui.tab === 'refund_confirm') return '<div class="actions">' + renderRefundConfirmation() + '</div>';
 
   if (!t.greeted) return '<div class="actions"><div class="command-box"><div class="command-title"><span>CALL</span><b>まず名乗ってください</b></div><button class="command-choice" data-greet="1"><span class="command-no">1</span><span class="command-copy"><b>名乗る</b><small>お電話ありがとうございます。グローバルデスクでございます</small></span></button></div>' + renderHangupButton() + '</div>';
 
@@ -3458,6 +3520,10 @@ function renderHangupButton(note){
 
 function renderHangupConfirmation(){
   return '<div class="hangup-confirm"><b>まだ対応が終わっていません。このまま切りますか？</b><div><button class="hangup-button" data-hangup-confirm="1">電話を切る</button><button class="command-back" data-hangup-cancel="1">対応に戻る</button></div></div>';
+}
+
+function renderRefundConfirmation(){
+  return '<div class="hangup-confirm"><b>¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + 'を返金します。この電話はこれで終わります。よろしいですか？</b><div><button class="hangup-button" data-refund-confirm="1">返金して終わる</button><button class="command-back" data-refund-cancel="1">対応に戻る</button></div></div>';
 }
 
 function renderCommandMenu(t, actionClass){
@@ -3725,15 +3791,13 @@ function renderDevicePanel(t){
 function renderBoard(){
   const t = state.focus;
   if (!t){
-    $('fact-count').textContent = '0';
-    $('mobile-fact-state').textContent = '0件';
+    $('fact-count').textContent = '0件';
     $('board').innerHTML = '<p class="empty-note">案件を開くと、ここに原因の候補と<br>集まった手がかりが並びます。</p>';
     return;
   }
   const ruled = ruledOut(t);
   const hot = hotCauses(t);
-  $('fact-count').textContent = String(t.facts.length);
-  $('mobile-fact-state').textContent = t.facts.length + '件';
+  $('fact-count').textContent = t.facts.length + '件';
 
   const causeRow = c => {
     const out = ruled.has(c.id) && !hot.has(c.id);
@@ -3854,6 +3918,7 @@ function showBriefing(){
   openSheet();
   drawArtifactQr();
   $('btn-start').onclick = () => {
+    initAudio();
     closeSheet();
     advance(0);
     enterOffice();
@@ -3981,6 +4046,8 @@ function showBalanceConsole(){
     '<h2>比較設定</h2><div class="balance-flags">' +
       '<label><input type="checkbox" id="balance-luck"' + (luckEnabled ? ' checked' : '') + '> 運を入れる（本来どおり ' + Math.round(LUCK_RATE * 100) + '%）</label>' +
       '<label><input type="checkbox" id="balance-shuffle"' + (GAME_FLAGS.shuffleArrival ? ' checked' : '') + '> 案件の登場順をシャッフルする（次のシフトから反映）</label>' +
+      '<label><input type="checkbox" id="balance-sound"' + (GAME_FLAGS.soundEnabled ? ' checked' : '') + '> 効果音を鳴らす</label>' +
+      '<label>音量 <input type="range" id="balance-volume" min="0" max="1" step="0.05" value="' + GAME_FLAGS.soundVolume + '"></label>' +
       '<p>OFFにすると従来の決定論的な挙動へ戻ります。抽選結果はプレイ画面や会話記録には表示されません。</p>' +
     '</div>' +
     '<h2>コマンド一覧</h2><div class="balance-table-wrap"><table class="balance-table"><tr><th>No.</th><th>コマンド</th></tr>' + commandRows + '</table></div>' +
@@ -3992,6 +4059,12 @@ function showBalanceConsole(){
   };
   $('balance-shuffle').onchange = event => {
     GAME_FLAGS.shuffleArrival = event.target.checked;
+  };
+  $('balance-sound').onchange = event => {
+    GAME_FLAGS.soundEnabled = event.target.checked;
+  };
+  $('balance-volume').oninput = event => {
+    GAME_FLAGS.soundVolume = clamp(Number(event.target.value), 0, 1);
   };
   $('btn-close-balance').onclick = () => {
     if (wasPhase === 'briefing'){ showBriefing(); return; }
@@ -4102,9 +4175,8 @@ function renderDebrief(){
     const cls = r.csat >= 4 ? 'win' : r.csat >= 2.5 ? 'mid' : 'bad';
     let judge;
     if (r.kind === 'abandoned') judge = '呼び出しに応答できず、放棄呼になりました。';
-    else if (r.kind === 'supervisor' && r.reason === 'stress') judge = 'お客様の苛立ちが限界に達し、上長が引き取りました。';
-    else if (r.kind === 'supervisor' && r.reason === 'misdiagnosis') judge = '見立てが二度外れ、上長が引き取りました。';
-    else if (r.kind === 'supervisor') judge = '対応を継続できず、上長が引き取りました。';
+    else if (r.kind === 'complaint') judge = r.reason === 'misdiagnosis' ? '見立てが二度外れ、お客様が強い苦情を述べて終話しました。' : 'お客様の苛立ちが限界に達し、強い苦情を述べて終話しました。';
+    else if (r.kind === 'hangup') judge = r.reason === 'misdiagnosis' ? '見立てが二度外れ、お客様が一方的に通話を切りました。' : 'お客様の苛立ちが限界に達し、一方的に通話を切りました。';
     else if (r.causeMatched === false) judge = '選んだ対応のあと通信は復旧し、一次解決になりました。' + (r.toneOk ? '伝え方も相手に合っていました。' : 'ただし話し方が相手に合っていませんでした。');
     else if (r.grade === 'best') judge = '原因も対処も最適でした。' + (r.toneOk ? '伝え方も相手に合っていました。' : 'ただし話し方が相手に合っていませんでした。');
     else if (r.grade === 'partial') judge = '原因は当たっていましたが、対処は次善どまりでした。';
@@ -4119,6 +4191,15 @@ function renderDebrief(){
       '<div class="rb"><b style="color:var(--text);font-weight:500">真の原因：' + esc(causeName(t.s.trueCause)) + '</b><br>' +
       esc(judge) + '<br>' + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
   }).join('');
+
+  const complaintEmails = ts.filter(t => t.complaintEmail).map(t => {
+    const template = COMPLAINT_EMAIL_TEMPLATES[t.s.type];
+    const lines = template.lines.map(line => esc(line.replace('{symptom}', t.s.opening))).join('<br>');
+    return '<div class="complaint-email"><b>' + esc(t.s.name) + '様からの苦情メール</b><p>' + lines + '</p></div>';
+  }).join('');
+  const complaintMailbox = complaintEmails
+    ? '<section class="complaint-mailbox"><h2>翌日、次の苦情が届いています</h2><p>' + ts.filter(t => t.complaintEmail).length + '件</p>' + complaintEmails + '</section>'
+    : '';
 
   $('sheet').innerHTML =
     '<p class="eyebrow">SHIFT DEBRIEF ／ ' + fmtClock(state.clock) + ' JST</p>' +
@@ -4135,6 +4216,7 @@ function renderDebrief(){
       cell('所要', (state.clock - SHIFT_START) + '分', '22:00 〜 ' + fmtClock(state.clock)) +
     '</div>' +
 
+    complaintMailbox +
     '<h2>一件ずつの振り返り</h2>' + reviews +
 
     '<button class="btn-primary" id="btn-again">もう一度シフトに入る</button>' +
@@ -4154,8 +4236,9 @@ function cell(k, v, n){
 
 document.addEventListener('click', (e) => {
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-mobile-pane],[data-office-answer],[data-office-callback],[data-callback-destination],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
+  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-callback-destination],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
   if (!el || el.disabled) return;
+  playCommandSound();
   routeAction(el.dataset);
 });
 
@@ -4166,12 +4249,6 @@ function firstTicketIn(stateName, orderKey){
 }
 
 function handleDisplayAction(d){
-  if (d.mobilePane){
-    state.mobilePane = d.mobilePane;
-    renderMobilePane();
-    window.scrollTo({ top:0, behavior:'smooth' });
-    return true;
-  }
   if (d.boardExcluded){ state.ui.boardExcludedOpen = !state.ui.boardExcludedOpen; renderBoard(); return true; }
   return false;
 }
@@ -4215,7 +4292,9 @@ function handleCallNavigation(d){
 function handleConversationAction(d){
   if (d.ask){ doAsk(d.ask); return true; }
   if (d.smalltalk){ doSmalltalk(d.smalltalk, d.smalltalkMode); return true; }
-  if (d.refund){ doRefund(); return true; }
+  if (d.refund){ state.ui = defaultUi('refund_confirm'); render(); return true; }
+  if (d.refundConfirm){ doRefund(); return true; }
+  if (d.refundCancel){ state.ui = defaultUi('tell'); render(); return true; }
   if (d.soothe){ doSoothe(d.soothe); return true; }
   if (d.apology){ doApologize(d.apology); return true; }
   if (d.lookup){ state.ui.lookup = d.lookup; render(); return true; }

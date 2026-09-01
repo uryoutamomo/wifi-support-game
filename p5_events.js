@@ -4,8 +4,9 @@
 
 document.addEventListener('click', (e) => {
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-mobile-pane],[data-office-answer],[data-office-callback],[data-callback-destination],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
+  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-callback-destination],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
   if (!el || el.disabled) return;
+  playCommandSound();
   routeAction(el.dataset);
 });
 
@@ -16,12 +17,6 @@ function firstTicketIn(stateName, orderKey){
 }
 
 function handleDisplayAction(d){
-  if (d.mobilePane){
-    state.mobilePane = d.mobilePane;
-    renderMobilePane();
-    window.scrollTo({ top:0, behavior:'smooth' });
-    return true;
-  }
   if (d.boardExcluded){ state.ui.boardExcludedOpen = !state.ui.boardExcludedOpen; renderBoard(); return true; }
   return false;
 }
@@ -65,7 +60,9 @@ function handleCallNavigation(d){
 function handleConversationAction(d){
   if (d.ask){ doAsk(d.ask); return true; }
   if (d.smalltalk){ doSmalltalk(d.smalltalk, d.smalltalkMode); return true; }
-  if (d.refund){ doRefund(); return true; }
+  if (d.refund){ state.ui = defaultUi('refund_confirm'); render(); return true; }
+  if (d.refundConfirm){ doRefund(); return true; }
+  if (d.refundCancel){ state.ui = defaultUi('tell'); render(); return true; }
   if (d.soothe){ doSoothe(d.soothe); return true; }
   if (d.apology){ doApologize(d.apology); return true; }
   if (d.lookup){ state.ui.lookup = d.lookup; render(); return true; }

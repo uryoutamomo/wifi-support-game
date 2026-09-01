@@ -37,10 +37,10 @@ const state = {
   outageKnown: false,
   holdVisual: false,
   busy: false,
-  mobilePane: 'desk',
   ui: defaultUi(),
   slogan: '',
   report: null,
+  officeEvents: [],
   random: Math.random,
 };
 
@@ -83,11 +83,11 @@ function newTicket(s){
     s, state:'inbound', patience:100, arrivedTurn:s.arrive,
     facts:[], asked:new Set(), askCounts:new Map(), questionCount:0, lookedUp:new Set(), tested:new Set(), testCounts:new Map(),
     transcript:[], callTranscriptStart:0, greeted:false, identified:false, nameKnown:false, destinationKnown:false,
-    stress:TYPES[s.type].stressStart, stressWarned:false, soothed:new Map(), smalltalkCounts:new Map(),
+    stress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, holdMinutes:0,
     callbackCount:0, callbackDue:null, callbackLate:false, callbackDestination:null, callbackPenalty:0,
-    stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, shipment:null, apologies:new Map(), refunds:0, refundCsat:0,
-    misdiagnoses:0, damage:0, wasted:0, result:null, pendingResult:null, redialOpening:null, redialSpoken:false, escUsed:false,
+    stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, shipment:null, apologies:new Map(),
+    misdiagnoses:0, damage:0, wasted:0, result:null, pendingResult:null, complaintEmail:false, redialOpening:null, redialSpoken:false, escUsed:false,
   };
 }
 
@@ -110,10 +110,15 @@ function resetGame(){
   state.outageKnown = false;
   state.holdVisual = false;
   state.busy = false;
-  state.mobilePane = 'desk';
   state.ui = defaultUi();
   state.slogan = SLOGANS[Math.floor(state.random() * SLOGANS.length)];
   state.report = null;
+  state.officeEvents = [];
+}
+
+function recordOfficeEvent(kind, text){
+  state.officeEvents.push({ kind, text });
+  if (state.officeEvents.length > 6) state.officeEvents.shift();
 }
 
 /* ---------- ターン進行 ---------- */
@@ -124,7 +129,6 @@ function activateDueInbound(){
     if (t.state === 'inbound' && t.arrivedTurn <= state.turn){
       t.state = 'waiting';
       activated++;
-      toast('着信', '新しい着信です', '');
     }
   });
   return activated;
@@ -145,7 +149,8 @@ function advance(turns){
         t.patience = 0;
         t.state = 'closed';
         t.result = { kind:'abandoned', csat:0, label:'放棄呼', firstCallResolved:false };
-        toast('放棄呼', '呼び出しに応答できず、切られました', 'crit');
+        playCloseJingle(t.result);
+        recordOfficeEvent('abandoned', t.s.id + '：応答前に切断され、放棄呼になりました。');
       }
     });
 
@@ -156,6 +161,7 @@ function advance(turns){
 
 function addFact(t, fact, src){
   t.facts.push({ text:fact.text, src:src, out:fact.out || [], hot:fact.hot || [] });
+  if (t === state.focus) playClueSound();
 }
 
 /* ---------- 広域障害の判明（シフトの山場） ---------- */
@@ -163,7 +169,7 @@ function addFact(t, fact, src){
 function triggerOutage(origin){
   if (state.outageKnown) return;
   state.outageKnown = true;
-  toast('障害情報', '北東部の広域障害を確認。同一エリアの他チケットにも当てはまります', 'sig');
+  origin.transcript.push({ who:'note', text:'[全社通知] 米国北東部 提携キャリアの広域障害を確認。同一エリアの他チケットにも当てはまります。' });
 
   state.tickets.forEach(t => {
     if (t === origin) return;
@@ -177,7 +183,8 @@ function triggerOutage(origin){
 /* ---------- プレイヤーの行動 ---------- */
 
 function pickup(t){
-  if (state.focus){ toast('通話中', '通話中です。いまの電話を終えないと次を取れません', 'crit'); return; }
+  if (state.focus) return;
+  playPickupSound();
   t.state = 'open';
   t.callTranscriptStart = t.transcript.length;
   deliverCustomerOpening(t, true);
@@ -196,8 +203,9 @@ function greetCurrentCustomer(){
 }
 
 function resumeCallback(t){
-  if (state.focus){ toast('通話中', '通話中です。いまの電話を終えないと次を取れません', 'crit'); return; }
+  if (state.focus) return;
   if (!t || t.state !== 'callback') return;
+  playPickupSound();
   t.callbackLate = t.callbackLate || state.clock > t.callbackDue;
   if (t.callbackDestination !== t.s.callbackTo){
     t.callbackPenalty = t.callbackDestination === 'hotel' ? 1.0 : 0.5;
@@ -227,18 +235,39 @@ function addStress(t, base, miss, expectedOutcome){
   return changeStress(t, base * type.stressRate * (miss ? type.missRate : 1), expectedOutcome);
 }
 function changeStress(t, delta, expectedOutcome = rollLuck()){
+  const previousStress = t.stress;
   if (!expectedOutcome) delta = 0;
   t.stress = clamp(t.stress + delta, 0, 100);
-  if (t.stress > 80 && !t.stressWarned){
-    t.stressWarned = true;
-    toast('苛立ち警告', customerHonorific(t) + 'の苛立ちが強まっています', 'crit');
-  }
+  if (previousStress <= 80 && t.stress > 80) playStressWarning();
   if (t.stress >= 100 && t.state === 'open'){
-    pushCustomerLine(t, TYPES[t.s.type].furious[1], { plain:true });
-    closeTicket(t, { kind:'supervisor', reason:'stress', csat:1.5, label:'上長が引き取り' });
-    toast('引き取り', customerLabel(t) + 'の苛立ちが限界に達し、上長が引き取りました', 'crit');
+    endAngryCall(t, 'stress');
   }
   return t.state === 'open';
+}
+
+function angryOutcomeKind(t){
+  const normal = ANGRY_DEFAULT_OUTCOMES[t.s.type];
+  if (rollLuck()) return normal;
+  return normal === 'complaint' ? 'hangup' : 'complaint';
+}
+
+function endAngryCall(t, reason){
+  const kind = angryOutcomeKind(t);
+  pushCustomerLine(t, ANGRY_END_LINES[t.s.type][kind], { plain:true });
+  t.transcript.push({
+    who:'note',
+    text:kind === 'complaint'
+      ? 'お客様は強い苦情を述べて通話を終えました。'
+      : 'お客様は一方的に通話を切りました。',
+  });
+  closeTicket(t, {
+    kind,
+    reason,
+    csat:kind === 'complaint' ? 1.0 : 0.5,
+    label:kind === 'complaint' ? 'クレーム終話' : '一方的な切断',
+    firstCallResolved:false,
+  });
+  return false;
 }
 function stressPenalty(v){ return v <= 25 ? 0 : v <= 50 ? .3 : v <= 70 ? .8 : v <= 90 ? 1.5 : 2.2; }
 
@@ -311,8 +340,8 @@ function identificationReady(t){
 function identityQuestionStress(t, qid, normalBase){
   if (!['q_name','q_contract'].includes(qid) || t.stress < 50) return addStress(t, normalBase);
   const delta = IDENTITY_CALMING_EFFECTS[t.s.type];
-  const expectedOutcome = rollLuck();
   if (delta === 0) return changeStress(t, 0, true);
+  const expectedOutcome = rollLuck();
   return expectedOutcome
     ? changeStress(t, delta, true)
     : addStress(t, normalBase, false, true);
@@ -435,32 +464,32 @@ function openRecord(){
   render();
 }
 
-function refundEffect(causeId){
-  return Object.values(REFUND_POLICY).find(effect => effect && effect.causes && effect.causes.includes(causeId));
+function refundResponsibility(causeId){
+  return ['company','neutral','customer'].find(group => REFUND_POLICY[group].causes.includes(causeId));
 }
 
-function refundResult(t, times){
-  const effect = refundEffect(t.s.trueCause);
-  let delta = effect.delta;
-  if (times > 0) delta = delta / 2 + 5;
-  const goodReply = '返金していただけるなら助かります。ありがとうございます。';
-  const badReply = 'いえ、そういうことでは…。返金より、まず使えるようにしていただけますか。';
-  return flipReaction({ delta, scaled:false, csat:times > 0 ? 0 : effect.csat, reply:delta < 0 ? goodReply : badReply }, goodReply, badReply);
+function refundSatisfied(causeId){
+  const group = refundResponsibility(causeId);
+  if (GAME_FLAGS.luckRate === 1) return group === 'company';
+  return state.random() < REFUND_POLICY[group].satisfactionRate;
 }
 
 function doRefund(){
   const t = state.focus;
-  if (!t) return;
-  const times = t.refunds || 0;
-  t.refunds = times + 1;
-  t.transcript.push({ who:'me', text:'利用料金の一部を返金する旨をご案内します' });
-  const result = refundResult(t, times);
+  if (!t || state.ui.tab !== 'refund_confirm') return;
+  const satisfied = refundSatisfied(t.s.trueCause);
   state.cost += REFUND_POLICY.amount;
-  t.refundCsat += result.csat;
-  pushCustomerLine(t, result.reply);
-  if (!applyReactionStress(t, result)) return;
-  if (!spendOnCall(t, 1, 0)) return;
-  state.ui = defaultUi();
+  t.transcript.push({ who:'me', text:'ご不便のお詫びとして、今回のご利用料金から2,400円を返金いたします。' });
+  if (satisfied){
+    pushCustomerLine(t, '返金の件、分かりました。それなら今回は受け取ります。', { plain:true });
+    pushCustomerLine(t, farewellLine(t.s, 'partial'), { plain:true });
+  } else {
+    pushCustomerLine(t, 'お金の話ではなく、いま使えないことに困っているんです。これで終わりには納得できません。', { plain:true });
+  }
+  closeTicket(t, {
+    kind:'refunded', satisfied, csat:satisfied ? 3.0 : 1.0,
+    label:satisfied ? '返金で終結（満足）' : '返金で終結（不満）', firstCallResolved:false,
+  });
   render();
 }
 
@@ -588,14 +617,15 @@ function doTest(tid){
     pushCustomerLine(t, risky.result);
     t.transcript.push({ who:'note', text:'【まずい対応】' + risky.note });
     t.damage += risky.damage;
-    toast('悪化', customerLabel(t) + 'の状況が悪くなりました', 'crit');
+    playBadActionSound();
   } else if (def && !redundant){
     pushCustomerLine(t, def.text);
+    t.transcript.push({ who:'note', text:'操作結果：' + def.text });
     if (def.fact) addFact(t, def.fact, '操作の結果');
     if (def.solves) t.transcript.push({ who:'note', text:'この操作で症状が解消しました。原因を確定して案内できます。' });
-    toast('結果', customerLabel(t) + 'の操作が終わりました', 'sig');
   } else {
     pushCustomerLine(t, previous > 0 ? '同じ操作はもう行いました。もう一度やっても変わりません。' : 'やってみましたが、変わりませんでした。');
+    t.transcript.push({ who:'note', text:'操作結果：症状に変化はありませんでした。' });
     t.wasted++;
   }
   state.ui = defaultUi();
@@ -607,10 +637,10 @@ function startCallback(destination){
   if (!t || !['hotel','mobile'].includes(destination)) return;
   if (destination === 'hotel' && !t.asked.has('q_stay')){
     state.ui = defaultUi('ask');
-    toast('折り返し先未確認', '滞在先が未確認です。ホテルへは折り返せません', 'crit');
     render(); return;
   }
   t.transcript.push({ who:'me', text:'一度お切りして、調べてから折り返します。30分以内にご連絡します。' });
+  t.transcript.push({ who:'note', text:(destination === 'hotel' ? 'ホテル客室' : '携帯') + 'へ30分以内に折り返す約束を記録しました。' });
   t.callbackCount++;
   t.callbackDestination = destination;
   state.callbacksLeft--;
@@ -619,7 +649,7 @@ function startCallback(destination){
   t.state = 'callback';
   state.focus = null;
   state.ui = defaultUi();
-  toast('折り返し', customerLabel(t) + 'へ' + (destination === 'hotel' ? 'ホテル客室' : '携帯') + 'に折り返す約束をしました', 'sig');
+  playDisconnectSound();
   enterOffice();
 }
 
@@ -637,6 +667,7 @@ function remedyBlockReason(t, remedy){
   }
   const missing = (remedy.requiresQuestions || []).filter(id => !t.asked.has(id));
   if (missing.length) return '配送判断に必要な聞き取りが不足しています';
+  if (remedyNeedsShipping(remedy.id) && !t.stayAddress) return '配送先が未確認です。先に滞在先を確認してください';
   if (remedy.requiresLongStay && (!t.stayDaysKnown || t.s.stayDays < remedy.requiresLongStay)) return '残り滞在期間が短く、到着後に使える期間が足りません';
   if (remedy.requiresConsent && (!t.replacementConsentKnown || !t.s.wantsReplacement)) return 'お客様の代替機配送希望を確認できていません';
   return '';
@@ -646,7 +677,7 @@ function chooseRemedy(remedyId){
   const t = state.focus;
   const remedy = (REMEDIES[state.ui.cause] || []).find(item => item.id === remedyId);
   const blocked = remedy && remedyBlockReason(t, remedy);
-  if (blocked){ toast('対処の前提不足', blocked, 'crit'); render(); return; }
+  if (blocked){ render(); return; }
   state.ui.remedy = remedyId;
   if (remedyNeedsShipping(remedyId)) startShipping(remedyId);
   else render();
@@ -664,7 +695,6 @@ function startShipping(remedyId){
     t.transcript.push({ who:'note', text:'配送先が未確認です。手配を中断して滞在先を確認します。' });
     if (!spendOnCall(t, 2, 0)) return;
     state.ui = defaultUi('ask');
-    toast('TGX手配中断', '配送先が未確認です', 'crit');
     render();
     return;
   }
@@ -705,8 +735,8 @@ function confirmShipment(){
   t.shipment = { remedyId:ship.remedyId, level:level.id, label:level.label, fee:level.fee, awb:shipmentAwb(t), eta, tooSlow:need ? level.rank < need.rank : false };
   state.cost += level.fee;
   t.transcript.push({ who:'me', text:'TGX の追跡番号 ' + t.shipment.awb + ' で手配しました。現地時間の' + fmtClock(eta) + 'までにホテルへお届けします。' });
+  t.transcript.push({ who:'note', text:'TGX ' + level.label + 'の手配を確定しました。追跡番号：' + t.shipment.awb });
   state.ui.shipping = null;
-  toast('TGX手配', customerLabel(t) + '宛てに' + level.label + 'を確定しました', 'sig');
   render();
 }
 
@@ -720,12 +750,13 @@ function doClose(causeId, remedyId, toneId){
   const remedy = (REMEDIES[causeId] || []).find(r => r.id === remedyId);
   if (!remedy) return;
   const blocked = remedyBlockReason(t, remedy);
-  if (blocked){ toast('対処の前提不足', blocked, 'crit'); render(); return; }
+  if (blocked){ render(); return; }
 
   t.transcript.push({ who:'me', text:'【' + toneLabel(toneId) + '】' + remedy.label });
   if (!spendOnCall(t, 2, 0)) return;
 
   const causeMatched = causeId === s.trueCause;
+  if (causeMatched) playClueSound();
   const treatmentWorked = treatmentSucceeds(causeMatched);
   // 見立て違いのやり直し時間は選択内容で決まり、抽選結果では揺らさない。
   if (!causeMatched) advance(2);
@@ -739,10 +770,7 @@ function doClose(causeId, remedyId, toneId){
     if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
 
     if (!causeMatched && t.misdiagnoses >= 2){
-      pushCustomerLine(t, '…もういいです。上の方に代わってもらえますか。');
-      t.transcript.push({ who:'note', text:'上長が引き取り、正しい原因（' + causeName(s.trueCause) + '）で対応を引き継ぎました。' });
-      closeTicket(t, { kind:'supervisor', reason:'misdiagnosis', csat:1.5, label:'上長が引き取り' });
-      toast('引き取り', customerLabel(t) + 'の対応を上長が引き取りました', 'crit');
+      endAngryCall(t, 'misdiagnosis');
     } else {
       pushCustomerLine(t, causeMatched ? '試してみましたが、変わりません…。まだ繋がらないです。' : '言われたとおりにしましたが、やっぱり直りません。まだ繋がらないんですけど。');
       if (!causeMatched) t.transcript.push({ who:'note', text:'原因の見立てが外れていました。もう一度切り分けをやり直せます。' });
@@ -750,7 +778,6 @@ function doClose(causeId, remedyId, toneId){
       t.patience -= 20;
       t.state = 'open';
       state.ui = defaultUi();
-      toast('再入電', customerLabel(t) + 'の症状が解消していません', 'crit');
     }
     render();
     return;
@@ -781,7 +808,6 @@ function doClose(causeId, remedyId, toneId){
   base -= stressPenalty(t.stress);
   if (t.callbackCount > 0) base -= t.callbackLate ? 1.5 : 0.2;
   base -= t.callbackPenalty || 0;
-  base += t.refundCsat || 0;
   if (t.shipment && t.shipment.remedyId === remedyId && t.shipment.tooSlow) base -= 1.0;
 
   const csat = clamp(Math.round(base * 10) / 10, 1.0, 5.0);
@@ -794,8 +820,8 @@ function doClose(causeId, remedyId, toneId){
   pushCustomerLine(t, resolutionReply, { plain:true });
   pushCustomerLine(t, farewellLine(s, grade), { plain:true });
   t.pendingResult = result;
+  t.transcript.push({ who:'note', text:'対応結果が確定しました。電話を切って終話してください。' });
   state.ui = defaultUi();
-  toast('対応完了', customerLabel(t) + ' ／ 電話を切って終話してください', csat >= 4 ? 'good' : (csat >= 3 ? '' : 'crit'));
   render();
 }
 
@@ -850,7 +876,6 @@ function finishResolvedCall(t){
   const result = t.pendingResult;
   t.pendingResult = null;
   closeTicket(t, result);
-  toast('クローズ', customerLabel(t) + ' ／ CSAT ' + result.csat.toFixed(1), result.csat >= 4 ? 'good' : (result.csat >= 3 ? '' : 'crit'));
   render();
 }
 
@@ -869,17 +894,27 @@ function interruptCall(t){
   t.redialSpoken = false;
   state.focus = null;
   state.ui = defaultUi();
-  toast('再着信', customerLabel(t, true) + 'から再着信しています', 'crit');
+  playDisconnectSound();
+  recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');
   enterOffice();
 }
 
 function closeTicket(t, result){
+  t.complaintEmail = complaintEmailArrives(result);
   t.state = 'closed';
   t.result = result;
+  playDisconnectSound();
+  playCloseJingle(result);
+  recordOfficeEvent('closed', t.s.id + '：' + result.label + ' CSAT ' + result.csat.toFixed(1));
   if (state.focus === t) state.focus = null;
   state.ui = defaultUi();
   checkShiftEnd();
   if (state.phase === 'office') return;
+}
+
+function complaintEmailArrives(result){
+  if (result.kind === 'complaint' || result.kind === 'hangup') return true;
+  return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false;
 }
 
 function causeName(id){
@@ -889,7 +924,7 @@ function causeName(id){
 
 function checkShiftEnd(){
   const live = state.tickets.some(t => t.state !== 'closed');
-  if (!live){ state.phase = 'report'; renderReport(); }
+  if (!live){ playShiftEndSound(); state.phase = 'report'; renderReport(); }
   else { enterOffice(); }
 }
 

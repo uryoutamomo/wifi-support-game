@@ -2,9 +2,9 @@
 const fs = require('fs');
 const { readGameSource } = require('./test_helpers');
 const src = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,OFFICE_STATIONS,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,GAME_FLAGS,REFUND_POLICY};';
+  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,OFFICE_STATIONS,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,GAME_FLAGS,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES};';
 const D = new Function(src)();
-const { CAUSES, TYPES, SCENARIOS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, OFFICE_STATIONS, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, GAME_FLAGS, REFUND_POLICY } = D;
+const { CAUSES, TYPES, SCENARIOS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, OFFICE_STATIONS, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, GAME_FLAGS, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES } = D;
 
 const EXPECTED_SLOGANS = [
   '凡事徹底',
@@ -51,13 +51,13 @@ const bad = (m) => { console.log('  NG  ' + m); ng++; };
 if (JSON.stringify(SLOGANS) !== JSON.stringify(EXPECTED_SLOGANS)) bad('SLOGANS が確定6文言・順番と一致しない');
 if (SLOGANS.some(slogan => !slogan)) bad('SLOGANS に空文字がある');
 if (LUCK_RATE !== 0.9) bad('運の本来どおり率が0.9ではない');
-if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true})) bad('運の初期GAME_FLAGSが確定値と違う');
+if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true,soundEnabled:true,soundVolume:0.55})) bad('運・音の初期GAME_FLAGSが確定値と違う');
 if (JSON.stringify(REFUND_POLICY) !== JSON.stringify({
   amount:2400,
-  company:{causes:['hardware','provision','logistics','carrier','coverage'],delta:-25,csat:0.4},
-  customer:{causes:['fup','devices','heavy','device_side','device_net','power'],delta:15,csat:-0.6},
-  neutral:{causes:['location','geo_block','sim'],delta:-5,csat:0},
-})) bad('返金の金額・14原因分類・効果が確定値と違う');
+  company:{causes:['hardware','provision','logistics','carrier','coverage'],satisfactionRate:0.5},
+  customer:{causes:['fup','devices','heavy','device_side','device_net','power'],satisfactionRate:0.1},
+  neutral:{causes:['location','geo_block','sim'],satisfactionRate:0.25},
+})) bad('返金の金額・14原因分類・満足率が確定値と違う');
 const refundCauseIds = ['company','customer','neutral'].flatMap(group => REFUND_POLICY[group].causes);
 if (refundCauseIds.length !== CAUSES.length || new Set(refundCauseIds).size !== CAUSES.length || !CAUSES.every(cause => refundCauseIds.includes(cause.id))) bad('返金の責任所在で14原因に欠落・重複がある');
 
@@ -165,7 +165,26 @@ SCENARIOS.forEach(s => {
 });
 const gameSource = readGameSource(__dirname);
 const pageSource = fs.readFileSync(__dirname + '/p1_head.html', 'utf8');
-if ((gameSource.match(/farewellLine\(/g) || []).length !== 2) bad('別れの言葉が通常解決以外（上長引き取り・放棄呼など）にも追加されている');
+const generatedPage = fs.readFileSync(__dirname + '/index.html', 'utf8');
+if (generatedPage.includes('mobile-pane-nav') || generatedPage.includes('data-mobile-pane')) bad('上部の通話・待機・診断タブが残っている');
+const paneOrder = [...pageSource.matchAll(/<section class="pane ([^"]+)">/g)].map(match => match[1]);
+if (JSON.stringify(paneOrder) !== JSON.stringify(['desk','board','call-summary'])) bad('3ペインのDOM順が対応デスク→診断ボード→待機状況ではない');
+const stackedPaneCss = (pageSource.match(/\.pane,body\.playing \.pane\{([^}]*)\}/) || [])[1] || '';
+if (!/display\s*:\s*flex/.test(stackedPaneCss)) bad('3ペインが同時表示になっていない');
+const hidesGamePane = [...pageSource.matchAll(/([^{}]+)\{([^}]*)\}/g)].some(([, selectors, declarations]) =>
+  /display\s*:\s*none/.test(declarations) && selectors.split(',').some(selector =>
+    /\.pane(?:\.(?:desk|board|call-summary))?$/.test(selector.trim())
+  )
+);
+if (hidesGamePane) bad('3ペインの一部が非表示になっている');
+['line-state','fact-count','queue-count'].forEach(id => {
+  if (!pageSource.includes('id="' + id + '"')) bad('count-chip ' + id + ' がない');
+});
+if (!gameSource.includes("$('line-state').textContent")) bad('通話状態のcount-chipが更新されない');
+if (!gameSource.includes("$('fact-count').textContent")) bad('診断件数のcount-chipが更新されない');
+if (!gameSource.includes("$('queue-count').textContent")) bad('待ち件数のcount-chipが更新されない');
+if (gameSource.includes('mobilePane')) bad('廃止したペイン切替状態 mobilePane が残っている');
+if ((gameSource.match(/farewellLine\(/g) || []).length !== 3 || !gameSource.includes("if (satisfied){") || !gameSource.includes("farewellLine(t.s, 'partial')")) bad('別れの言葉が通常解決と満足した返金だけに限定されていない');
 if (!/const CALL_RATE_PER_MIN = 180;/.test(gameSource)) bad('国際通話料が1分¥180ではない');
 if (!/const CALLBACKS = 4;/.test(fs.readFileSync(__dirname + '/p2_data.js', 'utf8'))) bad('折り返し枠が4回ではない');
 if (!/t\.callbackPenalty = t\.callbackDestination === 'hotel' \? 1\.0 : 0\.5;/.test(gameSource)) bad('誤った折り返し先のCSATペナルティが hotel:-1.0 / mobile:-0.5 ではない');
@@ -348,7 +367,16 @@ if (SCENARIOS.length !== 11 || !SCENARIOS.every(s => Array.isArray(s.smalltalk) 
 const section13QuestionIds = new Set(QUESTIONS.map(question => question.id));
 const universallyReachableQuestions = new Set(['q_name','q_destination','q_contract']);
 if (!SCENARIOS.every(scenario => scenario.smalltalk.every(topic => topic.reveal === 'opening' || (section13QuestionIds.has(topic.reveal) && (universallyReachableQuestions.has(topic.reveal) || Boolean((scenario.replies || {})[topic.reveal])))))) bad('雑談話題のrevealが実際に到達できる質問へ接続されていない');
+const openingDestinationIds = ['S9','S11'];
 if (!gameSource.includes("const DESTINATION_IN_OPENING = new Set(['S9','S11'])")) bad('第一声で地名を話す案件がS9とS11の2件ではない');
+if (!SCENARIOS.filter(scenario => !openingDestinationIds.includes(scenario.id)).every(scenario => !scenario.opening.includes(scenario.city))) bad('通常案件の第一声に自身のcityが残っている');
+
+const identityStressStart = gameSource.indexOf('function identityQuestionStress(');
+const identityStressEnd = gameSource.indexOf('\nfunction repeatedQuestionReply', identityStressStart);
+const identityStressSource = identityStressStart < 0 || identityStressEnd < 0 ? '' : gameSource.slice(identityStressStart, identityStressEnd);
+const zeroDeltaReturn = identityStressSource.indexOf('if (delta === 0) return changeStress(t, 0, true);');
+const identityLuckRoll = identityStressSource.indexOf('const expectedOutcome = rollLuck();');
+if (zeroDeltaReturn < 0 || identityLuckRoll < 0 || zeroDeltaReturn > identityLuckRoll) bad('expertの高ストレス本人確認が無駄に運の抽選を消費する');
 
 const SOOTHE_REPLIES = {
   anxious:'…本当に、戻るんですね。すみません…お願いします。',
@@ -418,6 +446,42 @@ const stressPenaltyStart = gameSource.indexOf('function stressPenalty(');
 const stressPenaltyEnd = gameSource.indexOf('\n\nfunction doAsk', stressPenaltyStart);
 const stressPenaltySource = stressPenaltyStart < 0 || stressPenaltyEnd < 0 ? '' : gameSource.slice(stressPenaltyStart, stressPenaltyEnd).replace(/\s+/g, ' ');
 if (!/v <= 25 \? 0 : v <= 50 \? \.3 : v <= 70 \? \.8 : v <= 90 \? 1\.5 : 2\.2/.test(stressPenaltySource)) bad('ストレスのCSAT減点段階が 0/.3/.8/1.5/2.2 ではない');
+
+// §16／§17: 怒り終話・翌日苦情メール・トースト全廃。
+if (gameSource.includes("kind:'supervisor'") || gameSource.includes('上長が引き取り')) bad('怒り終話に上長引き取りが残っている');
+if (JSON.stringify(ANGRY_DEFAULT_OUTCOMES) !== JSON.stringify({anxious:'hangup',novice:'complaint',expert:'complaint',hurried:'hangup'})) bad('顧客タイプ別の既定怒り終話が確定仕様と違う');
+if (Object.keys(ANGRY_END_LINES).length !== 4 || Object.values(ANGRY_END_LINES).some(lines => !lines.complaint || !lines.hangup)) bad('クレーム／切断の終話台詞が4タイプ分揃っていない');
+if (Object.keys(COMPLAINT_EMAIL_TEMPLATES).length !== 4 || Object.values(COMPLAINT_EMAIL_TEMPLATES).some(template => !Array.isArray(template.lines) || template.lines.length < 2 || template.lines.length > 3 || !template.lines[0].includes('{symptom}'))) bad('翌日の苦情メールが4タイプ分・客自身の2〜3行で揃っていない');
+if (!gameSource.includes("endAngryCall(t, 'stress')") || !gameSource.includes("endAngryCall(t, 'misdiagnosis')")) bad('ストレス100と誤診2回目が共通の怒り終話を通らない');
+if (!gameSource.includes("csat:kind === 'complaint' ? 1.0 : 0.5")) bad('クレーム／切断のCSATが1.0／0.5ではない');
+if (!gameSource.includes('function complaintEmailArrives') || !gameSource.includes("(result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false")) bad('苦情メールの必着・低CSAT抽選条件がない');
+if (!gameSource.includes('翌日、次の苦情が届いています') || !pageSource.includes('.complaint-mailbox')) bad('翌日デブリーフの苦情メール別枠がない');
+if (!gameSource.includes("line.replace('{symptom}', t.s.opening)") || /template\.lines[\s\S]{0,240}(?:trueCause|causeName)/.test(gameSource)) bad('苦情メールが客の症状ではなく真因を漏らしている');
+if (/toast/i.test(pageSource + '\n' + gameSource)) bad('トーストの関数・呼び出し・DOM・CSSが残っている');
+if (!pageSource.includes('.stress-panel.alert') || !gameSource.includes("t.stress > 80 ? ' alert' : ''") || gameSource.includes('stressWarned')) bad('苛立ち80超の状態駆動点滅が往復に追従しない');
+if (!gameSource.includes("recordOfficeEvent('abandoned'") || !gameSource.includes("recordOfficeEvent('redial'") || !gameSource.includes('state.officeEvents.slice(-3)')) bad('放棄呼・再着信がオフィス状態へ移っていない');
+if (!gameSource.includes("recordOfficeEvent('closed'") || !gameSource.includes("result.label + ' CSAT ' + result.csat.toFixed(1)")) bad('案件クローズ結果がオフィス状態へ移っていない');
+
+// §18: Web Audio合成音は任意の飾りで、10場面と5段階の案件結果を区別する。
+if (!gameSource.includes('new AudioContextClass()') || !gameSource.includes('createOscillator()') || !gameSource.includes('createGain()')) bad('Web Audioのコード合成がない');
+if (/\.(?:mp3|wav|ogg|m4a)\b/i.test(pageSource + gameSource)) bad('外部の音声ファイルを参照している');
+if (!gameSource.includes("$('btn-start').onclick = () => {\n    initAudio();")) bad('AudioContextがシフト開始操作の中で初期化されない');
+if (!gameSource.includes("if (!GAME_FLAGS.soundEnabled || !audioContext) return") || !gameSource.includes('catch (error){ /* 音が出せなくてもゲーム進行は続ける */ }')) bad('ミュートまたは音声例外の安全経路がない');
+['playOfficeRing()','playPickupSound()','playDisconnectSound()','playTypeSound(pos)','playCommandSound()','playStressWarning()','playClueSound()','playBadActionSound()','playCloseJingle(','playShiftEndSound()'].forEach(call => {
+  if (!gameSource.includes(call)) bad('効果音10場面の呼び出しが欠けている: ' + call);
+});
+if (!gameSource.includes("result.kind === 'complaint' || result.kind === 'hangup') return 'accident'") || !gameSource.includes("result.kind === 'abandoned' || result.csat < 2") || !gameSource.includes("result.csat >= 4") || !gameSource.includes("result.csat >= 3")) bad('案件クローズ音の5段階分類がない');
+if (!gameSource.includes('if (index % 4) return')) bad('タイプ音が1文字ごとに鳴る');
+if (!gameSource.includes('previousStress <= 80 && t.stress > 80')) bad('苛立ち警告音が状態の80境界を再横断しても鳴らない');
+if (!gameSource.includes('id="balance-sound"') || !gameSource.includes('id="balance-volume"')) bad('ゲーム調整にミュートと音量がない');
+
+// §19: 返金は確認後に費用を払い、満足3.0／不満足1.0で単発クローズする。
+if (!gameSource.includes("kind:'refunded'") || !gameSource.includes('csat:satisfied ? 3.0 : 1.0')) bad('返金が満足3.0／不満足1.0で案件を閉じない');
+if (!gameSource.includes("defaultUi('refund_confirm')") || !gameSource.includes('この電話はこれで終わります')) bad('返金が金額・終話の確認を挟まない');
+if (/\brefunds\b|refundCsat|refundResult|refundEffect/.test(gameSource)) bad('旧返金の回数管理・CSAT逓減が残っている');
+if (!gameSource.includes("result.kind === 'closed' || result.kind === 'refunded'")) bad('不満足な返金が苦情メール対象に入らない');
+const outageRefundRemedy = REMEDIES.carrier.find(remedy => remedy.id === 'r_outage_explain');
+if (!outageRefundRemedy || outageRefundRemedy.cost !== 2400 || !outageRefundRemedy.needsOutage || outageRefundRemedy.kind !== 'resolve') bad('広域障害の正規対処 r_outage_explain が損なわれている');
 
 // S2/S3 に q_lamp が入ったか
 ['S2','S3'].forEach(id => {
