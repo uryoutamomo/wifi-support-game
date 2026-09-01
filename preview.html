@@ -1,0 +1,2996 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<meta charset="utf-8">
+<title>深夜のグローバルデスク</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+
+<style>
+/* 明るい業務画面。夜勤の状況は時刻とワールドクロックで伝える。 */
+
+:root{
+  --bg:#F4F7FA; --surface:#FFFFFF; --surface-2:#EDF2F7; --surface-3:#E3EAF2;
+  --line:#CBD6E2; --line-soft:#E4EBF2;
+  --text:#15202B; --text-2:#46586B; --text-3:#5D7185;
+  --accent:#1B5FA8; --accent-hover:#16508F; --accent-soft:#E6EFF9; --accent-line:#A9C6E4;
+  --signal:#0E7C7B; --signal-soft:#E0F2F1;
+  --good:#157A50; --good-soft:#E3F3EB; --warn:#A96500; --warn-soft:#FBF0DE;
+  --crit:#B3352B; --crit-soft:#FBEAE8;
+  /* 旧クラスを意味のあるライトトークンへ接続する互換層 */
+  --ink:var(--bg); --panel:var(--surface); --panel-2:var(--surface-2); --panel-3:var(--surface-3);
+  --dim:var(--text-2); --faint:var(--text-3); --amber:var(--accent); --amber-deep:var(--accent-line);
+  --amber-glow:var(--accent-soft); --signal-deep:var(--signal); --crit-glow:var(--crit-soft);
+  --display: "IBM Plex Sans", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --sp: 4px;
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+button{ font-family: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible{
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.mono{ font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- 見出し・ラベル ---------- */
+
+.eyebrow{
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.pane-title{
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin: 0;
+}
+
+/* ============================================================
+   トップバー ― 発着案内板を意識した琥珀の帯
+   ============================================================ */
+
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: linear-gradient(180deg, #0E1926 0%, #0B131C 100%);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgba(240,166,72,.18), 0 8px 24px rgba(0,0,0,.4);
+}
+
+.topbar-inner{
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 20px;
+  flex-wrap: wrap;
+}
+
+.brand{
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-right: auto;
+}
+.brand .mark{
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: .1em;
+  color: var(--amber);
+  text-transform: uppercase;
+}
+.brand .sub{
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: .06em;
+}
+
+.clock{
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.clock .t{
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--amber);
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+}
+.clock .z{ font-size: 11px; color: var(--faint); letter-spacing: .04em; }
+
+.kpis{
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.kpi{ display: flex; flex-direction: column; gap: 1px; min-width: 58px; }
+.kpi .k{
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.kpi .v{
+  font-family: var(--mono);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.kpi .v.warn{ color: var(--warn); }
+.kpi .v.crit{ color: var(--crit); }
+.kpi .v.good{ color: var(--good); }
+
+.btn-help{
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 2px;
+  transition: border-color .15s, color .15s;
+}
+.btn-help:hover{ border-color: var(--amber-deep); color: var(--amber); }
+
+/* ---------- UTC-12〜UTC+12 ワールドクロック ---------- */
+
+.world-strip{
+  position: relative;
+  height: 44px;
+  overflow: hidden;
+  border-top: 1px solid var(--line-soft);
+  background: var(--panel);
+}
+.world-sky{
+  position: absolute;
+  inset: 0;
+  opacity: .72;
+  transition: background .25s ease;
+}
+.world-axis{
+  position: absolute;
+  inset: 0 20px;
+}
+.world-axis::after{
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 25px;
+  border-top: 1px solid var(--line);
+}
+.world-zone-label{
+  position: absolute;
+  bottom: 1px;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: .04em;
+}
+.world-zone-label.first{ left: 0; transform: none; }
+.world-zone-label.mid{ left: 50%; }
+.world-zone-label.last{ right: 0; transform: none; }
+.world-jst{
+  position: absolute;
+  left: 87.5%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--amber-deep);
+  opacity: .75;
+}
+.world-jst span{
+  position: absolute;
+  right: 3px;
+  bottom: 0;
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--amber);
+}
+.world-pin{
+  --stack: 0;
+  position: absolute;
+  top: calc(2px + var(--stack) * 10px);
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: max-content;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+}
+.world-pin-dot{
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--faint);
+  box-shadow: 0 0 0 2px var(--panel);
+}
+.world-pin.waiting .world-pin-dot{ background: var(--amber); border-color: var(--amber); animation: pinpulse 1.8s ease-in-out infinite; }
+.world-pin.active .world-pin-dot{ background: var(--signal); border-color: var(--signal); }
+.world-pin.callback{ color: var(--signal); }
+.world-pin.callback .world-pin-dot{ background: var(--signal-deep); border-color: var(--signal); }
+.world-pin.closed{ color: var(--faint); opacity: .62; }
+.world-pin.abandoned{ color: var(--crit); opacity: 1; }
+.world-pin.abandoned .world-pin-dot{ background: var(--crit); border-color: var(--crit); }
+@keyframes pinpulse{
+  0%,100%{ transform: scale(.85); opacity: .62; }
+  50%{ transform: scale(1.2); opacity: 1; }
+}
+
+/* ============================================================
+   コンソール ― 3ペイン
+   ============================================================ */
+
+.console{
+  display: grid;
+  grid-template-columns: 288px minmax(0,1fr) 330px;
+  gap: 1px;
+  background: var(--line-soft);
+  align-items: stretch;
+}
+
+/* ============================================================
+   深夜オフィス ― 通話前後のフィールド画面
+   人物は置かず、灯りと業務用品だけで在席を表す
+   ============================================================ */
+.office-scene{
+  display: none;
+  min-height: calc(100vh - 116px);
+  padding: 20px;
+  background: radial-gradient(circle at 50% 35%, #152433 0, var(--ink) 56%);
+}
+body.office-view .office-scene{ display: flex; flex-direction: column; gap: 14px; animation: office-in .26s ease both; }
+/* ブリーフィング・業務報告・振り返りを開いている間はオフィスも隠す。
+   詳細度が同じなので、上の office-view より後ろに置くこと */
+body.sheet-open .office-scene{ display: none; }
+body.office-view .console{ display: none; }
+body.call-view .office-scene{ display: none; }
+body.call-view .console{ animation: call-in .22s ease both; }
+@keyframes office-in{ from{ opacity:0; transform:scale(1.025); } to{ opacity:1; transform:none; } }
+@keyframes call-in{ from{ opacity:0; transform:scale(.975); } to{ opacity:1; transform:none; } }
+
+.office-head{
+  max-width: 1120px;
+  margin: 0 auto 14px;
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:12px;
+}
+.office-head h1{ margin:0; font-family:var(--display); font-size:26px; letter-spacing:.1em; color:var(--text); }
+.office-head p{ margin:0; color:var(--faint); font-size:12px; }
+.office-floor{
+  position:relative;
+  width:100%;
+  max-width:1120px;
+  flex:1;
+  /* 中の什器は px 配置なので、床が縮んでも重ならない下限を持たせる */
+  min-height:520px;
+  margin:0 auto;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:3px;
+  background-color:#0d1822;
+  background-image:linear-gradient(90deg, rgba(36,56,74,.23) 1px, transparent 1px),linear-gradient(rgba(36,56,74,.23) 1px, transparent 1px);
+  background-size:42px 42px;
+  box-shadow:inset 0 0 90px rgba(0,0,0,.5);
+}
+.office-floor::after{ content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at 48% 46%, transparent 0 24%, rgba(0,0,0,.42) 78%); }
+.office-object{
+  position:absolute;
+  z-index:1;
+  border:1px solid var(--line);
+  border-radius:2px;
+  background:var(--panel);
+  color:var(--dim);
+  text-align:left;
+  font:11px/1.45 var(--body);
+}
+.office-object b{ display:block; font-family:var(--display); letter-spacing:.11em; color:var(--faint); font-size:11px; }
+.office-object small{ display:block; color:var(--dim); font-family:var(--mono); font-size:11px; }
+.office-desk{
+  width:206px;
+  height:134px;
+  padding:13px 15px;
+  left:50%; top:186px; transform:translateX(-50%);
+  border-color:var(--amber-deep);
+  background:linear-gradient(145deg, rgba(240,166,72,.18), var(--panel) 65%);
+  box-shadow:0 0 0 1px rgba(240,166,72,.14),0 0 34px rgba(240,166,72,.13);
+  cursor:pointer;
+}
+.office-desk:hover{ border-color:var(--amber); }
+.office-desk .phone-icon{ position:absolute; right:18px; top:19px; width:52px; height:33px; border:2px solid var(--amber-deep); border-radius:10px 10px 4px 4px; }
+.office-desk .phone-icon::before{ content:""; position:absolute; left:8px; right:8px; top:-10px; height:13px; border:3px solid var(--amber); border-bottom:0; border-radius:9px 9px 0 0; }
+.office-desk.ringing{ animation: phone-ring 1.2s ease-in-out infinite; border-color:var(--amber); }
+.office-desk.ringing::after{ content:""; position:absolute; inset:-13px; border:1px solid var(--amber-deep); border-radius:8px; animation: phone-wave 1.2s ease-out infinite; }
+@keyframes phone-ring{ 0%,100%{ box-shadow:0 0 0 1px rgba(240,166,72,.14),0 0 20px rgba(240,166,72,.1); } 50%{ box-shadow:0 0 0 1px rgba(240,166,72,.5),0 0 44px rgba(240,166,72,.3); } }
+@keyframes phone-wave{ from{ opacity:.9; transform:scale(.85); } to{ opacity:0; transform:scale(1.22); } }
+.office-desk .seat-dot{ position:absolute; width:44px; height:22px; bottom:-31px; left:80px; border:1px solid var(--amber-deep); border-radius:50%; background:var(--amber-glow); }
+.office-empty{ width:150px; height:82px; padding:10px; opacity:.52; cursor:default; }
+.office-empty::after{ content:""; position:absolute; width:32px; height:15px; left:55px; bottom:-19px; border:1px solid var(--line); border-radius:50%; }
+/* 什器は左列・中央・右列の3列に分け、縦位置は px で固定して重なりを避ける */
+.office-empty.one{ left:3%; top:150px; }
+.office-empty.two{ right:3%; left:auto; top:16px; }
+.office-empty.three{ left:3%; top:300px; }
+.office-empty.four{ right:3%; left:auto; top:300px; }
+.office-sv{ right:3%; top:150px; width:160px; height:90px; padding:11px; }
+.office-sv .lamp{ position:absolute; right:14px; top:13px; width:20px; height:24px; border-radius:50% 50% 4px 4px; background:var(--amber); box-shadow:0 0 22px var(--amber); }
+.office-sv.busy .lamp{ background:var(--faint); box-shadow:none; }
+.office-board{ left:3%; top:16px; width:270px; min-height:112px; padding:12px 14px; background:#d8e4ec; color:#21313d; border-color:#8497a6; }
+.office-board b{ color:#3b4d59; }.office-board .notice{ margin-top:7px; color:#943f37; font-weight:700; font-size:12px; }.office-board .blank{ margin-top:7px; color:#596b7a; font-size:11px; }
+.office-ship{ right:3%; bottom:16px; width:210px; min-height:102px; padding:11px 13px; }
+.office-ship::before{ content:""; position:absolute; right:13px; bottom:13px; width:48px; height:24px; border:1px solid var(--signal-deep); background:repeating-linear-gradient(90deg,var(--signal-deep) 0 3px,transparent 3px 6px); opacity:.7; }
+.office-tray{ left:3%; bottom:16px; width:210px; min-height:92px; padding:11px 13px; }
+.office-tray::before{ content:""; position:absolute; right:13px; top:14px; width:38px; height:28px; background:var(--amber); transform:rotate(5deg); opacity:.7; box-shadow:-5px 5px 0 var(--signal-deep); }
+.office-clock{ left:44%; top:16px; min-width:116px; padding:8px 12px; text-align:center; font-family:var(--mono); font-size:20px; color:var(--amber); }
+.office-window{ left:41%; bottom:16px; width:172px; height:96px; overflow:hidden; background:linear-gradient(180deg,#101f33,#07111a); }
+.office-window::before{ content:""; position:absolute; inset:0; background:radial-gradient(circle at 18% 72%, var(--amber) 0 1px,transparent 2px),radial-gradient(circle at 42% 34%, var(--signal) 0 1px,transparent 2px),radial-gradient(circle at 76% 62%, var(--amber) 0 1px,transparent 2px); background-size:27px 23px; opacity:.65; }.office-window::after{ content:""; position:absolute; left:50%; top:0; bottom:0; border-left:1px solid var(--line); box-shadow:0 47px 0 var(--line); }
+.office-incoming{
+  position:absolute; z-index:3; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:min(500px,calc(100% - 28px)); max-height:calc(100% - 34px); overflow:auto;
+  padding:16px; border:1px solid var(--amber-deep); border-radius:3px; background:var(--ink); box-shadow:0 20px 60px rgba(0,0,0,.65);
+}
+.office-incoming[hidden]{ display:none; }
+.office-incoming-head{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:10px; }.office-incoming-head h2{ margin:0; font-family:var(--display); font-size:18px; letter-spacing:.1em; color:var(--amber); }
+.office-incoming-list{ display:flex; flex-direction:column; gap:7px; }.office-incoming .qcard{ min-height:auto; }
+.office-fast{ margin-top:12px; width:100%; }
+.call-summary .summary-figure{ padding:13px 3px; color:var(--dim); line-height:1.9; }.summary-figure b{ color:var(--text); font-family:var(--mono); font-weight:500; }
+
+@media (max-width:760px){
+  .office-scene{ min-height:auto; padding:14px; }.office-floor{ min-height:700px; }.office-desk{ left:50%; top:40%; transform:translateX(-50%); }.office-empty.one{left:5%;top:20%;}.office-empty.two{right:5%;left:auto;top:20%;}.office-empty.three{left:5%;top:67%;}.office-empty.four{right:5%;left:auto;top:67%;}.office-board{left:5%;width:230px;}.office-sv{right:4%;top:7%;width:126px;}.office-clock{right:34%;top:28%;}.office-ship{right:4%;bottom:4%;}.office-tray{left:4%;bottom:4%;}.office-window{display:none;}
+}
+
+/* コンソールを操作している間だけ画面の高さに収め、はみ出しは各ペインの中で
+   スクロールさせる。ブリーフィング等のシートを開いている間は通常の
+   ドキュメントフローに戻す（埋め込み表示でもページごとスクロールできるように） */
+@media (min-width: 761px){
+  /* overflow は hidden ではなく auto。画面の高さが足りない環境で
+     アクション欄が見えなくなるより、ページごとスクロールできたほうがよい */
+  body.playing{ display: flex; flex-direction: column; height: 100vh; overflow: auto; }
+  body.playing .topbar{ flex: none; }
+  body.playing .console{ flex: 1; min-height: 0; }
+  body.playing .pane{ overflow-y: auto; }
+  body.playing .pane.desk{ overflow: hidden; }
+  /* 高さが足りないときに削られるのは会話ログのほう。
+     アクション欄は必ず残す（押せない画面を作らない） */
+  body.playing .call{ min-height: 0; overflow: hidden; }
+  body.playing .transcript{ max-height: none; flex: 1; min-height: 0; }
+  body.playing .actions{ flex: none; }
+}
+
+/* 縦に余裕のない画面では、補足のヒントと余白を落として操作部を優先する */
+@media (min-width: 761px) and (max-height: 680px){
+  body.playing .topbar-inner{ padding: 4px 14px; gap: 14px; }
+  body.playing .brand .sub{ display: none; }
+  body.playing .clock .t{ font-size: 18px; }
+  body.playing .kpis{ gap: 11px; }
+  body.playing .kpi{ min-width: 46px; }
+  body.playing .kpi .k{ font-size: 11px; }
+  body.playing .kpi .v{ font-size: 12px; }
+  body.playing .world-strip{ height: 28px; }
+  body.playing .world-axis{ inset-inline: 14px; }
+  body.playing .world-axis::after{ top: 19px; }
+  body.playing .world-zone-label,
+  body.playing .world-jst span,
+  body.playing .world-pin-label{ display: none; }
+  body.playing .world-pin{ top: calc(3px + var(--stack) * 8px); }
+  body.playing .world-pin-dot{ width: 6px; height: 6px; }
+  body.playing .pane{ padding: 9px 10px; gap: 7px; }
+  body.playing .pane-head{ padding-bottom: 4px; }
+  body.playing .actions .hint-bar{ display: none; }
+  body.playing .transcript{ padding: 6px 10px; gap: 7px; }
+  body.playing .call-head{ padding: 5px 10px; }
+  body.playing .actions{ padding: 7px 10px 8px; gap: 6px; }
+  body.playing .act-tab{ padding: 3px 8px; }
+  body.playing .opt{ padding: 5px 8px; line-height: 1.4; }
+  body.playing .opts{ max-height: min(22vh, 148px); }
+}
+
+/* シート表示中はコンソールを隠す */
+body.sheet-open .topbar,
+body.sheet-open .console,
+body.sheet-open .toast-wrap{ display: none; }
+
+.pane{
+  background: var(--ink);
+  padding: 16px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pane-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.count-chip{
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+  border: 1px solid var(--line);
+  padding: 1px 7px;
+  border-radius: 2px;
+}
+
+/* ---------- 待ち行列 ---------- */
+
+.queue-list{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.callback-wrap{
+  border-top: 1px solid var(--line-soft);
+  padding-top: 10px;
+}
+.callback-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.callback-list{ display: flex; flex-direction: column; gap: 6px; }
+.callback-card{
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  background: rgba(87,199,192,.06);
+  border: 1px solid var(--signal-deep);
+  border-left: 2px solid var(--signal);
+  border-radius: 2px;
+}
+.callback-card:hover:not(:disabled){ background: rgba(87,199,192,.11); }
+.callback-card:disabled{ opacity: .48; cursor: not-allowed; }
+.callback-card.overdue{ border-color: var(--crit); background: var(--crit-glow); }
+.callback-card b{ display: block; font-size: 12px; font-weight: 500; color: var(--text); }
+.callback-card span{ display: block; margin-top: 2px; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.callback-card.overdue span{ color: var(--crit); }
+
+.qcard{
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-left: 2px solid var(--line);
+  border-radius: 2px;
+  padding: 10px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  width: 100%;
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.qcard:hover:not(:disabled){
+  background: var(--panel-2);
+  border-left-color: var(--amber);
+}
+.qcard:active:not(:disabled){ transform: translateY(1px); }
+.qcard:disabled{ opacity: .45; cursor: not-allowed; }
+.qcard.urgent{ border-left-color: var(--crit); background: linear-gradient(90deg, var(--crit-glow), var(--panel) 60%); }
+
+.qcard-top{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.qcard .tid{
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: .06em;
+}
+.qcard .wait{
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+}
+.qcard .wait.long{ color: var(--warn); }
+.qcard .wait.crit{ color: var(--crit); }
+
+.qcard .name{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+}
+.qcard .place{
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--signal);
+}
+.qcard .snip{
+  font-size: 11.5px;
+  color: var(--dim);
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 忍耐メーター */
+.mood{
+  height: 3px;
+  background: var(--line-soft);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.mood i{
+  display: block;
+  height: 100%;
+  background: var(--good);
+  transition: width .3s ease, background .3s;
+}
+.mood i.mid{ background: var(--warn); }
+.mood i.low{ background: var(--crit); }
+
+.empty-note{
+  color: var(--faint);
+  font-size: 12px;
+  padding: 18px 4px;
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* ---------- 中央：一件の通話 ---------- */
+.call{
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.call.on-hold{
+  border-color: var(--amber-deep);
+  box-shadow: inset 0 0 0 1px var(--amber-deep);
+  background: linear-gradient(180deg, var(--amber-glow), var(--panel) 34%);
+}
+
+.call-head{
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+}
+.call-head .cname{ font-size: 15px; font-weight: 700; }
+.call-head .ctype{
+  font-size: 11px;
+  color: var(--amber);
+  border: 1px solid var(--amber-deep);
+  padding: 0 6px;
+  border-radius: 2px;
+}
+.call-time{
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--signal);
+  font-variant-numeric: tabular-nums;
+}
+.hold-state{
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--amber);
+  text-transform: uppercase;
+}
+.call-meta{
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+}
+.call-meta b{ color: var(--faint); font-weight: 400; }
+
+.transcript{
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 140px;
+  max-height: 46vh;
+}
+
+.line{ display: flex; flex-direction: column; gap: 3px; max-width: 88%; }
+.line .who{
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.line .say{
+  padding: 9px 12px;
+  border-radius: 2px;
+  line-height: 1.75;
+  font-size: 13.5px;
+}
+.line.cust{ align-self: flex-start; }
+.line.cust .say{
+  background: var(--panel-2);
+  border-left: 2px solid var(--line);
+}
+.line.me{ align-self: flex-end; }
+.line.me .who{ text-align: right; color: var(--amber-deep); }
+.line.me .say{
+  background: rgba(240,166,72,.09);
+  border-right: 2px solid var(--amber-deep);
+}
+.line.sys{ align-self: stretch; max-width: 100%; }
+.line.sys .who{ color: var(--signal-deep); }
+.line.sys .say{
+  background: rgba(87,199,192,.06);
+  border-left: 2px solid var(--signal-deep);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--signal);
+  line-height: 1.7;
+}
+.line.note .say{
+  background: transparent;
+  border-left: 2px solid var(--line);
+  color: var(--dim);
+  font-size: 12px;
+  font-style: normal;
+}
+
+/* アクション */
+.actions{
+  border-top: 1px solid var(--line-soft);
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.act-tabs{ display: flex; gap: 2px; flex-wrap: wrap; }
+.act-tab{
+  background: transparent;
+  border: 1px solid var(--line-soft);
+  border-bottom-color: transparent;
+  color: var(--dim);
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 2px 2px 0 0;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.act-tab:hover{ color: var(--text); }
+.act-tab.on{
+  color: var(--amber);
+  border-color: var(--line);
+  background: var(--panel-2);
+}
+.act-tab .n{ font-family: var(--mono); font-size: 11px; opacity: .7; margin-left: 4px; }
+
+.opts{ display: flex; flex-direction: column; gap: 5px; max-height: min(24vh, 200px); overflow-y: auto; }
+
+.opt{
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  padding: 9px 11px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.6;
+  transition: background .13s, border-color .13s;
+}
+.opt:hover:not(:disabled){ background: var(--panel-3); border-color: var(--amber-deep); }
+.opt:disabled{ opacity: .36; cursor: not-allowed; }
+.opt .cost{
+  flex: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  padding-top: 2px;
+  min-width: 42px;
+  text-align: right;
+}
+.opt.used{ opacity: .4; }
+.opt.danger:hover:not(:disabled){ border-color: var(--crit); }
+.opt.esc:hover:not(:disabled){ border-color: var(--signal); }
+
+.opt-label{ flex: 1; }
+.opt-sub{ display: block; font-size: 11px; color: var(--faint); margin-top: 2px; line-height: 1.55; }
+
+.tone-row{
+  display: flex;
+  gap: 6px;
+  padding-top: 2px;
+  flex-wrap: wrap;
+}
+.tone{
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  flex: 1;
+  min-width: 120px;
+  text-align: left;
+  line-height: 1.5;
+}
+.tone:hover{ border-color: var(--amber); background: var(--panel-3); }
+.tone .tname{
+  display: block;
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 1px;
+}
+
+.pending-note{
+  background: rgba(87,199,192,.07);
+  border: 1px solid var(--signal-deep);
+  border-radius: 2px;
+  padding: 11px 13px;
+  font-size: 12.5px;
+  color: var(--signal);
+  line-height: 1.7;
+}
+
+/* TGXの送り状。実在配送会社の意匠は使わず、罫線と帯だけで表現する */
+.shipment{ padding:3px 1px 0; }.shipment h3{ margin:0 0 8px; font-family:var(--display); font-size:18px; letter-spacing:.1em; color:var(--amber); }.shipment-address{ margin:0 0 9px; color:var(--dim); font-size:12px; }
+.waybill{ padding:12px; border:1px solid var(--signal-deep); background:var(--panel-2); position:relative; overflow:hidden; }.waybill::after{ content:""; display:block; height:16px; margin-top:11px; background:repeating-linear-gradient(90deg,var(--text) 0 2px,transparent 2px 4px,var(--signal) 4px 5px,transparent 5px 8px); opacity:.72; }
+.waybill > div{ display:grid; grid-template-columns:70px 1fr; gap:8px; padding:4px 0; border-bottom:1px dotted var(--line); font-size:11px; line-height:1.45; }.waybill b{ font-family:var(--display); letter-spacing:.1em; color:var(--faint); }.waybill span{ color:var(--text); font-family:var(--mono); }.shipment-confirm{ width:100%; margin-top:10px; font-size:15px; padding:9px 12px; }
+
+.hint-bar{
+  font-size: 11.5px;
+  color: var(--faint);
+  line-height: 1.6;
+}
+
+/* ---------- 右：診断ボード ---------- */
+
+.board{ overflow-y: auto; }
+
+/* ルーター液晶。顧客の説明を聞くまでは値そのものをDOMに出さない。 */
+.device-card{
+  margin-bottom: 14px;
+  padding: 9px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+.device-label{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.lcd{
+  position: relative;
+  min-height: 112px;
+  padding: 9px 10px 8px;
+  overflow: hidden;
+  border: 1px solid var(--signal-deep);
+  border-radius: 3px;
+  background: var(--panel-2);
+  color: var(--signal);
+  font-family: var(--mono);
+  font-size: 11px;
+  box-shadow: inset 0 0 18px var(--ink);
+}
+.lcd.obscured,
+.lcd.missing{
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--dim);
+  background: linear-gradient(135deg, var(--panel-2), var(--panel-3));
+}
+.lcd.obscured::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(110deg, transparent 0 6px, var(--line-soft) 6px 10px);
+  opacity: .68;
+}
+.lcd-placeholder{ position: relative; z-index: 1; line-height: 1.7; }
+.lcd-placeholder b{ display: block; color: var(--text); font-weight: 500; }
+.lcd-top,
+.lcd-status,
+.lcd-bottom{ display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lcd-status{ margin-top: 11px; }
+.lcd-bottom{ margin-top: 10px; padding-top: 7px; border-top: 1px solid var(--signal-deep); }
+.lcd-carrier{ font-size: 12px; font-weight: 600; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.signal-bars{ height: 17px; display: flex; align-items: flex-end; gap: 2px; flex: none; }
+.signal-bars i{ display: block; width: 3px; background: var(--line); border-radius: 1px 1px 0 0; }
+.signal-bars i:nth-child(1){ height: 5px; }
+.signal-bars i:nth-child(2){ height: 8px; }
+.signal-bars i:nth-child(3){ height: 12px; }
+.signal-bars i:nth-child(4){ height: 16px; }
+.signal-bars i.on{ background: var(--signal); }
+.lcd-offline{ color: var(--crit); font-weight: 600; }
+.lcd-sim-none{ color: var(--crit); font-size: 13px; font-weight: 600; }
+.lcd-throttle{
+  color: var(--amber);
+  border: 1px solid var(--amber-deep);
+  padding: 0 4px;
+  border-radius: 2px;
+  letter-spacing: .08em;
+}
+.lcd-clients{ color: var(--text); }
+.lcd-battery{
+  width: 30px;
+  height: 11px;
+  padding: 1px;
+  border: 1px solid var(--signal-deep);
+  border-radius: 1px;
+  flex: none;
+}
+.lcd-battery i{ display: block; height: 100%; background: var(--signal); }
+.lcd-battery-wrap{ display: flex; align-items: center; gap: 5px; }
+.lcd-ssid{ min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+
+/* 社内照会に添える単一型のメトリックバー */
+.lookup-viz{
+  display: block;
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid var(--signal-deep);
+}
+.lookup-viz-head{ display: flex; justify-content: space-between; gap: 8px; color: var(--text); }
+.lookup-viz-head b{ color: var(--signal); font-weight: 500; }
+.lookup-viz-track{ display: block; height: 5px; margin: 5px 0 3px; background: var(--line); overflow: hidden; border-radius: 1px; }
+.lookup-viz-fill{ display: block; height: 100%; background: var(--signal); }
+.lookup-viz-fill.over{ background: var(--crit); }
+.lookup-viz-fill.unlimited{ background: repeating-linear-gradient(90deg, var(--signal) 0 8px, var(--signal-deep) 8px 12px); }
+.lookup-viz-note{ color: var(--dim); font-size: 11px; }
+
+.cause{
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 6px 6px 8px;
+  border-left: 2px solid var(--line-soft);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--dim);
+  transition: color .2s, border-color .2s, opacity .2s;
+}
+.cause .tick{
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  flex: none;
+  width: 14px;
+  text-align: center;
+  padding-top: 1px;
+}
+.cause.out{ opacity: .32; text-decoration: line-through; text-decoration-color: var(--faint); }
+.cause.hot{
+  color: var(--amber);
+  border-left-color: var(--amber);
+  background: var(--amber-glow);
+}
+.cause.hot .tick{ color: var(--amber); }
+.cause > span:nth-child(2){ flex: 1; min-width: 0; }
+.cause .tier{
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  flex: none;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+
+.facts{ display: flex; flex-direction: column; gap: 6px; }
+.fact{
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  padding: 7px 9px;
+  background: var(--panel);
+  border-left: 2px solid var(--signal-deep);
+  border-radius: 2px;
+}
+.fact .src{
+  display: block;
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 1px;
+}
+
+.mini-list{ display: flex; flex-direction: column; gap: 4px; }
+.mini{
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--line-soft);
+  color: var(--dim);
+}
+.mini b{ color: var(--text); font-weight: 500; font-family: var(--mono); font-size: 12px; }
+
+/* ============================================================
+   オーバーレイ（ブリーフィング／シフト終了／マニュアル）
+   ============================================================ */
+
+.overlay{
+  background: var(--ink);
+  padding: 32px 20px 64px;
+  min-height: 100vh;
+  display: none;
+}
+.overlay.on{ display: block; }
+
+.sheet{
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--amber);
+  border-radius: 2px;
+  padding: 32px 36px 36px;
+}
+.sheet h1{
+  font-family: var(--display);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  margin: 0 0 4px;
+  text-wrap: balance;
+  line-height: 1.15;
+}
+.sheet h2{
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin: 28px 0 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.sheet p{ margin: 0 0 12px; max-width: 40em; }
+.sheet ul{ margin: 0 0 12px; padding-left: 18px; max-width: 40em; }
+.sheet li{ margin-bottom: 6px; }
+.sheet .lead{ color: var(--dim); font-size: 14.5px; line-height: 1.85; }
+.sheet strong{ color: var(--amber); font-weight: 500; }
+
+.btn-primary{
+  background: var(--amber);
+  border: none;
+  color: #17110A;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 12px 30px;
+  border-radius: 2px;
+  margin-top: 22px;
+  transition: filter .15s, transform .1s;
+}
+.btn-primary:hover{ filter: brightness(1.1); }
+.btn-primary:active{ transform: translateY(1px); }
+
+.btn-ghost{
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 11px 22px;
+  border-radius: 2px;
+  margin-top: 22px;
+  margin-left: 10px;
+}
+.btn-ghost:hover{ border-color: var(--amber-deep); color: var(--amber); }
+
+/* デブリーフ用 */
+.score-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px,1fr));
+  gap: 1px;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+  margin: 14px 0 20px;
+}
+.score-cell{ background: var(--panel-2); padding: 13px 14px; }
+.score-cell .k{
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.score-cell .v{
+  font-family: var(--mono);
+  font-size: 25px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+.score-cell .n{ font-size: 11px; color: var(--faint); line-height: 1.5; }
+
+.rank-badge{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  border: 1px solid var(--amber-deep);
+  background: var(--amber-glow);
+  padding: 10px 22px;
+  border-radius: 2px;
+  margin-bottom: 6px;
+}
+.rank-badge .r{
+  font-family: var(--display);
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--amber);
+  line-height: 1;
+}
+.rank-badge .rt{ font-size: 14px; color: var(--text); }
+
+.review{
+  border-left: 2px solid var(--line);
+  padding: 10px 0 10px 14px;
+  margin-bottom: 10px;
+}
+.review.win{ border-left-color: var(--good); }
+.review.mid{ border-left-color: var(--warn); }
+.review.bad{ border-left-color: var(--crit); }
+.review .rh{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-bottom: 3px;
+}
+.review .rn{ font-weight: 700; font-size: 14px; }
+.review .rp{
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--signal);
+}
+.review .rs{
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--dim);
+  margin-left: auto;
+}
+.review .rb{ font-size: 12.5px; color: var(--dim); line-height: 1.7; }
+.review .rb em{ color: var(--amber); font-style: normal; }
+.review-csat{ height: 4px; margin: 5px 0 7px; background: var(--line-soft); overflow: hidden; }
+.review-csat i{ display: block; height: 100%; background: var(--good); }
+.review.mid .review-csat i{ background: var(--warn); }
+.review.bad .review-csat i{ background: var(--crit); }
+.report-auto{ margin:14px 0; padding:11px 13px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font-family:var(--mono); font-size:12px; line-height:1.75; }
+.report-list{ display:flex; flex-direction:column; gap:6px; }.report-check{ display:flex; gap:9px; align-items:flex-start; padding:9px 10px; border:1px solid var(--line-soft); background:var(--panel-2); cursor:pointer; font-size:12.5px; line-height:1.6; }.report-check:hover{ border-color:var(--amber-deep); }.report-check input{ margin-top:5px; accent-color:var(--amber); }.report-check span{ flex:1; }.report-check i{ display:block; margin-top:2px; color:var(--faint); font-size:11px; font-style:normal; }.report-check.needed{ border-left:2px solid var(--signal); }.report-miss{ margin-top:8px; padding:7px 9px; border-left:2px solid var(--crit); background:var(--crit-glow); color:var(--text); font-size:11.5px; }
+
+.tbl{ width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tbl th, .tbl td{
+  text-align: left;
+  padding: 6px 10px 6px 0;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+}
+.tbl th{
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 600;
+}
+.tbl td.num{ font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* トースト */
+.toast-wrap{
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  max-width: 340px;
+}
+.toast{
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--amber);
+  border-radius: 2px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  animation: slidein .25s ease;
+}
+.toast.crit{ border-left-color: var(--crit); }
+.toast.good{ border-left-color: var(--good); }
+.toast.sig{ border-left-color: var(--signal); }
+.toast b{ display: block; font-family: var(--display); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+
+/* ---------- ライト業務画面の仕上げ ---------- */
+.topbar{ background:var(--surface); box-shadow:0 1px 0 var(--line-soft),0 5px 16px rgba(21,32,43,.06); }
+.brand .mark,.clock .t{ color:var(--accent); }
+.world-strip{ background:var(--surface); }
+.world-axis::after{ border-color:var(--line); }.world-jst{ background:var(--accent); }.world-jst span{ color:var(--accent); }
+.world-pin{ color:var(--text-2); }.world-pin-dot{ box-shadow:0 0 0 2px var(--surface); }
+.world-pin.waiting .world-pin-dot{ background:var(--accent); border-color:var(--accent); }
+.console{ background:var(--line-soft); }.pane{ background:var(--surface); }
+.office-scene{ background:var(--bg); }.office-floor{ background-color:var(--surface); background-image:linear-gradient(90deg,var(--line-soft) 1px,transparent 1px),linear-gradient(var(--line-soft) 1px,transparent 1px); box-shadow:none; }
+.office-floor::after{ background:linear-gradient(135deg,rgba(230,239,249,.55),transparent 46%); }
+.office-object{ background:var(--surface-2); color:var(--text-2); }.office-object b{ color:var(--text-2); }
+.office-desk{ border-color:var(--accent-line); background:linear-gradient(145deg,var(--accent-soft),var(--surface) 68%); box-shadow:0 0 0 1px var(--accent-soft); }
+.office-desk:hover,.office-desk.ringing{ border-color:var(--accent); }.office-desk .phone-icon{ border-color:var(--accent-line); }.office-desk .phone-icon::before{ border-color:var(--accent); }
+.office-desk.ringing::after{ border-color:var(--accent-line); }.office-desk .seat-dot{ border-color:var(--accent-line); background:var(--accent-soft); }
+.office-sv .lamp{ background:var(--accent); box-shadow:0 0 15px var(--accent-line); }.office-board{ background:var(--surface); color:var(--text); border-color:var(--line); }.office-board b{ color:var(--text-2); }.office-board .blank{ color:var(--text-3); }
+.office-clock{ color:var(--accent); }.office-incoming{ background:var(--surface); border-color:var(--accent-line); box-shadow:0 18px 40px rgba(21,32,43,.18); }.office-incoming-head h2{ color:var(--accent); }
+.call{ background:var(--surface); border-color:var(--line); }.call.on-hold{ border-color:var(--accent-line); box-shadow:inset 0 0 0 1px var(--accent-line); background:linear-gradient(180deg,var(--accent-soft),var(--surface) 34%); }
+.call-head{ background:var(--surface); }.call-head .ctype{ color:var(--accent); border-color:var(--accent-line); }.call-guide{ width:100%; margin:2px 0 0; padding:7px 10px; border-left:3px solid var(--accent); background:var(--accent-soft); color:var(--text-2); font-size:13px; line-height:1.55; }
+.line.cust .say,.opt,.tone,.waybill,.report-auto,.report-check,.score-cell{ background:var(--surface-2); }.line.me .say{ background:var(--accent-soft); border-color:var(--accent-line); }.line.me .who,.act-tab.on,.tone .tname,.shipment h3{ color:var(--accent); }
+.line{ max-width:82%; }.line .say{ position:relative; border:1px solid var(--line); border-radius:12px 12px 12px 3px; }.line.cust .say::after{ content:""; position:absolute; left:-1px; bottom:-7px; border-width:7px 8px 0 0; border-style:solid; border-color:var(--surface-2) transparent transparent transparent; }.line.me .say{ border-radius:12px 12px 3px 12px; }.line.me .say::after{ content:""; position:absolute; right:-1px; bottom:-7px; border-width:7px 0 0 8px; border-style:solid; border-color:var(--accent-soft) transparent transparent transparent; }.line.sys .say{ border:1px solid var(--signal); background:var(--signal-soft); color:var(--text-2); }.line.note .say{ border:1px solid var(--line-soft); background:var(--surface-2); }
+.line.typing .say::before{ content:""; display:inline-block; width:7px; height:12px; margin-left:2px; background:var(--accent); vertical-align:-1px; animation:type-cursor .7s steps(1,end) infinite; }.line.typing .say:empty::before{ margin-left:0; }.actions.is-typing{ opacity:.48; pointer-events:none; user-select:none; }@keyframes type-cursor{ 50%{ opacity:0; } }
+.opt{ padding:12px 13px; font-size:15px; }.opt:hover:not(:disabled),.tone:hover,.report-check:hover{ background:var(--surface-3); border-color:var(--accent-line); }.opt:focus-visible,.tone:focus-visible,.act-tab:focus-visible,.board-toggle:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.opts{ max-height:min(32vh,300px); }.transcript{ flex:5 1 0; min-height:125px; max-height:none; }.line .say{ font-size:15px; }.actions{ flex:4 1 0; min-height:0; overflow:auto; padding:14px; }
+@media (min-width:761px){ body.playing .transcript{ flex:5 1 0; min-height:125px; max-height:none; } body.playing .actions{ flex:4 1 0; min-height:0; overflow:auto; } }
+.device-card{ background:var(--surface); }.lcd,.lcd.obscured,.lcd.missing{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.lcd.obscured::before{ background:repeating-linear-gradient(110deg,transparent 0 6px,#183746 6px 10px); }.lcd-placeholder b,.lcd-clients,.lcd-ssid{ color:#E4F6F4; }
+.board-toggle{ width:100%; display:flex; justify-content:space-between; margin:10px 0; padding:9px 10px; border:1px solid var(--line); background:var(--surface-2); color:var(--text-2); font-size:13px; font-weight:600; }.board-toggle span{ color:var(--accent); font-weight:500; }.board-excluded{ border-top:1px solid var(--line-soft); }
+.cause{ color:var(--text-2); }.cause.hot{ color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); }.cause.out{ opacity:.7; color:var(--text-3); }
+.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover{ border-color:var(--accent-line); color:var(--accent); }.toast{ box-shadow:0 8px 24px rgba(21,32,43,.14); }
+
+@keyframes slidein{
+  from{ opacity: 0; transform: translateX(14px); }
+  to{ opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* ---------- レスポンシブ ---------- */
+
+@media (max-width: 1080px){
+  .console{ grid-template-columns: 240px minmax(0,1fr); }
+  .pane.board{ grid-column: 1 / -1; }
+  .board .cause{ font-size: 12px; }
+}
+
+@media (max-width: 760px){
+  .console{ grid-template-columns: 1fr; }
+  .pane{ padding: 14px; }
+  .transcript{ max-height: 320px; }
+  .sheet{ padding: 24px 20px 28px; }
+  .sheet h1{ font-size: 26px; }
+  .topbar-inner{ gap: 14px; padding: 9px 14px; }
+  .world-axis{ inset-inline: 14px; }
+  .world-pin-label{ display: none; }
+  .kpis{ gap: 12px; }
+  .brand .sub{ display: none; }
+}
+</style>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="mark">Global Desk</span>
+      <span class="sub">海外用モバイルWiFi ／ 深夜シフト テクニカルサポート</span>
+    </div>
+    <div class="clock">
+      <span class="t" id="clock">22:00</span>
+      <span class="z">JST</span>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <button class="btn-help" id="btn-manual">対応マニュアル</button>
+  </div>
+  <div class="world-strip" id="world-strip" role="img" aria-label="UTC-12からUTC+12までの昼夜と、現在対応中の都市"></div>
+</div>
+
+<section class="office-scene" id="office" aria-label="深夜のグローバルデスク オフィス">
+  <div class="office-head">
+    <div><p class="eyebrow">NIGHT SHIFT FIELD</p><h1>深夜のグローバルデスク</h1></div>
+    <p>自席の電話が鳴ったら、着信を選んで応対します。</p>
+  </div>
+  <div class="office-floor">
+    <div class="office-object office-board"><b>全社ホワイトボード</b><div id="office-notice"></div></div>
+    <button class="office-object office-desk" id="office-phone" data-office-phone="1" aria-label="自席の電話。着信一覧を開く"><b>あなたの自席</b><small id="office-phone-status">待機中</small><i class="phone-icon" aria-hidden="true"></i><i class="seat-dot" aria-hidden="true"></i></button>
+    <div class="office-object office-empty one" title="無人"><b>空席 A</b><small>無人</small></div>
+    <div class="office-object office-empty two" title="無人"><b>空席 B</b><small>無人</small></div>
+    <div class="office-object office-empty three" title="無人"><b>空席 C</b><small>無人</small></div>
+    <div class="office-object office-empty four" title="無人"><b>空席 D</b><small>無人</small></div>
+    <div class="office-object office-sv" id="office-sv"><b>SV席</b><small id="office-sv-status">ESC枠 3 / 3</small><i class="lamp" aria-hidden="true"></i></div>
+    <div class="office-object office-ship"><b>配送手配カウンター</b><small id="office-ship-status">手配 0件</small></div>
+    <div class="office-object office-tray"><b>書類トレイ</b><small id="office-tray-status">折り返し待ち 0件</small></div>
+    <div class="office-object office-clock" id="office-clock">22:00</div>
+    <div class="office-object office-window" aria-label="夜景"></div>
+    <aside class="office-incoming" id="office-incoming" hidden>
+      <div class="office-incoming-head"><h2>着信一覧</h2><span class="count-chip mono" id="office-queue-count">0</span></div>
+      <div class="office-incoming-list" id="office-queue"></div>
+      <div class="callback-wrap"><div class="callback-head"><span class="eyebrow">折り返し待ち</span><span class="count-chip mono" id="office-callback-count">0</span></div><div class="callback-list" id="office-callbacks"></div></div>
+      <button class="btn-primary office-fast" id="office-next" data-office-next="1">次の電話を取る</button>
+    </aside>
+  </div>
+</section>
+
+<div class="console">
+
+  <section class="pane call-summary">
+    <div class="pane-head">
+      <h2 class="pane-title">待機状況</h2>
+      <span class="count-chip mono" id="queue-count">要約</span>
+    </div>
+    <div class="summary-figure" id="call-summary"></div>
+    <div class="hint-bar" id="queue-hint"></div>
+  </section>
+
+  <section class="pane desk">
+    <div class="pane-head">
+      <h2 class="pane-title">対応デスク</h2>
+      <span class="count-chip mono" id="line-state">待機</span>
+    </div>
+    <div class="call" id="call"></div>
+  </section>
+
+  <section class="pane board">
+    <div class="pane-head">
+      <h2 class="pane-title">診断ボード</h2>
+      <span class="count-chip mono" id="fact-count">0</span>
+    </div>
+    <div id="board"></div>
+  </section>
+
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+<div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+
+<script>
+/* ============================================================
+   データ定義
+   ============================================================ */
+
+const TURN_MIN = 1;          // 時間進行の最小単位＝ゲーム内1分
+const SHIFT_START = 22 * 60; // 22:00 JST
+const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
+const CALLBACKS = 2;         // 1シフトの折り返し枠
+
+/* ---------- 原因マスタ（診断ボードに常時並ぶ） ---------- */
+
+const CAUSES = [
+  { id:'fup',        tier:'確定', label:'データ容量の上限到達による速度制限' },
+  { id:'devices',    tier:'確定', label:'同時接続台数の上限超過' },
+  { id:'geo_block',  tier:'確定', label:'渡航先の通信規制（特定サービスのみ不通）' },
+  { id:'heavy',      tier:'有力', label:'一部端末の大容量通信による帯域の圧迫' },
+  { id:'device_side',tier:'有力', label:'端末側に保存されたWi-Fi情報の不整合' },
+  { id:'device_net', tier:'有力', label:'端末側のVPN／DNS／プロファイル設定' },
+  { id:'location',   tier:'有力', label:'電波の届きにくい場所（地下・建物構造）' },
+  { id:'power',      tier:'有力', label:'充電・電源まわり（ケーブル／アダプタ／過熱）' },
+  { id:'carrier',    tier:'要ESC', label:'現地キャリアの広域障害' },
+  { id:'coverage',   tier:'要ESC', label:'契約の対象エリア外／機種と地域の不一致' },
+  { id:'sim',        tier:'要ESC', label:'SIM未認識（本体側の故障）' },
+  { id:'provision',  tier:'要ESC', label:'事業者側の回線開通設定の不備' },
+  { id:'logistics',  tier:'他部署', label:'技術以外の案件（受取・返却・請求）' },
+];
+
+/* ---------- 顧客タイプと伝え方 ---------- */
+
+const TYPES = {
+  anxious: { label:'不安が強い', tone:'warm',      note:'落ち着いて、噛み砕いた言葉で。' },
+  novice:  { label:'機器に不慣れ', tone:'warm',    note:'専門用語は通じない。手順は一つずつ。' },
+  expert:  { label:'技術に明るい', tone:'technical', note:'噛み砕きすぎると馬鹿にされたと感じる。' },
+  hurried: { label:'急いでいる',  tone:'brief',    note:'前置きは邪魔。結論から短く。' },
+};
+
+const TONES = [
+  { id:'technical', name:'技術的に', sub:'用語をそのまま使い、手順を番号で正確に伝える' },
+  { id:'warm',      name:'噛み砕いて', sub:'専門用語を避け、一つずつ確認しながら伝える' },
+  { id:'brief',     name:'手短に',   sub:'前置きを省き、やることだけを結論から伝える' },
+];
+
+/* ---------- 質問プール ---------- */
+
+const QUESTIONS = [
+  { id:'q_other_device', label:'ほかの端末でも同じ状態ですか？',
+    miss:'ええと…ほかの端末は、いま試せる状況になくて。' },
+  { id:'q_lamp', label:'本体の画面表示とアンテナの状態を教えてください',
+    miss:'見てみます…とくに変わったところはないと思うんですけど。' },
+  { id:'q_ssid', label:'Wi-Fiの一覧に、ルーターの名前は出ていますか？',
+    miss:'名前は出ています。そこは問題なさそうです。' },
+  { id:'q_when', label:'いつから、直前に何をされていましたか？',
+    miss:'いつから、と言われると…気づいたらこうなっていた感じで。' },
+  { id:'q_count', label:'いま何台つないでいらっしゃいますか？',
+    miss:'台数ですか。そんなに繋いでいないと思います。' },
+  { id:'q_where', label:'いま、どのような場所にいらっしゃいますか？',
+    miss:'普通の建物の中です。とくに変わった場所ではないです。' },
+  { id:'q_moved', label:'別の場所でも試されましたか？',
+    miss:'いえ、そこまではまだ試していないです。' },
+  { id:'q_battery', label:'本体のバッテリー残量はどのくらいですか？',
+    miss:'半分くらいはあります。電池は大丈夫そうです。' },
+  { id:'q_what_fails', label:'開けないのは特定のサービスだけですか、全部ですか？',
+    miss:'全部です。特定のものだけ、ということはないです。' },
+  { id:'q_stay', label:'ご滞在先（ホテル名とお部屋番号）を教えてください',
+    miss:'ホテルですけど…それが何か関係あるんでしょうか。' },
+];
+
+/* ---------- 社内照会プール ---------- */
+
+const LOOKUPS = [
+  { id:'l_plan',    label:'契約プランとデータ使用量を照会', miss:'[契約照会] 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし' },
+  { id:'l_session', label:'ルーターの接続セッション履歴を照会', miss:'[セッション] 直近の異常イベントなし。SIM認識 正常。' },
+  { id:'l_outage',  label:'現地キャリアの障害情報を確認', miss:'[障害情報] 該当エリアの提携キャリア 障害報告なし。' },
+  { id:'l_area',    label:'渡航先の対応エリアと機種対応を確認', miss:'[エリア照会] 渡航先: 対応地域内 ／ 貸出機種: 対応 ✓' },
+  { id:'l_ship',    label:'貸出・返却・配送の記録を照会', miss:'[貸出記録] 通常の貸出。受取済み・返却期限内。特記事項なし。',
+    missFact:{ text:'貸出・返却に問題はなく、物流側の案件ではない', out:['logistics'] } },
+];
+
+/* ---------- 低リスク操作（通話をつないだまま実行） ---------- */
+
+const TESTS = [
+  { id:'t_reboot',     label:'ルーターの再起動をご案内する', turns:3, wait:'再起動をお願いしました。立ち上がるまで少しかかります。' },
+  { id:'t_forget',     label:'端末のWi-Fi設定を一度削除して、繋ぎ直していただく', turns:3, wait:'設定の削除と再接続をお願いしました。操作していただいています。' },
+  { id:'t_move',       label:'窓際か屋外へ移動して試していただく', turns:4, wait:'場所を移っていただいています。' },
+  { id:'t_disconnect', label:'使っていない端末をWi-Fiから切っていただく', turns:2, wait:'不要な端末を切っていただいています。' },
+  { id:'t_charge',     label:'付属のケーブルとアダプタで充電していただく', turns:5, wait:'充電をお願いしました。しばらく様子を見ます。' },
+];
+
+/* 危険な操作。選べるが、初手の正解にはならない（おとのレビュー反映） */
+const RISKY = [
+  { id:'t_reset', label:'本体を初期化（工場出荷リセット）していただく', turns:2,
+    wait:'初期化をお願いしました。',
+    result:'（操作後）…あの、画面が英語だらけになって、何も繋がらなくなりました。前より悪くなってませんか？',
+    note:'初期化で回線設定ごと飛んだ。サポート側の指示なく客に踏ませてよい操作ではない。', damage:1.5 },
+  { id:'t_simout', label:'SIMを一度抜いて挿し直していただく', turns:2,
+    wait:'SIMの抜き差しをお願いしました。',
+    result:'（操作後）トレイの爪が折れてしまいました…どうしよう、弁償ですか？',
+    note:'客に本体を分解させた。破損の責任が会社側に生じ、交換も避けられなくなった。', damage:2.0 },
+  { id:'t_apn', label:'スマートフォンのAPN設定を書き換えていただく', turns:2,
+    wait:'端末のAPN設定を開いていただいています。',
+    result:'（操作後）言われたとおり入れましたけど、何も変わりません。元の設定も分からなくなりました。',
+    note:'レンタルWiFiのAPNはルーター内のSIM側の設定で、客のスマホには関係がない。手元の端末を壊しただけ。', damage:1.5 },
+  { id:'t_roaming', label:'端末のデータローミングをONにしていただく', turns:1,
+    wait:'端末のデータローミング設定を確認していただいています。',
+    result:'（操作後）ONにしました。…変わりません。というか、これ日本の携帯代がかかったりしませんか？',
+    note:'データローミングは自分のキャリア回線を海外で使う設定。Pocket WiFiの復旧策ではなく、高額請求の入口になる。', damage:1.0 },
+];
+
+/* ---------- 対処（原因ごと） ---------- */
+
+const REMEDIES = {
+  fup: [
+    { id:'r_topup', label:'追加データの購入方法をご案内し、その場で適用する', sub:'当日中に速度が戻る。追加料金は客側の任意', kind:'resolve' },
+    { id:'r_slow_ok', label:'制限は明日リセットされる旨を伝え、今日は低速のまま使っていただく', sub:'費用はかからないが、今日の不便は残る', kind:'resolve' },
+  ],
+  devices: [
+    { id:'r_disconnect', label:'接続台数の上限を説明し、使っていない端末を切っていただく', sub:'その場で解決する', kind:'resolve' },
+    { id:'r_second_unit', label:'2台目のルーターを追加で手配する', sub:'解決はするが配送に時間と費用がかかる', kind:'resolve', cost:12000 },
+  ],
+  geo_block: [
+    { id:'r_vpn_plan', label:'VPN付きオプションの追加を手配する', sub:'当日中に適用され、規制対象のサービスに繋がる', kind:'resolve', cost:3200 },
+    { id:'r_explain_block', label:'現地の通信規制であることだけを説明して終話する', sub:'原因は伝わるが、客の問題は解決しない', kind:'resolve' },
+  ],
+  heavy: [
+    { id:'r_throttle_talk', label:'大容量通信をしている端末を特定して控えていただく', sub:'その場で改善する', kind:'resolve' },
+  ],
+  device_side: [
+    { id:'r_forget_guide', label:'その端末のWi-Fi設定を削除して繋ぎ直す手順をご案内する', sub:'端末側の情報を作り直す。低リスク', kind:'resolve' },
+    { id:'r_use_other', label:'ほかの端末を使っていただくよう案内する', sub:'その場はしのげるが、原因は残る', kind:'resolve' },
+  ],
+  device_net: [
+    { id:'r_vpn_off', label:'端末のVPN／プロファイル設定を一度切っていただく', sub:'端末側の設定を戻す。低リスク', kind:'resolve' },
+  ],
+  location: [
+    { id:'r_move_guide', label:'電波の入る場所の目安をご案内する', sub:'移動で改善する見込みを伝える', kind:'resolve' },
+  ],
+  power: [
+    { id:'r_charge_guide', label:'付属アダプタでの充電と、使わない時間の電源オフをご案内する', sub:'消耗の理由も添えて伝える', kind:'resolve' },
+  ],
+  carrier: [
+    { id:'r_outage_explain', label:'広域障害であることと復旧見込みを説明し、日割りの返金を案内する', sub:'原因が判明している場合の正規対応', kind:'resolve', needsOutage:true, cost:2400 },
+    { id:'r_escalate_line', label:'回線障害の疑いとして技術部門へエスカレーションする', sub:'枠を1つ消費。確実だが自己解決にはならない', kind:'escalate' },
+    { id:'r_swap_unit', label:'本体の不具合とみて代替機を手配する', sub:'網側の障害なら代替機を送っても直らない', kind:'resolve', cost:28000 },
+  ],
+  coverage: [
+    { id:'r_escalate_band', label:'対応バンドの広い機種への交換を技術部門へエスカレーションする', sub:'枠を1つ消費。機種を変えないと解決しない', kind:'escalate', cost:28000 },
+    { id:'r_swap_same', label:'同じ機種の代替機を手配する', sub:'同型機では同じ場所でまた圏外になる', kind:'resolve', cost:28000 },
+    { id:'r_city_only', label:'市内であれば使える旨を説明して終話する', sub:'客の予定は変えられない', kind:'resolve' },
+  ],
+  sim: [
+    { id:'r_escalate_swap', label:'本体故障として代替機の当日配送をエスカレーションする', sub:'枠を1つ消費。遠隔では直せない', kind:'escalate', cost:28000 },
+    { id:'r_reboot_again', label:'もう一度、時間を置いて再起動していただく', sub:'すでに変わらなかった操作を繰り返すだけ', kind:'resolve' },
+  ],
+  provision: [
+    { id:'r_escalate_prov', label:'開通設定の不備としてプロビジョニング担当へエスカレーションする', sub:'枠を1つ消費', kind:'escalate' },
+  ],
+  logistics: [
+    { id:'r_transfer_logi', label:'物流・カウンター担当へ引き継ぎ、宿泊先への当日配送を手配する', sub:'エスカレーション枠は消費しない別系統', kind:'transfer', cost:4800 },
+    { id:'r_come_tomorrow', label:'翌朝あらためてカウンターへ寄っていただくよう案内する', sub:'客の初日が丸ごと潰れる', kind:'resolve' },
+  ],
+};
+
+/* ---------- シナリオ ---------- */
+
+const SCENARIOS = [
+
+/* === 1. バンコク：容量超過。導入。社内照会で確定できる === */
+{
+  id:'S1', arrive:0, name:'三宅 千夏', age:27, type:'anxious', abandonAfter:32,
+  city:'バンコク', cityEn:'BANGKOK', localOffset:-2, device:'GD-500', plan:'タイ ／ 500MBプラン',
+  opening:'あの、すみません…昨日まで普通に使えていたんですけど、今日になって急に遅くて。地図が全然開かないんです。新婚旅行で、夫と二人でバンコクにいます。',
+  panel:{ bars:3, carrier:'AIS', sim:'ok', throttle:true, clients:2, maxClients:5, battery:62, ssid:'Globaldesk-2210' },
+  trueCause:'fup', best:'r_topup', partial:['r_slow_ok'],
+  replies:{
+    q_other_device:{ text:'夫のスマホでも同じです。二人とも同じくらい遅いです。',
+      fact:{ text:'同行者の端末も同様に遅い。端末固有ではない', out:['device_side','device_net'] } },
+    q_lamp:{ text:'本体の画面ですか…アンテナは3本立っています。あと下のほうに「節」みたいな漢字のマークが出てる…かな。',
+      fact:{ text:'アンテナ3本。本体に速度制限アイコンが表示されている', hot:['fup'], out:['sim','carrier','coverage'] } },
+    q_when:{ text:'今朝からです。昨夜ホテルで、その…夫と映画を1本見ちゃって。それが良くなかったんでしょうか。',
+      fact:{ text:'前夜に動画を長時間視聴。翌朝から低速化', hot:['fup'] } },
+    q_count:{ text:'2台だけです。私と夫のスマホ。',
+      fact:{ text:'接続は2台のみ', out:['devices'] } },
+    q_what_fails:{ text:'全部遅いです。開かないというより、ずっとくるくる回っている感じで。',
+      fact:{ text:'特定サービスではなく全体が低速', out:['geo_block'] } },
+  },
+  lookups:{
+    l_plan:{ text:'[契約照会] プラン: 500MB/日 ／ 本日の使用量: 512MB（上限到達）／ 現在 速度制限中（最大128kbps）／ 前日使用量: 4.2GB',
+      fact:{ text:'本日の使用量が上限に到達し、速度制限がかかっている', hot:['fup'], out:['heavy','location','power','provision'] },
+      viz:{ label:'本日の使用量', value:512, max:500, unit:'MB', note:'前日 4,200MB' } },
+    l_outage:{ text:'[障害情報] タイ AIS 網 正常。障害報告なし。',
+      fact:{ text:'現地キャリアに障害なし', out:['carrier'] } },
+  },
+  debrief:'いちばん素直な形。<em>社内の使用量照会で裏が取れる「確定」案件</em>で、客に余計な操作をさせる必要はありません。前夜の動画視聴という自己申告だけで決めつけず、契約照会まで引いて数字を見たかどうかが分かれ目でした。'
+},
+
+/* === 2. ロンドン：一台だけ繋がらない。端末側の保存情報 === */
+{
+  id:'S2', arrive:5, name:'田辺 幸子', age:71, type:'novice', abandonAfter:30,
+  city:'ロンドン', cityEn:'LONDON', localOffset:-8, device:'GD-500', plan:'イギリス ／ 無制限プラン',
+  opening:'もしもし。あの、インターネットが繋がらなくて。ツアーの皆さんは繋がっているみたいなんですけど、私のだけ駄目なんです。私の使い方が悪いんでしょうかね…。',
+  panel:{ bars:4, carrier:'Vodafone UK', sim:'ok', throttle:false, clients:3, maxClients:5, battery:71, ssid:'Globaldesk-4471' },
+  trueCause:'device_side', best:'r_forget_guide', partial:['r_use_other'],
+  replies:{
+    q_other_device:{ text:'同じツアーの方のスマホは繋がっているんです。同じ機械を、三人で囲んで使っていて。',
+      fact:{ text:'同一ルーターで他端末は正常。本人の端末だけ不通', hot:['device_side','device_net'], out:['carrier','sim','coverage','fup','provision'] } },
+    q_lamp:{ text:'四角い画面に、棒が4本と…あとは数字の3、でしょうか。',
+      fact:{ text:'アンテナ4本。接続3台。本体は正常に電波を掴んでいる', out:['sim','carrier','coverage','power'] } },
+    q_ssid:{ text:'一覧ですか…はい、「Globaldesk-4471」というのは出ています。押すと、少ししてから「接続できません」と出てしまって。',
+      fact:{ text:'SSIDは見えており、認証の段階で失敗している', out:['sim','power','location','geo_block','heavy'] } },
+    q_count:{ text:'三人で使っています。三台ですね。',
+      fact:{ text:'接続は3台', out:['devices'] } },
+    q_when:{ text:'今朝、ホテルを出てからです。昨日までは繋がっていました。' },
+  },
+  lookups:{
+    l_plan:{ text:'[契約照会] プラン: 無制限 ／ 使用量: 1.8GB ／ 速度制限なし',
+      fact:{ text:'容量制限はかかっていない', out:['fup'] },
+      viz:{ label:'使用量', value:1800, max:null, unit:'MB', note:'無制限プラン' } },
+    l_session:{ text:'[セッション] 現在3台接続中。うち1台（iPhone / MAC末尾 :C4）が本日04:12以降、認証失敗を6回記録。',
+      fact:{ text:'当該端末だけが認証に失敗し続けている', hot:['device_side'], out:['device_net'] } },
+  },
+  tests:{
+    t_forget:{ text:'…あら！ 繋がりました。画面に地図が出ています。まあ、こんな簡単なことだったんですね。よかった。',
+      fact:{ text:'Wi-Fi情報を削除して再接続したところ復旧', hot:['device_side'], out:['device_net','location','power'] }, solves:true },
+    t_reboot:{ text:'ルーターを入れ直しました。でも、私のはやっぱり駄目です。ほかの方は繋がったままですけど。',
+      fact:{ text:'ルーター再起動では変化なし。他端末は影響なし', out:['sim','carrier','power'] } },
+  },
+  debrief:'「別の端末では？」が最も情報量の高い質問だという典型例です。全端末なら回線側、<em>一台だけなら端末側</em>。ここを最初に押さえると、ルーターの再起動でツアー客全員を巻き込む必要がなくなります。伝え方も要点で、71歳の相手に「認証シーケンス」と言っても伝わりません。'
+},
+
+/* === 3. ホノルル：同時接続台数の上限超過。FUPと紛らわしい === */
+{
+  id:'S3', arrive:11, name:'大久保 健', age:44, type:'hurried', abandonAfter:22,
+  city:'ホノルル', cityEn:'HONOLULU', localOffset:-19, device:'GD-500', plan:'ハワイ ／ 無制限プラン',
+  opening:'すいません、急いでるんですけど。さっきまで使えてたのに、娘のタブレットだけ繋がらなくなって。いまバスの中で、ホテルに着くまでに直したいんですが。',
+  panel:{ bars:4, carrier:'T-Mobile US', sim:'ok', throttle:false, clients:5, maxClients:5, battery:55, ssid:'Globaldesk-8802' },
+  trueCause:'devices', best:'r_disconnect', partial:['r_second_unit'], shipNeed:'normal',
+  replies:{
+    q_other_device:{ text:'私と妻のスマホは普通に繋がってます。子どもの分だけ入れないんです。',
+      fact:{ text:'既存の接続端末は正常。新しい端末だけが入れない', hot:['devices','device_side'], out:['carrier','sim','coverage','provision'] } },
+    q_lamp:{ text:'ちょっと待って……はい、出しました。棒は4本。あと5って数字が出てます。',
+      fact:{ text:'電波は正常。接続台数の表示が5台', hot:['devices'], out:['sim','carrier','coverage','power','location'] } },
+    q_count:{ text:'えーと…私、妻、上の子のスマホ、下の子のタブレット、あとゲーム機と、妻のiPadも。6台か7台かな。',
+      fact:{ text:'接続を試みている端末が6〜7台ある', hot:['devices'] } },
+    q_when:{ text:'ホテルを出るときに下の子がタブレット持ってきて、それを繋ごうとしたところからです。',
+      fact:{ text:'新しい端末を追加した時点で発生', hot:['devices'] } },
+    q_ssid:{ text:'名前は出てます。押しても入れないって騒いでます。',
+      fact:{ text:'SSIDは見えているが参加できない', out:['location','power','device_net'] } },
+    q_what_fails:{ text:'いや、そもそもWi-Fiに入れないんで。サイトの話じゃないです。',
+      fact:{ text:'接続自体ができていない', out:['geo_block'] } },
+    q_stay:{ text:'ワイキキのホテルです。まだチェックインしてないので部屋番号は分かりません' },
+  },
+  lookups:{
+    l_plan:{ text:'[契約照会] プラン: 無制限 ／ 使用量: 2.1GB ／ 速度制限なし',
+      fact:{ text:'容量制限はかかっていない', out:['fup'] },
+      viz:{ label:'使用量', value:2100, max:null, unit:'MB', note:'無制限プラン' } },
+    l_session:{ text:'[セッション] 同時接続 5/5（上限到達）。6台目以降の認証要求を04:41以降 11回拒否。',
+      fact:{ text:'同時接続が上限5台に達し、追加の端末を拒否している', hot:['devices'], out:['device_side','heavy'] },
+      viz:{ label:'同時接続', value:5, max:5, unit:'台', note:'6台目以降を11回拒否' } },
+  },
+  tests:{
+    t_disconnect:{ text:'ゲーム機と妻のiPad切りました。…あ、繋がった。娘が静かになりました。助かります。',
+      fact:{ text:'不要端末の切断で新しい端末が接続できた', hot:['devices'] }, solves:true },
+  },
+  debrief:'「遅い・繋がらない」で反射的に容量超過を疑うと外します。<em>上限超過では、すでに繋がっている端末は影響を受けず、新しい端末だけが入れない</em>。この非対称が決め手でした。契約照会で容量が正常だと確認できれば、残るのは台数です。急いでいる相手なので、説明は短いほうが刺さります。'
+},
+
+/* === 4. 上海：渡航先の通信規制。技術に明るい客 === */
+{
+  id:'S4', arrive:18, name:'森 達彦', age:39, type:'expert', abandonAfter:35,
+  city:'上海', cityEn:'SHANGHAI', localOffset:-1, device:'GD-500', plan:'中国本土 ／ 1GBプラン',
+  opening:'上海です。ルーターは電波を掴んでいて速度も出ているんですが、社内システムとSlackに繋がりません。Googleも駄目です。pingは通るのに名前解決で落ちている感じがします。',
+  panel:{ bars:4, carrier:'China Unicom', sim:'ok', throttle:false, clients:2, maxClients:5, battery:80, ssid:'Globaldesk-1174' },
+  trueCause:'geo_block', best:'r_vpn_plan', partial:['r_explain_block'],
+  replies:{
+    q_what_fails:{ text:'全部じゃないです。BingとBaiduは普通に開きます。落ちているのはGoogle系、Slack、あとうちのVPNゲートウェイ。',
+      fact:{ text:'一部のサービスのみ不通。現地系サービスは正常', hot:['geo_block'], out:['fup','carrier','sim','devices','power','location'] } },
+    q_other_device:{ text:'ノートPCとスマホ、両方同じです。端末側の切り分けはこちらで済ませてあります。',
+      fact:{ text:'複数端末で同じ挙動。端末固有ではない', out:['device_side','device_net'] } },
+    q_lamp:{ text:'4本立ってます。China Unicomを掴んでますね。',
+      fact:{ text:'現地キャリアを正常に掴んでいる', out:['sim','coverage','provision'] } },
+    q_when:{ text:'着いた日からずっとです。最初からこうでした。',
+      fact:{ text:'渡航当初から一貫して同じ症状', out:['heavy'] } },
+  },
+  lookups:{
+    l_area:{ text:'[エリア照会] 中国本土 ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: China Unicom ✓ ／ 備考: 通常のデータプランには現地の通信規制を回避する経路が含まれない。規制対象サービスの利用には「VPN付きオプション」の追加が必要。',
+      fact:{ text:'契約プランが規制回避に対応していない。VPN付きプランで解消する', hot:['geo_block'], out:['coverage','provision'] } },
+    l_outage:{ text:'[障害情報] 中国 China Unicom 網 正常。障害報告なし。',
+      fact:{ text:'現地キャリアに障害なし', out:['carrier'] } },
+  },
+  debrief:'「繋がらない」の中身を分けられたかどうかです。<em>回線は生きていて、特定のサービスだけが落ちている</em>なら、疑うのは機器ではなく契約と地域の条件。相手はpingとDNSの区別がつく人なので、噛み砕きすぎるとかえって信用を落とします。'
+},
+
+/* === 5. ニューヨーク①：広域障害。この時点ではまだ見えない === */
+{
+  id:'S5', arrive:25, name:'小林 亜衣', age:33, type:'anxious', abandonAfter:28,
+  city:'ニューヨーク', cityEn:'NEW YORK', localOffset:-13, device:'GD-500', plan:'アメリカ ／ 無制限プラン',
+  opening:'ニューヨークです。30分くらい前から急に全部切れてしまって。ルーターの再起動はもう試したんですけど変わらなくて…。明日の朝いちばんで客先に行くのに、資料が開けないんです。',
+  panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:45, ssid:'Globaldesk-6390' },
+  trueCause:'carrier', best:'r_outage_explain', bestNoOutage:'r_escalate_line', partial:['r_escalate_line'],
+  replies:{
+    q_other_device:{ text:'同僚のスマホでも同じです。二人とも繋がりません。',
+      fact:{ text:'複数端末で同時に不通', out:['device_side','device_net'] } },
+    q_lamp:{ text:'アンテナが0本です。さっきまで4本立っていたのに。「圏外」と出ています。',
+      fact:{ text:'圏外表示。直前まで電波は正常だった', hot:['carrier','sim','coverage'], out:['fup','devices','geo_block','heavy'] } },
+    q_where:{ text:'ミッドタウンのホテルです。窓際でも駄目でした。ロビーまで降りても同じで。',
+      fact:{ text:'複数の場所で試しても圏外のまま', out:['location'] } },
+    q_when:{ text:'30分くらい前です。急にプツッと切れました。それまでは普通でした。',
+      fact:{ text:'突発的に発生。前兆なし', out:['power'] } },
+  },
+  lookups:{
+    l_outage:{ text:'[障害情報] 米国 提携キャリア: 現時点で報告なし（最終更新 03:10）',
+      fact:{ text:'障害情報はまだ上がっていない（更新が古い）' } },
+    l_area:{ text:'[エリア照会] 米国 ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: T-Mobile US ✓',
+      fact:{ text:'渡航先も機種も対応範囲内', out:['coverage'] } },
+    l_plan:{ text:'[契約照会] プラン: 無制限 ／ 使用量: 0.9GB ／ 速度制限なし',
+      fact:{ text:'容量制限はかかっていない', out:['fup'] } },
+    l_session:{ text:'[セッション] 04:58以降、圏内復帰なし。SIM認識: 正常（本体はSIMを認識している）。',
+      fact:{ text:'SIMは認識されている。本体側の故障ではない', out:['sim','provision'] } },
+  },
+  tests:{
+    t_reboot:{ text:'もう一度やりました。立ち上がりましたけど、やっぱり圏外のままです。',
+      fact:{ text:'再起動でも復旧しない', out:['power','device_side'] } },
+    t_move:{ text:'外の通りまで出てみました。空の下でも圏外です。',
+      fact:{ text:'屋外でも圏外', out:['location'] } },
+  },
+  debrief:'いちばん難しい一件でした。この時点で障害情報は上がっておらず、<em>SIMは正常・機種もエリアも対応内・複数端末で同時・屋外でも圏外</em>という消去法しか手がありません。ここで代替機を送ってしまうと、網側の障害なので届いても直らず、費用だけが出ていきます。判断がつかないならエスカレーションが正解です。'
+},
+
+/* === 6. ニューヨーク②：ここで相関が見える。山場 === */
+{
+  id:'S6', arrive:31, name:'渡辺 圭吾', age:52, type:'hurried', abandonAfter:20,
+  city:'ニューヨーク', cityEn:'NEW YORK', localOffset:-13, device:'GD-500', plan:'アメリカ ／ 無制限プラン',
+  opening:'ニューヨーク。急に圏外になりました。再起動は済ませてあります、駄目でした。出張で毎月使ってるので操作は分かってます。機械の問題でしょう、早く代わりを送ってください。',
+  panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:38, ssid:'Globaldesk-6512' },
+  trueCause:'carrier', best:'r_outage_explain', bestNoOutage:'r_escalate_line', partial:['r_escalate_line'],
+  replies:{
+    q_lamp:{ text:'圏外。アンテナゼロ。キャリア名も消えてます。',
+      fact:{ text:'圏外表示。キャリア名も表示されない', hot:['carrier','sim','coverage'], out:['fup','devices','geo_block','heavy'] } },
+    q_where:{ text:'ブルックリンです。歩きながらずっと見てますが、ずっと圏外。',
+      fact:{ text:'移動しながらでも一貫して圏外', out:['location'] } },
+    q_other_device:{ text:'2台繋いでますけど、どっちも駄目です。',
+      fact:{ text:'複数端末で同時に不通', out:['device_side','device_net'] } },
+    q_when:{ text:'1時間くらい前。急にです。',
+      fact:{ text:'突発的に発生', out:['power'] } },
+  },
+  lookups:{
+    l_outage:{ text:'[障害情報] 米国 提携キャリア T-Mobile US ／ 04:40頃より北東部で広域の接続障害を確認（最終更新 05:22）。復旧見込み: 未定。同一エリアからの入電: 2件。',
+      fact:{ text:'ニューヨークを含む北東部で提携キャリアの広域障害が発生中', hot:['carrier'], out:['sim','coverage','provision','device_side','device_net'] }, outage:true },
+    l_session:{ text:'[セッション] 05:31以降、圏内復帰なし。SIM認識: 正常。',
+      fact:{ text:'SIMは認識されている。本体側の故障ではない', out:['sim','provision'] } },
+    l_area:{ text:'[エリア照会] 米国 ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: T-Mobile US ✓',
+      fact:{ text:'渡航先も機種も対応範囲内', out:['coverage'] } },
+  },
+  debrief:'同じ都市から似た症状が続いたら、個別の故障ではなく<em>地域で起きていること</em>を疑う。障害情報の照会でそれが裏付けられ、先に受けた一件の答えもここで確定します。障害と分かってさえいれば、代替機を送らずに説明と返金で収められました。'
+},
+
+/* === 7. バルセロナ郊外：対象エリア外。上級 === */
+{
+  id:'S7', arrive:38, name:'中西 悠真', age:29, type:'expert', abandonAfter:38,
+  city:'バルセロナ近郊', cityEn:'BARCELONA', localOffset:-7, device:'GD-200', plan:'ヨーロッパ周遊 ／ 1GBプラン',
+  opening:'バルセロナから電車で1時間くらいの村に来ているんですが、街を離れてから完全に圏外です。市内では問題なく使えていました。端末側は疑っていません、3台とも同じなので。',
+  panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:3, maxClients:5, battery:66, ssid:'Globaldesk-3028' },
+  trueCause:'coverage', best:'r_escalate_band', partial:['r_city_only'], shipNeed:'next',
+  replies:{
+    q_other_device:{ text:'3台とも同じです。というかルーターが圏外なので、端末の問題ではないですよね。',
+      fact:{ text:'複数端末で同時に不通。ルーター自体が圏外', out:['device_side','device_net'] } },
+    q_where:{ text:'ジローナの手前の、山寄りの村です。過疎地ではないですよ、現地の人のスマホは普通に使えてます。',
+      fact:{ text:'現地の携帯は通じている場所で、ルーターだけが圏外', hot:['coverage'], out:['location'] } },
+    q_moved:{ text:'村の中を3か所くらい歩いて試しました。丘の上まで登っても駄目でした。',
+      fact:{ text:'複数地点で試しても圏外のまま', out:['location'] } },
+    q_lamp:{ text:'圏外表示。キャリア名も出ません。市内では Orange と出ていました。',
+      fact:{ text:'市内では接続実績あり。郊外でのみ圏外', hot:['coverage'], out:['sim','provision','fup','devices','geo_block','heavy'] } },
+    q_stay:{ text:'今夜はジローナの民宿です。ただ明日にはまた移動します' },
+  },
+  lookups:{
+    l_area:{ text:'[エリア照会] スペイン ／ 貸出機種: GD-200（旧型・3バンド）／ 提携: Orange ES ／ 備考: GD-200 は Orange ES の800MHz帯(B20)非対応。1800/2100MHz帯のみ対応のため、郊外・山間部では圏外となる場合あり。',
+      fact:{ text:'貸出機種が現地の郊外カバー用バンドに非対応。機種を替えないと解決しない', hot:['coverage'], out:['sim','carrier','provision'] } },
+    l_session:{ text:'[セッション] 07:40以降、圏内復帰なし。SIM認識: 正常。',
+      fact:{ text:'SIMは認識されている。本体側の故障ではない', out:['sim'] } },
+    l_outage:{ text:'[障害情報] スペイン Orange ES 網 正常。障害報告なし。',
+      fact:{ text:'現地キャリアに障害なし', out:['carrier'] } },
+  },
+  tests:{
+    t_move:{ text:'だから丘の上まで行ったと言ってます。同じでした。',
+      fact:{ text:'高所へ移動しても圏外', out:['location'] } },
+    t_reboot:{ text:'再起動しました。圏外のままです。',
+      fact:{ text:'再起動でも復旧しない', out:['power'] } },
+  },
+  debrief:'ここで<em>同じ機種の代替機を送ると、届いた先でまた圏外になります</em>。問題は個体ではなく、旧型機の対応バンドと郊外のカバー用周波数が噛み合っていないこと。エリア照会まで引かないと見えない情報で、遠隔の会話だけで確定できない典型なのでエスカレーションが正解です。'
+},
+
+/* === 8. ドバイ：SIM未認識。危険操作の誘惑 === */
+{
+  id:'S8', arrive:44, name:'藤川 みどり', age:58, type:'novice', abandonAfter:26,
+  city:'ドバイ', cityEn:'DUBAI', localOffset:-5, device:'GD-500', plan:'UAE ／ 1GBプラン',
+  opening:'ドバイの空港で受け取って、ホテルに着いて電源を入れたんですけど、画面に英語で「SIMカードがありません」と出ているんです。何度か入れ直してみたんですけど、変わらなくて…。',
+  panel:{ bars:null, carrier:null, sim:'none', throttle:false, clients:0, maxClients:5, battery:80, ssid:'Globaldesk-7745' },
+  trueCause:'sim', best:'r_escalate_swap', partial:['r_reboot_again'], shipNeed:'next',
+  replies:{
+    q_lamp:{ text:'「No SIM」と出ています。アンテナのところに小さい×がついていて。',
+      fact:{ text:'本体が SIM を認識していない（No SIM表示）', hot:['sim'], out:['fup','devices','geo_block','carrier','heavy','device_side','device_net'] } },
+    q_when:{ text:'さっき受け取ったばかりです。箱から出して、電源を入れただけです。',
+      fact:{ text:'受取直後の初回起動から発生', out:['fup','heavy'] } },
+    q_where:{ text:'ホテルのお部屋です。窓の近くにも持っていってみました。',
+      fact:{ text:'場所を変えても変化なし', out:['location'] } },
+    q_battery:{ text:'電池は…8割くらいあります。充電のマークは出ていません。',
+      fact:{ text:'バッテリーは十分', out:['power'] } },
+    q_stay:{ text:'ジュメイラのホテルで、部屋は1204です' },
+  },
+  lookups:{
+    l_session:{ text:'[セッション] 本体からのSIM認識イベントなし。最終認識は出荷検品時（8/28 11:20）。以降、認識記録が一度もない。',
+      fact:{ text:'出荷検品後、一度もSIMを認識していない。ハードウェア側の問題', hot:['sim'], out:['provision','carrier','coverage'] } },
+    l_ship:{ text:'[貸出記録] ドバイ国際空港カウンター受取 8/31 18:40 ／ 検品ステータス: 出荷時OK ／ 代替機在庫: 市内デポに 3台',
+      fact:{ text:'市内デポに代替機の在庫があり、当日配送が可能', hot:['sim'], out:['logistics'] } },
+    l_area:{ text:'[エリア照会] UAE ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: Etisalat ✓',
+      fact:{ text:'渡航先も機種も対応範囲内', out:['coverage'] } },
+    l_outage:{ text:'[障害情報] UAE Etisalat 網 正常。障害報告なし。',
+      fact:{ text:'現地キャリアに障害なし', out:['carrier'] } },
+  },
+  tests:{
+    t_reboot:{ text:'やってみました。やっぱり「No SIM」のままです。何度やっても同じです。',
+      fact:{ text:'再起動を繰り返しても認識しない', out:['power','device_side'] } },
+  },
+  debrief:'SIMを認識していないことは<em>遠隔では直せません</em>。再起動で変わらない時点で交換の判断へ進むのが正しく、客に本体を開けさせるのは論外です。この一件は在庫照会まで引けると、代替機が当日届くと言い切れて、相手の不安がずいぶん減ります。'
+},
+
+/* === 9. ハノイ：技術ではない。物流案件 === */
+{
+  id:'S9', arrive:50, name:'石橋 玲', age:35, type:'hurried', abandonAfter:16,
+  city:'ハノイ', cityEn:'HANOI', localOffset:-2, device:'（未受取）', plan:'ベトナム ／ 500MBプラン',
+  opening:'ハノイの空港なんですけど、受取カウンターに誰もいなくて、WiFiを受け取れていません。予約番号は持ってます。これからタクシーで市内に移動しないといけないんですが、どうすればいいですか。',
+  panel:null,
+  trueCause:'logistics', best:'r_transfer_logi', partial:['r_come_tomorrow'], shipNeed:'fast',
+  techPenalty:true,
+  replies:{
+    q_lamp:{ text:'いや、だから受け取れてないんです。手元に何もありません。',
+      fact:{ text:'（機器が手元にないため技術的な確認はできない）' } },
+    q_other_device:{ text:'機械がないので試しようがないです。話を聞いてました？',
+      fact:{ text:'（機器が手元にないため技術的な確認はできない）' } },
+    q_when:{ text:'20時に受け取る予約でした。着いたら誰もいなくて。もう22時半です。',
+      fact:{ text:'受取予約は20時。現地時刻はすでに22時半', hot:['logistics'] } },
+    q_stay:{ text:'これから市内のホテルへ向かいます。旧市街で、名前は予約票に出ています' },
+  },
+  lookups:{
+    l_ship:{ text:'[貸出記録] ハノイ ノイバイ空港 受取予約 8/31 20:00 ／ カウンター営業時間 06:00-21:00（現地）／ 現在 現地22:35（営業時間外）／ ステータス: 未受取 ／ 市内デポからの宿泊先配送: 当日手配可（到着目安 90分）',
+      fact:{ text:'カウンターは営業時間外。市内デポから宿泊先への当日配送が手配できる', hot:['logistics'], out:['sim','carrier','coverage','provision','fup','devices','geo_block','device_side','device_net','location','power','heavy'] } },
+  },
+  debrief:'テクニカルサポートにかかってくる電話が、いつも技術の話とはかぎりません。<em>手元に機器がない相手に切り分けの質問をするのは、時間を奪っているだけ</em>です。技術案件でないと早く見抜き、物流担当へ確実に渡すのがこの一件の正解でした。'
+},
+
+];
+/* ============================================================
+   ゲーム本体
+   ============================================================ */
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const CALLBACK_OVERDUE_MIN = 10;
+const SHIP_LEVELS = [
+  { id:'fast', label:'最速便', eta:'現地翌朝08:00まで', fee:18000, rank:3 },
+  { id:'next', label:'翌日便', eta:'現地翌日中', fee:9000, rank:2 },
+  { id:'normal', label:'通常便', eta:'2〜3日', fee:4000, rank:1 },
+];
+const SHIPPING_REMEDIES = new Set(['r_escalate_swap','r_escalate_band','r_transfer_logi','r_second_unit']);
+let typeTimer = null;
+let typingLine = null;
+
+function typewriterOff(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+function pendingTypedLine(t){ return [...t.transcript].reverse().find(x => (x.who === 'cust' || x.who === 'sys') && !x.typed); }
+function finishTyping(){
+  if (!typingLine) return;
+  clearTimeout(typeTimer);
+  const line = typingLine;
+  line.typed = true;
+  typingLine = null;
+  document.body.classList.remove('typing');
+  document.querySelector('.actions.is-typing')?.classList.remove('is-typing');
+  const say = document.querySelector('.line.typing .say');
+  if (say){ say.innerHTML = esc(line.text) + (line.viz ? renderLookupViz(line.viz) : ''); say.parentElement.classList.remove('typing'); }
+}
+function startTyping(t){
+  const line = pendingTypedLine(t);
+  if (!line) return;
+  if (typewriterOff()){ line.typed = true; renderCall(); return; }
+  typingLine = line;
+  document.body.classList.add('typing');
+  const say = document.querySelector('.line.typing .say');
+  if (!say) return finishTyping();
+  let pos = 0;
+  const step = () => {
+    if (typingLine !== line) return;
+    pos++;
+    say.textContent = line.text.slice(0, pos);
+    if (pos >= line.text.length){ finishTyping(); return; }
+    typeTimer = setTimeout(step, /[、。！？!?]/.test(line.text[pos - 1]) ? 175 : 25);
+  };
+  typeTimer = setTimeout(step, 25);
+}
+
+const state = {
+  phase: 'briefing',
+  turn: 0,
+  clock: SHIFT_START,
+  tickets: [],
+  focus: null,          // 表示中のチケット
+  escLeft: ESCALATIONS,
+  callbacksLeft: CALLBACKS,
+  cost: 0,
+  outageKnown: false,
+  holdVisual: false,
+  busy: false,
+  ui: { tab: 'ask', cause: null, remedy: null, lookup: null, boardExcludedOpen: false },
+  officeQueueOpen: false,
+  report: null,
+};
+
+/* ---------- 時刻 ---------- */
+
+function fmtClock(min){
+  const h = Math.floor(min / 60) % 24;
+  const m = min % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+function localClock(t){
+  return fmtClock(((state.clock + t.s.localOffset * 60) % 1440 + 1440) % 1440);
+}
+
+function daylightMix(utcOffset){
+  const utc = state.clock - 9 * 60;
+  const local = ((utc + utcOffset * 60) % 1440 + 1440) % 1440;
+  const hour = local / 60;
+  const sun = (hour > 6 && hour < 18) ? Math.sin((hour - 6) / 12 * Math.PI) : 0;
+  return Math.round(7 + sun * 61);
+}
+
+function renderWorldStrip(){
+  const strip = $('world-strip');
+  if (!strip) return;
+
+  const stops = [];
+  for (let i = 0; i <= 48; i++){
+    const offset = -12 + i / 2;
+    const pos = i / 48 * 100;
+    stops.push('color-mix(in srgb, var(--amber) ' + daylightMix(offset) + '%, var(--panel-3)) ' + pos.toFixed(2) + '%');
+  }
+
+  const seen = new Map();
+  const pins = state.tickets.filter(t => t.state !== 'inbound').map(t => {
+    const utcOffset = 9 + t.s.localOffset;
+    const pos = clamp((utcOffset + 12) / 24 * 100, 0, 100);
+    const key = pos.toFixed(3);
+    const stack = seen.get(key) || 0;
+    seen.set(key, stack + 1);
+
+    let cls = 'closed';
+    if (t.state === 'waiting') cls = 'waiting';
+    else if (t.state === 'open') cls = 'active';
+    else if (t.state === 'callback') cls = 'callback';
+    else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
+
+    const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '折り返し待ち' : cls === 'abandoned' ? '放棄呼' : '完了';
+    return '<span class="world-pin ' + cls + '" style="left:' + pos.toFixed(2) + '%;--stack:' + stack + '" ' +
+      'title="' + esc(t.s.city) + ' ' + esc(localClock(t)) + ' ' + status + '" aria-label="' + esc(t.s.city) + ' ' + status + '">' +
+      '<i class="world-pin-dot"></i><span class="world-pin-label">' + esc(t.s.id) + '</span></span>';
+  }).join('');
+
+  strip.innerHTML =
+    '<div class="world-sky" style="background:linear-gradient(90deg,' + stops.join(',') + ')"></div>' +
+    '<div class="world-axis">' +
+      '<span class="world-zone-label first">UTC−12</span>' +
+      '<span class="world-zone-label mid">UTC</span>' +
+      '<span class="world-zone-label last">UTC+12</span>' +
+      '<span class="world-jst"><span>JST</span></span>' + pins +
+    '</div>';
+}
+
+/* ---------- 初期化 ---------- */
+
+function newTicket(s){
+  return {
+    s, state:'inbound', patience:100, arrivedTurn:s.arrive,
+    facts:[], asked:new Set(), lookedUp:new Set(), tested:new Set(),
+    transcript:[], callMinutes:0, holdMinutes:0,
+    callbackCount:0, callbackDue:null, callbackLate:false,
+    stayAddress:null, shipment:null,
+    misdiagnoses:0, damage:0, wasted:0, result:null, escUsed:false,
+  };
+}
+
+function resetGame(){
+  state.phase = 'briefing';
+  state.turn = 0;
+  state.clock = SHIFT_START;
+  state.tickets = SCENARIOS.map(newTicket);
+  state.focus = null;
+  state.escLeft = ESCALATIONS;
+  state.callbacksLeft = CALLBACKS;
+  state.cost = 0;
+  state.outageKnown = false;
+  state.holdVisual = false;
+  state.busy = false;
+  state.ui = { tab:'ask', cause:null, remedy:null, lookup:null, boardExcludedOpen:false };
+  state.officeQueueOpen = false;
+  state.report = null;
+}
+
+/* ---------- トースト ---------- */
+
+function toast(title, body, kind){
+  const el = document.createElement('div');
+  el.className = 'toast ' + (kind || '');
+  el.innerHTML = '<b>' + esc(title) + '</b>' + esc(body);
+  $('toasts').appendChild(el);
+  setTimeout(() => { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; }, 5200);
+  setTimeout(() => el.remove(), 5700);
+}
+
+/* ---------- ターン進行 ---------- */
+
+function advance(turns){
+  for (let i = 0; i < turns; i++){
+    state.turn++;
+    state.clock += TURN_MIN;
+
+    // すでに待っている呼だけが、この1分の待ち時間を消費する
+    state.tickets.forEach(t => {
+      if (t.state === 'waiting') t.patience -= 100 / t.s.abandonAfter;
+      else if (t.state === 'callback' && state.clock > t.callbackDue) t.patience -= 100 / CALLBACK_OVERDUE_MIN;
+
+      if (t.patience <= 0 && (t.state === 'waiting' || t.state === 'callback')){
+        t.patience = 0;
+        t.state = 'closed';
+        t.result = { kind:'abandoned', csat:0, label:'放棄呼', firstCallResolved:false };
+        toast('放棄呼', '呼び出しに応答できず、切られました', 'crit');
+      }
+    });
+
+    // この分に到着した呼は、次の1分から待ち時間を消費する
+    state.tickets.forEach(t => {
+      if (t.state === 'inbound' && t.arrivedTurn <= state.turn){
+        t.state = 'waiting';
+        t.transcript.push({ who:'cust', text:t.s.opening });
+        toast('着信', t.s.name + '（' + t.s.city + '）', t.s.abandonAfter <= 20 ? 'crit' : '');
+      }
+    });
+  }
+}
+
+function addFact(t, fact, src){
+  t.facts.push({ text:fact.text, src:src, out:fact.out || [], hot:fact.hot || [] });
+}
+
+/* ---------- 広域障害の判明（シフトの山場） ---------- */
+
+function triggerOutage(origin){
+  if (state.outageKnown) return;
+  state.outageKnown = true;
+  toast('障害情報', '北東部の広域障害を確認。同一エリアの他チケットにも当てはまります', 'sig');
+
+  state.tickets.forEach(t => {
+    if (t === origin) return;
+    if (t.s.trueCause !== 'carrier') return;
+    if (t.state === 'closed') return;
+    t.transcript.push({ who:'sys', text:'[全社通知] 米国北東部 提携キャリアの広域障害を確認。同一エリアからの入電はこの障害による可能性が高い。' });
+    addFact(t, { text:'同じエリアで広域障害が確認された', hot:['carrier'], out:['sim','coverage','provision','device_side','device_net'] }, '全社通知');
+  });
+}
+
+/* ---------- プレイヤーの行動 ---------- */
+
+function pickup(t){
+  if (state.focus){ toast('通話中', '通話中です。いまの電話を終えないと次を取れません', 'crit'); return; }
+  t.state = 'open';
+  t.transcript.push({ who:'note', text:'通話を開始しました。' });
+  state.focus = t;
+  state.ui = { tab:'ask', cause:null, remedy:null, lookup:null };
+  enterCall();
+}
+
+function resumeCallback(t){
+  if (state.focus){ toast('通話中', '通話中です。いまの電話を終えないと次を取れません', 'crit'); return; }
+  if (!t || t.state !== 'callback') return;
+  t.callbackLate = t.callbackLate || state.clock > t.callbackDue;
+  t.state = 'open';
+  t.transcript.push({ who:'note', text:t.callbackLate ? '約束時刻を過ぎて折り返しました。' : '約束時刻内に折り返し、通話を再開しました。' });
+  state.focus = t;
+  state.ui = { tab:'ask', cause:null, remedy:null, lookup:null };
+  enterCall();
+}
+
+function spendOnCall(t, minutes, holdMinutes){
+  t.callMinutes += minutes;
+  t.holdMinutes += holdMinutes || 0;
+  advance(minutes);
+}
+
+function doAsk(qid){
+  const t = state.focus;
+  const q = QUESTIONS.find(x => x.id === qid);
+  t.asked.add(qid);
+  t.transcript.push({ who:'me', text:q.label });
+
+  const r = (t.s.replies || {})[qid];
+  if (r){
+    t.transcript.push({ who:'cust', text:r.text });
+    if (r.fact) addFact(t, r.fact, '聞き取り');
+    if (qid === 'q_stay') t.stayAddress = r.text;
+  } else {
+    t.transcript.push({ who:'cust', text:q.miss });
+    t.wasted++;
+  }
+  if (t.s.techPenalty && !r) t.wasted++;   // 機器が手元にない相手への技術質問は二重に無駄
+
+  spendOnCall(t, 1, 0);
+  render();
+}
+
+function doLookup(lid, mode){
+  const t = state.focus;
+  if (!t || state.busy || !['hold','talk'].includes(mode)) return;
+  const l = LOOKUPS.find(x => x.id === lid);
+  if (!l || t.lookedUp.has(lid)) return;
+  const minutes = mode === 'hold' ? 2 : 3;
+  const hold = mode === 'hold' ? 2 : 0;
+
+  state.busy = true;
+  state.holdVisual = mode === 'hold';
+  t.transcript.push({ who:'note', text:mode === 'hold' ? 'お客さまを保留にして社内照会を始めました。' : 'お客さまと話しながら社内照会を始めました。' });
+  render();
+
+  setTimeout(() => finishLookup(t, l, minutes, hold), mode === 'hold' ? 420 : 0);
+}
+
+function finishLookup(t, l, minutes, hold){
+  if (state.focus !== t || t.state !== 'open'){
+    state.busy = false;
+    state.holdVisual = false;
+    return;
+  }
+  const lid = l.id;
+  t.lookedUp.add(lid);
+
+  const r = (t.s.lookups || {})[lid];
+  if (r){
+    t.transcript.push({ who:'sys', text:r.text, viz:r.viz || null });
+    if (r.fact) addFact(t, r.fact, '社内照会');
+    if (r.outage) triggerOutage(t);
+  } else {
+    t.transcript.push({ who:'sys', text:l.miss });
+    if (l.missFact) addFact(t, l.missFact, '社内照会');
+    else t.wasted++;
+  }
+
+  spendOnCall(t, minutes, hold);
+  state.busy = false;
+  state.holdVisual = false;
+  state.ui.lookup = null;
+  render();
+}
+
+function doTest(tid){
+  const t = state.focus;
+  const risky = RISKY.find(x => x.id === tid);
+  const test = risky || TESTS.find(x => x.id === tid);
+  if (!t || !test || t.tested.has(tid)) return;
+  t.tested.add(tid);
+  t.transcript.push({ who:'me', text:test.label });
+  t.transcript.push({ who:'note', text:test.wait + '（所要' + test.turns + '分。通話はつないだままです）' });
+
+  const def = risky ? null : (t.s.tests || {})[tid];
+  spendOnCall(t, test.turns, 0);
+
+  if (risky){
+    t.transcript.push({ who:'cust', text:risky.result });
+    t.transcript.push({ who:'note', text:'【まずい対応】' + risky.note });
+    t.damage += risky.damage;
+    toast('悪化', t.s.name + ' の状況が悪くなりました', 'crit');
+  } else if (def){
+    t.transcript.push({ who:'cust', text:def.text });
+    if (def.fact) addFact(t, def.fact, '操作の結果');
+    if (def.solves) t.transcript.push({ who:'note', text:'この操作で症状が解消しました。原因を確定して案内できます。' });
+    toast('結果', t.s.name + ' の操作が終わりました', 'sig');
+  } else {
+    t.transcript.push({ who:'cust', text:'やってみましたが、変わりませんでした。' });
+    t.wasted++;
+  }
+  render();
+}
+
+function doCallback(){
+  const t = state.focus;
+  if (!t || state.callbacksLeft <= 0 || state.busy) return;
+  t.transcript.push({ who:'me', text:'一度お切りして、調べてから折り返します。30分以内にご連絡します。' });
+  t.callbackCount++;
+  state.callbacksLeft--;
+  spendOnCall(t, 1, 0);
+  t.callbackDue = state.clock + 30;
+  t.state = 'callback';
+  state.focus = null;
+  state.ui = { tab:'ask', cause:null, remedy:null, lookup:null };
+  toast('折り返し', t.s.name + ' と30分以内の折り返しを約束しました', 'sig');
+  enterOffice();
+}
+
+/* ---------- TGX 国際配送 ---------- */
+
+function shipLevel(id){ return SHIP_LEVELS.find(x => x.id === id); }
+function remedyNeedsShipping(id){ return SHIPPING_REMEDIES.has(id); }
+function startShipping(remedyId){
+  const t = state.focus;
+  if (!t) return;
+  if (!t.stayAddress){
+    t.transcript.push({ who:'note', text:'配送先が未確認です。手配を中断して滞在先を確認します。' });
+    spendOnCall(t, 2, 0);
+    state.ui = { tab:'ask', cause:null, remedy:null, lookup:null };
+    toast('TGX手配中断', '配送先が未確認です', 'crit');
+    render();
+    return;
+  }
+  state.ui.shipping = { remedyId, level:null };
+  render();
+}
+
+function shipmentEta(t, level){
+  const local = state.clock + t.s.localOffset * 60;
+  const day = Math.floor(local / 1440) * 1440;
+  if (level.id === 'fast'){
+    let eta = day + 8 * 60;
+    if (eta <= local) eta += 1440;
+    return eta;
+  }
+  if (level.id === 'next') return day + 1440 + 18 * 60;
+  return local + 60 * 60;
+}
+
+function shipmentAwb(t){
+  return 'TGX-' + String(Number(t.s.id.slice(1))).padStart(4,'0') + '-' + String(state.clock % 10000).padStart(4,'0');
+}
+
+function chooseShipLevel(id){
+  const level = shipLevel(id);
+  if (!state.ui.shipping || !level) return;
+  state.ui.shipping.level = id;
+  render();
+}
+
+function confirmShipment(){
+  const t = state.focus;
+  const ship = state.ui.shipping;
+  const level = ship && shipLevel(ship.level);
+  if (!t || !ship || !level) return;
+  const need = shipLevel(t.s.shipNeed);
+  const eta = shipmentEta(t, level);
+  t.shipment = { remedyId:ship.remedyId, level:level.id, label:level.label, fee:level.fee, awb:shipmentAwb(t), eta, tooSlow:need ? level.rank < need.rank : false };
+  state.cost += level.fee;
+  t.transcript.push({ who:'me', text:'TGX の追跡番号 ' + t.shipment.awb + ' で手配しました。現地時間の' + fmtClock(eta) + 'までにホテルへお届けします。' });
+  state.ui.shipping = null;
+  toast('TGX手配', t.s.name + ' 宛てに' + level.label + 'を確定しました', 'sig');
+  render();
+}
+
+function renderShipping(t){
+  const ship = state.ui.shipping;
+  const level = ship && shipLevel(ship.level);
+  if (!level){
+    return '<div class="shipment"><p class="eyebrow">TRANSGLOBE EXPRESS ／ TGX</p><h3>国際配送の手配</h3><p class="shipment-address">届け先：' + esc(t.stayAddress) + '</p><div class="opts">' + SHIP_LEVELS.map(x =>
+      '<button class="opt" data-ship-level="' + x.id + '"><span class="opt-label">' + x.label + '<span class="opt-sub">' + x.eta + '</span></span><span class="cost">¥' + x.fee.toLocaleString('ja-JP') + '</span></button>'
+    ).join('') + '</div></div>';
+  }
+  const eta = shipmentEta(t, level), awb = shipmentAwb(t);
+  return '<div class="shipment"><p class="eyebrow">TRANSGLOBE EXPRESS ／ TGX</p><h3>送り状を確認</h3><div class="waybill"><div><b>AWB No.</b><span>' + awb + '</span></div><div><b>発送元</b><span>現地デポ（' + esc(t.s.city) + '）</span></div><div><b>届け先</b><span>' + esc(t.stayAddress) + '</span></div><div><b>内容品</b><span>レンタル用モバイルWiFiルーター 1台（返送予定品）</span></div><div><b>サービス</b><span>' + esc(level.label) + ' ／ ' + esc(level.eta) + '</span></div><div><b>到着目安</b><span>現地 ' + fmtClock(eta) + '</span></div></div><button class="btn-primary shipment-confirm" data-ship-confirm="1">TGXへ手配を確定する</button></div>';
+}
+
+/* ---------- クローズ判定 ---------- */
+
+function toneLabel(id){ const x = TONES.find(t => t.id === id); return x ? x.name : id; }
+
+function doClose(causeId, remedyId, toneId){
+  const t = state.focus;
+  const s = t.s;
+  const remedy = (REMEDIES[causeId] || []).find(r => r.id === remedyId);
+
+  t.transcript.push({ who:'me', text:'【' + toneLabel(toneId) + '】' + remedy.label });
+  spendOnCall(t, 2, 0);
+
+  // ---- 誤診 ----
+  if (causeId !== s.trueCause){
+    t.misdiagnoses++;
+    if (remedy.cost) state.cost += remedy.cost;
+    if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
+
+    if (t.misdiagnoses >= 2){
+      t.transcript.push({ who:'cust', text:'…もういいです。上の方に代わってもらえますか。' });
+      t.transcript.push({ who:'note', text:'上長が引き取り、正しい原因（' + causeName(s.trueCause) + '）で対応を引き継ぎました。' });
+      closeTicket(t, { kind:'supervisor', csat:1.5, label:'上長が引き取り' });
+      toast('引き取り', t.s.name + ' の対応を上長が引き取りました', 'crit');
+    } else {
+      t.transcript.push({ who:'cust', text:'言われたとおりにしましたが、やっぱり直りません。まだ繋がらないんですけど。' });
+      t.transcript.push({ who:'note', text:'原因の見立てが外れていました。もう一度切り分けをやり直せます。' });
+      t.patience -= 20;
+      t.state = 'open';
+      state.ui = { tab:'ask', cause:null, remedy:null, lookup:null };
+      advance(2);
+      toast('再入電', t.s.name + ' の症状が解消していません', 'crit');
+    }
+    render();
+    return;
+  }
+
+  // ---- 原因は正しい ----
+  if (remedy.cost) state.cost += remedy.cost;
+  if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
+
+  let bestId = s.best;
+  if (s.bestNoOutage && !state.outageKnown) bestId = s.bestNoOutage;
+
+  let base, grade;
+  if (remedyId === bestId){ base = 5.0; grade = 'best'; }
+  else if ((s.partial || []).includes(remedyId)){ base = 3.5; grade = 'partial'; }
+  else { base = 2.2; grade = 'poor'; }
+
+  const wantTone = TYPES[s.type].tone;
+  const toneOk = (toneId === wantTone);
+  if (!toneOk) base -= 1.0;
+
+  base -= t.damage;
+  base -= t.misdiagnoses * 1.2;
+  base -= Math.min(0.6, t.wasted * 0.1);
+  base -= patiencePenalty(t.patience);
+  base -= holdPenalty(t.holdMinutes);
+  if (t.callbackCount > 0) base -= t.callbackLate ? 1.5 : 0.5;
+  if (t.shipment && t.shipment.remedyId === remedyId && t.shipment.tooSlow) base -= 1.0;
+
+  const csat = clamp(Math.round(base * 10) / 10, 1.0, 5.0);
+
+  t.transcript.push({ who:'cust', text:closingLine(s, grade, toneOk) });
+  closeTicket(t, { kind:'closed', csat, grade, toneOk, remedyId, causeId, toneId,
+    firstCallResolved:grade === 'best' && t.callbackCount === 0 && t.misdiagnoses === 0, label:gradeLabel(grade) });
+  toast('クローズ', t.s.name + ' ／ CSAT ' + csat.toFixed(1), csat >= 4 ? 'good' : (csat >= 3 ? '' : 'crit'));
+  render();
+}
+
+function holdPenalty(minutes){
+  if (minutes <= 0) return 0;
+  if (minutes <= 4) return 0.2;
+  if (minutes <= 8) return 0.5;
+  return 1.0;
+}
+
+function patiencePenalty(p){
+  if (p >= 80) return 0;
+  if (p >= 60) return 0.3;
+  if (p >= 40) return 0.7;
+  if (p >= 20) return 1.2;
+  return 1.8;
+}
+
+function gradeLabel(g){
+  return g === 'best' ? '解決' : (g === 'partial' ? '暫定対応' : '不適切な対処');
+}
+
+function closingLine(s, grade, toneOk){
+  if (grade === 'best'){
+    if (!toneOk){
+      const t = TYPES[s.type].tone;
+      if (t === 'warm')      return 'あ…はい。たぶん、繋がったと思います。よく分からないですけど、ありがとうございます。';
+      if (t === 'technical') return 'まあ、直ったのでいいですけど。そこまで噛み砕かなくても分かりますよ。';
+      return 'ええ、分かりました。分かりましたから、大丈夫です。もう行きますね。';
+    }
+    return {
+      anxious:'繋がりました！ ああ、よかった…。丁寧に聞いてくださって、本当に助かりました。',
+      novice:'あら、直りました。ゆっくり教えてくださって助かりましたよ。ありがとうございます。',
+      expert:'なるほど、そういうことですか。話が早くて助かりました。ありがとうございます。',
+      hurried:'お、繋がった。ありがとう、助かりました。',
+    }[s.type];
+  }
+  if (grade === 'partial') return 'ええと…はい、分かりました。とりあえずそれで様子を見てみます。';
+  return 'それ、本当に直るんですか…？ 言われたとおりにはしてみますけど。';
+}
+
+function closeTicket(t, result){
+  t.state = 'closed';
+  t.result = result;
+  if (state.focus === t) state.focus = null;
+  state.ui = { tab:'ask', cause:null, remedy:null, lookup:null };
+  checkShiftEnd();
+  if (state.phase === 'office') return;
+}
+
+function causeName(id){
+  const c = CAUSES.find(x => x.id === id);
+  return c ? c.label : id;
+}
+
+function checkShiftEnd(){
+  const live = state.tickets.some(t => t.state !== 'closed');
+  if (!live){ state.phase = 'report'; renderReport(); }
+  else { enterOffice(); }
+}
+
+/* ============================================================
+   描画
+   ============================================================ */
+
+function render(){
+  if (state.phase === 'office'){ renderOffice(); return; }
+  if (state.phase !== 'call') return;
+  $('clock').textContent = fmtClock(state.clock);
+  renderWorldStrip();
+  renderKpis();
+  renderQueue();
+  renderCall();
+  renderBoard();
+}
+
+function metrics(){
+  const finished = state.tickets.filter(t => t.result);
+  const answered = finished.filter(t => t.result.kind !== 'abandoned');
+  const abandoned = finished.filter(t => t.result.kind === 'abandoned').length;
+  const csats = answered.map(t => t.result.csat);
+  const csat = csats.length ? csats.reduce((a,b) => a+b, 0) / csats.length : null;
+  const fcrCount = answered.filter(t => t.result.firstCallResolved).length;
+  const fcr = answered.length ? fcrCount / answered.length : null;
+  const answerRate = (state.tickets.length - abandoned) / state.tickets.length;
+  const handled = state.tickets.filter(t => t.callMinutes > 0);
+  const aht = handled.length ? handled.reduce((n,t) => n + t.callMinutes, 0) / handled.length : null;
+  return { finished, answered, abandoned, csat, fcrCount, fcr, answerRate, aht };
+}
+
+function renderKpis(){
+  const m = metrics();
+
+  $('kpis').innerHTML = [
+    kpi('CSAT', m.csat === null ? '—' : m.csat.toFixed(1), m.csat === null ? '' : (m.csat >= 4 ? 'good' : m.csat >= 3 ? 'warn' : 'crit')),
+    kpi('一次解決率', m.fcr === null ? '—' : Math.round(m.fcr * 100) + '%', m.fcr === null ? '' : (m.fcr >= .75 ? 'good' : m.fcr >= .5 ? 'warn' : 'crit')),
+    kpi('応答率', Math.round(m.answerRate * 100) + '%', m.answerRate >= .9 ? 'good' : m.answerRate >= .75 ? 'warn' : 'crit'),
+    kpi('AHT', m.aht === null ? '—' : m.aht.toFixed(1) + '分', ''),
+    kpi('費用', '¥' + state.cost.toLocaleString('ja-JP'), state.cost >= 40000 ? 'crit' : state.cost > 0 ? 'warn' : ''),
+  ].join('');
+}
+function kpi(k, v, cls){
+  return '<div class="kpi"><span class="k">' + k + '</span><span class="v ' + cls + '">' + esc(v) + '</span></div>';
+}
+
+function renderQueue(){
+  const q = state.tickets.filter(t => t.state === 'waiting')
+    .sort((a,b) => a.patience - b.patience);
+  const callbacks = state.tickets.filter(t => t.state === 'callback');
+  const longest = q.length ? Math.max(0, ...q.map(t => state.turn - t.arrivedTurn)) : 0;
+  $('queue-count').textContent = q.length + '件';
+  $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>折り返し待ち <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
+  $('queue-hint').innerHTML = '詳しい着信一覧と折り返しは、終話後にオフィスの自席から確認できます。';
+}
+
+function queueCard(t){
+  const waited = state.turn - t.arrivedTurn;
+  const wcls = t.patience < 35 ? 'crit' : t.patience < 60 ? 'long' : '';
+  const mcls = t.patience < 35 ? 'low' : t.patience < 60 ? 'mid' : '';
+  return '<button class="qcard ' + (t.patience < 35 ? 'urgent' : '') + '" data-pick="' + t.s.id + '">' +
+    '<span class="qcard-top"><span class="tid mono">' + t.s.id + ' / ' + esc(t.s.device) + '</span><span class="wait mono ' + wcls + '">呼び出し ' + waited + '分</span></span>' +
+    '<span class="name">' + esc(t.s.name) + '<span class="mono" style="color:var(--faint);font-size:11px"> ' + t.s.age + '</span></span>' +
+    '<span class="place">' + esc(t.s.cityEn) + ' <span class="mono" style="text-transform:none;letter-spacing:0;color:var(--faint)">現地 ' + localClock(t) + '</span></span>' +
+    '<span class="snip">' + esc(t.s.opening) + '</span><span class="mood"><i class="' + mcls + '" style="width:' + Math.max(0, t.patience) + '%"></i></span></button>';
+}
+
+function renderOffice(){
+  document.body.classList.add('office-view');
+  document.body.classList.remove('call-view');
+  $('clock').textContent = fmtClock(state.clock);
+  $('office-clock').textContent = fmtClock(state.clock);
+  renderWorldStrip(); renderKpis();
+  const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.patience - b.patience);
+  const callbacks = state.tickets.filter(t => t.state === 'callback').sort((a,b) => a.callbackDue - b.callbackDue);
+  const shipments = state.tickets.filter(t => t.shipment).length;
+  $('office-phone').classList.toggle('ringing', waiting.length > 0);
+  $('office-phone-status').textContent = waiting.length ? '着信 ' + waiting.length + '件' : '着信待ち';
+  $('office-sv').classList.toggle('busy', state.escLeft === 0);
+  $('office-sv-status').textContent = state.escLeft ? 'ESC枠 ' + state.escLeft + ' / ' + ESCALATIONS : '別件対応中';
+  $('office-ship-status').textContent = '手配 ' + shipments + '件 ／ 費用 ¥' + state.tickets.reduce((n,t) => n + (t.shipment ? t.shipment.fee : 0), 0).toLocaleString('ja-JP');
+  $('office-tray-status').textContent = callbacks.length ? '折り返し待ち ' + callbacks.length + '件 ／ 最短 ' + fmtClock(callbacks[0].callbackDue) : '折り返し待ち 0件';
+  $('office-notice').innerHTML = state.outageKnown ? '<div class="notice">米国北東部：提携キャリアの広域障害<br>復旧見込み 未定</div>' : '<div class="blank">特記事項なし</div>';
+  $('office-queue-count').textContent = waiting.length + '件';
+  $('office-queue').innerHTML = waiting.length ? waiting.map(queueCard).join('') : '<p class="empty-note">着信はありません。</p>';
+  $('office-callback-count').textContent = callbacks.length + ' ／ 残枠' + state.callbacksLeft;
+  $('office-callbacks').innerHTML = callbacks.length ? callbacks.map(t => {
+    const left = t.callbackDue - state.clock, overdue = left < 0;
+    return '<button class="callback-card ' + (overdue ? 'overdue' : '') + '" data-callback-pick="' + t.s.id + '"><b>' + esc(t.s.name) + '</b><span>約束 ' + fmtClock(t.callbackDue) + ' まで（' + (overdue ? '約束超過 ' + Math.abs(left) + '分' : 'あと' + left + '分') + '）</span></button>';
+  }).join('') : '<p class="empty-note" style="padding:7px 3px">折り返し待ちはありません。</p>';
+  $('office-incoming').hidden = !state.officeQueueOpen;
+  $('office-next').disabled = !waiting.length;
+}
+
+function enterOffice(){
+  state.phase = 'office'; state.officeQueueOpen = false; renderOffice();
+}
+function enterCall(){
+  state.phase = 'call'; state.officeQueueOpen = false;
+  document.body.classList.remove('office-view'); document.body.classList.add('call-view'); render();
+}
+
+function renderCall(){
+  const t = state.focus;
+  $('line-state').textContent = t ? '通話中' : '待機';
+  $('call').classList.toggle('on-hold', !!(t && state.holdVisual));
+  if (!t){
+    $('call').innerHTML = '<div class="transcript"><p class="empty-note">' +
+      '左の着信キューから電話を取るか、<br>約束した相手へ折り返してください。</p></div>';
+    return;
+  }
+
+  const ty = TYPES[t.s.type];
+  const remaining = CAUSES.length - ruledOut(t).size;
+  const guide = !t.facts.length
+    ? 'まだ手がかりがありません。まず「聞き取り」から始めてください。'
+    : remaining <= 2
+      ? '候補が' + remaining + 'つまで絞れています。診断に進めます。'
+      : '手がかりをもとに候補を絞り込み中です。聞き取りか社内照会を続けてください。';
+  const head =
+    '<div class="call-head">' +
+      '<span class="cname">' + esc(t.s.name) + '</span>' +
+      '<span class="ctype">' + esc(ty.label) + '</span>' +
+      (state.holdVisual ? '<span class="hold-state">保留中</span>' : '') +
+      '<span class="call-time">通話 ' + String(t.callMinutes).padStart(2,'0') + '分／うち保留 ' + String(t.holdMinutes).padStart(2,'0') + '分</span>' +
+      '<span class="call-meta">' +
+        '<span><b>チケット</b> ' + t.s.id + '</span>' +
+        '<span><b>渡航先</b> ' + esc(t.s.city) + ' 現地 ' + localClock(t) + '</span>' +
+        '<span><b>機種</b> ' + esc(t.s.device) + '</span>' +
+        '<span><b>プラン</b> ' + esc(t.s.plan) + '</span>' +
+        '<span><b>機嫌</b> ' + Math.round(t.patience) + '%</span>' +
+      '</span>' +
+      '<p class="call-guide">' + guide + '</p>' +
+    '</div>';
+
+  const lines = t.transcript.map(l => {
+    const who = { cust:'客', me:'あなた', sys:'社内システム', note:'メモ' }[l.who];
+    const typing = (l.who === 'cust' || l.who === 'sys') && !l.typed;
+    return '<div class="line ' + l.who + (typing ? ' typing' : '') + '"><span class="who">' + who + '</span>' +
+      '<span class="say">' + (typing ? '' : esc(l.text) + (l.viz ? renderLookupViz(l.viz) : '')) + '</span></div>';
+  }).join('');
+
+  $('call').innerHTML = head + '<div class="transcript" id="transcript">' + lines + '</div>' + renderActions(t);
+
+  const tr = $('transcript');
+  if (tr) tr.scrollTop = tr.scrollHeight;
+  startTyping(t);
+}
+
+function renderActions(t){
+  if (state.busy){
+    return '<div class="actions"><div class="pending-note">社内照会中です。通話はつながったまま、時間が自動で進みます。</div></div>';
+  }
+  if (state.ui.shipping) return '<div class="actions">' + renderShipping(t) + '</div>';
+
+  const tab = state.ui.tab;
+  const tabs = [
+    ['ask', '聞き取り', QUESTIONS.length - t.asked.size],
+    ['lookup', '社内照会', LOOKUPS.length - t.lookedUp.size],
+    ['test', '操作の依頼', null],
+    ['close', '診断して案内する', null],
+  ].map(([id, name, n]) =>
+    '<button class="act-tab ' + (tab === id ? 'on' : '') + '" data-tab="' + id + '">' + name +
+    (n !== null ? '<span class="n">' + n + '</span>' : '') + '</button>'
+  ).join('');
+
+  let body = '';
+  if (tab === 'ask'){
+    body = '<div class="opts">' + QUESTIONS.map(q =>
+      '<button class="opt" data-ask="' + q.id + '" ' + (t.asked.has(q.id) ? 'disabled' : '') + '>' +
+      '<span class="opt-label">' + esc(q.label) + '</span><span class="cost">1分</span></button>'
+    ).join('') + '</div>' +
+    '<p class="hint-bar">聞き取りは1回1分。空振りの質問も同じだけ通話が延び、待っている客が切りやすくなります。</p>';
+  }
+  else if (tab === 'lookup'){
+    if (!state.ui.lookup){
+      body = '<div class="opts">' + LOOKUPS.map(l =>
+        '<button class="opt" data-lookup="' + l.id + '" ' + (t.lookedUp.has(l.id) ? 'disabled' : '') + '>' +
+        '<span class="opt-label">' + esc(l.label) + '</span></button>'
+      ).join('') + '</div><p class="hint-bar">照会項目を選んだあと、保留にするか話しながら調べるかを選びます。</p>';
+    } else {
+      const l = LOOKUPS.find(x => x.id === state.ui.lookup);
+      body = '<div class="opts"><button class="opt" data-lookup-back="1"><span class="opt-label">← 照会項目の選び直し</span></button>' +
+        '<button class="opt" data-lookup-mode="hold"><span class="opt-label">保留にして調べる<span class="opt-sub">相手を待たせるが速い</span></span><span class="cost">2分</span></button>' +
+        '<button class="opt" data-lookup-mode="talk"><span class="opt-label">話しながら調べる<span class="opt-sub">相手を待たせないが通話が長引く</span></span><span class="cost">3分</span></button></div>' +
+        '<p class="hint-bar">照会: ' + esc(l.label) + '</p>';
+    }
+  }
+  else if (tab === 'test'){
+    const safe = TESTS.map(x =>
+      '<button class="opt" data-test="' + x.id + '" ' + (t.tested.has(x.id) ? 'disabled' : '') + '>' +
+      '<span class="opt-label">' + esc(x.label) + '</span><span class="cost">' + x.turns + '分</span></button>'
+    ).join('');
+    const risky = RISKY.map(x =>
+      '<button class="opt danger" data-test="' + x.id + '" ' + (t.tested.has(x.id) ? 'disabled' : '') + '>' +
+      '<span class="opt-label">' + esc(x.label) + '</span><span class="cost">' + x.turns + '分</span></button>'
+    ).join('');
+    body = '<div class="opts">' + safe +
+      '<p class="hint-bar" style="margin:6px 0 2px">— 以下は本体や端末の設定を壊しうる操作です —</p>' +
+      risky + '</div>' +
+      '<p class="hint-bar">操作が終わるまで通話をつないだまま待ち、所要時間は自動で進みます。</p>';
+  }
+  else {
+    body = renderCloseFlow(t);
+  }
+
+  const callback = '<div class="opts"><button class="opt esc" data-callback="1" ' + (state.callbacksLeft <= 0 ? 'disabled' : '') + '>' +
+    '<span class="opt-label">一度お切りして、調べてから折り返す<span class="opt-sub">枠を1つ消費。待っている電話を先に捌けるが、一次解決にはならない</span></span>' +
+    '<span class="cost">残' + state.callbacksLeft + '枠</span></button></div>';
+  return '<div class="actions' + (pendingTypedLine(t) ? ' is-typing' : '') + '">' + callback + '<div class="act-tabs">' + tabs + '</div>' + body + '</div>';
+}
+
+function renderCloseFlow(t){
+  const ruled = ruledOut(t);
+  const hot = hotCauses(t);
+
+  if (!state.ui.cause){
+    return '<div class="opts">' + CAUSES.map(c => {
+      const out = ruled.has(c.id);
+      const isHot = hot.has(c.id);
+      return '<button class="opt ' + (out ? 'used' : '') + '" data-cause="' + c.id + '">' +
+        '<span class="opt-label">' + (isHot ? '● ' : '') + esc(c.label) +
+        '<span class="opt-sub">' + c.tier + (out ? ' ／ 集めた情報とは噛み合いません' : (isHot ? ' ／ 手がかりが指しています' : '')) + '</span></span>' +
+        '</button>';
+    }).join('') + '</div>' +
+    '<p class="hint-bar">原因を選ぶと、その原因に対する対処が出ます。外すと再入電になります。</p>';
+  }
+
+  const cause = CAUSES.find(c => c.id === state.ui.cause);
+  const list = REMEDIES[state.ui.cause] || [];
+
+  if (!state.ui.remedy){
+    return '<div class="opts">' +
+      '<button class="opt" data-cause="__back"><span class="opt-label">← 原因の選び直し</span></button>' +
+      list.map(r => {
+        const blockedEsc = r.kind === 'escalate' && state.escLeft <= 0;
+        const blockedOut = r.needsOutage && !state.outageKnown;
+        const dis = blockedEsc || blockedOut;
+        let sub = r.sub || '';
+        if (blockedEsc) sub = 'エスカレーション枠を使い切っています';
+        if (blockedOut) sub = '障害の裏付けが取れていないため、この案内はできません';
+        return '<button class="opt ' + (r.kind === 'escalate' ? 'esc' : '') + '" data-remedy="' + r.id + '" ' + (dis ? 'disabled' : '') + '>' +
+          '<span class="opt-label">' + esc(r.label) + '<span class="opt-sub">' + esc(sub) + '</span></span>' +
+          '<span class="cost">' + (r.cost ? '¥' + r.cost.toLocaleString('ja-JP') : '—') + '</span></button>';
+      }).join('') + '</div>' +
+      '<p class="hint-bar">診断: ' + esc(cause.label) + '</p>';
+  }
+
+  if (state.ui.remedy && remedyNeedsShipping(state.ui.remedy) && (!t.shipment || t.shipment.remedyId !== state.ui.remedy)){
+    return '<div class="pending-note">配送手配を完了してから、客への案内を選びます。</div>';
+  }
+
+  const ty = TYPES[t.s.type];
+  return '<div class="tone-row">' + TONES.map(tn =>
+    '<button class="tone" data-tone="' + tn.id + '"><span class="tname">' + tn.name + '</span>' + esc(tn.sub) + '</button>'
+  ).join('') + '</div>' +
+  '<p class="hint-bar">相手は「' + esc(ty.label) + '」タイプです。' + esc(ty.note) + ' 伝え方を選ぶと通話が終わります。</p>';
+}
+
+function ruledOut(t){
+  const s = new Set();
+  t.facts.forEach(f => (f.out || []).forEach(c => s.add(c)));
+  return s;
+}
+function hotCauses(t){
+  const s = new Set();
+  t.facts.forEach(f => (f.hot || []).forEach(c => s.add(c)));
+  return s;
+}
+
+function renderLookupViz(v){
+  const unlimited = v.max === null;
+  const ratio = unlimited ? 72 : clamp(v.value / Math.max(v.max, 1) * 100, 0, 100);
+  const over = !unlimited && v.value > v.max;
+  const value = v.value.toLocaleString('ja-JP') + (v.unit ? ' ' + v.unit : '');
+  const ceiling = unlimited ? '上限なし' : v.max.toLocaleString('ja-JP') + (v.unit ? ' ' + v.unit : '');
+  return '<span class="lookup-viz">' +
+    '<span class="lookup-viz-head"><span>' + esc(v.label) + '</span><b>' + esc(value) + ' / ' + esc(ceiling) + '</b></span>' +
+    '<span class="lookup-viz-track"><i class="lookup-viz-fill ' + (over ? 'over' : unlimited ? 'unlimited' : '') + '" style="width:' + ratio + '%"></i></span>' +
+    '<span class="lookup-viz-note">' + esc(v.note || '') + '</span></span>';
+}
+
+function renderDevicePanel(t){
+  const p = t.s.panel;
+  const label = '<div class="device-label"><span>ROUTER DISPLAY</span><span>' + esc(t.s.device) + '</span></div>';
+
+  if (!p){
+    return '<div class="device-card">' + label +
+      '<div class="lcd missing"><span class="lcd-placeholder"><b>端末未受取</b>本体の画面は確認できません</span></div></div>';
+  }
+  if (!t.asked.has('q_lamp')){
+    return '<div class="device-card">' + label +
+      '<div class="lcd obscured"><span class="lcd-placeholder"><b>本体の画面は未確認</b>聞き取りで表示を確認してください</span></div></div>';
+  }
+
+  const bars = [1,2,3,4].map(n => '<i class="' + (p.bars !== null && n <= p.bars ? 'on' : '') + '"></i>').join('');
+  const reception = p.sim === 'none'
+    ? '<span class="lcd-sim-none">× No SIM</span>'
+    : p.bars === 0 ? '<span class="lcd-offline">圏外</span>' : '<span>SIM OK</span>';
+  const throttle = p.throttle ? '<span class="lcd-throttle">SLOW</span>' : '<span>DATA</span>';
+
+  return '<div class="device-card">' + label + '<div class="lcd">' +
+    '<div class="lcd-top"><span class="signal-bars" aria-label="アンテナ' + (p.bars === null ? 'なし' : p.bars + '本') + '">' + bars + '</span>' +
+      '<span class="lcd-carrier">' + esc(p.carrier || '---') + '</span>' + reception + '</div>' +
+    '<div class="lcd-status">' + throttle + '<span class="lcd-clients">LINK ' + p.clients + ' / ' + p.maxClients + '</span>' +
+      '<span class="lcd-battery-wrap"><span class="lcd-battery"><i style="width:' + clamp(p.battery, 0, 100) + '%"></i></span>' + p.battery + '%</span></div>' +
+    '<div class="lcd-bottom"><span>SSID</span><span class="lcd-ssid">' + esc(p.ssid) + '</span></div>' +
+    '</div></div>';
+}
+
+function renderBoard(){
+  const t = state.focus;
+  if (!t){
+    $('fact-count').textContent = '0';
+    $('board').innerHTML = '<p class="empty-note">案件を開くと、ここに原因の候補と<br>集まった手がかりが並びます。</p>';
+    return;
+  }
+  const ruled = ruledOut(t);
+  const hot = hotCauses(t);
+  $('fact-count').textContent = String(t.facts.length);
+
+  const causeRow = c => {
+    const out = ruled.has(c.id) && !hot.has(c.id);
+    const isHot = hot.has(c.id);
+    return '<div class="cause ' + (out ? 'out' : '') + ' ' + (isHot ? 'hot' : '') + '">' +
+      '<span class="tick">' + (out ? '×' : isHot ? '●' : '·') + '</span>' +
+      '<span>' + esc(c.label) + '</span>' +
+      '<span class="tier">' + c.tier + '</span></div>';
+  };
+  const remainingCauses = CAUSES.filter(c => !(ruled.has(c.id) && !hot.has(c.id)));
+  const excludedCauses = CAUSES.filter(c => ruled.has(c.id) && !hot.has(c.id));
+  const causes = remainingCauses.map(causeRow).join('');
+  const excluded = excludedCauses.length
+    ? '<button class="board-toggle" data-board-excluded="1" aria-expanded="' + !!state.ui.boardExcludedOpen + '">除外済み（' + excludedCauses.length + '件）<span>' + (state.ui.boardExcludedOpen ? '閉じる' : '開く') + '</span></button>' +
+      (state.ui.boardExcludedOpen ? '<div class="board-excluded">' + excludedCauses.map(causeRow).join('') + '</div>' : '')
+    : '';
+
+  const facts = t.facts.length
+    ? t.facts.map(f => '<div class="fact"><span class="src">' + esc(f.src) + '</span>' + esc(f.text) + '</div>').join('')
+    : '<p class="empty-note" style="padding:10px 0">まだ手がかりがありません。</p>';
+
+  $('board').innerHTML =
+    renderDevicePanel(t) +
+    '<p class="eyebrow" style="margin:0 0 6px">残っている候補 ' + remainingCauses.length + ' / ' + CAUSES.length + '</p>' +
+    causes + excluded +
+    '<p class="eyebrow" style="margin:20px 0 8px">集まった手がかり</p>' +
+    '<div class="facts">' + facts + '</div>' +
+    '<p class="eyebrow" style="margin:20px 0 8px">この案件のここまで</p>' +
+    '<div class="mini-list">' +
+      mini('通話時間', t.callMinutes + '分') +
+      mini('うち保留', t.holdMinutes + '分') +
+      mini('聞き取り', t.asked.size + '回') +
+      mini('社内照会', t.lookedUp.size + '回') +
+      mini('見立て違い', t.misdiagnoses + '回') +
+    '</div>';
+}
+function mini(k, v){ return '<div class="mini"><span>' + k + '</span><b>' + esc(v) + '</b></div>'; }
+
+/* ============================================================
+   オーバーレイ
+   ============================================================ */
+
+/* シートの開閉。開いている間はコンソールを隠し、通常のスクロールに戻す */
+function openSheet(){
+  $('overlay').classList.add('on');
+  document.body.classList.add('sheet-open');
+  document.body.classList.remove('playing');
+  window.scrollTo(0, 0);
+}
+function closeSheet(){
+  $('overlay').classList.remove('on');
+  document.body.classList.remove('sheet-open');
+  document.body.classList.add('playing');
+}
+
+function showBriefing(){
+  $('sheet').innerHTML =
+    '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 22:00 JST</p>' +
+    '<h1>深夜のグローバルデスク</h1>' +
+    '<p class="lead">海外用モバイルWiFiレンタルのテクニカルサポート。日本は深夜でも、客のいる国は昼です。' +
+    'あなたは今夜のシフトでたった一人、' + SCENARIOS.length + '件の電話を受けます。</p>' +
+    '<p>ここは、すでに海外にいるお客様のための窓口です。渡航前と帰国後の問い合わせを受ける国内窓口は、いま閉まっています。日本の夜に鳴る電話は、全部この席に来ます。</p>' +
+
+    '<h2>やること</h2>' +
+    '<p>電話を取ったら、<strong>聞き取り</strong>・<strong>社内照会</strong>・<strong>操作の依頼</strong>で情報を集め、' +
+    '原因を見立てて対処を案内します。原因を外すと再入電になり、機嫌も時間も削られます。</p>' +
+    '<ul>' +
+      '<li><strong>電話は1本ずつしか取れません。</strong>話している間、ほかの電話は鳴り続けます。</li>' +
+      '<li>無駄な質問1つが通話を1分延ばし、その1分だけ、待っている誰かが切りやすくなります。</li>' +
+      '<li>調べものは保留にすれば速く済みますが、相手は無音のまま待たされます。話しながら調べると保留は増えませんが、通話が長引きます。</li>' +
+      '<li>どうしても時間がかかるなら、折り返しにして一度切る手もあります。枠は' + CALLBACKS + '回だけです。</li>' +
+      '<li>遠隔では直せないもの（回線障害・本体故障・機種の非対応）は<strong>エスカレーション</strong>が正解です。枠は' + ESCALATIONS + '回だけ。</li>' +
+      '<li>相手によって刺さる話し方が違います。急いでいる人に前置きは要りません。</li>' +
+    '</ul>' +
+
+    '<h2>評価の重みは隠しません</h2>' +
+    '<p>シフト終了時、次の5つで採点されます。AHT（平均通話時間）も表示されますが、直接の配点はありません。</p>' +
+    '<ul>' +
+      '<li><strong>顧客満足（CSAT）35%</strong> — 正しく直せたか、保留や折り返し、伝え方が相手にどう映ったか。</li>' +
+      '<li><strong>一次解決率 25%</strong> — 最初の通話で正しい対処まで到達したか。正しいエスカレーションも含みます。</li>' +
+      '<li><strong>応答率 20%</strong> — 9件のうち、放棄呼にせず応答できた割合です。</li>' +
+      '<li><strong>費用 10%</strong> — 代替機の手配や返金は会社の持ち出しです。要らない手配をしないこと。</li>' +
+      '<li><strong>業務報告 10%</strong> — その夜の重要な出来事を、必要十分に翌シフトへ残せたか。</li>' +
+    '</ul>' +
+
+    '<h2>ひとつだけ先に</h2>' +
+    '<p>いちばん情報量の多い質問は「<strong>ほかの端末でも同じですか</strong>」です。' +
+    '全部の端末なら回線か契約の側、一台だけならその端末の側。ここから枝を折っていってください。</p>' +
+
+    '<button class="btn-primary" id="btn-start">シフトを始める</button>';
+
+  openSheet();
+  $('btn-start').onclick = () => {
+    closeSheet();
+    advance(0);
+    // 1件目を着信させる
+    state.tickets.forEach(t => {
+      if (t.state === 'inbound' && t.arrivedTurn <= 0){
+        t.state = 'waiting';
+        t.transcript.push({ who:'cust', text:t.s.opening });
+      }
+    });
+    enterOffice();
+  };
+}
+
+function showManual(){
+  const wasPhase = state.phase;
+  $('sheet').innerHTML =
+    '<p class="eyebrow">OPERATIONS MANUAL</p>' +
+    '<h1>対応マニュアル</h1>' +
+    '<p class="lead">迷ったら順番どおりに枝を折ります。会話だけで確定できないものは、無理に確定させないこと。</p>' +
+    '<p>この席は、すでに海外にいるお客様のための24時間窓口です。渡航前・帰国後の国内窓口はいま閉まっているため、現地の手配までここで判断します。</p>' +
+
+    '<h2>切り分けの順番</h2>' +
+    '<ul>' +
+      '<li>渡航先・利用期間・機種・プランを押さえる</li>' +
+      '<li>本体の画面（電波・キャリア名・SIM表示・制限表示）を見てもらう</li>' +
+      '<li>Wi-Fiが見えるか／接続できるか／<strong>全端末か一台だけか</strong>を分ける</li>' +
+      '<li>低リスクの操作（再起動、窓際へ移動、Wi-Fi設定の削除と再接続、不要端末の切断）</li>' +
+      '<li>容量・現地障害・契約条件は社内照会で裏を取る</li>' +
+      '<li>回線障害・SIM・故障・機種非対応はエスカレーション</li>' +
+    '</ul>' +
+
+    '<h2>確信度の3段階</h2>' +
+    '<table class="tbl"><tr><th>段階</th><th>例</th><th>やること</th></tr>' +
+    '<tr><td>確定</td><td>容量超過、接続台数上限、通信規制</td><td>社内照会で裏を取ってから案内する</td></tr>' +
+    '<tr><td>有力</td><td>端末側の設定、電波の弱い場所</td><td>低リスク操作で試してから確定させる</td></tr>' +
+    '<tr><td>要ESC</td><td>広域障害、SIM未認識、機種非対応</td><td>遠隔では直せない。枠を使って渡す</td></tr>' +
+    '</table>' +
+
+    '<h2>やってはいけないこと</h2>' +
+    '<ul>' +
+      '<li><strong>客に本体を初期化させる／SIMを抜き差しさせる</strong> — 設定が飛び、破損の責任がこちらに来ます。</li>' +
+      '<li><strong>スマホのAPNを書き換えさせる</strong> — レンタルWiFiのAPNはルーター内のSIM側の設定で、客の端末には関係がありません。</li>' +
+      '<li><strong>データローミングをONにさせる</strong> — 自分のキャリア回線を海外で使う設定です。復旧策ではなく、高額請求の入口です。</li>' +
+      '<li><strong>とりあえず代替機を送る</strong> — 網側の障害なら届いても直りません。同じ機種を送っても機種非対応は解決しません。</li>' +
+    '</ul>' +
+
+    '<button class="btn-primary" id="btn-close-manual">デスクに戻る</button>';
+
+  openSheet();
+  $('btn-close-manual').onclick = () => {
+    if (wasPhase === 'briefing') { showBriefing(); return; }
+    if (wasPhase === 'debrief') { renderDebrief(); return; }
+    closeSheet();
+    render();
+  };
+}
+
+/* ---------- 業務報告 ---------- */
+
+function reportOptions(){
+  const handled = id => {
+    const t = state.tickets.find(x => x.s.id === id);
+    return t && t.result && t.result.kind !== 'abandoned';
+  };
+  const shipments = state.tickets.filter(t => t.shipment);
+  const byId = id => state.tickets.find(t => t.s.id === id);
+  const special = [];
+  if (state.outageKnown) special.push({ id:'outage', required:true, ticketId:'S5', text:'米国北東部で提携キャリアの広域障害。同一エリアから2件入電、復旧見込み未定' });
+  if (handled('S7')) special.push({ id:'gd200', required:true, ticketId:'S7', text:'GD-200 が現地の郊外カバー用周波数に非対応。市内では使えるが郊外で圏外となる事例' });
+  if (shipments.length) special.push({ id:'shipments', required:true, ticketId:shipments[0].s.id, text:'代替機を ' + shipments.length + '台手配（費用計 ¥' + shipments.reduce((n,t) => n + t.shipment.fee, 0).toLocaleString('ja-JP') + '）' });
+  if (handled('S9')) special.push({ id:'counter', required:true, ticketId:'S9', text:'空港カウンターの営業時間外受取が発生。デポからの配送で対応' });
+  if (handled('S1')) special.push({ id:'s1_daily', required:false, ticketId:'S1', text:'バンコクのお客様が容量超過。追加データの案内で解決' });
+  if (handled('S2')) special.push({ id:'s2_daily', required:false, ticketId:'S2', text:'ロンドンのお客様の端末側Wi-Fi設定を作り直して復旧' });
+  if (handled('S3')) special.push({ id:'s3_daily', required:false, ticketId:'S3', text:'ホノルルのお客様に接続台数の上限を説明' });
+
+  const handoff = [];
+  if (state.outageKnown) handoff.push({ id:'outage_watch', required:true, ticketId:'S5', text:'米国北東部の障害は未復旧。朝の入電増に注意' });
+  const s8 = byId('S8');
+  if (s8 && s8.shipment) handoff.push({ id:'s8_delivery', required:true, ticketId:'S8', text:'ドバイ宛の代替機が現地' + fmtClock(s8.shipment.eta) + '到着予定。着荷確認が必要' });
+  // 全件終了前には報告へ移れないため、折り返し待ちの必須項目は候補に出ない。
+  return { special, handoff };
+}
+
+function scoreReportGroup(options, selected){
+  const required = options.filter(x => x.required).map(x => x.id);
+  const chosen = selected.filter(id => id !== 'none');
+  let points = 0;
+  required.forEach(id => { points += chosen.includes(id) ? 1 : -1; });
+  chosen.filter(id => !required.includes(id)).forEach(() => { points -= .5; });
+  if (selected.includes('none')) points += required.length ? -1 : 1;
+  const max = Math.max(1, required.length || 1);
+  return { score:clamp(points / max, 0, 1), missed:required.filter(id => !chosen.includes(id)), noise:chosen.filter(id => !required.includes(id)) };
+}
+
+function renderReport(){
+  const o = reportOptions();
+  if (!state.report) state.report = { special:[], handoff:[] };
+  const m = metrics();
+  const escaped = x => esc(x.text);
+  /* 提出前は required を一切見せない。何を報告すべきかを選ぶことがこの画面の中身なので、
+     正解が先に見えていると判断が消える。答え合わせは提出後の振り返りで行う */
+  const checks = (items, chosen, attr) => items.map(x => '<label class="report-check"><input type="checkbox" data-' + attr + '="' + x.id + '" ' + (chosen.includes(x.id) ? 'checked' : '') + '><span>' + escaped(x) + '</span></label>').join('') || '<p class="empty-note">該当する特記事項はありません。</p>';
+  $('sheet').innerHTML =
+    '<p class="eyebrow">DAILY REPORT ／ ' + fmtClock(state.clock) + ' JST</p><h1>業務報告 ／ 深夜シフト</h1>' +
+    '<div class="report-auto">対応件数 ' + state.tickets.length + '件（うち放棄呼 ' + m.abandoned + '件）／ 平均通話 ' + (m.aht === null ? '—' : m.aht.toFixed(1)) + '分 ／ エスカレーション ' + state.tickets.filter(t => t.escUsed).length + '件 ／ 発生費用 ¥' + state.cost.toLocaleString('ja-JP') + '</div>' +
+    '<h2>特記事項</h2><p class="hint-bar">実際に起きたことで、次の担当が知るべきものを選びます。必須と日常対応が混ざっています。</p><div class="report-list">' + checks(o.special, state.report.special, 'report-special') + '</div>' +
+    '<h2>申し送り</h2><p class="hint-bar">翌シフトへの引き継ぎです。必須がある夜に「特になし」は誤りです。</p><div class="report-list">' + checks(o.handoff, state.report.handoff, 'report-handoff') + '<label class="report-check"><input type="checkbox" data-report-handoff="none" ' + (state.report.handoff.includes('none') ? 'checked' : '') + '><span>特になし<i>引き継ぎ不要</i></span></label></div>' +
+    '<button class="btn-primary" id="report-submit" data-report-submit="1">業務報告を提出する</button>';
+  openSheet();
+}
+
+function toggleReport(kind, id, checked){
+  const list = state.report[kind];
+  const idx = list.indexOf(id);
+  if (checked && idx < 0) list.push(id);
+  if (!checked && idx >= 0) list.splice(idx, 1);
+}
+
+function submitReport(){
+  const o = reportOptions();
+  const special = scoreReportGroup(o.special, state.report.special);
+  const handoff = scoreReportGroup(o.handoff, state.report.handoff);
+  state.report.score = Math.round((special.score + handoff.score) / 2 * 100) / 100;
+  state.report.missedSpecial = special.missed;
+  state.report.missedHandoff = handoff.missed;
+  state.report.noise = [...special.noise, ...handoff.noise];
+  state.report.options = o;
+  state.phase = 'debrief';
+  renderDebrief();
+}
+
+function reportMissForTicket(t){
+  if (!state.report || !state.report.options) return [];
+  const missed = new Set([...state.report.missedSpecial, ...state.report.missedHandoff]);
+  return [...state.report.options.special, ...state.report.options.handoff].filter(o => o.ticketId === t.s.id && missed.has(o.id)).map(o => o.text);
+}
+
+function renderDebrief(){
+  const ts = state.tickets;
+  const m = metrics();
+  const avg = m.csat === null ? 0 : m.csat;
+  const costScore = clamp(1 - state.cost / 70000, 0, 1);
+  const reportScore = state.report && typeof state.report.score === 'number' ? state.report.score : 0;
+  const total = avg / 5 * 35 + (m.fcr || 0) * 25 + m.answerRate * 20 + costScore * 10 + reportScore * 10;
+
+  const rank = total >= 88 ? 'S' : total >= 74 ? 'A' : total >= 60 ? 'B' : total >= 44 ? 'C' : 'D';
+  const rankNote = {
+    S:'非の打ちどころがありません。あなたはこのデスクの柱です。',
+    A:'安定した夜勤。判断も費用感も信頼できます。',
+    B:'ひととおり捌けています。取りこぼした一件を見直しましょう。',
+    C:'解決はしていますが、遠回りと持ち出しが目立ちます。',
+    D:'切り分けの順番から立て直しが要ります。マニュアルをもう一度。',
+  }[rank];
+
+  const reviews = ts.map(t => {
+    const r = t.result || { kind:'abandoned', csat:0, label:'未対応' };
+    const cls = r.csat >= 4 ? 'win' : r.csat >= 2.5 ? 'mid' : 'bad';
+    let judge;
+    if (r.kind === 'abandoned') judge = '呼び出しに応答できず、放棄呼になりました。';
+    else if (r.kind === 'supervisor') judge = '見立てが二度外れ、上長が引き取りました。';
+    else if (r.grade === 'best') judge = '原因も対処も最適でした。' + (r.toneOk ? '伝え方も相手に合っていました。' : 'ただし話し方が相手に合っていませんでした。');
+    else if (r.grade === 'partial') judge = '原因は当たっていましたが、対処は次善どまりでした。';
+    else judge = '原因は当たっていましたが、対処が噛み合っていませんでした。';
+
+    const misses = reportMissForTicket(t);
+    return '<div class="review ' + cls + '">' +
+      '<div class="rh"><span class="rn">' + esc(t.s.name) + '</span>' +
+      '<span class="rp">' + esc(t.s.cityEn) + '</span>' +
+      '<span class="rs">CSAT ' + r.csat.toFixed(1) + ' ／ ' + esc(r.label) + ' ／ 通話' + t.callMinutes + '分（保留' + t.holdMinutes + '分）</span></div>' +
+      '<div class="review-csat" aria-label="CSAT ' + r.csat.toFixed(1) + ' / 5"><i style="width:' + clamp(r.csat / 5 * 100, 0, 100) + '%"></i></div>' +
+      '<div class="rb"><b style="color:var(--text);font-weight:500">真の原因：' + esc(causeName(t.s.trueCause)) + '</b><br>' +
+      esc(judge) + '<br>' + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
+  }).join('');
+
+  $('sheet').innerHTML =
+    '<p class="eyebrow">SHIFT DEBRIEF ／ ' + fmtClock(state.clock) + ' JST</p>' +
+    '<h1>シフト終了</h1>' +
+    '<div class="rank-badge"><span class="r">' + rank + '</span><span class="rt">' + esc(rankNote) + '</span></div>' +
+
+    '<div class="score-grid">' +
+      cell('平均CSAT', avg.toFixed(2), '5.0満点 ／ 配点35%') +
+      cell('一次解決率', Math.round((m.fcr || 0) * 100) + '%', m.fcrCount + ' / ' + m.answered.length + '件 ／ 配点25%') +
+      cell('応答率', Math.round(m.answerRate * 100) + '%', '放棄呼 ' + m.abandoned + '件 ／ 配点20%') +
+      cell('発生費用', '¥' + state.cost.toLocaleString('ja-JP'), '会社の持ち出し ／ 配点10%') +
+      cell('業務報告', Math.round(reportScore * 100) + '%', '必須・漏れ・冗長さ ／ 配点10%') +
+      cell('AHT', m.aht === null ? '—' : m.aht.toFixed(1) + '分', '平均通話時間 ／ 配点なし') +
+      cell('所要', (state.clock - SHIFT_START) + '分', '22:00 〜 ' + fmtClock(state.clock)) +
+    '</div>' +
+
+    '<h2>一件ずつの振り返り</h2>' + reviews +
+
+    '<button class="btn-primary" id="btn-again">もう一度シフトに入る</button>' +
+    '<button class="btn-ghost" id="btn-manual2">マニュアルを読む</button>';
+
+  openSheet();
+  $('btn-again').onclick = () => { resetGame(); showBriefing(); };
+  $('btn-manual2').onclick = showManual;
+}
+function cell(k, v, n){
+  return '<div class="score-cell"><div class="k">' + k + '</div><div class="v">' + esc(v) + '</div><div class="n">' + esc(n) + '</div></div>';
+}
+
+/* ============================================================
+   イベント
+   ============================================================ */
+
+document.addEventListener('click', (e) => {
+  if (typingLine){ finishTyping(); return; }
+  const el = e.target.closest('[data-office-phone],[data-office-next],[data-pick],[data-callback-pick],[data-callback],[data-tab],[data-ask],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
+  if (!el || el.disabled) return;
+  const d = el.dataset;
+
+  if (d.officePhone){ state.officeQueueOpen = !state.officeQueueOpen; renderOffice(); }
+  else if (d.boardExcluded){ state.ui.boardExcludedOpen = !state.ui.boardExcludedOpen; renderBoard(); }
+  else if (d.officeNext){
+    const t = state.tickets.filter(x => x.state === 'waiting').sort((a,b) => a.patience - b.patience)[0];
+    if (t) pickup(t);
+  }
+  else if (d.pick){
+    const t = state.tickets.find(x => x.s.id === d.pick);
+    if (t && t.state === 'waiting') pickup(t);
+  }
+  else if (d.callbackPick){ resumeCallback(state.tickets.find(x => x.s.id === d.callbackPick)); }
+  else if (d.callback){ doCallback(); }
+  else if (d.tab){ state.ui = { tab:d.tab, cause:null, remedy:null, lookup:null }; render(); }
+  else if (d.ask){ doAsk(d.ask); }
+  else if (d.lookup){ state.ui.lookup = d.lookup; render(); }
+  else if (d.lookupMode){ doLookup(state.ui.lookup, d.lookupMode); }
+  else if (d.lookupBack){ state.ui.lookup = null; render(); }
+  else if (d.test){ doTest(d.test); }
+  else if (d.cause){
+    state.ui.cause = (d.cause === '__back') ? null : d.cause;
+    state.ui.remedy = null;
+    render();
+  }
+  else if (d.remedy){
+    state.ui.remedy = d.remedy;
+    if (remedyNeedsShipping(d.remedy)) startShipping(d.remedy);
+    else render();
+  }
+  else if (d.shipLevel){ chooseShipLevel(d.shipLevel); }
+  else if (d.shipConfirm){ confirmShipment(); }
+  else if (d.reportSubmit){ submitReport(); }
+  else if (d.tone){ doClose(state.ui.cause, state.ui.remedy, d.tone); }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (typingLine && (e.key === ' ' || e.key === 'Enter')){ e.preventDefault(); finishTyping(); }
+});
+
+document.addEventListener('change', (e) => {
+  const d = e.target && e.target.dataset;
+  if (!d || !state.report) return;
+  if (d.reportSpecial) toggleReport('special', d.reportSpecial, e.target.checked);
+  else if (d.reportHandoff) toggleReport('handoff', d.reportHandoff, e.target.checked);
+});
+
+$('btn-manual').onclick = showManual;
+
+/* ---------- 起動 ---------- */
+
+resetGame();
+showBriefing();
+</script>
+</body></html>
