@@ -11,8 +11,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,TESTS,RISKY,REMEDIES,SCENARIOS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
-const { CAUSES, TESTS, RISKY, REMEDIES, SCENARIOS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {CAUSES,TESTS,RISKY,REMEDIES,SCENARIOS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
+const { CAUSES, TESTS, RISKY, REMEDIES, SCENARIOS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -1087,7 +1087,7 @@ assert(careerFns.appendCareerShift(endingRecord,baseShift(),neutralContext).shou
 assert(!careerFns.appendCareerShift(sevenRecord,baseShift(),neutralContext).shouldEnd,'7バッジでエンディング条件になる');
 
 // §23-6 検査2: 報告提出時ではなく、終了レポートを閉じた後に開始する。
-assert(!functionSource('submitReport').includes('showCareerEnding') && functionSource('renderDebrief').includes("if (state.careerUpdate && state.careerUpdate.shouldEnd) showCareerEnding(false)"), 'エンディングが終了レポートを閉じる前に始まる');
+assert(!functionSource('submitReport').includes('showCareerEnding') && functionSource('renderDebrief').includes('state.careerUpdate && state.careerUpdate.shouldEnd') && functionSource('renderDebrief').includes('showCareerEnding(false)'), 'エンディングが終了レポートを閉じる前に始まる');
 
 // §23-6 検査3: 閲覧時にending=trueを保存し、通常シフトでは再発火しない。
 const endingSource = functionSource('showCareerEnding');
@@ -1106,17 +1106,70 @@ assert(endingSource.includes('<b>社長</b>') && !/代表取締役|モデル企�
 
 // §23-6 検査7: 確定文を一字一句そのまま表示する。
 const approvedPresidentLine = 'ハードワークご苦労様です。あなたが身を粉にして、お値段以上に顧客第一で働いてくれたことを感謝します。明日からもまた夜勤を頑張ってください';
-assert(endingSource.includes('<p>' + approvedPresidentLine + '</p>'), '社長の確定文が完全一致しない');
+assert.equal(PRESIDENT_ENDING_LINE,approvedPresidentLine,'社長の確定文が完全一致しない');
 
 // §23-6 検査8: 通算成績と8バッジをまとめて見せる。
-assert(endingSource.includes('totals.days') && endingSource.includes('totals.averageCsat') && endingSource.includes('totals.complaints') && functionSource('endingBadgeHtml').includes('CAREER_BADGES.map'), 'エンディングに通算成績と8バッジが揃わない');
+const endingDetailsSource = functionSource('careerEndingDetailsHtml');
+assert(endingDetailsSource.includes('totals.days') && endingDetailsSource.includes('totals.averageCsat') && endingDetailsSource.includes('totals.complaints') && functionSource('endingBadgeHtml').includes('CAREER_BADGES.map'), 'エンディングに通算成績と8バッジが揃わない');
 
 // §23-6 検査9: ミュートでも朝景・社長・戻るボタンは描画される。
-assert(!endingSource.includes('soundEnabled') && endingSource.includes('drawMorningOffice()') && endingSource.includes('ending-back-to-shift'), 'ミュート時にエンディング画面が成立しない');
+assert(!endingSource.includes('soundEnabled') && endingSource.includes('drawMorningOffice()') && functionSource('careerEndingFinalHtml').includes('ending-back-to-shift'), 'ミュート時にエンディング画面が成立しない');
 
 // §23-6 検査10: GAME_FLAGS.unlockedBadgesに8個を指定して再現できる。
 const forcedEnding = careerFns.careerWithFlags(careerFns.freshCareerRecord(),{careerStage:null,unlockedBadges:CAREER_BADGES.map(b=>b.id)});
 assert.equal(forcedEnding.badges.length,8,'GAME_FLAGSから8バッジ状態を再現できない');
+
+// §23-6 検査11: 初期DOMには空の発話欄だけを置き、全文を一度に表示しない。
+assert(endingSource.includes('class="ending-line line typing"') && endingSource.includes('<span class="say"></span>') && !endingSource.includes('esc(PRESIDENT_ENDING_LINE)'), '社長の台詞が1文字ずつではなく一度に全文表示される');
+
+// §23-6 検査12: 顧客と同じstartTypingを使い、専用速度を持たない。
+assert(endingSource.includes('startTyping(state.endingSpeech)') && functionSource('startTyping').includes("/[、。！？!?]/.test(line.text[pos - 1]) ? 175 : 25") && !/ending[^\n]{0,80}(?:setTimeout|25|175)/i.test(endingSource), '社長の台詞が顧客と同じstartTyping速度を通らない');
+assert.equal(dialogueDuration(PRESIDENT_ENDING_LINE),2225,'社長の68文字台詞がtyping_budgetの実測2.225秒と一致しない');
+
+// §23-6 検査13: 完了前DOMから通算・バッジ・戻るを外し、完了後だけ追加する。
+for (const token of ['ending-totals','ending-badge-grid']) assert(!endingSource.includes(token) && endingDetailsSource.includes(token), '社長の台詞完了前に後続要素が現れる: ' + token);
+assert(!endingSource.includes('ending-back-to-shift') && functionSource('careerEndingFinalHtml').includes('ending-back-to-shift'), '社長の台詞完了前に後続要素が現れる: ending-back-to-shift');
+assert(!endingSource.includes('careerEndingDetailsHtml('), '社長の台詞完了前に後続要素が現れる: ending-totals');
+assert(functionSource('finishTyping').includes("if (state.phase === 'ending'){ renderCareerEndingComplete(skipEndingBeat); return; }"), '社長の台詞完了後に後続要素を開示しない');
+
+// §23-6 検査14: 全画面クリックの既存作法がtypingLineを即時完了する。
+assert(eventSource.includes("if (typingLine){ finishTyping(); return; }"), '社長の台詞をタップで送り切れない');
+assert(endingSource.includes('setTimeout(() => startTyping(state.endingSpeech), 0)') && endingSource.includes('tapGuardTimer = setTimeout(clearEndingTapGuard, 400)') && functionSource('finishTyping').includes("state.phase === 'ending' && endingTapGuard") && balanceConsoleSource.includes('event.stopImmediatePropagation()') && functionSource('renderDebrief').includes('event.stopImmediatePropagation()'), '社長の再生操作自体がタップ送りに誤認される');
+
+// §23-6 検査15: 頭頂部は地肌、髪は左右の側頭部だけで、上をつながない。
+const presidentDrawSource = functionSource('drawCompanyPresident');
+assert(presidentDrawSource.includes("pixelRect(ctx, p.paper, x + 1, y - 24, 9, 5)") && presidentDrawSource.includes("pixelRect(ctx, p.charcoal, x - 2, y - 21, 3, 8)") && presidentDrawSource.includes("pixelRect(ctx, p.charcoal, x + 10, y - 21, 3, 8)"), '社長の頭頂部地肌と両サイドの髪が描き分けられていない');
+assert(!presidentDrawSource.includes("pixelRect(ctx, p.charcoal, x - 1, y - 23, 13, 5)"), '社長の頭頂部を髪が横断している');
+
+// §23-6 検査16: ENDは称号の後、戻るボタンの前に置き、簡潔な文字組みにする。
+const endingFinalSource = functionSource('careerEndingFinalHtml');
+assert(endingFinalSource.includes('id="ending-end">END</div>') && endingFinalSource.indexOf('ending-end') < endingFinalSource.indexOf('ending-back-to-shift'), 'ENDが称号一覧の下・戻るボタンの上に簡潔に表示されない');
+const endingEndCss = page.slice(page.indexOf('.ending-end{'), page.indexOf('}', page.indexOf('.ending-end{')));
+assert(/font:800 34px/.test(endingEndCss) && /letter-spacing:\.36em/.test(endingEndCss) && /text-align:center/.test(endingEndCss) && !/border|animation/.test(endingEndCss), 'ENDが大きな中央揃え・字間広めの簡潔な表示でない');
+
+// §23-6 検査17: 通算と称号を描いたDOMには空スロットだけを置き、約1秒後にENDを入れる。
+const endingCompleteSource = functionSource('renderCareerEndingComplete');
+assert(endingCompleteSource.includes("'<div id=\"ending-finale\"></div>'") && endingCompleteSource.includes('setTimeout(revealCareerEndingFinal, 1000)'), 'ENDが通算成績と称号一覧より約1秒遅れて現れない');
+
+// §23-6 検査18: 戻るボタンはENDと同じ最終開示で、その後ろにある。
+assert(functionSource('revealCareerEndingFinal').includes('slot.innerHTML = careerEndingFinalHtml()') && endingFinalSource.indexOf('ending-back-to-shift') > endingFinalSource.indexOf('ending-end'), '戻るボタンがENDより先に現れる');
+
+// §23-6 検査19: タップ完了は一拍を省略し、自然完了だけが待つ。
+assert(functionSource('finishTyping').includes('skipEndingBeat = true') && functionSource('startTyping').includes('finishTyping(false)') && endingCompleteSource.includes('if (skipEndingBeat) revealCareerEndingFinal()'), 'タップ送りでENDと戻るボタンまで一度に表示されない');
+
+// §23-6 検査20: 10人全員をデータから描画し、座席の3人だけに戻らない。
+assert.equal(MORNING_STAFF.length,10,'エンディングの朝礼に立った社員が10人描かれない');
+assert(functionSource('drawMorningStaff').includes('MORNING_STAFF.forEach'), 'エンディングの朝礼に立った社員が10人描かれない');
+
+// §23-6 検査21: 全員をbackで固定し、顔の部品を描かない。
+const staffMemberSource = functionSource('drawMorningStaffMember');
+assert(MORNING_STAFF.every(staff => staff.facing === 'back') && !/eye|mouth|face/.test(staffMemberSource) && staffMemberSource.includes('後頭部・肩・背中・立ち脚'), '社員が社長を見る後ろ姿になっていない');
+
+// §23-6 検査22: 髪型・髪色・服色・肩幅に複数の見た目を持つ。
+assert(new Set(MORNING_STAFF.map(staff => staff.hair)).size >= 3 && new Set(MORNING_STAFF.map(staff => staff.hairColor)).size >= 3 && new Set(MORNING_STAFF.map(staff => staff.coat)).size >= 5 && new Set(MORNING_STAFF.map(staff => staff.shoulders)).size >= 3 && staffMemberSource.includes('p[staff.hairColor]') && staffMemberSource.includes('p[staff.coat]'), '社員の髪型・髪色・服色・肩幅が描き分けられていない');
+
+// §23-6 検査23: プレイヤーを示す専用属性・矢印・ラベル・色分岐を持たない。
+assert(!MORNING_STAFF.some(staff => Object.keys(staff).some(key => /player|highlight|arrow|label/i.test(key))) && !/staff\.(?:player|highlight|arrow|label)/i.test(staffMemberSource), 'プレイヤーだけを示す強調表示がある');
 
 // 編集用の3素材と配布用 index.html は、build.js と同じ規則で完全一致する。
 const expectedIndex = builtIndexSource(__dirname);

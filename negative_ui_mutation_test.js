@@ -826,7 +826,7 @@ const mutations = [
   },
   {
     name:'ゲーム調整からエンディング再生を外す', file:'p4_view.js',
-    from:"$('balance-replay-ending').onclick = () => showCareerEnding(true);", to:"$('balance-replay-ending').onclick = () => {};",
+    from:"$('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };", to:"$('balance-replay-ending').onclick = () => {};",
     expected:'ゲーム調整にエンディング再生がない',
   },
   {
@@ -840,7 +840,7 @@ const mutations = [
     expected:'社長表示または匿名化契約が崩れている',
   },
   {
-    name:'社長の確定文を一字変える', file:'p4_view.js',
+    name:'社長の確定文を一字変える', file:'p2_data.js',
     from:'ハードワークご苦労様です。', to:'ハードワーク、お疲れ様です。',
     expected:'社長の確定文が完全一致しない',
   },
@@ -858,6 +858,78 @@ const mutations = [
     name:'GAME_FLAGSの強制バッジを無視する', file:'p3_game.js',
     from:'next.badges = [...new Set(flags.unlockedBadges.filter(id => known.has(id)))];', to:'next.badges = flags.unlockedBadges.length === 8 ? [] : [...new Set(flags.unlockedBadges.filter(id => known.has(id)))];',
     expected:'GAME_FLAGSから8バッジ状態を再現できない',
+  },
+  {
+    name:'社長の確定文を最初から全文表示する', file:'p4_view.js',
+    from:'<span class="say"></span>', to:'<span class="say">\' + esc(PRESIDENT_ENDING_LINE) + \'</span>',
+    expected:'社長の台詞が1文字ずつではなく一度に全文表示される',
+  },
+  {
+    name:'社長の台詞でstartTypingを通らない', file:'p4_view.js',
+    from:'  setTimeout(() => startTyping(state.endingSpeech), 0);', to:'  renderCareerEndingComplete();',
+    expected:'社長の台詞が顧客と同じstartTyping速度を通らない',
+  },
+  {
+    name:'再生ボタンのクリック中に社長のタイプ表示を始める', file:'p4_view.js',
+    from:"$('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };", to:"$('balance-replay-ending').onclick = () => showCareerEnding(true);",
+    expected:'社長の再生操作自体がタップ送りに誤認される',
+  },
+  {
+    name:'社長の台詞完了前に通算成績を表示する', file:'p4_view.js',
+    from:'      \'<p class="ending-line line typing"><span class="say"></span></p></section>\';',
+    to:'      \'<p class="ending-line line typing"><span class="say"></span></p></section>\' + careerEndingDetailsHtml(state.career);',
+    expected:'社長の台詞完了前に後続要素が現れる: ending-totals',
+  },
+  {
+    name:'社長の台詞のタップ送りを外す', file:'p5_events.js',
+    from:'if (typingLine){ finishTyping(); return; }', to:'if (false){ finishTyping(); return; }',
+    expected:'社長の台詞をタップで送り切れない',
+  },
+  {
+    name:'社長の頭頂部を髪で塗る', file:'p4_view.js',
+    from:'pixelRect(ctx, p.paper, x + 1, y - 24, 9, 5);', to:'pixelRect(ctx, p.charcoal, x + 1, y - 24, 9, 5);',
+    expected:'社長の頭頂部地肌と両サイドの髪が描き分けられていない',
+  },
+  {
+    name:'エンディングのENDを別の文字へ変える', file:'p4_view.js',
+    from:'id="ending-end">END</div>', to:'id="ending-end">FIN</div>',
+    expected:'ENDが称号一覧の下・戻るボタンの上に簡潔に表示されない',
+  },
+  {
+    name:'ENDを称号と同時に表示する', file:'p4_view.js',
+    from:'setTimeout(revealCareerEndingFinal, 1000)', to:'setTimeout(revealCareerEndingFinal, 0)',
+    expected:'ENDが通算成績と称号一覧より約1秒遅れて現れない',
+  },
+  {
+    name:'戻るボタンをENDより先に置く', file:'p4_view.js',
+    from:'return \'<div class="ending-end" id="ending-end">END</div>\' +\n    \'<button class="btn-primary" id="ending-back-to-shift">深夜シフトへ戻る</button>\';',
+    to:'return \'<button class="btn-primary" id="ending-back-to-shift">深夜シフトへ戻る</button>\' +\n    \'<div class="ending-end" id="ending-end">END</div>\';',
+    expected:'ENDが称号一覧の下・戻るボタンの上に簡潔に表示されない',
+  },
+  {
+    name:'タップ送りでもENDを1秒待たせる', file:'p4_view.js',
+    from:'function finishTyping(skipEndingBeat = true){', to:'function finishTyping(skipEndingBeat = false){',
+    expected:'タップ送りでENDと戻るボタンまで一度に表示されない',
+  },
+  {
+    name:'朝礼の社員を3人だけに戻す', file:'p4_view.js',
+    from:'MORNING_STAFF.forEach(staff => drawMorningStaffMember(ctx, p, staff));', to:'MORNING_STAFF.slice(0, 3).forEach(staff => drawMorningStaffMember(ctx, p, staff));',
+    expected:'エンディングの朝礼に立った社員が10人描かれない',
+  },
+  {
+    name:'後ろ姿の社員に顔を描く', file:'p4_view.js',
+    from:'pixelRect(ctx, p.paper, x - 3, y - 17, 7, 8);', to:'pixelRect(ctx, p.paper, x - 3, y - 17, 7, 8);\n  pixelRect(ctx, p.black, x - 1, y - 13, 3, 1); // face',
+    expected:'社員が社長を見る後ろ姿になっていない',
+  },
+  {
+    name:'社員の髪色差を無視する', file:'p4_view.js',
+    from:'const hair = p[staff.hairColor];', to:'const hair = p.black;',
+    expected:'社員の髪型・髪色・服色・肩幅が描き分けられていない',
+  },
+  {
+    name:'プレイヤーだけ服色を変える', file:'p4_view.js',
+    from:'const coat = p[staff.coat];', to:'const coat = staff.player ? p.red : p[staff.coat];',
+    expected:'プレイヤーだけを示す強調表示がある',
   },
 ];
 

@@ -6,6 +6,9 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let typeTimer = null;
 let typingLine = null;
+let endingRevealTimer = null;
+let tapGuardTimer = null;
+let endingTapGuard = false;
 let officeRingTimer = null;
 let officeRingLit = false;
 let audioContext = null;
@@ -79,12 +82,16 @@ function playCareerEndingSound(){ withAudio((ctx, volume) => [[392,0,.2],[523,.2
 
 function typewriterOff(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
-function finishTyping(){
+function finishTyping(skipEndingBeat = true){
   if (!typingLine) return;
+  if (state.phase === 'ending' && endingTapGuard){
+    return;
+  }
   clearTimeout(typeTimer);
   typingLine.typed = true;
   typingLine = null;
   document.body.classList.remove('typing');
+  if (state.phase === 'ending'){ renderCareerEndingComplete(skipEndingBeat); return; }
   const t = state.focus;
   if (t && advanceConversationFlow(t)) return;
   renderCall();
@@ -96,6 +103,7 @@ function startTyping(t){
   if (!line) return;
   if (typewriterOff()){
     line.typed = true;
+    if (state.phase === 'ending'){ renderCareerEndingComplete(true); return; }
     if (advanceConversationFlow(t)) return;
     renderCall();
     return;
@@ -103,14 +111,14 @@ function startTyping(t){
   typingLine = line;
   document.body.classList.add('typing');
   const say = document.querySelector('.line.typing .say');
-  if (!say) return finishTyping();
+  if (!say) return finishTyping(false);
   let pos = 0;
   const step = () => {
     if (typingLine !== line) return;
     pos++;
     say.textContent = line.text.slice(0, pos);
     playTypeSound(pos);
-    if (pos >= line.text.length){ finishTyping(); return; }
+    if (pos >= line.text.length){ finishTyping(false); return; }
     typeTimer = setTimeout(step, /[、。！？!?]/.test(line.text[pos - 1]) ? 175 : 25);
   };
   typeTimer = setTimeout(step, 25);
@@ -275,18 +283,45 @@ function drawOfficePixelArt(ringLit = false, canvasId = 'office-canvas', palette
   OFFICE_STATIONS.forEach(station => drawOfficeStation(ctx, p, station, ringLit));
 }
 
-function drawMorningStaff(ctx, p){
-  for (const [x,y,color] of [[31,94,p.blue],[84,134,p.navy],[137,94,p.charcoal]]){
-    pixelRect(ctx, p.paper, x, y - 13, 7, 7);
-    pixelRect(ctx, p.black, x, y - 15, 7, 3);
-    pixelRect(ctx, color, x - 2, y - 6, 11, 13);
+function drawMorningStaffMember(ctx, p, staff){
+  const x = staff.x, y = staff.y;
+  const coat = p[staff.coat];
+  const hair = p[staff.hairColor];
+  const bodyX = x - Math.floor(staff.shoulders / 2);
+  // 全員が奥の社長を見る後ろ姿。顔は置かず、後頭部・肩・背中・立ち脚だけを描く。
+  pixelRect(ctx, p.paper, x - 3, y - 17, 7, 8);
+  if (staff.hair === 'short'){
+    pixelRect(ctx, hair, x - 4, y - 19, 9, 5);
+    pixelRect(ctx, hair, x - 4, y - 15, 2, 4);
+    pixelRect(ctx, hair, x + 3, y - 15, 2, 4);
+  } else if (staff.hair === 'bob'){
+    pixelRect(ctx, hair, x - 4, y - 19, 9, 10);
+    pixelRect(ctx, p.paper, x - 2, y - 15, 5, 5);
+  } else {
+    pixelRect(ctx, hair, x - 4, y - 19, 9, 14);
+    pixelRect(ctx, p.paper, x - 2, y - 15, 5, 5);
   }
+  pixelRect(ctx, p.paper, x - 1, y - 9, 3, 3);
+  pixelRect(ctx, coat, bodyX, y - 7, staff.shoulders, 13);
+  pixelRect(ctx, p[staff.coat] === p.white ? p.silver : p.navy, x, y - 5, 1, 9);
+  pixelRect(ctx, p.black, bodyX + 1, y + 6, 3, 7);
+  pixelRect(ctx, p.black, bodyX + staff.shoulders - 4, y + 6, 3, 7);
+}
+
+function drawMorningStaff(ctx, p){
+  MORNING_STAFF.forEach(staff => drawMorningStaffMember(ctx, p, staff));
 }
 
 function drawCompanyPresident(ctx, p){
   const x = 160, y = 82;
-  pixelRect(ctx, p.paper, x, y - 20, 11, 10);
-  pixelRect(ctx, p.charcoal, x - 1, y - 23, 13, 5);
+  // 明るい頭頂部と、左右に分かれた濃い側頭部。上をつながないことで小さくても形を読む。
+  pixelRect(ctx, p.gray, x + 3, y - 25, 5, 1);
+  pixelRect(ctx, p.gray, x, y - 23, 2, 3);
+  pixelRect(ctx, p.gray, x + 10, y - 23, 2, 3);
+  pixelRect(ctx, p.paper, x + 1, y - 24, 9, 5);
+  pixelRect(ctx, p.paper, x, y - 21, 11, 11);
+  pixelRect(ctx, p.charcoal, x - 2, y - 21, 3, 8);
+  pixelRect(ctx, p.charcoal, x + 10, y - 21, 3, 8);
   pixelRect(ctx, p.charcoal, x - 4, y - 10, 19, 22);
   pixelRect(ctx, p.white, x + 4, y - 8, 3, 12);
   pixelRect(ctx, p.amber, x + 5, y - 6, 2, 8);
@@ -1089,7 +1124,7 @@ function showBalanceConsole(){
   $('balance-volume').oninput = event => {
     GAME_FLAGS.soundVolume = clamp(Number(event.target.value), 0, 1);
   };
-  $('balance-replay-ending').onclick = () => showCareerEnding(true);
+  $('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };
   $('balance-clear-career').onclick = () => clearCareerRecord();
   $('btn-close-balance').onclick = () => {
     if (wasPhase === 'briefing'){ showBriefing(); return; }
@@ -1267,8 +1302,56 @@ function endingBadgeHtml(career){
   return CAREER_BADGES.map(badge => '<div class="ending-badge ' + (acquired.has(badge.id) ? 'earned' : 'locked') + '"><b>' + esc(badge.label) + '</b><span>' + esc(badge.condition) + '</span></div>').join('');
 }
 
+function careerEndingDetailsHtml(career){
+  return '<div class="ending-totals"><b>通算 ' + career.totals.days + '日</b><span>平均CSAT ' + career.totals.averageCsat.toFixed(2) + '</span><span>苦情 ' + career.totals.complaints + '件</span></div>' +
+    '<h2>集めた8つのバッジ</h2><div class="ending-badge-grid">' + endingBadgeHtml(career) + '</div>';
+}
+
+function careerEndingFinalHtml(){
+  return '<div class="ending-end" id="ending-end">END</div>' +
+    '<button class="btn-primary" id="ending-back-to-shift">深夜シフトへ戻る</button>';
+}
+
+function clearEndingRevealTimer(){
+  if (endingRevealTimer !== null) clearTimeout(endingRevealTimer);
+  endingRevealTimer = null;
+}
+
+function clearEndingTapGuard(){
+  if (tapGuardTimer !== null) clearTimeout(tapGuardTimer);
+  tapGuardTimer = null;
+  endingTapGuard = false;
+}
+
+function revealCareerEndingFinal(){
+  clearEndingRevealTimer();
+  const slot = $('ending-finale');
+  if (!slot) return;
+  slot.innerHTML = careerEndingFinalHtml();
+  $('ending-back-to-shift').onclick = () => { resetGame(); showBriefing(); };
+}
+
+function renderCareerEndingComplete(skipEndingBeat = false){
+  const career = state.career;
+  clearEndingRevealTimer();
+  clearEndingTapGuard();
+  state.endingSpeech = null;
+  $('sheet').innerHTML =
+    '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING</p>' +
+    '<h1>翌朝、全体朝礼</h1>' +
+    '<canvas class="ending-office-canvas" id="ending-office-canvas" width="192" height="168" role="img" aria-label="朝の明るいオフィスに社員が集まり、社長が笑顔で立っている"></canvas>' +
+    '<section class="ending-speech"><b>社長</b><p>' + esc(PRESIDENT_ENDING_LINE) + '</p></section>' +
+    careerEndingDetailsHtml(career) + '<div id="ending-finale"></div>';
+  drawMorningOffice();
+  if (skipEndingBeat) revealCareerEndingFinal();
+  else endingRevealTimer = setTimeout(revealCareerEndingFinal, 1000);
+}
+
 function showCareerEnding(replay = false){
   stopOfficeRing();
+  clearEndingRevealTimer();
+  clearEndingTapGuard();
+  endingTapGuard = true;
   if (!state.career) state.career = freshCareerRecord();
   state.phase = 'ending';
   if (!replay){
@@ -1276,19 +1359,18 @@ function showCareerEnding(replay = false){
     writeCareerRecord(state.career);
   }
   playCareerEndingSound();
-  const career = state.career;
+  state.endingSpeech = { transcript:[{ who:'cust', text:PRESIDENT_ENDING_LINE, typed:false }] };
   $('sheet').innerHTML =
     '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING</p>' +
     '<h1>翌朝、全体朝礼</h1>' +
     '<canvas class="ending-office-canvas" id="ending-office-canvas" width="192" height="168" role="img" aria-label="朝の明るいオフィスに社員が集まり、社長が笑顔で立っている"></canvas>' +
     '<section class="ending-speech"><b>社長</b>' +
-      '<p>ハードワークご苦労様です。あなたが身を粉にして、お値段以上に顧客第一で働いてくれたことを感謝します。明日からもまた夜勤を頑張ってください</p></section>' +
-    '<div class="ending-totals"><b>通算 ' + career.totals.days + '日</b><span>平均CSAT ' + career.totals.averageCsat.toFixed(2) + '</span><span>苦情 ' + career.totals.complaints + '件</span></div>' +
-    '<h2>集めた8つのバッジ</h2><div class="ending-badge-grid">' + endingBadgeHtml(career) + '</div>' +
-    '<button class="btn-primary" id="ending-back-to-shift">深夜シフトへ戻る</button>';
+      '<p class="ending-line line typing"><span class="say"></span></p></section>';
   openSheet();
   drawMorningOffice();
-  $('ending-back-to-shift').onclick = () => { resetGame(); showBriefing(); };
+  // 再生ボタンの同じclickが、document側の「タップで送り切る」に重ならないよう次のtaskで始める。
+  setTimeout(() => startTyping(state.endingSpeech), 0);
+  tapGuardTimer = setTimeout(clearEndingTapGuard, 400);
 }
 
 function renderDebrief(){
@@ -1358,8 +1440,8 @@ function renderDebrief(){
     '<button class="btn-ghost" id="btn-manual2">マニュアルを読む</button>';
 
   openSheet();
-  $('btn-again').onclick = () => {
-    if (state.careerUpdate && state.careerUpdate.shouldEnd) showCareerEnding(false);
+  $('btn-again').onclick = event => {
+    if (state.careerUpdate && state.careerUpdate.shouldEnd){ event.stopImmediatePropagation(); showCareerEnding(false); }
     else { resetGame(); showBriefing(); }
   };
   $('btn-manual2').onclick = showManual;

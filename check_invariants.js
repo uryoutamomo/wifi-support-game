@@ -2,9 +2,9 @@
 const fs = require('fs');
 const { readGameSource, functionSource: extractFunctionSource } = require('./test_helpers');
 const src = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
+  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
 const D = new Function(src)();
-const { CAUSES, TYPES, SCENARIOS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = D;
+const { CAUSES, TYPES, SCENARIOS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = D;
 
 const EXPECTED_SLOGANS = [
   '凡事徹底',
@@ -563,6 +563,34 @@ SCENARIOS.forEach(scenario => Object.values(scenario.lookups || {}).forEach(resu
 if (speech21.some(text => duration21(text) > 4000)) bad('§21の追加発話がtyping_budgetの4秒上限を超えている');
 // 12. 追加発話は1操作2行まで。テスト操作には追加しない。
 if (!sourceOf('pushFlowLines').includes('if (lines.length > 2) throw') || sourceOf('doTest').includes('CALL_FLOW_LINES')) bad('追加発話の2行上限またはテスト操作の無追加を守っていない');
+
+// §23-6 ⑪〜⑮: 社長の確定文も既存タイプ処理を通し、読み終えてから後続を開く。
+const ending23 = sourceOf('showCareerEnding');
+const finishTyping23 = sourceOf('finishTyping');
+const details23 = sourceOf('careerEndingDetailsHtml');
+const final23 = sourceOf('careerEndingFinalHtml');
+const complete23 = sourceOf('renderCareerEndingComplete');
+const president23 = sourceOf('drawCompanyPresident');
+if (!ending23.includes('class="ending-line line typing"') || !ending23.includes('<span class="say"></span>') || ending23.includes('esc(PRESIDENT_ENDING_LINE)')) bad('社長の台詞が1文字ずつではなく一度に全文表示される');
+if (!ending23.includes('startTyping(state.endingSpeech)') || !sourceOf('startTyping').includes("/[、。！？!?]/.test(line.text[pos - 1]) ? 175 : 25")) bad('社長の台詞が顧客と同じstartTyping速度を通らない');
+if (PRESIDENT_ENDING_LINE.length !== 68 || duration21(PRESIDENT_ENDING_LINE) !== 2225 || duration21(PRESIDENT_ENDING_LINE) > 4000) bad('社長の確定文が68文字・2.225秒のtyping_budgetに収まらない');
+if (ending23.includes('careerEndingDetailsHtml(') || ['ending-totals','ending-badge-grid'].some(token => ending23.includes(token) || !details23.includes(token)) || !final23.includes('ending-back-to-shift') || !finishTyping23.includes("state.phase === 'ending'")) bad('社長の台詞完了前に通算・バッジ・戻るが現れる');
+if (!gameSource.includes("if (typingLine){ finishTyping(); return; }")) bad('社長の台詞をタップで送り切れない');
+if (!ending23.includes('setTimeout(() => startTyping(state.endingSpeech), 0)') || !ending23.includes('tapGuardTimer = setTimeout(clearEndingTapGuard, 400)') || !finishTyping23.includes("state.phase === 'ending' && endingTapGuard") || !sourceOf('showBalanceConsole').includes('event.stopImmediatePropagation()') || !sourceOf('renderDebrief').includes('event.stopImmediatePropagation()')) bad('社長の再生操作自体がタップ送りに誤認される');
+if (!president23.includes('p.paper, x + 1, y - 24, 9, 5') || !president23.includes('p.charcoal, x - 2, y - 21, 3, 8') || !president23.includes('p.charcoal, x + 10, y - 21, 3, 8') || president23.includes('p.charcoal, x - 1, y - 23, 13, 5')) bad('社長の頭頂部地肌と両サイドの髪が描き分けられていない');
+
+// §23-6 ⑯〜㉓: 一拍置くENDと、社長を見る10人の朝礼隊形。
+const reveal23 = sourceOf('revealCareerEndingFinal');
+const staff23 = sourceOf('drawMorningStaff');
+const staffMember23 = sourceOf('drawMorningStaffMember');
+if (!final23.includes('id="ending-end">END</div>') || final23.indexOf('ending-end') > final23.indexOf('ending-back-to-shift') || !pageSource.includes('.ending-end{') || /border|animation/.test(pageSource.slice(pageSource.indexOf('.ending-end{'), pageSource.indexOf('}', pageSource.indexOf('.ending-end{'))))) bad('ENDが称号一覧の下・戻るボタンの上に簡潔に表示されない');
+if (!complete23.includes("'<div id=\"ending-finale\"></div>'") || !complete23.includes('setTimeout(revealCareerEndingFinal, 1000)')) bad('ENDが通算成績と称号一覧より約1秒遅れて現れない');
+if (!reveal23.includes('slot.innerHTML = careerEndingFinalHtml()') || final23.indexOf('ending-back-to-shift') < final23.indexOf('ending-end')) bad('戻るボタンがENDより先に現れる');
+if (!finishTyping23.includes('skipEndingBeat = true') || !sourceOf('startTyping').includes('finishTyping(false)') || !complete23.includes('if (skipEndingBeat) revealCareerEndingFinal()')) bad('タップ送りでENDと戻るボタンまで一度に表示されない');
+if (MORNING_STAFF.length !== 10 || !staff23.includes('MORNING_STAFF.forEach')) bad('エンディングの朝礼に立った社員が10人描かれない');
+if (MORNING_STAFF.some(staff => staff.facing !== 'back') || /eye|mouth|face/.test(staffMember23) || !staffMember23.includes('後頭部・肩・背中・立ち脚')) bad('社員が社長を見る後ろ姿になっていない');
+if (new Set(MORNING_STAFF.map(staff => staff.hair)).size < 3 || new Set(MORNING_STAFF.map(staff => staff.hairColor)).size < 3 || new Set(MORNING_STAFF.map(staff => staff.coat)).size < 5 || new Set(MORNING_STAFF.map(staff => staff.shoulders)).size < 3 || !staffMember23.includes('p[staff.hairColor]') || !staffMember23.includes('p[staff.coat]')) bad('社員の髪型・髪色・服色・肩幅が描き分けられていない');
+if (MORNING_STAFF.some(staff => Object.keys(staff).some(key => /player|highlight|arrow|label/i.test(key))) || /staff\.(?:player|highlight|arrow|label)/i.test(staffMember23)) bad('プレイヤーだけを示す強調表示がある');
 
 // S2/S3 に q_lamp が入ったか
 ['S2','S3'].forEach(id => {

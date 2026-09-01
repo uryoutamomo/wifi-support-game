@@ -107,6 +107,19 @@ const CAREER_BADGES = Object.freeze([
   Object.freeze({ id:'ten_nights', label:'十夜勤', condition:'通算10シフトを完了' }),
   Object.freeze({ id:'clean_record', label:'無苦情記録', condition:'直近3シフトの苦情が0件' }),
 ]);
+const PRESIDENT_ENDING_LINE = 'ハードワークご苦労様です。あなたが身を粉にして、お値段以上に顧客第一で働いてくれたことを感謝します。明日からもまた夜勤を頑張ってください';
+const MORNING_STAFF = Object.freeze([
+  Object.freeze({ x:24,  y:107, facing:'back', hair:'short', hairColor:'black',    coat:'blue',     shoulders:11 }),
+  Object.freeze({ x:56,  y:105, facing:'back', hair:'long',  hairColor:'charcoal', coat:'navy',     shoulders:9 }),
+  Object.freeze({ x:88,  y:110, facing:'back', hair:'bob',   hairColor:'gray',     coat:'red',      shoulders:10 }),
+  Object.freeze({ x:121, y:106, facing:'back', hair:'short', hairColor:'charcoal', coat:'silver',   shoulders:12 }),
+  Object.freeze({ x:38,  y:132, facing:'back', hair:'bob',   hairColor:'black',    coat:'amber',    shoulders:9 }),
+  Object.freeze({ x:72,  y:135, facing:'back', hair:'short', hairColor:'gray',     coat:'charcoal', shoulders:13 }),
+  Object.freeze({ x:108, y:130, facing:'back', hair:'long',  hairColor:'navy',     coat:'blue',     shoulders:10 }),
+  Object.freeze({ x:143, y:136, facing:'back', hair:'short', hairColor:'black',    coat:'white',    shoulders:12 }),
+  Object.freeze({ x:57,  y:158, facing:'back', hair:'long',  hairColor:'charcoal', coat:'red',      shoulders:10 }),
+  Object.freeze({ x:99,  y:156, facing:'back', hair:'bob',   hairColor:'gray',     coat:'navy',     shoulders:11 }),
+]);
 const MORNING_OFFICE_PALETTE = Object.freeze({
   ink:'#27445b', navy:'#5f87a3', blue:'#9cc7df', carpet:'#92aebe', carpetShade:'#7898aa',
   white:'#fffdf1', silver:'#e5edf0', gray:'#a9bbc3', charcoal:'#385263', black:'#172733',
