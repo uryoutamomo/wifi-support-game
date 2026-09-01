@@ -29,6 +29,7 @@ const EXPECT = {
   S10:{ cause:'hardware',    best:'r_hardware_swap',   noOut:null,               partial:['r_hardware_no_swap'],tone:'warm' },
   S11:{ cause:'location',    best:'r_move_guide',      noOut:null,               partial:['r_window_stationary'],tone:'brief' },
   S12:{ cause:'provision',   best:'r_escalate_prov',   noOut:null,               partial:[],                 tone:'warm' },
+  S13:{ cause:'logistics',   best:'r_logistics_replacement',noOut:null,           partial:['r_logistics_refund'],tone:'warm' },
 };
 
 // 依頼で渡した液晶データ
@@ -45,6 +46,7 @@ const PANEL = {
   S10:{ bars:null, carrier:null,        sim:'none', throttle:false, clients:0, battery:76 },
   S11:{ bars:1, carrier:'TIM',          sim:'ok',   throttle:false, clients:2, battery:68 },
   S12:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:73 },
+  S13:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:82 },
 };
 
 let ng = 0;
@@ -124,7 +126,7 @@ SCENARIOS.forEach(s => {
 });
 
 // 配送手配（TGX）が正解・選択肢に絡む案件だけが shipNeed を持つ。
-const SHIP = { S3:'normal', S7:'next', S9:'fast', S10:'next' };
+const SHIP = { S3:'normal', S7:'next', S9:'fast', S10:'next', S13:'next' };
 SCENARIOS.forEach(s => {
   const want = SHIP[s.id] || null;
   const got = s.shipNeed || null;
@@ -160,8 +162,8 @@ if (!simEscalation || simEscalation.needsTest !== 't_simout' || simEscalation.ne
 const hardwareSwap = D.REMEDIES.hardware.find(r => r.id === 'r_hardware_swap');
 if (!hardwareSwap || hardwareSwap.needsTestCount !== 2 || hardwareSwap.requiresLongStay !== 3 || !hardwareSwap.requiresConsent) bad('機器故障の代替機配送条件が確定仕様と違う');
 
-// §25: 折り返し先データは12案件すべてに持たせる。
-const CALLBACK_TO = { S1:'hotel', S2:'mobile', S3:'mobile', S4:'hotel', S5:'hotel', S6:'mobile', S7:'mobile', S8:'hotel', S9:'mobile', S10:'hotel', S11:'mobile', S12:'hotel' };
+// §25: 折り返し先データは全案件に持たせる。
+const CALLBACK_TO = { S1:'hotel', S2:'mobile', S3:'mobile', S4:'hotel', S5:'hotel', S6:'mobile', S7:'mobile', S8:'hotel', S9:'mobile', S10:'hotel', S11:'mobile', S12:'hotel', S13:'hotel' };
 SCENARIOS.forEach(s => {
   if (s.callbackTo !== CALLBACK_TO[s.id]) bad(s.id + ': callbackTo が ' + CALLBACK_TO[s.id] + ' のはずが ' + s.callbackTo);
 });
@@ -239,7 +241,7 @@ if (!denied27.includes('system-screen record-system-screen identity-denied-scree
 if (!record27.includes('system-screen record-system-screen') || !record27.includes('<b>通話記録</b>') || !record27.includes('renderRecordTranscript(t)')) bad('§27 通話記録が共通システム画面で全履歴を表示しない');
 if (!recordTranscript27.includes('t.transcript.map') || !recordTranscript27.includes("cust:'客'") || !recordTranscript27.includes("sys:'社内システム'") || !recordTranscript27.includes('line.text')) bad('§27 通話記録から従来の発言・メモ・システム応答が欠ける');
 
-// §28: 12案件解決の表エンディングと、8バッジの裏エンディングを独立して管理する。
+// §28: 全案件解決の表エンディングと、8バッジの裏エンディングを独立して管理する。
 const freshCareer28 = sourceOf('freshCareerRecord');
 const validCareer28 = sourceOf('validCareerRecord');
 const normalizeCareer28 = sourceOf('normalizeCareerRecord');
@@ -264,6 +266,21 @@ if (!sourceOf('careerEndingEyebrowHtml').includes("state.endingType === 'secret'
 if (!nextEnding28.includes("type === 'career' ? !state.career.ending : !state.career.secretEnding") || !sourceOf('continueAfterCareerEnding').includes("if (next === 'secret')")) bad('§28 表の後に裏を続ける、または両方を一度ずつにする制御がない');
 if (!careerDebrief28.includes("解決した案件 ' + career.solvedScenarios.length + ' / ' + SCENARIOS.length") || careerDebrief28.includes('SCENARIOS.map') || careerDebrief28.includes('scenario.name')) bad('§28 レポートが解決数を出さない、または未解決案件名を漏らす');
 if (!Object.prototype.hasOwnProperty.call(GAME_FLAGS,'solvedScenarios') || GAME_FLAGS.solvedScenarios !== null || !careerFlags28.includes('flags.solvedScenarios') || !balance28.includes('showCareerEnding(true)') || !balance28.includes('showSecretEnding(true)')) bad('§28 GAME_FLAGSと調から表・裏エンディングを再現できない');
+
+// §29: 毎夜のブリーフィングは状態と開始操作だけに絞り、説明はマニュアルへ残す。
+const careerBriefing29 = sourceOf('careerBriefingHtml');
+const briefing29 = sourceOf('showBriefing');
+const manual29 = sourceOf('showManual');
+const removedBriefing29 = ['海外用モバイルWiFiレンタルのテクニカルサポート','ここは、すでに海外にいるお客様','<h2>やること</h2>','<h2>評価の重みは隠しません</h2>','<h2>ひとつだけ先に</h2>'];
+if (removedBriefing29.some(token => briefing29.includes(token))) bad('§29 ブリーフィングに毎夜不要な説明が残っている');
+if (!careerBriefing29.includes("'日目 ／ '") || !careerBriefing29.includes('CAREER_STAGES[career.stage].label') || !careerBriefing29.includes("' ／ 今夜 ' + state.tickets.length + '件</b>'")) bad('§29 何日目・段階・今夜の件数が1行で出ない');
+if (!briefing29.includes('id="btn-start">シフトを始める</button>')) bad('§29 ブリーフィングにシフト開始ボタンがない');
+if (!careerBriefing29.includes('career.totals.days === 0') || !careerBriefing29.includes('勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。')) bad('§29 保存注記が初回だけになっていない');
+const scoreWeights29 = ['顧客満足（CSAT）35%','一次解決率 25%','応答率 20%','費用 10%','業務報告 10%'];
+if (!scoreWeights29.every(token => manual29.includes(token))) bad('§29 評価の配点5項目が対応マニュアルにない');
+const operatingRules29 = ['電話は1本ずつしか取れません','無駄な質問1つが通話を1分延ばし','調べものは保留にすれば速く済みます','現地キャリアへの照会だけは30分かかります',"枠は' + ESCALATIONS + '回だけ",'相手によって刺さる話し方が違います'];
+if (!operatingRules29.every(token => manual29.includes(token))) bad('§29 やること6項目が対応マニュアルに揃っていない');
+if (!briefing29.includes('artifact-qr-card') || !briefing29.includes('drawArtifactQr()') || !/@media \(max-width:480px\)[\s\S]*?\.artifact-qr-card\{ display:none; \}/.test(pageSource)) bad('§29 QRカードの従来の表示・スマホ非表示が崩れている');
 
 // 通話フロー v2: 本人確認の3問は診断の手がかりを増やさない。
 const IDENTITY_QUESTIONS = ['q_name', 'q_destination', 'q_contract'];
@@ -304,6 +321,7 @@ const CONTRACT_IDS = {
   S10:{ minutes:2, number:'GDW-814263' },
   S11:{ minutes:1, number:'GDW-562940' },
   S12:{ minutes:3, number:'GDW-348621' },
+  S13:{ minutes:2, number:'GDW-630519' },
 };
 SCENARIOS.forEach(s => {
   const want = CONTRACT_IDS[s.id];
@@ -436,7 +454,7 @@ if (JSON.stringify(SOOTHE_EFFECTS) !== JSON.stringify(SOOTHE_BY_TYPE)) bad('タ�
 if (JSON.stringify(SMALLTALK_EFFECTS) !== JSON.stringify({anxious:-10,novice:-12,hurried:14,expert:6})) bad('タイプ別の雑談効果が確定表と違う');
 if (JSON.stringify(IDENTITY_CALMING_EFFECTS) !== JSON.stringify({anxious:-10,novice:-8,hurried:-4,expert:0})) bad('高ストレス本人確認のタイプ別効果が確定表と違う');
 const requiredTopicFields = ['id','reveal','askLabel','tellLabel','goodReply','badReply'];
-if (SCENARIOS.length !== 12 || !SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0)))) bad('全12シナリオの雑談話題6項目が揃っていない');
+if (SCENARIOS.length !== 13 || !SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0)))) bad('全13シナリオの雑談話題6項目が揃っていない');
 const section13QuestionIds = new Set(QUESTIONS.map(question => question.id));
 const universallyReachableQuestions = new Set(['q_name','q_destination','q_contract']);
 if (!SCENARIOS.every(scenario => scenario.smalltalk.every(topic => topic.reveal === 'opening' || (section13QuestionIds.has(topic.reveal) && (universallyReachableQuestions.has(topic.reveal) || Boolean((scenario.replies || {})[topic.reveal])))))) bad('雑談話題のrevealが実際に到達できる質問へ接続されていない');
@@ -556,7 +574,7 @@ if (!gameSource.includes("result.kind === 'closed' || result.kind === 'refunded'
 const outageRefundRemedy = REMEDIES.carrier.find(remedy => remedy.id === 'r_outage_explain');
 if (!outageRefundRemedy || outageRefundRemedy.cost !== 2400 || !outageRefundRemedy.needsOutage || outageRefundRemedy.kind !== 'resolve') bad('広域障害の正規対処 r_outage_explain が損なわれている');
 
-// §15-5/§25: 1日は12案件から2〜5件を重複なく選び、先頭の到着枠へ詰める。
+// §15-5/§25: 1日は全案件から2〜5件を重複なく選び、先頭の到着枠へ詰める。
 try {
   const dailyCount15 = new Function(sourceOf('dailyTicketCount') + '\nreturn dailyTicketCount;')();
   const shuffle15 = new Function(sourceOf('shuffleScenarios') + '\nreturn shuffleScenarios;')();
@@ -585,7 +603,7 @@ if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('rend
 // 6. 実際の全件closedで既存日報へ進む。
 if (!sourceOf('checkShiftEnd').includes("state.tickets.some(t => t.state !== 'closed')") || !sourceOf('checkShiftEnd').includes("state.phase = 'report'; renderReport()")) bad('その日の全件終了でシフト終了レポートへ到達しない');
 // 7. 集計と表示が実件数を使い、2件の日の空欄にも表示を持つ。
-if (!sourceOf('metrics').includes('state.tickets.length - abandoned') || !sourceOf('renderReport').includes("state.tickets.length + '件") || !sourceOf('renderReport').includes('該当する特記事項はありません。') || !sourceOf('showBriefing').includes("state.tickets.length + '件の電話を受けます")) bad('レポート集計・ブリーフィング・空項目が当日の実件数に追従しない');
+if (!sourceOf('metrics').includes('state.tickets.length - abandoned') || !sourceOf('renderReport').includes("state.tickets.length + '件") || !sourceOf('renderReport').includes('該当する特記事項はありません。') || !sourceOf('careerBriefingHtml').includes("state.tickets.length + '件</b>'")) bad('レポート集計・ブリーフィング・空項目が当日の実件数に追従しない');
 if (!sourceOf('resetGame').includes('prepareDailyScenarios(SCENARIOS, state.random).map(newTicket)')) bad('resetGameが日次案件選択を使わない');
 
 // §21-7: 会話の継ぎ目に関する12検査。

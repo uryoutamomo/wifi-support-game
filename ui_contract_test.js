@@ -315,7 +315,7 @@ assert(actionsAskBranch.includes('renderAskGroups(t)') && actionsAskBranch.inclu
 
 // §8 雑談（空気を読む）
 const requiredTopicFields = ['id','reveal','askLabel','tellLabel','goodReply','badReply'];
-assert(SCENARIOS.length === 12 && SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0))), '全12シナリオの雑談話題6項目が揃っていない');
+assert(SCENARIOS.length === 13 && SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0))), '全13シナリオの雑談話題6項目が揃っていない');
 const questionIds = new Set(QUESTIONS.map(question => question.id));
 assert(SCENARIOS.every(s => s.smalltalk.every(topic => topic.reveal === 'opening' || questionIds.has(topic.reveal))), '雑談話題の解禁条件が第一声または実在質問ではない');
 assert.deepEqual(SMALLTALK_EFFECTS, { anxious:-10, novice:-12, hurried:14, expert:6 }, 'タイプ別の雑談効果が完全一致しない');
@@ -488,8 +488,8 @@ stagedByType.forEach(({type,text}) => {
   stagedOwners.set(text, owners);
 });
 assert([...stagedOwners.values()].every(owners => owners.size === 1), '顧客タイプをまたいで同じ苛立ち文言が使い回されている');
-assert.equal(SCENARIOS.filter(scenario => typeof scenario.opening === 'string' && scenario.opening.length > 0).length, 12, '12シナリオの第一声が揃っていない');
-assert.equal(SCENARIOS.flatMap(scenario => scenario.smalltalk || []).length, 13, '雑談13話題が揃っていない');
+assert.equal(SCENARIOS.filter(scenario => typeof scenario.opening === 'string' && scenario.opening.length > 0).length, SCENARIOS.length, '全シナリオの第一声が揃っていない');
+assert.equal(SCENARIOS.flatMap(scenario => scenario.smalltalk || []).length, 14, '雑談14話題が揃っていない');
 assert(typeNames.every(type => ['sootheReply','sootheMissReply','sootheRepeatReply'].every(key => TYPES[type][key])), 'なだめる反応が4タイプ分揃っていない');
 assert(typeNames.every(type => APOLOGY_REPLIES[type] && ['brief','accepted','repeated','excessive'].every(key => APOLOGY_REPLIES[type][key])), '謝罪の受け止め方が4タイプ分揃っていない');
 
@@ -587,13 +587,13 @@ const shuffleScenarios = new Function(shuffleScenariosSource + '\nreturn shuffle
 const firstOrder = shuffleScenarios(SCENARIOS, () => 0);
 const secondOrder = shuffleScenarios(SCENARIOS, () => 0.999999);
 assert.notDeepEqual(firstOrder.map(s => s.id), secondOrder.map(s => s.id), '固定乱数を変えても案件の登場順が変わらない');
-assert.deepEqual([...new Set(firstOrder.map(s => s.id))].sort(), SCENARIOS.map(s => s.id).sort(), 'シャッフル後に12案件の欠落・重複がある');
+assert.deepEqual([...new Set(firstOrder.map(s => s.id))].sort(), SCENARIOS.map(s => s.id).sort(), 'シャッフル後に全案件の欠落・重複がある');
 assert(firstOrder.every(item => SCENARIOS.includes(item)), 'シャッフルで案件間の参照を失う複製を作っている');
 const luckResetSource = functionSource('resetGame');
 assert(luckResetSource.includes('prepareDailyScenarios(SCENARIOS, state.random).map(newTicket)'), 'resetGameが日次案件の選択と到着圧縮を通らない');
 assert(functionSource('prepareDailyScenarios').includes('flags.shuffleArrival') && functionSource('prepareDailyScenarios').includes(': scenarios.slice()'), '登場順シャッフルを元へ戻せない');
 assert(functionSource('prepareDailyScenarios').includes('{ arrive:arrivalSlots[index] }'), 'シャッフル後の順番へ固定到着枠を振り直していない');
-assert.deepEqual(SCENARIOS.map(s => s.arrive).sort((a,b) => a-b), [0,5,11,18,25,31,38,44,50,56,62,68], '12案件の固定到着枠が変わっている');
+assert.deepEqual(SCENARIOS.map(s => s.arrive).sort((a,b) => a-b), [0,5,11,18,25,31,38,44,50,56,62,68,74], '13案件の固定到着枠が変わっている');
 
 const luckDisclosurePattern = /運が悪|裏目|抽選結果/;
 const playerFacingLuckSource = [functionSource('renderCall'), functionSource('renderRecord'), functionSource('renderTranscript'), functionSource('pushCustomerLine')].join('\n');
@@ -633,9 +633,9 @@ assert.equal(baselineTicket.stress, 45, '運なしの同一操作列で苛立ち
 const noLuckTreatment = new Function('rollLuck', treatmentSucceedsSource + '\nreturn treatmentSucceeds;')(noLuckRoll);
 assert.equal(noLuckTreatment(true), true, '運なしで正しい対処の旧成否に戻らない');
 assert.equal(noLuckTreatment(false), false, '運なしで誤診の旧成否に戻らない');
-assert.deepEqual(SCENARIOS.map(s => s.id), ['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','S11','S12'], 'シャッフルOFFの定義順が確定登場順と違う');
+assert.deepEqual(SCENARIOS.map(s => s.id), ['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','S11','S12','S13'], 'シャッフルOFFの定義順が確定登場順と違う');
 
-// §15/§25: 1シフトは12案件から重複なく2〜5件を選び、到着を先頭枠へ詰める。
+// §15/§25: 1シフトは全案件から重複なく2〜5件を選び、到着を先頭枠へ詰める。
 const dailyCountSource = functionSource('dailyTicketCount');
 const dailyTicketCount = new Function(dailyCountSource + '\nreturn dailyTicketCount;')();
 const prepareDailyScenarios = new Function(
@@ -682,7 +682,7 @@ const renderTwoTicketReport = new Function(
 )(twoTicketState, SCENARIOS, () => ({special:[],handoff:[]}), () => ({abandoned:0,aht:null}), () => reportSheet, () => '22:00', String, () => 0, () => {});
 renderTwoTicketReport();
 assert(reportSheet.innerHTML.includes('対応件数 2件') && reportSheet.innerHTML.includes('該当する特記事項はありません。'), '2件の日のレポートが件数と空項目を成立させて表示しない');
-assert(functionSource('showBriefing').includes("state.tickets.length + '件の電話を受けます") && functionSource('renderReport').includes("state.tickets.length + '件"), '当日の実件数がブリーフィングとレポートに表示されない');
+assert(functionSource('careerBriefingHtml').includes("state.tickets.length + '件</b>'") && functionSource('renderReport').includes("state.tickets.length + '件"), '当日の実件数がブリーフィングとレポートに表示されない');
 assert(Object.prototype.hasOwnProperty.call(GAME_FLAGS, 'dailyTickets') && GAME_FLAGS.dailyTickets === null, 'GAME_FLAGSから日次件数を固定できない');
 
 const baselineClosed = runCloseContract(true, true);
@@ -1071,13 +1071,13 @@ const clearCareerSource = functionSource('clearCareerRecord');
 assert.equal((clearCareerSource.match(/window\.confirm/g)||[]).length,1,'勤務記録消去の確認回数が1回ではない');
 assert(clearCareerSource.includes('removeItem(CAREER_STORAGE_KEY)') && clearCareerSource.includes('freshCareerRecord()') && clearCareerSource.includes('showBriefing()'), '勤務記録消去後に1日目へ戻れない');
 
-// §28-5 検査1〜2: 表は12案件すべての解決で発火し、11案件では発火しない。
+// §28-5 検査1〜2: 表は全案件の解決で発火し、1件不足では発火しない。
 const scenarioIds28 = SCENARIOS.map(scenario => scenario.id);
-const surfaceRecord28 = careerFns.freshCareerRecord(); surfaceRecord28.solvedScenarios=scenarioIds28.slice(0,11);
+const surfaceRecord28 = careerFns.freshCareerRecord(); surfaceRecord28.solvedScenarios=scenarioIds28.slice(0,-1);
 const neutralContext = {maxStresses:[80,80],redials:1,abandoned:0,resultKinds:['closed'],noRefundsOrShipments:false,allResolved:false,allRefunded:false,solvedScenarioIds:[]};
-const surfaceUpdate28 = careerFns.appendCareerShift(surfaceRecord28,baseShift(),Object.assign({},neutralContext,{solvedScenarioIds:[scenarioIds28[11]]}));
-assert.deepEqual(surfaceUpdate28.endingQueue,['career'],'§28 12案件すべてを解決しても表エンディングへ進まない');
-assert.deepEqual(careerFns.appendCareerShift(surfaceRecord28,baseShift(),neutralContext).endingQueue,[],'§28 11案件で表エンディングへ進む');
+const surfaceUpdate28 = careerFns.appendCareerShift(surfaceRecord28,baseShift(),Object.assign({},neutralContext,{solvedScenarioIds:[scenarioIds28.at(-1)]}));
+assert.deepEqual(surfaceUpdate28.endingQueue,['career'],'§28 全案件を解決しても表エンディングへ進まない');
+assert.deepEqual(careerFns.appendCareerShift(surfaceRecord28,baseShift(),neutralContext).endingQueue,[],'§28 1件不足で表エンディングへ進む');
 
 // §28-5 検査3〜5: 失客は数えず、closedと満足返金だけを重複なしで数える。
 const solvedTickets28 = [
@@ -1241,8 +1241,8 @@ assert(menuSource.includes('optional-greeting') && menuSource.includes('data-gre
 
 // §24-5 検査7は§25で限定折り返しを復活させたため、§25-7 検査5へ移行した。
 
-// §24-5 検査8: callbackToは12案件すべてに持たせる。
-assert(SCENARIOS.length === 12 && SCENARIOS.every(scenario => ['hotel','mobile'].includes(scenario.callbackTo)), '§24/§25 案件データのcallbackToが揃っていない');
+// §24-5 検査8: callbackToは全案件に持たせる。
+assert(SCENARIOS.length === 13 && SCENARIOS.every(scenario => ['hotel','mobile'].includes(scenario.callbackTo)), '§24/§25 案件データのcallbackToが揃っていない');
 
 // §24-5 検査9: 途中切断から再着信する既存経路を保つ。
 assert(interruptSource.includes('t.pendingInterruption = true') && finishInterruptedSource.includes("t.state = 'waiting'") && finishInterruptedSource.includes('t.redialCount++'), '§24 interruptCallからの再着信が従来どおり動かない');
@@ -1444,6 +1444,89 @@ const recordHtml27 = renderRecordTranscript27({transcript:[
 ]});
 ['客','顧客発話','あなた','担当者発話','メモ','対応メモ','社内システム','システム応答'].forEach(text => assert(recordHtml27.includes(text), '§27 通話記録から従来の中身が欠ける: ' + text));
 assert(!recordTranscriptSource27.includes('renderTranscript(t, true)') && recordTranscriptSource27.includes('t.transcript.map'), '§27 通話記録が会話の吹き出しをそのまま並べている');
+
+// §29-5 検査1: 毎夜不要な説明をブリーフィングから外す。
+const briefingSource29 = functionSource('showBriefing');
+const manualSource29 = functionSource('showManual');
+const removedBriefing29 = ['海外用モバイルWiFiレンタルのテクニカルサポート','ここは、すでに海外にいるお客様','<h2>やること</h2>','<h2>評価の重みは隠しません</h2>','<h2>ひとつだけ先に</h2>'];
+assert(removedBriefing29.every(token => !briefingSource29.includes(token)), '§29 ブリーフィングに毎夜不要な説明が残っている');
+
+// §29-5 検査2・4: 状態を1行にし、保存注記は通算0日の初回だけ出す。
+const careerBriefingSource29 = functionSource('careerBriefingHtml');
+const briefingRuntime29 = {state:{career:{totals:{days:0},stage:'probation'},tickets:[{},{},{},{}]}};
+const careerBriefing29 = new Function('state','freshCareerRecord','esc','CAREER_STAGES', careerBriefingSource29 + '\nreturn careerBriefingHtml;')(
+  briefingRuntime29.state,() => briefingRuntime29.state.career,value => String(value),CAREER_STAGES
+);
+const firstBriefing29 = careerBriefing29();
+assert(firstBriefing29.includes('<b>1日目 ／ 試用期間 ／ 今夜 4件</b>'), '§29 何日目・段階・今夜の件数が1行で出ない');
+assert(firstBriefing29.includes('勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。'), '§29 初回ブリーフィングに保存注記がない');
+briefingRuntime29.state.career = {totals:{days:1},stage:'probation'};
+const secondBriefing29 = careerBriefing29();
+assert(secondBriefing29.includes('<b>2日目 ／ 試用期間 ／ 今夜 4件</b>') && !secondBriefing29.includes('勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。'), '§29 保存注記が2日目以降にも出る');
+
+// §29-5 検査3: 開始操作を残す。
+assert(briefingSource29.includes('id="btn-start">シフトを始める</button>') && briefingSource29.includes("$('btn-start').onclick"), '§29 ブリーフィングにシフト開始ボタンがない');
+
+// §29-5 検査5: 公開していた採点基準をマニュアルへ移す。
+const scoreWeights29 = ['顧客満足（CSAT）35%','一次解決率 25%','応答率 20%','費用 10%','業務報告 10%'];
+assert(scoreWeights29.every(token => manualSource29.includes(token)), '§29 評価の配点5項目が対応マニュアルにない');
+
+// §29-5 検査6: 「やること」の6項目をマニュアルで読めるようにする。
+const operatingRules29 = ['電話は1本ずつしか取れません','無駄な質問1つが通話を1分延ばし','調べものは保留にすれば速く済みます','現地キャリアへの照会だけは30分かかります',"枠は' + ESCALATIONS + '回だけ",'相手によって刺さる話し方が違います'];
+assert(operatingRules29.every(token => manualSource29.includes(token)), '§29 やること6項目が対応マニュアルに揃っていない');
+
+// §29-5 検査7: QRカードとスマホ幅での非表示を維持する。
+assert(briefingSource29.includes('artifact-qr-card') && briefingSource29.includes('drawArtifactQr()') && /@media \(max-width:480px\)[\s\S]*?\.artifact-qr-card\{ display:none; \}/.test(page), '§29 QRカードの従来の表示・スマホ非表示が崩れている');
+
+// §30-6 検査1: 13件目をlogistics案件として追加する。
+const s9Logistics30 = SCENARIOS.find(scenario => scenario.id === 'S9');
+const s13Logistics30 = SCENARIOS.find(scenario => scenario.id === 'S13');
+assert(s13Logistics30 && s13Logistics30.trueCause === 'logistics', '§30 検査1: 13件目がlogistics案件ではない');
+
+// §30-6 検査2: S9の未受取と、S13の受取済み・初回から不通を書き分ける。
+assert(s9Logistics30.device === '（未受取）' && /受け取ってから一度も|初回起動から一度も/.test(s13Logistics30.opening + s13Logistics30.replies.q_when.text) && !/未受取|受け取れていません/.test(s13Logistics30.opening), '§30 検査2: S9の未受取とS13の受取済み初回不通を区別できない');
+
+// §30-6 検査3: 貸出記録が申込国と利用不可SIMの食い違いを自社の記録として示す。
+const s13Ship30 = s13Logistics30.lookups.l_ship;
+assert(s13Ship30.text.includes('申込: ポルトガル') && s13Ship30.text.includes('貸出品: タイ向けSIM') && s13Ship30.text.includes('ポルトガル: 利用不可') && (s13Ship30.fact.hot || []).includes('logistics'), '§30 検査3: l_shipに申込国と利用不可SIMの食い違いがない');
+
+// §30-6 検査4: 契約照会自体は正常である。
+const s13Plan30 = s13Logistics30.lookups.l_plan;
+assert(s13Plan30.text.includes('契約: 有効') && s13Plan30.text.includes('使用量: 制限内') && !/失効|上限到達|速度制限中/.test(s13Plan30.text), '§30 検査4: l_planが有効・制限内の正常契約ではない');
+
+// §30-6 検査5: 最適対処は非を認めて代替機を送る。
+const s13Best30 = REMEDIES.logistics.find(remedy => remedy.id === s13Logistics30.best);
+assert(s13Best30 && s13Best30.label.includes('手配の誤りをお詫びし') && s13Best30.label.includes('代替機を発送する'), '§30 検査5: 最適対処が謝罪と代替機発送を明記しない');
+
+// §30-6 検査6: 次善対処は非を認めて返金する。
+const s13Partial30 = REMEDIES.logistics.find(remedy => (s13Logistics30.partial || []).includes(remedy.id));
+assert(s13Logistics30.partial.length === 1 && s13Partial30 && s13Partial30.label.includes('手配の誤りをお詫びし') && s13Partial30.label.includes('返金する'), '§30 検査6: 次善対処が謝罪と返金を明記しない');
+
+// §30-6 検査7: 滞在期間と配送先の不足を既存remedyBlockReasonで止める。
+const remedyBlockReason30 = new Function('state','remedyNeedsShipping', functionSource('remedyBlockReason') + '\nreturn remedyBlockReason;')(
+  {escLeft:3,outageKnown:false}, id => id === 'r_logistics_replacement'
+);
+const s13Ticket30 = overrides => Object.assign({s:s13Logistics30,asked:new Set(),testCounts:new Map(),stayAddress:null,stayDaysKnown:false,replacementConsentKnown:false},overrides);
+const missingStayPeriod30 = remedyBlockReason30(s13Ticket30({asked:new Set(['q_stay','q_replacement'])}),s13Best30);
+const missingDestination30 = remedyBlockReason30(s13Ticket30({asked:new Set(s13Best30.requiresQuestions),stayDaysKnown:true,replacementConsentKnown:true}),s13Best30);
+assert(missingStayPeriod30.includes('聞き取り') && missingDestination30.includes('配送先'), '§30 検査7: remedyBlockReasonが滞在期間・滞在先不足を止めない');
+
+// §30-6 検査8: 新しい前提機構を作らず既存3条件を使う。
+assert.deepEqual(s13Best30.requiresQuestions,['q_stay','q_stay_length','q_replacement'],'§30 検査8: 代替機発送が既存の質問条件を使わない');
+assert(s13Best30.requiresLongStay === 3 && s13Best30.requiresConsent === true, '§30 検査8: 代替機発送が既存の長期滞在・同意条件を使わない');
+
+// §30-6 検査9: S13で選べる正解・次善のどちらも非を隠さない。
+const s13AssignedRemedies30 = [s13Best30,s13Partial30];
+assert(s13AssignedRemedies30.every(remedy => remedy && remedy.label.includes('手配の誤りをお詫びし') && !/隠|黙|伏せ|ごまか/.test(remedy.label)), '§30 検査9: 非を認めず切り抜けるS13対処がある');
+
+// §30-6 検査10: 不安型の客が第一声で自分を責め、会社の手配ミスは疑わない。
+assert(s13Logistics30.type === 'anxious' && /私が.*間違え/.test(s13Logistics30.opening) && !/手配|貸出|会社|御社|違うSIM/.test(s13Logistics30.opening), '§30 検査10: anxiousの自己責任型第一声になっていない');
+
+// §30-6 検査11: 13件へ増えても表エンディングとレポートは動的総数を使う。
+assert(SCENARIOS.length === 13 && functionSource('careerEndingQueue').includes('career.solvedScenarios.length === SCENARIOS.length') && functionSource('careerDebriefHtml').includes("' / ' + SCENARIOS.length"), '§30 検査11: 13件または動的な全件エンディング・集計になっていない');
+
+// §30-6 検査12: progression_testが辿る既存前提データをS13にも揃える。
+assert(s13Best30.requiresQuestions.every(id => QUESTIONS.some(question => question.id === id) && s13Logistics30.replies[id]) && s13Logistics30.stayDays >= s13Best30.requiresLongStay && s13Logistics30.wantsReplacement === true, '§30 検査12: progression_test用の正解ルート前提が揃っていない');
 
 // 編集用の3素材と配布用 index.html は、build.js と同じ規則で完全一致する。
 const expectedIndex = builtIndexSource(__dirname);

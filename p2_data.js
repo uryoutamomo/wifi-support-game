@@ -434,6 +434,9 @@ const REMEDIES = {
   logistics: [
     { id:'r_transfer_logi', label:'物流・カウンター担当へ引き継ぎ、宿泊先への当日配送を手配する', sub:'エスカレーション枠は消費しない別系統', kind:'transfer', cost:4800 },
     { id:'r_come_tomorrow', label:'翌朝あらためてカウンターへ寄っていただくよう案内する', sub:'客の初日が丸ごと潰れる', kind:'resolve' },
+    { id:'r_logistics_replacement', label:'手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する', sub:'自社の手配ミスを正直に伝え、残りの滞在で使える機器を届ける', kind:'transfer', cost:28000,
+      requiresQuestions:['q_stay','q_stay_length','q_replacement'], requiresLongStay:3, requiresConsent:true },
+    { id:'r_logistics_refund', label:'手配の誤りをお詫びし、返金する', sub:'非を認めて返金するが、残りの滞在中も通信は使えない', kind:'resolve', cost:2400 },
   ],
 };
 
@@ -863,6 +866,47 @@ const SCENARIOS = [
     t_move:{ text:'ホテルの外まで出ましたが、圏外のままです。', fact:{ text:'屋外へ移動しても回線登録は戻らない', out:['location','coverage'] } },
   },
   debrief:'現地の日付が変わった直後に突然止まったことが重要な手がかりです。自社の契約照会は有効でも、現地キャリアでは終了日が早く登録され、<em>現地時間0時に契約満了として回線が停止</em>していました。現地照会を使えばほぼ確定できますが、日付境界と各原因の除外だけでもプロビジョニング不備へ到達できます。'
+},
+
+/* === 13. リスボン：申込国と異なるSIMを貸し出した手配ミス === */
+{
+  id:'S13', arrive:74, name:'秋山 美咲', age:32, type:'anxious', abandonAfter:30, callbackTo:'hotel',
+  contractId:{ minutes:2, text:'予約番号はGDW-630519です。受け取ったときの紙にありました。私の扱い方が悪かったのでしょうか…。' },
+  city:'リスボン', cityEn:'LISBON', localOffset:-8, device:'GD-500', plan:'ポルトガル ／ 無制限プラン',
+  opening:'あの…受け取ってから一度もつながらず、ずっと圏外なんです。私が最初の設定を何か間違えたのでしょうか。',
+  smalltalk:[{ id:'st_s13_stay', reveal:'q_stay_length', askLabel:'こちらのホテルには、あと7日ほどご滞在の予定ですか？', tellLabel:'長いご滞在の初日からつながらず、ご不安でしたよね', goodReply:'はい、あと7泊ずっと同じホテルです。そう言っていただけると、少し安心します…。', badReply:'はい、あと7泊です。でも初日から使えないのは、やはり私のせいでしょうか…。' }],
+  panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:82, ssid:'Globaldesk-3418' },
+  trueCause:'logistics', best:'r_logistics_replacement', partial:['r_logistics_refund'], shipNeed:'next', stayDays:7, wantsReplacement:true,
+  replies:{
+    q_other_device:{ text:'スマートフォンもパソコンも同じです。Wi-Fiの名前にはつながりますが、インターネットは使えません。',
+      fact:{ text:'複数端末が本体には接続できるが、回線通信だけができない', out:['device_side','device_net','devices'] } },
+    q_lamp:{ text:'画面には「圏外」と出ています。SIMがないという表示ではなく、アンテナだけ0本です。',
+      fact:{ text:'SIMは認識しているが、到着時から現地回線を一度も捕捉していない', hot:['coverage','provision','logistics'], out:['sim','device_side','device_net'] } },
+    q_when:{ text:'今日、空港で受け取ってホテルに着いてからです。箱から出した最初の電源投入から、一度もつながっていません。',
+      fact:{ text:'機器は受取済みで、初回起動から一度も通信できていない', hot:['coverage','provision','logistics'], out:['fup','heavy'] } },
+    q_where:{ text:'リスボン中心部のホテルです。部屋でもロビーでも、外へ出ても同じでした。',
+      fact:{ text:'市内ホテルの内外で圏外が続く', out:['location'] } },
+    q_battery:{ text:'82%です。充電もできています。電池は足りていますよね…？', fact:{ text:'電源と充電は正常', out:['power'] } },
+    q_stay:{ text:'リスボン中心部のホテル・アズール、608号室です。滞在中はずっとこちらにいます。' },
+    q_stay_length:{ text:'今日を含めてあと7泊です。帰国まで同じホテルに滞在します。',
+      fact:{ text:'残り7泊、同じホテルに滞在するため代替機を使える期間が十分にある', hot:['logistics'] } },
+    q_replacement:{ text:'はい、使えるものが届くなら代替機を送ってください。ホテルで受け取ります。',
+      fact:{ text:'本人が同じホテルへの代替機配送を希望している', hot:['logistics'] } },
+  },
+  lookups:{
+    l_plan:{ text:'[契約照会] 申込: ポルトガル ／ 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし',
+      fact:{ text:'ポルトガル向け契約は有効で、使用量も制限内', out:['fup','heavy'] } },
+    l_ship:{ text:'[貸出記録] 申込: ポルトガル ／ 貸出品: タイ向けSIM ／ ポルトガル: 利用不可 ／ 貸出済み ／ 市内デポに対応代替機あり',
+      fact:{ text:'申込国と異なる利用不可SIMを貸し出した自社の手配ミス', hot:['logistics'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','carrier','coverage','sim','hardware','provision'] } },
+    l_outage:{ text:'[障害情報] リスボン周辺の提携キャリア 障害報告なし。', fact:{ text:'現地キャリアに広域障害なし', out:['carrier'] } },
+    l_area:{ text:'[エリア照会] ポルトガル ／ 貸出機種 GD-500: 対応 ✓ ／ ポルトガル向けSIM: 対応 ✓',
+      fact:{ text:'地域と機種は対応範囲内で、正しいSIMなら利用できる', out:['coverage'] } },
+  },
+  tests:{
+    t_reboot:{ text:'再起動しました。でも圏外のままです。私の押し方が悪いわけではないんですね…？', fact:{ text:'再起動でも回線を捕捉しない', out:['power','device_side'] } },
+    t_move:{ text:'ホテルの外まで出ましたが、やはり圏外です。', fact:{ text:'屋外へ移動しても圏外のまま', out:['location','coverage'] } },
+  },
+  debrief:'契約は有効でも、貸出記録には<em>申込国と違う、その国では利用できないSIM</em>が記録されていました。お客様は自分の設定ミスだと思っていましたが、原因は自社の手配ミスです。非を隠さず先にお詫びし、長期滞在・同じホテル・本人の希望を確認したうえで、使える代替機を届けるのが最適です。返金だけでは、残りの滞在中も通信が使えません。'
 },
 
 ];

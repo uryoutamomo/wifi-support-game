@@ -15,7 +15,7 @@ const SHIP_LEVELS = [
   { id:'next', label:'翌日便', eta:'現地翌日中', fee:9000, rank:2 },
   { id:'normal', label:'通常便', eta:'2〜3日', fee:4000, rank:1 },
 ];
-const SHIPPING_REMEDIES = new Set(['r_hardware_swap','r_escalate_band','r_transfer_logi','r_second_unit']);
+const SHIPPING_REMEDIES = new Set(['r_hardware_swap','r_escalate_band','r_transfer_logi','r_second_unit','r_logistics_replacement']);
 const DESTINATION_IN_OPENING = new Set(['S9','S11']);
 function callCost(t){ return t.callMinutes * CALL_RATE_PER_MIN; }
 function totalCost(){ return state.cost + state.tickets.reduce((n,t) => n + callCost(t), 0); }

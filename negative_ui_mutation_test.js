@@ -372,7 +372,7 @@ const mutations = [
   {
     name:'シャッフルで1案件を落とす', file:'p3_game.js',
     from:'const shuffled = scenarios.slice();', to:'const shuffled = scenarios.slice(1);',
-    expected:'シャッフル後に12案件の欠落・重複がある',
+    expected:'シャッフル後に全案件の欠落・重複がある',
   },
   {
     name:'裏目を顧客発話へ漏らす', file:'p3_game.js',
@@ -537,7 +537,7 @@ const mutations = [
     name:'1シナリオの第一声を空にする', file:'p2_data.js',
     from:"opening:'急いでます。一台だけ繋がりません。ほかは使えます。あと10分で移動しないといけません。何を見ればいいですか。',",
     to:"opening:'',",
-    expected:'12シナリオの第一声が揃っていない',
+    expected:'全シナリオの第一声が揃っていない',
   },
   {
     name:'全タイプを名乗る前に喋らせる', file:'p3_game.js',
@@ -1071,14 +1071,14 @@ const mutations = [
     expected:'勤務記録消去の確認回数が1回ではない',
   },
   {
-    name:'12案件でも表エンディングを開始しない', file:'p3_game.js',
+    name:'全案件でも表エンディングを開始しない', file:'p3_game.js',
     from:'career.solvedScenarios.length === SCENARIOS.length', to:'career.solvedScenarios.length > SCENARIOS.length',
-    expected:'§28 12案件すべてを解決しても表エンディングへ進まない',
+    expected:'§28 全案件を解決しても表エンディングへ進まない',
   },
   {
-    name:'11案件で表エンディングを開始する', file:'p3_game.js',
+    name:'1件不足で表エンディングを開始する', file:'p3_game.js',
     from:'career.solvedScenarios.length === SCENARIOS.length', to:'career.solvedScenarios.length >= SCENARIOS.length - 1',
-    expected:'§28 11案件で表エンディングへ進む',
+    expected:'§28 1件不足で表エンディングへ進む',
   },
   {
     name:'失客と不満返金も解決へ数える', file:'p3_game.js',
@@ -1156,6 +1156,42 @@ const mutations = [
     name:'GAME_FLAGSの強制解決済み案件を無視する', file:'p3_game.js',
     from:'next.solvedScenarios = [...new Set(flags.solvedScenarios.filter(id => known.has(id)))];', to:'next.solvedScenarios = [];',
     expected:'§28 GAME_FLAGSから表・裏エンディングを再現できない',
+  },
+  {
+    name:'毎夜のブリーフィングへ舞台説明を戻す', file:'p4_view.js',
+    from:"    careerBriefingHtml() +\n    '<div class=\"artifact-qr-card\"",
+    to:"    careerBriefingHtml() +\n    '<p class=\"lead\">海外用モバイルWiFiレンタルのテクニカルサポート</p>' +\n    '<div class=\"artifact-qr-card\"",
+    expected:'§29 ブリーフィングに毎夜不要な説明が残っている',
+  },
+  {
+    name:'ブリーフィング状態行から今夜の件数を消す', file:'p4_view.js',
+    from:"+ ' ／ 今夜 ' + state.tickets.length + '件</b>'", to:"+ '</b>'",
+    expected:'当日の実件数がブリーフィングとレポートに表示されない',
+  },
+  {
+    name:'ブリーフィングの開始ボタンIDを外す', file:'p4_view.js',
+    from:'id="btn-start">シフトを始める</button>', to:'id="btn-begin">シフトを始める</button>',
+    expected:'§29 ブリーフィングにシフト開始ボタンがない',
+  },
+  {
+    name:'保存注記を2日目以降にも表示する', file:'p4_view.js',
+    from:'career.totals.days === 0', to:'career.totals.days >= 0',
+    expected:'§29 保存注記が2日目以降にも出る',
+  },
+  {
+    name:'対応マニュアルのCSAT配点を変える', file:'p4_view.js',
+    from:'顧客満足（CSAT）35%', to:'顧客満足（CSAT）34%',
+    expected:'§29 評価の配点5項目が対応マニュアルにない',
+  },
+  {
+    name:'対応マニュアルの現地キャリア30分を消す', file:'p4_view.js',
+    from:'現地キャリアへの照会だけは30分かかります。', to:'現地キャリアへの照会は時間がかかります。',
+    expected:'§29 やること6項目が対応マニュアルに揃っていない',
+  },
+  {
+    name:'スマホ幅でもブリーフィングQRを表示する', file:'p1_head.html',
+    from:'.artifact-qr-card{ display:none; }', to:'.artifact-qr-card{ display:grid; }',
+    expected:'スマホ幅で公開ページQRが隠れない',
   },
   {
     name:'報告提出直後にエンディングを開始する', file:'p4_view.js',
@@ -1273,6 +1309,71 @@ const mutations = [
     name:'プレイヤーだけ服色を変える', file:'p4_view.js',
     from:'const coat = p[staff.coat];', to:'const coat = staff.player ? p.red : p[staff.coat];',
     expected:'プレイヤーだけを示す強調表示がある',
+  },
+  {
+    name:'S13の真因をlogistics以外へ変える', file:'p2_data.js',
+    from:"trueCause:'logistics', best:'r_logistics_replacement'", to:"trueCause:'hardware', best:'r_logistics_replacement'",
+    expected:'§30 検査1: 13件目がlogistics案件ではない',
+  },
+  {
+    name:'S13をS9と同じ未受取へ変える', file:'p2_data.js',
+    from:'受け取ってから一度もつながらず、ずっと圏外なんです。', to:'まだ受け取れていません。',
+    expected:'§30 検査2: S9の未受取とS13の受取済み初回不通を区別できない',
+  },
+  {
+    name:'S13の貸出SIMを申込国向けへ変える', file:'p2_data.js',
+    from:'貸出品: タイ向けSIM', to:'貸出品: ポルトガル向けSIM',
+    expected:'§30 検査3: l_shipに申込国と利用不可SIMの食い違いがない',
+  },
+  {
+    name:'S13の正常契約を失効へ変える', file:'p2_data.js',
+    from:'[契約照会] 申込: ポルトガル ／ 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし',
+    to:'[契約照会] 申込: ポルトガル ／ 契約: 失効 ／ 使用量: 制限内 ／ 速度制限なし',
+    expected:'§30 検査4: l_planが有効・制限内の正常契約ではない',
+  },
+  {
+    name:'S13最適対処から謝罪を外す', file:'p2_data.js',
+    from:'手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する',
+    to:'滞在期間と滞在先を確認したうえで代替機を発送する',
+    expected:'§30 検査5: 最適対処が謝罪と代替機発送を明記しない',
+  },
+  {
+    name:'S13次善対処から謝罪を外す', file:'p2_data.js',
+    from:'手配の誤りをお詫びし、返金する', to:'返金する',
+    expected:'§30 検査6: 次善対処が謝罪と返金を明記しない',
+  },
+  {
+    name:'S13代替機発送から滞在期間質問を外す', file:'p2_data.js',
+    from:"{ id:'r_logistics_replacement', label:'手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する', sub:'自社の手配ミスを正直に伝え、残りの滞在で使える機器を届ける', kind:'transfer', cost:28000,\n      requiresQuestions:['q_stay','q_stay_length','q_replacement']",
+    to:"{ id:'r_logistics_replacement', label:'手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する', sub:'自社の手配ミスを正直に伝え、残りの滞在で使える機器を届ける', kind:'transfer', cost:28000,\n      requiresQuestions:['q_stay','q_replacement']",
+    expected:'§30 検査7: remedyBlockReasonが滞在期間・滞在先不足を止めない',
+  },
+  {
+    name:'S13代替機発送の長期滞在条件を無効化する', file:'p2_data.js',
+    from:"requiresQuestions:['q_stay','q_stay_length','q_replacement'], requiresLongStay:3, requiresConsent:true },\n    { id:'r_logistics_refund'",
+    to:"requiresQuestions:['q_stay','q_stay_length','q_replacement'], requiresLongStay:0, requiresConsent:true },\n    { id:'r_logistics_refund'",
+    expected:'§30 検査8: 代替機発送が既存の長期滞在・同意条件を使わない',
+  },
+  {
+    name:'S13次善対処へ隠蔽を混ぜる', file:'p2_data.js',
+    from:'手配の誤りをお詫びし、返金する', to:'手配の誤りをお詫びし、隠して返金する',
+    expected:'§30 検査9: 非を認めず切り抜けるS13対処がある',
+  },
+  {
+    name:'S13の顧客タイプをexpertへ変える', file:'p2_data.js',
+    from:"id:'S13', arrive:74, name:'秋山 美咲', age:32, type:'anxious'", to:"id:'S13', arrive:74, name:'秋山 美咲', age:32, type:'expert'",
+    expected:'§30 検査10: anxiousの自己責任型第一声になっていない',
+  },
+  {
+    name:'解決数レポートの総数を12固定へ戻す', file:'p4_view.js',
+    from:"' / ' + SCENARIOS.length", to:"' / 12'",
+    expected:'§28 レポートが解決数を出さない、または未解決案件名を漏らす',
+  },
+  {
+    name:'S13から代替機希望の返答を外す', file:'p2_data.js',
+    from:"    q_replacement:{ text:'はい、使えるものが届くなら代替機を送ってください。ホテルで受け取ります。',\n      fact:{ text:'本人が同じホテルへの代替機配送を希望している', hot:['logistics'] } },\n",
+    to:'',
+    expected:'§30 検査12: progression_test用の正解ルート前提が揃っていない',
   },
 ];
 
