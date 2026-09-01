@@ -32,8 +32,9 @@ assert(closeSource.includes('t.pendingResult = result'), '解決後に終話待�
 assert(!closeSource.includes('closeTicket(t, result)'), '解決判定だけで電話が切れ、別れの言葉を確認できない');
 assert(functionSource('finishResolvedCall').includes('closeTicket(t, result)'), '「電話を切る」で解決済み案件を閉じられない');
 const interruptSource = functionSource('interruptCall');
-assert(interruptSource.includes("t.state = 'waiting'") && interruptSource.includes('t.arrivedTurn = state.turn'), '途中切断後に再着信へ進まない');
-assert(interruptSource.includes('state.focus = null') && interruptSource.includes('enterOffice()'), '途中切断後にオフィスへ戻れない');
+const finishInterruptedSource = functionSource('finishInterruptedCall');
+assert(interruptSource.includes('t.pendingInterruption = true') && finishInterruptedSource.includes("t.state = 'waiting'") && finishInterruptedSource.includes('t.arrivedTurn = state.turn'), '途中切断後に再着信へ進まない');
+assert(finishInterruptedSource.includes('state.focus = null') && finishInterruptedSource.includes('enterOffice()'), '途中切断の発話確認後にオフィスへ戻れない');
 
 const causeIds = new Set(CAUSES.map(cause => cause.id));
 const questionIds = new Set(QUESTIONS.map(question => question.id));

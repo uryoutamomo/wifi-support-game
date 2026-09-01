@@ -40,6 +40,8 @@ const state = {
   ui: defaultUi(),
   slogan: '',
   report: null,
+  career: null,
+  careerUpdate: null,
   officeEvents: [],
   random: Math.random,
 };
@@ -55,6 +57,108 @@ function shuffleScenarios(scenarios, random){
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+}
+
+function dailyTicketCount(random, flags = GAME_FLAGS){
+  if (flags.dailyTickets !== null){
+    if (!Number.isInteger(flags.dailyTickets) || flags.dailyTickets < 2 || flags.dailyTickets > 5){
+      throw new Error('dailyTickets は null または2〜5の整数で指定してください');
+    }
+    return flags.dailyTickets;
+  }
+  return 2 + Math.floor(random() * 4);
+}
+
+function prepareDailyScenarios(scenarios, random, flags = GAME_FLAGS){
+  const count = dailyTicketCount(random, flags);
+  const ordered = flags.shuffleArrival ? shuffleScenarios(scenarios, random) : scenarios.slice();
+  const arrivalSlots = scenarios.map(scenario => scenario.arrive).sort((a, b) => a - b).slice(0, count);
+  return ordered.slice(0, count).map((scenario, index) =>
+    Object.assign({}, scenario, { arrive:arrivalSlots[index] })
+  );
+}
+
+/* ---------- キャリア記録 ---------- */
+
+function freshCareerRecord(){
+  return {
+    version:CAREER_VERSION,
+    shifts:[],
+    stage:'probation',
+    badges:[],
+    ending:false,
+    totals:{ days:0, averageCsat:0, complaints:0 },
+  };
+}
+
+function validCareerRecord(value){
+  if (!value || value.version !== CAREER_VERSION || !Array.isArray(value.shifts)) return false;
+  if (!Object.prototype.hasOwnProperty.call(CAREER_STAGES, value.stage) || !Array.isArray(value.badges) || typeof value.ending !== 'boolean') return false;
+  if (!value.totals || !Number.isInteger(value.totals.days) || value.totals.days < 0 || !Number.isFinite(value.totals.averageCsat) || !Number.isInteger(value.totals.complaints) || value.totals.complaints < 0) return false;
+  const badgeIds = new Set(CAREER_BADGES.map(badge => badge.id));
+  if (value.badges.some(id => !badgeIds.has(id)) || new Set(value.badges).size !== value.badges.length) return false;
+  return value.shifts.every(shift => shift && typeof shift.endedAt === 'string' && !Number.isNaN(Date.parse(shift.endedAt)) &&
+    Number.isInteger(shift.tickets) && shift.tickets >= 2 && shift.tickets <= 5 && /^[SABCDE]$/.test(shift.grade) &&
+    shift.scores && ['csat','fcr','answer','cost','report'].every(key => Number.isFinite(shift.scores[key])) &&
+    Number.isInteger(shift.complaints) && shift.complaints >= 0);
+}
+
+function careerWithFlags(record, flags = GAME_FLAGS){
+  const next = JSON.parse(JSON.stringify(record));
+  if (flags.careerStage !== null && Object.prototype.hasOwnProperty.call(CAREER_STAGES, flags.careerStage)) next.stage = flags.careerStage;
+  if (Array.isArray(flags.unlockedBadges)){
+    const known = new Set(CAREER_BADGES.map(badge => badge.id));
+    next.badges = [...new Set(flags.unlockedBadges.filter(id => known.has(id)))];
+  }
+  return next;
+}
+
+function gradeAtLeast(grade, minimum){
+  const order = { E:0, D:1, C:2, B:3, A:4, S:5 };
+  return Object.prototype.hasOwnProperty.call(order, grade) && order[grade] >= order[minimum];
+}
+
+function promotedCareerStage(stage, totalDays, recentShifts){
+  const recent3 = recentShifts.slice(-3);
+  if (stage === 'probation' && totalDays >= 3 && recent3.length === 3 && recent3.every(shift => gradeAtLeast(shift.grade, 'C'))) return 'employed';
+  if (stage === 'employed' && totalDays >= 6 && recent3.length === 3 && recent3.every(shift => gradeAtLeast(shift.grade, 'B'))) return 'lead';
+  return stage;
+}
+
+function earnedBadgeIds(career, shift, context){
+  const resultKinds = context.resultKinds || [];
+  const candidates = [];
+  if ((context.maxStresses || []).length === shift.tickets && context.maxStresses.every(value => value <= 50)) candidates.push('quiet_night');
+  if (context.redials === 0 && context.abandoned === 0) candidates.push('no_redial');
+  if (shift.scores.cost === 0) candidates.push('frugal');
+  if (context.allFirst) candidates.push('all_first');
+  if (resultKinds.includes('complaint') && resultKinds.includes('hangup')) candidates.push('storm');
+  if (context.allRefunded) candidates.push('money_talks');
+  if (career.totals.days >= 10) candidates.push('ten_nights');
+  if (career.shifts.length >= 3 && career.shifts.slice(-3).every(item => item.complaints === 0)) candidates.push('clean_record');
+  return candidates;
+}
+
+function appendCareerShift(record, shift, context){
+  const career = JSON.parse(JSON.stringify(record));
+  const previousStage = career.stage;
+  career.shifts.push(shift);
+  if (career.shifts.length > 30) career.shifts = career.shifts.slice(-30);
+  const previousDays = career.totals.days;
+  career.totals.days = previousDays + 1;
+  career.totals.averageCsat = (career.totals.averageCsat * previousDays + shift.scores.csat) / career.totals.days;
+  career.totals.complaints += shift.complaints;
+  career.stage = promotedCareerStage(career.stage, career.totals.days, career.shifts);
+  const earned = earnedBadgeIds(career, shift, context);
+  const newBadges = earned.filter(id => !career.badges.includes(id));
+  career.badges = [...new Set(career.badges.concat(newBadges))];
+  return {
+    career,
+    previousStage,
+    promoted:career.stage !== previousStage,
+    newBadges,
+    shouldEnd:career.badges.length === CAREER_BADGES.length && !career.ending,
+  };
 }
 
 /* ---------- 時刻 ---------- */
@@ -83,11 +187,12 @@ function newTicket(s){
     s, state:'inbound', patience:100, arrivedTurn:s.arrive,
     facts:[], asked:new Set(), askCounts:new Map(), questionCount:0, lookedUp:new Set(), tested:new Set(), testCounts:new Map(),
     transcript:[], callTranscriptStart:0, greeted:false, identified:false, nameKnown:false, destinationKnown:false,
-    stress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
+    stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, holdMinutes:0,
     callbackCount:0, callbackDue:null, callbackLate:false, callbackDestination:null, callbackPenalty:0,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, shipment:null, apologies:new Map(),
-    misdiagnoses:0, damage:0, wasted:0, result:null, pendingResult:null, complaintEmail:false, redialOpening:null, redialSpoken:false, escUsed:false,
+    misdiagnoses:0, damage:0, wasted:0, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
+    complaintEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
   };
 }
 
@@ -96,13 +201,7 @@ function resetGame(){
   state.phase = 'briefing';
   state.turn = 0;
   state.clock = SHIFT_START;
-  const arrivalSlots = SCENARIOS.map(s => s.arrive).sort((a, b) => a - b);
-  const orderedScenarios = GAME_FLAGS.shuffleArrival
-    ? shuffleScenarios(SCENARIOS, state.random)
-    : SCENARIOS.slice();
-  state.tickets = orderedScenarios.map((scenario, index) =>
-    newTicket(Object.assign({}, scenario, { arrive:arrivalSlots[index] }))
-  );
+  state.tickets = prepareDailyScenarios(SCENARIOS, state.random).map(newTicket);
   state.focus = null;
   state.escLeft = ESCALATIONS;
   state.callbacksLeft = CALLBACKS;
@@ -113,6 +212,7 @@ function resetGame(){
   state.ui = defaultUi();
   state.slogan = SLOGANS[Math.floor(state.random() * SLOGANS.length)];
   state.report = null;
+  state.careerUpdate = null;
   state.officeEvents = [];
 }
 
@@ -197,7 +297,11 @@ function greetCurrentCustomer(){
   const t = state.focus;
   if (!t || t.greeted) return;
   t.greeted = true;
-  t.transcript.push({ who:'me', text:'お電話ありがとうございます。グローバルデスクでございます' });
+  t.transcript.push({
+    who:'me',
+    text:t.redialGreeting ? CALL_FLOW_LINES.redialGreeting : 'お電話ありがとうございます。グローバルデスクでございます',
+  });
+  t.redialGreeting = false;
   deliverCustomerOpening(t, false);
   render();
 }
@@ -209,15 +313,24 @@ function resumeCallback(t){
   t.callbackLate = t.callbackLate || state.clock > t.callbackDue;
   if (t.callbackDestination !== t.s.callbackTo){
     t.callbackPenalty = t.callbackDestination === 'hotel' ? 1.0 : 0.5;
-    t.transcript.push({ who:'note', text:t.callbackDestination === 'hotel' ? 'ホテル客室へ折り返しましたが、お客さまは移動中で不在でした。' : '携帯へ折り返したため、お客さま側に国際ローミング通話料が発生しました。' });
     spendOnCall(t, 2, 0);
   }
   t.state = 'open';
   t.callTranscriptStart = t.transcript.length;
-  t.transcript.push({ who:'note', text:t.callbackLate ? '約束時刻を過ぎて折り返しました。' : '約束時刻内に折り返し、通話を再開しました。' });
+  pushFlowLines(t, [
+    { who:'me', text:callbackOperatorLine(t) },
+    { who:'cust', text:CALL_FLOW_LINES.callback.replies[t.s.type] },
+  ]);
   state.focus = t;
   state.ui = defaultUi();
   enterCall();
+}
+
+function callbackOperatorLine(t){
+  const wrong = t.callbackDestination !== t.s.callbackTo;
+  if (t.callbackLate && wrong) return t.callbackDestination === 'hotel' ? CALL_FLOW_LINES.callback.lateWrongHotel : CALL_FLOW_LINES.callback.lateWrongMobile;
+  if (wrong) return t.callbackDestination === 'hotel' ? CALL_FLOW_LINES.callback.wrongHotel : CALL_FLOW_LINES.callback.wrongMobile;
+  return t.callbackLate ? CALL_FLOW_LINES.callback.late : CALL_FLOW_LINES.callback.normal;
 }
 
 function spendOnCall(t, minutes, holdMinutes){
@@ -227,7 +340,7 @@ function spendOnCall(t, minutes, holdMinutes){
   advance(minutes);
   const longMinutes = Math.max(0, t.callMinutes - 10) - Math.max(0, before - 10);
   if (longMinutes && t.state === 'open') addStress(t, longMinutes * 2);
-  return t.state === 'open';
+  return t.state === 'open' && !t.pendingResult;
 }
 
 function addStress(t, base, miss, expectedOutcome){
@@ -238,11 +351,12 @@ function changeStress(t, delta, expectedOutcome = rollLuck()){
   const previousStress = t.stress;
   if (!expectedOutcome) delta = 0;
   t.stress = clamp(t.stress + delta, 0, 100);
+  t.maxStress = Math.max(t.maxStress, t.stress);
   if (previousStress <= 80 && t.stress > 80) playStressWarning();
-  if (t.stress >= 100 && t.state === 'open'){
+  if (t.stress >= 100 && t.state === 'open' && !t.pendingResult){
     endAngryCall(t, 'stress');
   }
-  return t.state === 'open';
+  return t.state === 'open' && !t.pendingResult;
 }
 
 function angryOutcomeKind(t){
@@ -253,20 +367,26 @@ function angryOutcomeKind(t){
 
 function endAngryCall(t, reason){
   const kind = angryOutcomeKind(t);
-  pushCustomerLine(t, ANGRY_END_LINES[t.s.type][kind], { plain:true });
+  pushFlowLines(t, [
+    { who:'cust', text:ANGRY_END_LINES[t.s.type][kind] },
+    { who:'me', text:CALL_FLOW_LINES.ending[kind] },
+  ]);
   t.transcript.push({
     who:'note',
     text:kind === 'complaint'
       ? 'お客様は強い苦情を述べて通話を終えました。'
       : 'お客様は一方的に通話を切りました。',
   });
-  closeTicket(t, {
+  t.pendingResult = {
     kind,
     reason,
     csat:kind === 'complaint' ? 1.0 : 0.5,
     label:kind === 'complaint' ? 'クレーム終話' : '一方的な切断',
     firstCallResolved:false,
-  });
+  };
+  t.pendingConversation = null;
+  state.ui = defaultUi();
+  render();
   return false;
 }
 function stressPenalty(v){ return v <= 25 ? 0 : v <= 50 ? .3 : v <= 70 ? .8 : v <= 90 ? 1.5 : 2.2; }
@@ -292,6 +412,25 @@ function stressLeadIn(t){
 function pushCustomerLine(t, text, options){
   const lead = options && options.plain ? '' : stressLeadIn(t);
   t.transcript.push({ who:'cust', text:lead ? lead + ' ' + text : text });
+}
+
+function pushFlowLines(t, lines){
+  if (lines.length > 2) throw new Error('追加会話は1操作につき最大2行です');
+  lines.forEach(line => {
+    if (line.who === 'cust') pushCustomerLine(t, line.text, { plain:true });
+    else t.transcript.push({ who:line.who, text:line.text });
+  });
+}
+
+function advanceConversationFlow(t){
+  if (!t || pendingTypedLine(t) || !t.pendingConversation) return false;
+  if (t.pendingConversation.kind === 'second_misdiagnosis'){
+    const reason = t.pendingConversation.reason;
+    t.pendingConversation = null;
+    endAngryCall(t, reason);
+    return true;
+  }
+  return false;
 }
 
 function customerHasSpoken(t){
@@ -457,6 +596,7 @@ function doApologize(id){
 function openRecord(){
   const t = state.focus;
   if (!t) return;
+  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.recordStart }]);
   t.transcript.push({ who:'note', text:'ログを1分かけて確認しました。' });
   if (!addStress(t, 4)) return;
   if (!spendOnCall(t, 1, 0)) return;
@@ -486,10 +626,15 @@ function doRefund(){
   } else {
     pushCustomerLine(t, 'お金の話ではなく、いま使えないことに困っているんです。これで終わりには納得できません。', { plain:true });
   }
-  closeTicket(t, {
+  pushFlowLines(t, [{
+    who:'me',
+    text:satisfied ? CALL_FLOW_LINES.ending.refundSatisfied : CALL_FLOW_LINES.ending.refundDissatisfied,
+  }]);
+  t.pendingResult = {
     kind:'refunded', satisfied, csat:satisfied ? 3.0 : 1.0,
     label:satisfied ? '返金で終結（満足）' : '返金で終結（不満）', firstCallResolved:false,
-  });
+  };
+  state.ui = defaultUi();
   render();
 }
 
@@ -561,6 +706,7 @@ function doLookup(lid, mode){
 
   state.busy = true;
   state.holdVisual = mode === 'hold';
+  pushFlowLines(t, [{ who:'me', text:mode === 'hold' ? CALL_FLOW_LINES.lookup.holdStart : CALL_FLOW_LINES.lookup.talkStart }]);
   t.transcript.push({ who:'note', text:mode === 'hold' ? 'お客さまを保留にして社内照会を始めました。' : 'お客さまと話しながら社内照会を始めました。' });
   render();
 
@@ -587,9 +733,12 @@ function finishLookup(t, l, minutes, hold){
     else t.wasted++;
   }
 
-  if (!spendOnCall(t, minutes, hold)) return;
+  const continued = spendOnCall(t, minutes, hold);
   state.busy = false;
   state.holdVisual = false;
+  if (!continued){ render(); return; }
+  const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : CALL_FLOW_LINES.lookup.miss);
+  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);
   state.ui = defaultUi();
   render();
 }
@@ -770,7 +919,12 @@ function doClose(causeId, remedyId, toneId){
     if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
 
     if (!causeMatched && t.misdiagnoses >= 2){
-      endAngryCall(t, 'misdiagnosis');
+      pushFlowLines(t, [
+        { who:'cust', text:CALL_FLOW_LINES.misdiagnosis.failure },
+        { who:'me', text:CALL_FLOW_LINES.misdiagnosis.apology },
+      ]);
+      t.pendingConversation = { kind:'second_misdiagnosis', reason:'misdiagnosis' };
+      state.ui = defaultUi();
     } else {
       pushCustomerLine(t, causeMatched ? '試してみましたが、変わりません…。まだ繋がらないです。' : '言われたとおりにしましたが、やっぱり直りません。まだ繋がらないんですけど。');
       if (!causeMatched) t.transcript.push({ who:'note', text:'原因の見立てが外れていました。もう一度切り分けをやり直せます。' });
@@ -818,11 +972,17 @@ function doClose(causeId, remedyId, toneId){
     ? closingLine(s, grade, toneOk)
     : 'あ、繋がりました。これで使えそうです。';
   pushCustomerLine(t, resolutionReply, { plain:true });
+  pushFlowLines(t, [{ who:'me', text:resolutionOperatorClosing(grade, causeMatched) }]);
   pushCustomerLine(t, farewellLine(s, grade), { plain:true });
   t.pendingResult = result;
   t.transcript.push({ who:'note', text:'対応結果が確定しました。電話を切って終話してください。' });
   state.ui = defaultUi();
   render();
+}
+
+function resolutionOperatorClosing(grade, causeMatched){
+  if (!causeMatched) return CALL_FLOW_LINES.resolved.recovered;
+  return grade === 'best' ? CALL_FLOW_LINES.resolved.best : CALL_FLOW_LINES.resolved.partial;
 }
 
 function treatmentSucceeds(causeMatched){
@@ -885,13 +1045,24 @@ function redialOpening(t){
 
 function interruptCall(t){
   if (!t || t.state !== 'open' || t.pendingResult) return;
-  t.transcript.push({ who:'note', text:'対応途中で通話を終了しました。' });
+  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.interrupt }]);
   if (!addStress(t, REDIAL_STRESS)){ render(); return; }
+  t.transcript.push({ who:'note', text:'オペレーターが対応途中で切断しました。' });
+  t.pendingInterruption = true;
+  state.ui = defaultUi();
+  render();
+}
+
+function finishInterruptedCall(t){
+  if (!t || !t.pendingInterruption) return;
+  t.pendingInterruption = false;
+  t.redialCount++;
   t.state = 'waiting';
   t.arrivedTurn = state.turn;
   t.greeted = false;
   t.redialOpening = redialOpening(t);
   t.redialSpoken = false;
+  t.redialGreeting = true;
   state.focus = null;
   state.ui = defaultUi();
   playDisconnectSound();

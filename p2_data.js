@@ -10,6 +10,9 @@ const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
   shuffleArrival: true,
+  dailyTickets: null,
+  careerStage: null,
+  unlockedBadges: null,
   soundEnabled: true,
   soundVolume: 0.55,
 };
@@ -86,6 +89,30 @@ const OFFICE_PALETTE = Object.freeze({
   glow:'#8fd7ff', amber:'#e2a447', paper:'#f5e9c9', red:'#c94f45',
 });
 
+/* 夜勤の記録はこの版だけを読み書きする。個人情報や会話本文は保存しない。 */
+const CAREER_STORAGE_KEY = 'wifi-support-game:career:v1';
+const CAREER_VERSION = 1;
+const CAREER_STAGES = Object.freeze({
+  probation:Object.freeze({ label:'試用期間', next:'本採用', condition:'通算3シフト、直近3シフトにD・Eなし' }),
+  employed:Object.freeze({ label:'本採用', next:'リーダー', condition:'通算6シフト、直近3シフトがすべてB以上' }),
+  lead:Object.freeze({ label:'リーダー', next:null, condition:'最上位。降格はありません' }),
+});
+const CAREER_BADGES = Object.freeze([
+  Object.freeze({ id:'quiet_night', label:'静かな夜', condition:'全案件で苛立ちが一度も50%を超えない' }),
+  Object.freeze({ id:'no_redial', label:'一度でつながる', condition:'再入電0件・放棄呼0件' }),
+  Object.freeze({ id:'frugal', label:'倹約家', condition:'シフトの総費用0円' }),
+  Object.freeze({ id:'all_first', label:'一発解決', condition:'全案件が一次解決' }),
+  Object.freeze({ id:'storm', label:'嵐の夜', condition:'同じ夜に苦情と一方的切断の両方が発生' }),
+  Object.freeze({ id:'money_talks', label:'お金で解決', condition:'全案件で返金を実施' }),
+  Object.freeze({ id:'ten_nights', label:'十夜勤', condition:'通算10シフトを完了' }),
+  Object.freeze({ id:'clean_record', label:'無苦情記録', condition:'直近3シフトの苦情が0件' }),
+]);
+const MORNING_OFFICE_PALETTE = Object.freeze({
+  ink:'#27445b', navy:'#5f87a3', blue:'#9cc7df', carpet:'#92aebe', carpetShade:'#7898aa',
+  white:'#fffdf1', silver:'#e5edf0', gray:'#a9bbc3', charcoal:'#385263', black:'#172733',
+  glow:'#fff3a3', amber:'#f0b84d', paper:'#fff8d7', red:'#d45d57',
+});
+
 /* 同じ島型デスクを共有する6席。自席のモニターだけが点灯する。 */
 const OFFICE_STATIONS = Object.freeze([
   Object.freeze({ x:25,  y:82,  scale:1, active:false, facing:'back' }),
@@ -160,6 +187,48 @@ const ANGRY_END_LINES = Object.freeze({
   hurried:Object.freeze({
     complaint:'もう時間切れ。この対応はあとで正式に連絡する。',
     hangup:'もう待てない。切る。',
+  }),
+});
+
+/* 通話の継ぎ目を埋める短い発話。1回の追加は最大2行に制限する。 */
+const CALL_FLOW_LINES = Object.freeze({
+  ending:Object.freeze({
+    refundSatisfied:'ご理解いただき、ありがとうございます。失礼いたします。',
+    refundDissatisfied:'重ねてお詫び申し上げます。失礼いたします。',
+    complaint:'申し訳ございません。いただいたご意見は必ず——',
+    hangup:'お客様……？ 申し訳ございません、失礼いたします。',
+  }),
+  misdiagnosis:Object.freeze({
+    failure:'言われたとおりにしましたが、やっぱり直りません。',
+    apology:'申し訳ございません。もう一度、確認させてください。',
+  }),
+  callback:Object.freeze({
+    normal:'お待たせしました。先ほどの件でお電話しました。',
+    late:'お約束の時刻を過ぎてしまい、申し訳ございません。先ほどの件です。',
+    wrongMobile:'携帯へおかけしたため、通話料が発生します。申し訳ございません。',
+    wrongHotel:'ホテルへ誤っておかけしました。お待たせして申し訳ございません。',
+    lateWrongMobile:'お約束より遅れ、携帯の通話料も発生します。申し訳ございません。',
+    lateWrongHotel:'お約束より遅れ、ホテルへも誤っておかけしました。申し訳ございません。',
+    replies:Object.freeze({
+      anxious:'はい、待っていました。状況を教えてください。',
+      novice:'はい、ありがとうございます。続きもお願いします。',
+      hurried:'はい。待ってました。結論からお願いします。',
+      expert:'はい。調査結果をお願いします。',
+    }),
+  }),
+  lookup:Object.freeze({
+    holdStart:'確認いたしますので、少々お待ちください。',
+    talkStart:'お話ししながら確認いたしますね。',
+    completePrefix:'お待たせしました。確認結果は、',
+    miss:'該当する記録は確認できませんでした。',
+  }),
+  recordStart:'少し記録を確認させてください。',
+  interrupt:'申し訳ございません、一度お切りします。',
+  redialGreeting:'先ほどは通話が切れてしまい、申し訳ございません。',
+  resolved:Object.freeze({
+    best:'復旧をご確認いただき、ありがとうございます。',
+    partial:'ご不便を残しますが、この方法でお願いいたします。',
+    recovered:'復旧を確認できました。ご協力ありがとうございました。',
   }),
 });
 

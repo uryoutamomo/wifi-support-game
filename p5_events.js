@@ -41,6 +41,7 @@ function handleCallNavigation(d){
     const t = state.focus;
     if (!t) return true;
     if (t.pendingResult) finishResolvedCall(t);
+    else if (t.pendingInterruption) finishInterruptedCall(t);
     else { state.ui = defaultUi('hangup_confirm'); render(); }
     return true;
   }
@@ -108,5 +109,6 @@ $('btn-balance').onclick = showBalanceWarning;
 
 /* ---------- 起動 ---------- */
 
+initializeCareer();
 resetGame();
 showBriefing();

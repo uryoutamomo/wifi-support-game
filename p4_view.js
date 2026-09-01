@@ -73,6 +73,9 @@ function playCloseJingle(result){
 }
 
 function playShiftEndSound(){ withAudio((ctx, volume) => [[392,0,.16],[523,.18,.16],[659,.36,.16],[784,.54,.48]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'triangle',level:.065}))); }
+function playPromotionSound(){ withAudio((ctx, volume) => [[523,0,.12],[659,.13,.12],[784,.26,.12],[1047,.39,.42]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'square',level:.08}))); }
+function playBadgeSound(){ withAudio((ctx, volume) => [[880,0,.07],[1175,.08,.13]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'triangle',level:.065}))); }
+function playCareerEndingSound(){ withAudio((ctx, volume) => [[392,0,.2],[523,.2,.2],[659,.4,.2],[784,.6,.2],[1047,.8,.28],[1319,1.08,.65]].forEach(([f,d,n]) => synthTone(ctx, volume, f, d, n, {type:'triangle',level:.085}))); }
 
 function typewriterOff(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
@@ -82,6 +85,8 @@ function finishTyping(){
   typingLine.typed = true;
   typingLine = null;
   document.body.classList.remove('typing');
+  const t = state.focus;
+  if (t && advanceConversationFlow(t)) return;
   renderCall();
 }
 
@@ -89,7 +94,12 @@ function startTyping(t){
   if (typingLine) return;
   const line = pendingTypedLine(t);
   if (!line) return;
-  if (typewriterOff()){ line.typed = true; renderCall(); return; }
+  if (typewriterOff()){
+    line.typed = true;
+    if (advanceConversationFlow(t)) return;
+    renderCall();
+    return;
+  }
   typingLine = line;
   document.body.classList.add('typing');
   const say = document.querySelector('.line.typing .say');
@@ -251,18 +261,48 @@ function drawOfficeStation(ctx, p, station, ringLit){
   pixelRect(ctx, p.black, x + 32, y + 24, 3, 3);
 }
 
-function drawOfficePixelArt(ringLit = false){
-  const canvas = $('office-canvas');
+function drawOfficePixelArt(ringLit = false, canvasId = 'office-canvas', palette = OFFICE_PALETTE){
+  const canvas = $(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.imageSmoothingEnabled = false;
-  const p = OFFICE_PALETTE;
+  const p = palette;
   pixelRect(ctx, p.ink, 0, 0, canvas.width, canvas.height);
   drawCeilingLights(ctx, p);
   drawBackWall(ctx, p);
   drawDeskIslands(ctx, p);
   OFFICE_STATIONS.forEach(station => drawOfficeStation(ctx, p, station, ringLit));
+}
+
+function drawMorningStaff(ctx, p){
+  for (const [x,y,color] of [[31,94,p.blue],[84,134,p.navy],[137,94,p.charcoal]]){
+    pixelRect(ctx, p.paper, x, y - 13, 7, 7);
+    pixelRect(ctx, p.black, x, y - 15, 7, 3);
+    pixelRect(ctx, color, x - 2, y - 6, 11, 13);
+  }
+}
+
+function drawCompanyPresident(ctx, p){
+  const x = 160, y = 82;
+  pixelRect(ctx, p.paper, x, y - 20, 11, 10);
+  pixelRect(ctx, p.charcoal, x - 1, y - 23, 13, 5);
+  pixelRect(ctx, p.charcoal, x - 4, y - 10, 19, 22);
+  pixelRect(ctx, p.white, x + 4, y - 8, 3, 12);
+  pixelRect(ctx, p.amber, x + 5, y - 6, 2, 8);
+  pixelRect(ctx, p.black, x + 2, y - 17, 2, 2);
+  pixelRect(ctx, p.black, x + 8, y - 17, 2, 2);
+  pixelRect(ctx, p.red, x + 4, y - 13, 4, 1);
+}
+
+function drawMorningOffice(){
+  drawOfficePixelArt(false, 'ending-office-canvas', MORNING_OFFICE_PALETTE);
+  const canvas = $('ending-office-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  drawMorningStaff(ctx, MORNING_OFFICE_PALETTE);
+  drawCompanyPresident(ctx, MORNING_OFFICE_PALETTE);
 }
 
 function stopOfficeRing(){
@@ -381,6 +421,11 @@ function recentTranscriptLines(t){
   const pending = pendingTypedLine(t);
   const end = pending ? t.transcript.indexOf(pending) + 1 : t.transcript.length;
   const spoken = t.transcript.slice(0, end).filter(line => line.who === 'cust' || line.who === 'me');
+  if (spoken.length && spoken[spoken.length - 1].who === 'me'){
+    const player = spoken[spoken.length - 1];
+    const customer = spoken.slice(0, -1).reverse().find(line => line.who === 'cust');
+    return customer ? [customer, player] : [player];
+  }
   let customerIndex = -1;
   for (let i = spoken.length - 1; i >= 0; i--){
     if (spoken[i].who === 'cust'){ customerIndex = i; break; }
@@ -409,7 +454,11 @@ function renderActions(t){
   }
   if (state.ui.shipping) return '<div class="actions">' + renderCommandHead('国際配送の手配', '配送方法を選んでください。') + renderShipping(t) + renderHangupButton() + '</div>';
 
-  if (t.pendingResult) return '<div class="actions">' + renderHangupButton('お客様との会話が終わりました。電話を切って終話してください。') + '</div>';
+  if (t.pendingResult){
+    if (pendingTypedLine(t)) return '<div class="actions"><div class="pending-note">お客様の最後の言葉を聞いています。</div></div>';
+    return '<div class="actions">' + renderHangupButton('お客様との会話が終わりました。終話してください。', pendingResultButtonLabel(t.pendingResult)) + '</div>';
+  }
+  if (t.pendingInterruption) return '<div class="actions">' + renderHangupButton('こちらから通話を切ります。', 'オフィスへ戻る') + '</div>';
   if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation() + '</div>';
   if (state.ui.tab === 'refund_confirm') return '<div class="actions">' + renderRefundConfirmation() + '</div>';
 
@@ -444,8 +493,12 @@ function renderActions(t){
   return '<div class="' + actionClass + '">' + renderCommandHead(command, prompt, backTarget) + renderBody() + renderHangupButton() + '</div>';
 }
 
-function renderHangupButton(note){
-  return '<div class="hangup-box">' + (note ? '<p>' + esc(note) + '</p>' : '') + '<button class="hangup-button" data-hangup="1">電話を切る</button></div>';
+function pendingResultButtonLabel(result){
+  return result.kind === 'complaint' || result.kind === 'hangup' ? 'オフィスへ戻る' : '電話を切る';
+}
+
+function renderHangupButton(note, label = '電話を切る'){
+  return '<div class="hangup-box">' + (note ? '<p>' + esc(note) + '</p>' : '') + '<button class="hangup-button" data-hangup="1">' + esc(label) + '</button></div>';
 }
 
 function renderHangupConfirmation(){
@@ -803,12 +856,47 @@ function drawArtifactQr(){
   });
 }
 
+function getCareerStorage(){
+  try { return window.localStorage; }
+  catch (error){ return null; }
+}
+
+function readCareerRecord(storage = getCareerStorage()){
+  try {
+    if (!storage) return freshCareerRecord();
+    const raw = storage.getItem(CAREER_STORAGE_KEY);
+    if (!raw) return freshCareerRecord();
+    const parsed = JSON.parse(raw);
+    return validCareerRecord(parsed) ? parsed : freshCareerRecord();
+  } catch (error){ return freshCareerRecord(); }
+}
+
+function writeCareerRecord(record, storage = getCareerStorage()){
+  try {
+    if (!storage) return false;
+    storage.setItem(CAREER_STORAGE_KEY, JSON.stringify(record));
+    return true;
+  } catch (error){ return false; }
+}
+
+function initializeCareer(){
+  state.career = careerWithFlags(readCareerRecord());
+  state.careerUpdate = null;
+}
+
+function careerBriefingHtml(){
+  const career = state.career || freshCareerRecord();
+  return '<section class="career-briefing"><b>' + (career.totals.days + 1) + '日目 ／ ' + esc(CAREER_STAGES[career.stage].label) + '</b>' +
+    '<span>勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。</span></section>';
+}
+
 function showBriefing(){
   $('sheet').innerHTML =
     '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 22:00 JST</p>' +
     '<h1>深夜のグローバルデスク</h1>' +
+    careerBriefingHtml() +
     '<p class="lead">海外用モバイルWiFiレンタルのテクニカルサポート。日本は深夜でも、客のいる国は昼です。' +
-    'あなたは今夜のシフトでたった一人、' + SCENARIOS.length + '件の電話を受けます。</p>' +
+    'あなたは今夜のシフトでたった一人、' + state.tickets.length + '件の電話を受けます。</p>' +
     '<p>ここは、すでに海外にいるお客様のための窓口です。渡航前と帰国後の問い合わせを受ける国内窓口は、いま閉まっています。日本の夜に鳴る電話は、全部この席に来ます。</p>' +
 
     '<h2>やること</h2>' +
@@ -828,7 +916,7 @@ function showBriefing(){
     '<ul>' +
       '<li><strong>顧客満足（CSAT）35%</strong> — 正しく直せたか、保留や折り返し、伝え方が相手にどう映ったか。</li>' +
       '<li><strong>一次解決率 25%</strong> — 最初の通話で正しい対処まで到達したか。正しいエスカレーションも含みます。</li>' +
-      '<li><strong>応答率 20%</strong> — ' + SCENARIOS.length + '件のうち、放棄呼にせず応答できた割合です。</li>' +
+      '<li><strong>応答率 20%</strong> — ' + state.tickets.length + '件のうち、放棄呼にせず応答できた割合です。</li>' +
       '<li><strong>費用 10%</strong> — 代替機の手配や返金は会社の持ち出しです。要らない手配をしないこと。</li>' +
       '<li><strong>業務報告 10%</strong> — その夜の重要な出来事を、必要十分に翌シフトへ残せたか。</li>' +
     '</ul>' +
@@ -980,6 +1068,11 @@ function showBalanceConsole(){
       '<label>音量 <input type="range" id="balance-volume" min="0" max="1" step="0.05" value="' + GAME_FLAGS.soundVolume + '"></label>' +
       '<p>OFFにすると従来の決定論的な挙動へ戻ります。抽選結果はプレイ画面や会話記録には表示されません。</p>' +
     '</div>' +
+    '<h2>キャリア記録</h2><div class="balance-career-actions">' +
+      '<button class="btn-ghost" id="balance-replay-ending">翌朝の全体朝礼を再生する</button>' +
+      '<button class="btn-ghost danger" id="balance-clear-career">勤務記録を消去する</button>' +
+      '<p>消去は一度確認してから実行します。次回は1日目から始まります。</p>' +
+    '</div>' +
     '<h2>コマンド一覧</h2><div class="balance-table-wrap"><table class="balance-table"><tr><th>No.</th><th>コマンド</th></tr>' + commandRows + '</table></div>' +
     '<h2>シナリオ ' + SCENARIOS.length + '件</h2><div class="balance-console">' + scenarioCards + '</div>' +
     '<button class="btn-primary" id="btn-close-balance">デスクに戻る</button>';
@@ -996,6 +1089,8 @@ function showBalanceConsole(){
   $('balance-volume').oninput = event => {
     GAME_FLAGS.soundVolume = clamp(Number(event.target.value), 0, 1);
   };
+  $('balance-replay-ending').onclick = () => showCareerEnding(true);
+  $('balance-clear-career').onclick = () => clearCareerRecord();
   $('btn-close-balance').onclick = () => {
     if (wasPhase === 'briefing'){ showBriefing(); return; }
     if (wasPhase === 'debrief'){ renderDebrief(); return; }
@@ -1040,6 +1135,53 @@ function scoreReportGroup(options, selected){
   return { score:clamp(points / max, 0, 1), missed:required.filter(id => !chosen.includes(id)), noise:chosen.filter(id => !required.includes(id)) };
 }
 
+function currentShiftSummary(){
+  const m = metrics();
+  const avg = m.csat === null ? 0 : m.csat;
+  const cost = totalCost();
+  const costScore = clamp(1 - cost / 70000, 0, 1);
+  const reportScore = state.report && typeof state.report.score === 'number' ? state.report.score : 0;
+  const total = avg / 5 * 35 + (m.fcr || 0) * 25 + m.answerRate * 20 + costScore * 10 + reportScore * 10;
+  const grade = total >= 88 ? 'S' : total >= 74 ? 'A' : total >= 60 ? 'B' : total >= 44 ? 'C' : 'D';
+  return { m, avg, cost, costScore, reportScore, total, grade };
+}
+
+function careerShiftContext(){
+  const tickets = state.tickets;
+  return {
+    maxStresses:tickets.map(ticket => ticket.maxStress),
+    redials:tickets.reduce((sum, ticket) => sum + ticket.redialCount, 0),
+    abandoned:tickets.filter(ticket => ticket.result && ticket.result.kind === 'abandoned').length,
+    resultKinds:tickets.map(ticket => ticket.result && ticket.result.kind).filter(Boolean),
+    allFirst:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.firstCallResolved === true),
+    allRefunded:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind === 'refunded'),
+  };
+}
+
+function recordCurrentCareerShift(summary = currentShiftSummary()){
+  if (state.careerUpdate) return state.careerUpdate;
+  if (!state.career) state.career = freshCareerRecord();
+  const shift = {
+    endedAt:new Date().toISOString(),
+    tickets:state.tickets.length,
+    grade:summary.grade,
+    scores:{
+      csat:summary.avg,
+      fcr:summary.m.fcr || 0,
+      answer:summary.m.answerRate,
+      cost:summary.cost,
+      report:summary.reportScore,
+    },
+    complaints:state.tickets.filter(ticket => ticket.complaintEmail).length,
+  };
+  state.careerUpdate = appendCareerShift(state.career, shift, careerShiftContext());
+  state.career = state.careerUpdate.career;
+  writeCareerRecord(state.career);
+  if (state.careerUpdate.promoted) playPromotionSound();
+  else if (state.careerUpdate.newBadges.length) playBadgeSound();
+  return state.careerUpdate;
+}
+
 function renderReport(){
   const o = reportOptions();
   if (!state.report) state.report = { special:[], handoff:[] };
@@ -1073,6 +1215,7 @@ function submitReport(){
   state.report.missedHandoff = handoff.missed;
   state.report.noise = [...special.noise, ...handoff.noise];
   state.report.options = o;
+  recordCurrentCareerShift();
   state.phase = 'debrief';
   renderDebrief();
 }
@@ -1083,15 +1226,76 @@ function reportMissForTicket(t){
   return [...state.report.options.special, ...state.report.options.handoff].filter(o => o.ticketId === t.s.id && missed.has(o.id)).map(o => o.text);
 }
 
+function careerDebriefHtml(){
+  const career = state.career || freshCareerRecord();
+  const update = state.careerUpdate || { promoted:false, newBadges:[] };
+  const stage = CAREER_STAGES[career.stage];
+  const recent = career.shifts.slice(-5).map(shift => shift.grade).join('・') || 'まだありません';
+  const fresh = new Set(update.newBadges);
+  const acquired = new Set(career.badges);
+  const badgeCards = CAREER_BADGES.map(badge =>
+    '<div class="career-badge ' + (acquired.has(badge.id) ? 'earned' : 'locked') + (fresh.has(badge.id) ? ' badge-new' : '') + '">' +
+      '<b>' + (acquired.has(badge.id) ? '取得済み' : '未取得') + ' ／ ' + esc(badge.label) + (fresh.has(badge.id) ? ' NEW' : '') + '</b>' +
+      '<span>' + esc(badge.condition) + '</span></div>'
+  ).join('');
+  return (update.promoted
+      ? '<div class="promotion-banner">昇格 ／ ' + esc(CAREER_STAGES[update.previousStage].label) + ' → ' + esc(stage.label) + '</div>'
+      : '') +
+    '<section class="career-panel"><h2>勤務記録</h2>' +
+      '<div class="career-summary"><b>' + esc(stage.label) + '</b><span>通算 ' + career.totals.days + '日</span><span>直近5回 ' + esc(recent) + '</span></div>' +
+      '<p class="career-next">次の段階：' + esc(stage.next || 'なし') + ' ／ ' + esc(stage.condition) + '</p>' +
+      '<div class="career-badge-count">バッジ ' + career.badges.length + ' / ' + CAREER_BADGES.length + '</div>' +
+      '<div class="career-badge-grid">' + badgeCards + '</div>' +
+    '</section>';
+}
+
+function clearCareerRecord(){
+  if (!window.confirm('勤務記録を消去して、1日目から始めますか？')) return false;
+  const storage = getCareerStorage();
+  try { if (storage) storage.removeItem(CAREER_STORAGE_KEY); }
+  catch (error){ /* 保存領域が使えなくても、このセッションの記録は消す */ }
+  state.career = freshCareerRecord();
+  state.careerUpdate = null;
+  writeCareerRecord(state.career, storage);
+  resetGame();
+  showBriefing();
+  return true;
+}
+
+function endingBadgeHtml(career){
+  const acquired = new Set(career.badges);
+  return CAREER_BADGES.map(badge => '<div class="ending-badge ' + (acquired.has(badge.id) ? 'earned' : 'locked') + '"><b>' + esc(badge.label) + '</b><span>' + esc(badge.condition) + '</span></div>').join('');
+}
+
+function showCareerEnding(replay = false){
+  stopOfficeRing();
+  if (!state.career) state.career = freshCareerRecord();
+  state.phase = 'ending';
+  if (!replay){
+    state.career.ending = true;
+    writeCareerRecord(state.career);
+  }
+  playCareerEndingSound();
+  const career = state.career;
+  $('sheet').innerHTML =
+    '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING</p>' +
+    '<h1>翌朝、全体朝礼</h1>' +
+    '<canvas class="ending-office-canvas" id="ending-office-canvas" width="192" height="168" role="img" aria-label="朝の明るいオフィスに社員が集まり、社長が笑顔で立っている"></canvas>' +
+    '<section class="ending-speech"><b>社長</b>' +
+      '<p>ハードワークご苦労様です。あなたが身を粉にして、お値段以上に顧客第一で働いてくれたことを感謝します。明日からもまた夜勤を頑張ってください</p></section>' +
+    '<div class="ending-totals"><b>通算 ' + career.totals.days + '日</b><span>平均CSAT ' + career.totals.averageCsat.toFixed(2) + '</span><span>苦情 ' + career.totals.complaints + '件</span></div>' +
+    '<h2>集めた8つのバッジ</h2><div class="ending-badge-grid">' + endingBadgeHtml(career) + '</div>' +
+    '<button class="btn-primary" id="ending-back-to-shift">深夜シフトへ戻る</button>';
+  openSheet();
+  drawMorningOffice();
+  $('ending-back-to-shift').onclick = () => { resetGame(); showBriefing(); };
+}
+
 function renderDebrief(){
   const ts = state.tickets;
-  const m = metrics();
-  const avg = m.csat === null ? 0 : m.csat;
-  const costScore = clamp(1 - totalCost() / 70000, 0, 1);
-  const reportScore = state.report && typeof state.report.score === 'number' ? state.report.score : 0;
-  const total = avg / 5 * 35 + (m.fcr || 0) * 25 + m.answerRate * 20 + costScore * 10 + reportScore * 10;
-
-  const rank = total >= 88 ? 'S' : total >= 74 ? 'A' : total >= 60 ? 'B' : total >= 44 ? 'C' : 'D';
+  const summary = currentShiftSummary();
+  const { m, avg, reportScore } = summary;
+  const rank = summary.grade;
   const rankNote = {
     S:'非の打ちどころがありません。あなたはこのデスクの柱です。',
     A:'安定した夜勤。判断も費用感も信頼できます。',
@@ -1133,6 +1337,7 @@ function renderDebrief(){
 
   $('sheet').innerHTML =
     '<p class="eyebrow">SHIFT DEBRIEF ／ ' + fmtClock(state.clock) + ' JST</p>' +
+    careerDebriefHtml() +
     '<h1>シフト終了</h1>' +
     '<div class="rank-badge"><span class="r">' + rank + '</span><span class="rt">' + esc(rankNote) + '</span></div>' +
 
@@ -1149,11 +1354,14 @@ function renderDebrief(){
     complaintMailbox +
     '<h2>一件ずつの振り返り</h2>' + reviews +
 
-    '<button class="btn-primary" id="btn-again">もう一度シフトに入る</button>' +
+    '<button class="btn-primary" id="btn-again">' + (state.careerUpdate && state.careerUpdate.shouldEnd ? '勤務記録を閉じる' : 'もう一度シフトに入る') + '</button>' +
     '<button class="btn-ghost" id="btn-manual2">マニュアルを読む</button>';
 
   openSheet();
-  $('btn-again').onclick = () => { resetGame(); showBriefing(); };
+  $('btn-again').onclick = () => {
+    if (state.careerUpdate && state.careerUpdate.shouldEnd) showCareerEnding(false);
+    else { resetGame(); showBriefing(); }
+  };
   $('btn-manual2').onclick = showManual;
 }
 function cell(k, v, n){

@@ -310,7 +310,7 @@ const mutations = [
   {
     name:'GAME_FLAGSの初期運率を変える', file:'p2_data.js',
     from:'luckRate: LUCK_RATE,', to:'luckRate: 0.8,',
-    expected:'運・音の初期GAME_FLAGSが確定値と違う',
+    expected:'運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う',
   },
   {
     name:'注入可能な乱数源を固定値へ置き換える', file:'p3_game.js',
@@ -360,7 +360,7 @@ const mutations = [
   },
   {
     name:'登場順フラグを無視する', file:'p3_game.js',
-    from:'const orderedScenarios = GAME_FLAGS.shuffleArrival', to:'const orderedScenarios = false',
+    from:'const ordered = flags.shuffleArrival ?', to:'const ordered = false ?',
     expected:'登場順シャッフルを元へ戻せない',
   },
   {
@@ -611,6 +611,253 @@ const mutations = [
     from:"expert:Object.freeze({ brief:'承知しました。では、切り分けを続けてください。', accepted:",
     to:"expert:Object.freeze({ brief:'', accepted:",
     expected:'謝罪の受け止め方が4タイプ分揃っていない',
+  },
+  {
+    name:'ランダムな1日件数を1〜4件へずらす', file:'p3_game.js',
+    from:'return 2 + Math.floor(random() * 4);',
+    to:'return 1 + Math.floor(random() * 4);',
+    expected:'ランダムな1日件数が2〜5の境界に収まらない',
+  },
+  {
+    name:'ランダムな1日件数を2件固定にする', file:'p3_game.js',
+    from:'return 2 + Math.floor(random() * 4);',
+    to:'return 2;',
+    expected:'ランダムな1日件数が2〜5の境界に収まらない',
+  },
+  {
+    name:'日次案件を同じ1件の重複にする', file:'p3_game.js',
+    from:'return ordered.slice(0, count).map((scenario, index) =>',
+    to:'return Array(count).fill(ordered[0]).map((scenario, index) =>',
+    expected:'日次案件の選択に重複がある',
+  },
+  {
+    name:'未選択案件を世界地図へ戻す', file:'p4_view.js',
+    from:'const pins = state.tickets.filter(t => t.destinationKnown).map(t => {',
+    to:'const pins = SCENARIOS.filter(t => t.destinationKnown).map(t => {',
+    expected:'渡航先未判明の待ちチケットが世界地図に現れる',
+  },
+  {
+    name:'全件終了でも日報へ進めない', file:'p3_game.js',
+    from:"if (!live){ playShiftEndSound(); state.phase = 'report'; renderReport(); }",
+    to:"if (false){ playShiftEndSound(); state.phase = 'report'; renderReport(); }",
+    expected:'2件の日を全件終えてもシフト終了レポートへ到達しない',
+  },
+  {
+    name:'応答率を11件固定で割る', file:'p4_view.js',
+    from:'const answerRate = (state.tickets.length - abandoned) / state.tickets.length;',
+    to:'const answerRate = (state.tickets.length - abandoned) / 11;',
+    expected:'レポート集計がその日の実件数で計算されない',
+  },
+  {
+    name:'レポートの対応件数を11件固定へ戻す', file:'p4_view.js',
+    from:"対応件数 ' + state.tickets.length + '件",
+    to:"対応件数 ' + SCENARIOS.length + '件",
+    expected:'2件の日のレポートが件数と空項目を成立させて表示しない',
+  },
+  {
+    name:'GAME_FLAGSの日次件数固定を無視する', file:'p3_game.js',
+    from:'if (flags.dailyTickets !== null){',
+    to:'if (false){',
+    expected:'2件固定で選択数が一致しない',
+  },
+  {
+    name:'顧客の最終発話中にも終話ボタンを出す', file:'p4_view.js',
+    from:"    if (pendingTypedLine(t)) return '<div class=\"actions\"><div class=\"pending-note\">お客様の最後の言葉を聞いています。</div></div>';",
+    to:"    if (false) return '<div class=\"actions\"><div class=\"pending-note\">お客様の最後の言葉を聞いています。</div></div>';",
+    expected:'解決後に顧客発話待ちと経路別終話ボタンだけが残らない',
+  },
+  {
+    name:'一方的切断のボタンを電話を切るへ戻す', file:'p4_view.js',
+    from:"return result.kind === 'complaint' || result.kind === 'hangup' ? 'オフィスへ戻る' : '電話を切る';",
+    to:"return result.kind === 'complaint' ? 'オフィスへ戻る' : '電話を切る';",
+    expected:'5経路の終話ボタン文言が違う',
+  },
+  {
+    name:'怒り終話の締めをnoteへ落とす', file:'p3_game.js',
+    from:"{ who:'me', text:CALL_FLOW_LINES.ending[kind] },",
+    to:"{ who:'note', text:CALL_FLOW_LINES.ending[kind] },",
+    expected:'5経路のいずれかで最後付近にオペレーター発話がない',
+  },
+  {
+    name:'誤診2回目の謝罪と不調報告を逆転する', file:'p3_game.js',
+    from:"{ who:'cust', text:CALL_FLOW_LINES.misdiagnosis.failure },\n        { who:'me', text:CALL_FLOW_LINES.misdiagnosis.apology },",
+    to:"{ who:'me', text:CALL_FLOW_LINES.misdiagnosis.apology },\n        { who:'cust', text:CALL_FLOW_LINES.misdiagnosis.failure },",
+    expected:'誤診2回目が「対処→不調報告→謝罪→最終怒り」の順ではない',
+  },
+  {
+    name:'折り返しの顧客応答をnoteへ落とす', file:'p3_game.js',
+    from:"{ who:'cust', text:CALL_FLOW_LINES.callback.replies[t.s.type] },",
+    to:"{ who:'note', text:CALL_FLOW_LINES.callback.replies[t.s.type] },",
+    expected:'折り返し再接続にオペレーターと顧客の発話が揃わない',
+  },
+  {
+    name:'折り返し遅刻をnoteで説明する', file:'p3_game.js',
+    from:'  t.callTranscriptStart = t.transcript.length;\n  pushFlowLines(t, [',
+    to:"  t.callTranscriptStart = t.transcript.length;\n  t.transcript.push({ who:'note', text:'約束時刻を過ぎました。' });\n  pushFlowLines(t, [",
+    expected:'折り返し再接続にオペレーターと顧客の発話が揃わない',
+  },
+  {
+    name:'社内照会の完了発話を消す', file:'p3_game.js',
+    from:"  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);",
+    to:'  void spokenSummary;',
+    expected:'社内照会の開始・完了・結果要約が発話で揃わない',
+  },
+  {
+    name:'会話記録の確認に余計な完了文を足す', file:'p3_game.js',
+    from:"  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.recordStart }]);",
+    to:"  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.recordStart }, { who:'me', text:'お待たせしました。' }]);",
+    expected:'会話記録の確認が開始文だけではない',
+  },
+  {
+    name:'途中切断noteを受動態へ戻す', file:'p3_game.js',
+    from:'オペレーターが対応途中で切断しました。',
+    to:'対応途中で通話が終了しました。',
+    expected:'途中切断の発話・能動態note・専用再入電挨拶が揃わない',
+  },
+  {
+    name:'通常解決の締めを顧客の別れ後へ移す', file:'p3_game.js',
+    from:"  pushFlowLines(t, [{ who:'me', text:resolutionOperatorClosing(grade, causeMatched) }]);\n  pushCustomerLine(t, farewellLine(s, grade), { plain:true });",
+    to:"  pushCustomerLine(t, farewellLine(s, grade), { plain:true });\n  pushFlowLines(t, [{ who:'me', text:resolutionOperatorClosing(grade, causeMatched) }]);",
+    expected:'通常解決が「客の解決確認→オペレーターの締め→客の別れ」の順ではない',
+  },
+  {
+    name:'追加発話をtyping_budget超過へ伸ばす', file:'p2_data.js',
+    from:'はい、待っていました。状況を教えてください。',
+    to:'はい、待っていました。状況を教えてください。長い説明をここで何度も繰り返します。長い説明をここで何度も繰り返します。長い説明をここで何度も繰り返します。長い説明をここで何度も繰り返します。長い説明をここで何度も繰り返します。',
+    expected:'§21で追加した発話がtyping_budgetの4秒上限を超えている',
+  },
+  {
+    name:'追加発話の2行上限を3行へ緩める', file:'p3_game.js',
+    from:'if (lines.length > 2) throw',
+    to:'if (lines.length > 3) throw',
+    expected:'1操作の追加発話を2行以内に制限できない',
+  },
+  {
+    name:'保存領域例外で初期記録を返さない', file:'p4_view.js',
+    from:'} catch (error){ return freshCareerRecord(); }\n}\n\nfunction writeCareerRecord',
+    to:'} catch (error){ return null; }\n}\n\nfunction writeCareerRecord',
+    expected:'localStorage読取例外でゲームを継続できない',
+  },
+  {
+    name:'異版キャリア記録を受け入れる', file:'p3_game.js',
+    from:'value.version !== CAREER_VERSION || !Array.isArray(value.shifts)',
+    to:'false || !Array.isArray(value.shifts)',
+    expected:'不正な保存記録を新規扱いにできない',
+  },
+  {
+    name:'初回表示を2日目にする', file:'p4_view.js',
+    from:"(career.totals.days + 1) + '日目", to:"(career.totals.days + 2) + '日目",
+    expected:'ブリーフィングに日数と保存範囲がない',
+  },
+  {
+    name:'シフト履歴を31件残す', file:'p3_game.js',
+    from:'career.shifts.length > 30', to:'career.shifts.length > 31',
+    expected:'保存シフトが直近30件に丸められない',
+  },
+  {
+    name:'通算日数の加算を止める', file:'p3_game.js',
+    from:'career.totals.days = previousDays + 1;', to:'career.totals.days = previousDays;',
+    expected:'30件丸め込みで通算日数まで失われる',
+  },
+  {
+    name:'試用期間の昇格条件をB以上へ狭める', file:'p3_game.js',
+    from:"recent3.every(shift => gradeAtLeast(shift.grade, 'C'))", to:"recent3.every(shift => gradeAtLeast(shift.grade, 'B'))",
+    expected:'試用期間の3日境界で本採用にならない',
+  },
+  {
+    name:'本採用からリーダーへ昇格させない', file:'p3_game.js',
+    from:"recent3.every(shift => gradeAtLeast(shift.grade, 'B'))) return 'lead';", to:"recent3.every(shift => gradeAtLeast(shift.grade, 'B'))) return 'employed';",
+    expected:'直近3回B以上でリーダーにならない',
+  },
+  {
+    name:'静かな夜を50未満だけにする', file:'p3_game.js',
+    from:'context.maxStresses.every(value => value <= 50)', to:'context.maxStresses.every(value => value < 50)',
+    expected:'8バッジの条件判定が揃わない',
+  },
+  {
+    name:'卒業バッジを追加する', file:'p2_data.js',
+    from:"const CAREER_BADGES = Object.freeze([", to:"const CAREER_BADGES = Object.freeze([\n  Object.freeze({ id:'graduate', label:'卒業', condition:'卒業する' }),",
+    expected:'卒業バッジまたは卒業段階がある',
+  },
+  {
+    name:'直近成績を4回だけにする', file:'p4_view.js',
+    from:'career.shifts.slice(-5)', to:'career.shifts.slice(-4)',
+    expected:'勤務記録UIに必要項目がない: slice(-5)',
+  },
+  {
+    name:'未取得バッジから条件文を消す', file:'p4_view.js',
+    from:"'<span>' + esc(badge.condition) + '</span></div>'", to:"'<span>条件は非表示</span></div>'",
+    expected:'未取得バッジの条件が表示されない',
+  },
+  {
+    name:'終了レポートからキャリア欄を外す', file:'p4_view.js',
+    from:'    careerDebriefHtml() +\n    \'<h1>シフト終了</h1>\' +', to:'    \'<h1>シフト終了</h1>\' +',
+    expected:'昇格バナーが終了レポート上部にない',
+  },
+  {
+    name:'キャリア表示を音設定へ依存させる', file:'p4_view.js',
+    from:'function careerDebriefHtml(){\n  const career', to:'function careerDebriefHtml(){\n  if (!GAME_FLAGS.soundEnabled) return \'\';\n  const career',
+    expected:'ミュート時にキャリア表示まで消える',
+  },
+  {
+    name:'GAME_FLAGSの強制段階を無視する', file:'p3_game.js',
+    from:'next.stage = flags.careerStage;', to:'void flags.careerStage;',
+    expected:'GAME_FLAGSで段階を固定できない',
+  },
+  {
+    name:'勤務記録消去の確認を外す', file:'p4_view.js',
+    from:"if (!window.confirm('勤務記録を消去して、1日目から始めますか？')) return false;", to:'if (false) return false;',
+    expected:'勤務記録消去の確認回数が1回ではない',
+  },
+  {
+    name:'8バッジでもエンディングを開始しない', file:'p3_game.js',
+    from:'career.badges.length === CAREER_BADGES.length', to:'career.badges.length > CAREER_BADGES.length',
+    expected:'8バッジでエンディング条件にならない',
+  },
+  {
+    name:'報告提出直後にエンディングを開始する', file:'p4_view.js',
+    from:'  recordCurrentCareerShift();\n  state.phase = \'debrief\';', to:'  recordCurrentCareerShift();\n  showCareerEnding(false);\n  state.phase = \'debrief\';',
+    expected:'エンディングが終了レポートを閉じる前に始まる',
+  },
+  {
+    name:'エンディング閲覧済みを保存しない', file:'p4_view.js',
+    from:'    state.career.ending = true;', to:'    state.career.ending = false;',
+    expected:'エンディング閲覧済みを保存しない',
+  },
+  {
+    name:'ゲーム調整からエンディング再生を外す', file:'p4_view.js',
+    from:"$('balance-replay-ending').onclick = () => showCareerEnding(true);", to:"$('balance-replay-ending').onclick = () => {};",
+    expected:'ゲーム調整にエンディング再生がない',
+  },
+  {
+    name:'朝のオフィスを夜パレットで描く', file:'p4_view.js',
+    from:"drawOfficePixelArt(false, 'ending-office-canvas', MORNING_OFFICE_PALETTE);", to:"drawOfficePixelArt(false, 'ending-office-canvas', OFFICE_PALETTE);",
+    expected:'朝のオフィスが夜景のパレット差し替えになっていない',
+  },
+  {
+    name:'社長の表示を役職以外へ変える', file:'p4_view.js',
+    from:'<section class="ending-speech"><b>社長</b>', to:'<section class="ending-speech"><b>代表取締役</b>',
+    expected:'社長表示または匿名化契約が崩れている',
+  },
+  {
+    name:'社長の確定文を一字変える', file:'p4_view.js',
+    from:'ハードワークご苦労様です。', to:'ハードワーク、お疲れ様です。',
+    expected:'社長の確定文が完全一致しない',
+  },
+  {
+    name:'エンディングから苦情通算を消す', file:'p4_view.js',
+    from:'career.totals.complaints', to:'0',
+    expected:'エンディングに通算成績と8バッジが揃わない',
+  },
+  {
+    name:'ミュート時にエンディング画面を止める', file:'p4_view.js',
+    from:'function showCareerEnding(replay = false){\n  stopOfficeRing();', to:'function showCareerEnding(replay = false){\n  if (!GAME_FLAGS.soundEnabled) return;\n  stopOfficeRing();',
+    expected:'ミュート時にエンディング画面が成立しない',
+  },
+  {
+    name:'GAME_FLAGSの強制バッジを無視する', file:'p3_game.js',
+    from:'next.badges = [...new Set(flags.unlockedBadges.filter(id => known.has(id)))];', to:'next.badges = flags.unlockedBadges.length === 8 ? [] : [...new Set(flags.unlockedBadges.filter(id => known.has(id)))];',
+    expected:'GAME_FLAGSから8バッジ状態を再現できない',
   },
 ];
 

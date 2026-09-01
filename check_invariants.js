@@ -1,10 +1,10 @@
 /* ビジュアル追加でゲームの中身が変わっていないかを、ことの手元の期待値と突き合わせる */
 const fs = require('fs');
-const { readGameSource } = require('./test_helpers');
+const { readGameSource, functionSource: extractFunctionSource } = require('./test_helpers');
 const src = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,OFFICE_STATIONS,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,GAME_FLAGS,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES};';
+  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
 const D = new Function(src)();
-const { CAUSES, TYPES, SCENARIOS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, OFFICE_STATIONS, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, GAME_FLAGS, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES } = D;
+const { CAUSES, TYPES, SCENARIOS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = D;
 
 const EXPECTED_SLOGANS = [
   '凡事徹底',
@@ -51,7 +51,7 @@ const bad = (m) => { console.log('  NG  ' + m); ng++; };
 if (JSON.stringify(SLOGANS) !== JSON.stringify(EXPECTED_SLOGANS)) bad('SLOGANS が確定6文言・順番と一致しない');
 if (SLOGANS.some(slogan => !slogan)) bad('SLOGANS に空文字がある');
 if (LUCK_RATE !== 0.9) bad('運の本来どおり率が0.9ではない');
-if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true,soundEnabled:true,soundVolume:0.55})) bad('運・音の初期GAME_FLAGSが確定値と違う');
+if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true,dailyTickets:null,careerStage:null,unlockedBadges:null,soundEnabled:true,soundVolume:0.55})) bad('運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う');
 if (JSON.stringify(REFUND_POLICY) !== JSON.stringify({
   amount:2400,
   company:{causes:['hardware','provision','logistics','carrier','coverage'],satisfactionRate:0.5},
@@ -164,6 +164,7 @@ SCENARIOS.forEach(s => {
   if (s.callbackTo !== CALLBACK_TO[s.id]) bad(s.id + ': callbackTo が ' + CALLBACK_TO[s.id] + ' のはずが ' + s.callbackTo);
 });
 const gameSource = readGameSource(__dirname);
+const sourceOf = name => extractFunctionSource(gameSource, name);
 const pageSource = fs.readFileSync(__dirname + '/p1_head.html', 'utf8');
 const generatedPage = fs.readFileSync(__dirname + '/index.html', 'utf8');
 if (generatedPage.includes('mobile-pane-nav') || generatedPage.includes('data-mobile-pane')) bad('上部の通話・待機・診断タブが残っている');
@@ -452,7 +453,7 @@ if (gameSource.includes("kind:'supervisor'") || gameSource.includes('上長が�
 if (JSON.stringify(ANGRY_DEFAULT_OUTCOMES) !== JSON.stringify({anxious:'hangup',novice:'complaint',expert:'complaint',hurried:'hangup'})) bad('顧客タイプ別の既定怒り終話が確定仕様と違う');
 if (Object.keys(ANGRY_END_LINES).length !== 4 || Object.values(ANGRY_END_LINES).some(lines => !lines.complaint || !lines.hangup)) bad('クレーム／切断の終話台詞が4タイプ分揃っていない');
 if (Object.keys(COMPLAINT_EMAIL_TEMPLATES).length !== 4 || Object.values(COMPLAINT_EMAIL_TEMPLATES).some(template => !Array.isArray(template.lines) || template.lines.length < 2 || template.lines.length > 3 || !template.lines[0].includes('{symptom}'))) bad('翌日の苦情メールが4タイプ分・客自身の2〜3行で揃っていない');
-if (!gameSource.includes("endAngryCall(t, 'stress')") || !gameSource.includes("endAngryCall(t, 'misdiagnosis')")) bad('ストレス100と誤診2回目が共通の怒り終話を通らない');
+if (!gameSource.includes("endAngryCall(t, 'stress')") || !sourceOf('advanceConversationFlow').includes('endAngryCall(t, reason)')) bad('ストレス100と誤診2回目が共通の怒り終話を通らない');
 if (!gameSource.includes("csat:kind === 'complaint' ? 1.0 : 0.5")) bad('クレーム／切断のCSATが1.0／0.5ではない');
 if (!gameSource.includes('function complaintEmailArrives') || !gameSource.includes("(result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false")) bad('苦情メールの必着・低CSAT抽選条件がない');
 if (!gameSource.includes('翌日、次の苦情が届いています') || !pageSource.includes('.complaint-mailbox')) bad('翌日デブリーフの苦情メール別枠がない');
@@ -482,6 +483,86 @@ if (/\brefunds\b|refundCsat|refundResult|refundEffect/.test(gameSource)) bad('�
 if (!gameSource.includes("result.kind === 'closed' || result.kind === 'refunded'")) bad('不満足な返金が苦情メール対象に入らない');
 const outageRefundRemedy = REMEDIES.carrier.find(remedy => remedy.id === 'r_outage_explain');
 if (!outageRefundRemedy || outageRefundRemedy.cost !== 2400 || !outageRefundRemedy.needsOutage || outageRefundRemedy.kind !== 'resolve') bad('広域障害の正規対処 r_outage_explain が損なわれている');
+
+// §15-5: 1日は11案件から2〜5件を重複なく選び、先頭の到着枠へ詰める。
+try {
+  const dailyCount15 = new Function(sourceOf('dailyTicketCount') + '\nreturn dailyTicketCount;')();
+  const shuffle15 = new Function(sourceOf('shuffleScenarios') + '\nreturn shuffleScenarios;')();
+  const prepare15 = new Function('shuffleScenarios','dailyTicketCount', sourceOf('prepareDailyScenarios') + '\nreturn prepareDailyScenarios;')(shuffle15,dailyCount15);
+  // 1-2. 何度選んでも2〜5件で、乱数境界により日ごとに変わる。
+  const counts15 = [0,.249999,.25,.5,.999999].map(value => dailyCount15(() => value, {dailyTickets:null}));
+  if (JSON.stringify(counts15) !== JSON.stringify([2,2,3,4,5]) || new Set(counts15).size !== 4) bad('1日件数が2〜5の範囲で日ごとに変わらない');
+  // 3-4. 重複なし、件数ぶんだけ先頭到着枠へ圧縮。
+  [2,3,4,5].forEach(count => {
+    const selected = prepare15(SCENARIOS, () => .37, {dailyTickets:count,shuffleArrival:true});
+    if (selected.length !== count || new Set(selected.map(s => s.id)).size !== count) bad(count + '件の日次案件に欠落または重複がある');
+    const expectedArrivals = SCENARIOS.slice(0,count).map(s => s.arrive);
+    if (JSON.stringify(selected.map(s => s.arrive)) !== JSON.stringify(expectedArrivals)) bad(count + '件の日の到着時刻が先頭枠へ詰められていない');
+  });
+  // 8. GAME_FLAGSで2〜5件を固定でき、範囲外は拒否する。
+  if (!Object.prototype.hasOwnProperty.call(GAME_FLAGS,'dailyTickets') || GAME_FLAGS.dailyTickets !== null) bad('GAME_FLAGS.dailyTicketsの既定値がnullではない');
+  if ([2,3,4,5].some(count => dailyCount15(() => 0, {dailyTickets:count}) !== count)) bad('GAME_FLAGSから1日件数を2〜5へ固定できない');
+  let invalidRejected = false;
+  try { dailyCount15(() => 0, {dailyTickets:1}); } catch (_) { invalidRejected = true; }
+  if (!invalidRejected) bad('dailyTicketsの範囲外を拒否しない');
+} catch (error) {
+  bad('日次案件の選択ロジックを検査できない: ' + error.message);
+}
+// 5. 非選択案件を参照せず、その日のstate.ticketsだけを表示する。
+if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('renderWorldStrip').includes('state.tickets.filter') || !sourceOf('renderOffice').includes('state.tickets.filter')) bad('未選択案件が待機・折り返し・世界地図から除外されない');
+// 6. 実際の全件closedで既存日報へ進む。
+if (!sourceOf('checkShiftEnd').includes("state.tickets.some(t => t.state !== 'closed')") || !sourceOf('checkShiftEnd').includes("state.phase = 'report'; renderReport()")) bad('その日の全件終了でシフト終了レポートへ到達しない');
+// 7. 集計と表示が実件数を使い、2件の日の空欄にも表示を持つ。
+if (!sourceOf('metrics').includes('state.tickets.length - abandoned') || !sourceOf('renderReport').includes("state.tickets.length + '件") || !sourceOf('renderReport').includes('該当する特記事項はありません。') || !sourceOf('showBriefing').includes("state.tickets.length + '件の電話を受けます")) bad('レポート集計・ブリーフィング・空項目が当日の実件数に追従しない');
+if (!sourceOf('resetGame').includes('prepareDailyScenarios(SCENARIOS, state.random).map(newTicket)')) bad('resetGameが日次案件選択を使わない');
+
+// §21-7: 会話の継ぎ目に関する12検査。
+const actions21 = sourceOf('renderActions');
+const refund21 = sourceOf('doRefund');
+const angry21 = sourceOf('endAngryCall');
+const close21 = sourceOf('doClose');
+// 1. 5経路はすべてpendingResultで待ち、顧客発話中はボタンを出さない。
+if (!actions21.includes('if (pendingTypedLine(t))') || !refund21.includes('t.pendingResult = {') || !angry21.includes('t.pendingResult = {') || !close21.includes('t.pendingResult = result') || refund21.includes('closeTicket(') || angry21.includes('closeTicket(') || close21.includes('closeTicket(t, result)')) bad('5経路のいずれかが顧客最終発話より先に終話する');
+// 2. 経路別ボタン。
+const resultLabel21 = sourceOf('pendingResultButtonLabel');
+if (!resultLabel21.includes("result.kind === 'complaint' || result.kind === 'hangup'") || !resultLabel21.includes("'オフィスへ戻る'") || !resultLabel21.includes("'電話を切る'")) bad('終話ボタンが経路別の文言になっていない');
+// 3. すべての終話経路にオペレーター発話を置く。
+if (!close21.includes('resolutionOperatorClosing(') || !refund21.includes('CALL_FLOW_LINES.ending.refundSatisfied') || !refund21.includes('CALL_FLOW_LINES.ending.refundDissatisfied') || !angry21.includes('CALL_FLOW_LINES.ending[kind]')) bad('終話経路の最後付近にオペレーター発話が揃っていない');
+// 4. 誤診2回目の順序。
+const misFailure21 = close21.indexOf('CALL_FLOW_LINES.misdiagnosis.failure');
+const misApology21 = close21.indexOf('CALL_FLOW_LINES.misdiagnosis.apology');
+const misStage21 = close21.indexOf("pendingConversation = { kind:'second_misdiagnosis'");
+if (misFailure21 < 0 || misFailure21 >= misApology21 || misApology21 >= misStage21 || !sourceOf('advanceConversationFlow').includes('endAngryCall(t, reason)')) bad('誤診2回目が不調報告・謝罪・最終怒りの順ではない');
+// 5-6. 折り返しの双方発話と、宛先違い・遅刻の発話化。
+const callback21 = sourceOf('resumeCallback');
+const callbackLine21 = sourceOf('callbackOperatorLine');
+if (!callback21.includes("{ who:'me', text:callbackOperatorLine(t) }") || !callback21.includes("{ who:'cust', text:CALL_FLOW_LINES.callback.replies[t.s.type] }")) bad('折り返し再接続に双方の発話がない');
+if (callback21.includes("who:'note'") || !callbackLine21.includes('lateWrongHotel') || !callbackLine21.includes('lateWrongMobile')) bad('折り返しの宛先違い・遅刻が発話になっていない');
+// 7. 社内照会の開始・完了・要約。
+const lookupStart21 = sourceOf('doLookup');
+const lookupFinish21 = sourceOf('finishLookup');
+if (!lookupStart21.includes('lookup.holdStart') || !lookupStart21.includes('lookup.talkStart') || !lookupFinish21.includes('lookup.completePrefix') || !lookupFinish21.includes('r && r.fact ? r.fact.text')) bad('社内照会の開始・完了・結果要約が発話で揃わない');
+// 8. 記録確認は開始だけ。
+const record21 = sourceOf('openRecord');
+if (!record21.includes('CALL_FLOW_LINES.recordStart') || record21.includes('completePrefix') || record21.includes('お待たせしました')) bad('会話記録の確認が開始文だけではない');
+// 9. 途中切断と再入電。
+const interrupt21 = sourceOf('interruptCall');
+const finishInterrupt21 = sourceOf('finishInterruptedCall');
+if (!interrupt21.includes('CALL_FLOW_LINES.interrupt') || !interrupt21.includes('オペレーターが対応途中で切断しました。') || !finishInterrupt21.includes('t.redialGreeting = true') || !sourceOf('greetCurrentCustomer').includes('CALL_FLOW_LINES.redialGreeting')) bad('途中切断の発話・能動態note・専用再入電挨拶が揃わない');
+// 10. 通常解決の順序。
+const resolvedReply21 = close21.indexOf('pushCustomerLine(t, resolutionReply');
+const operatorClose21 = close21.indexOf('resolutionOperatorClosing(grade, causeMatched)');
+const farewell21 = close21.indexOf('pushCustomerLine(t, farewellLine(s, grade)');
+if (resolvedReply21 < 0 || resolvedReply21 >= operatorClose21 || operatorClose21 >= farewell21 || Object.keys(CALL_FLOW_LINES.resolved).length !== 3) bad('通常解決の発話順または締め3種類が違う');
+// 11. typing_budgetは4秒以内。
+const duration21 = text => text.length * 25 + ((text.match(/[、。！？!?]/g) || []).length * 175);
+const speech21 = [];
+const collect21 = value => typeof value === 'string' ? speech21.push(value) : value && typeof value === 'object' && Object.values(value).forEach(collect21);
+collect21(CALL_FLOW_LINES);
+SCENARIOS.forEach(scenario => Object.values(scenario.lookups || {}).forEach(result => result && result.text && speech21.push(CALL_FLOW_LINES.lookup.completePrefix + (result.fact ? result.fact.text : result.text))));
+if (speech21.some(text => duration21(text) > 4000)) bad('§21の追加発話がtyping_budgetの4秒上限を超えている');
+// 12. 追加発話は1操作2行まで。テスト操作には追加しない。
+if (!sourceOf('pushFlowLines').includes('if (lines.length > 2) throw') || sourceOf('doTest').includes('CALL_FLOW_LINES')) bad('追加発話の2行上限またはテスト操作の無追加を守っていない');
 
 // S2/S3 に q_lamp が入ったか
 ['S2','S3'].forEach(id => {
