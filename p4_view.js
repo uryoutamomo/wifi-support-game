@@ -126,6 +126,7 @@ function startTyping(t){
 
 function render(){
   if (state.phase === 'office'){ renderOffice(); return; }
+  if (state.phase === 'desk'){ renderDesk(); return; }
   if (state.phase !== 'call') return;
   $('clock').textContent = fmtClock(state.clock);
   renderWorldStrip();
@@ -393,6 +394,8 @@ function renderOffice(){
   $('office-callback-status').textContent = callbacks.length
     ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '照会中 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
     : '折り返し 0件';
+  $('office-desk').disabled = !callbacks.length;
+  $('office-desk-status').textContent = callbacks.length ? '調査可能 ' + callbacks.length + '件' : '調査可能 0件';
 }
 
 function enterOffice(){
@@ -406,6 +409,67 @@ function enterCall(){
   state.phase = 'call';
   document.body.classList.remove('office-view'); document.body.classList.add('call-view'); render();
   window.scrollTo(0, 0);
+}
+function enterDesk(){
+  stopOfficeRing();
+  state.phase = 'desk';
+  document.body.classList.remove('office-view'); document.body.classList.add('call-view');
+  renderDesk();
+  window.scrollTo(0, 0);
+}
+
+/* 折り返し待ちの案件を、通話をつながずにデスク端末だけで調べる画面。 */
+function renderDesk(){
+  $('clock').textContent = fmtClock(state.clock);
+  renderWorldStrip();
+  renderQueue();
+  $('line-state').textContent = '端末作業中';
+  $('call').classList.remove('on-hold');
+  const t = deskTicket();
+  const list = deskTickets();
+  if (!list.length){ closeDeskLookup(); return; }
+  const head = '<div class="command-panel-head"><button class="command-back" data-desk="close">← オフィスへ戻る</button>' +
+    '<div><span>DESK TERMINAL ／ 折り返し待ちの調査</span><b>' +
+    (t ? esc(customerLabel(t, true)) + ' の社内照会' : 'どの案件を調べますか？') + '</b></div></div>';
+  const body = t ? renderDeskLookupOptions(t, list) : renderDeskTicketChoice(list);
+  $('call').innerHTML = renderDeskHeader(t || list[0]) +
+    '<div class="transcript recent" id="transcript">' + renderTranscript(t || list[0], false) + '</div>' +
+    '<div class="actions">' + head + body + '</div>';
+  const box = $('transcript');
+  if (box) box.scrollTop = box.scrollHeight;
+  renderBoard();
+}
+
+/* 通話は切れているので、通話時間と通話料の代わりに折り返しの約束時刻を出す。 */
+function renderDeskHeader(t){
+  return '<div class="call-head">' +
+      '<span class="call-ticket"><b>チケット</b> ' + esc(t.s.id) + '</span>' +
+      '<span class="call-time">通話は切断中</span>' +
+      '<span class="call-cost">折り返し ' + fmtClock(t.callbackDue) + '</span>' +
+    '</div>';
+}
+
+function renderDeskTicketChoice(list){
+  return '<div class="opts">' + list.map(t =>
+    '<button class="opt" data-desk-ticket="' + t.s.id + '"><span class="opt-label">' + esc(customerLabel(t, true)) +
+    '<span class="opt-sub">折り返しの約束 ' + fmtClock(t.callbackDue) + '</span></span></button>'
+  ).join('') + '</div><p class="hint-bar">折り返しを待っているあいだ、通話をつながずに社内システムだけを調べられます。</p>';
+}
+
+function renderDeskLookupOptions(t, list){
+  const back = list.length > 1
+    ? '<button class="opt" data-desk-ticket="__back"><span class="opt-label">← 案件の選び直し</span></button>'
+    : '';
+  if (!identificationReady(t)){
+    return back + '<p class="hint-bar">本人確認が済んでいないため、社内システムを開けません。折り返しの通話で確認してください。</p>';
+  }
+  const items = LOOKUPS.filter(l => !l.external).map(l =>
+    '<button class="opt" data-desk-lookup="' + l.id + '" ' + (t.lookedUp.has(l.id) ? 'disabled' : '') +
+    '><span class="opt-label">' + esc(l.label) + (t.lookedUp.has(l.id) ? '<span class="opt-sub">照会済み</span>' : '') +
+    '</span><span class="cost">' + DESK_LOOKUP_MINUTES + '分</span></button>'
+  ).join('');
+  return '<div class="opts">' + back + items + '</div>' +
+    '<p class="hint-bar">通話中ではないので、お客様の苛立ちは増えません。ただし時間は進むため、折り返しが約束より遅れることがあります。</p>';
 }
 
 function renderCall(){
@@ -582,15 +646,20 @@ function renderCommandMenu(t, actionClass){
   const optionalGreeting = !t.greeted && customerHasSpoken(t)
     ? '<button class="command-choice optional-greeting" data-greet="1"><span class="command-no">任意</span><span class="command-copy"><b>名乗る</b><small>急いでいるお客様には省略できます</small></span></button>'
     : '';
-  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div>' + optionalGreeting + '<div class="command-grid">' + choices + '</div></div>' + renderHotelCallbackChoice(t) + renderHangupButton() + '</div>';
+  const chargeHint = hotelCallbackOffered(t) && t.callChargeConcerned
+    ? '<p class="hint-bar">お客様が国際通話料を気にしています。「伝える」→「ホテルへ折り返す」で通話料を止められます。</p>'
+    : '';
+  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div>' + optionalGreeting + '<div class="command-grid">' + choices + '</div></div>' + chargeHint + renderHangupButton() + '</div>';
 }
 
-function renderHotelCallbackChoice(t){
-  if (t.callDirection === 'outbound') return '';
-  const ready = t.asked.has('q_stay') && Boolean(t.stayAddress);
-  const prompt = t.callChargeConcerned ? 'お客様が国際通話料を気にしています。' : '5分を超えそうなら、お客様の通話料を止められます。';
-  return '<div class="callback-offer"><button class="opt" data-hotel-callback="1" ' + (ready ? '' : 'disabled') + '><span class="opt-label">ホテルへ折り返す<span class="opt-sub">' + prompt + '</span></span></button>' +
-    (ready ? '' : '<p class="hint-bar">滞在先が未確認です。「聞く」→「顧客のこと」でホテル名と部屋番号を確認してください。</p>') + '</div>';
+/* 折り返しはこちらから掛け直す行為なので、折り返し中の通話には出さない。 */
+function hotelCallbackOffered(t){
+  return t.callDirection !== 'outbound';
+}
+
+function hotelCallbackSub(t){
+  if (!t.asked.has('q_stay') || !t.stayAddress) return '滞在先はまだ伺っていません。';
+  return t.callChargeConcerned ? 'お客様が国際通話料を気にしています。' : '5分を超えそうなら、お客様の通話料を止められます。';
 }
 
 function renderFrontDeskOptions(t){
@@ -640,6 +709,9 @@ function renderTellOptions(t){
     t.refundProposalRejected
       ? null
       : { attrs:'data-refund="refund"', body:'<span class="opt-label">返金をご案内する</span><span class="cost">¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + '</span>' },
+    hotelCallbackOffered(t)
+      ? { attrs:'data-hotel-callback="1"', body:'<span class="opt-label">ホテルへ折り返す<span class="opt-sub">' + esc(hotelCallbackSub(t)) + '</span></span>' }
+      : null,
     { attrs:'data-tell="soothe"', body:'<span class="opt-label">気持ちを落ち着ける</span>' },
     { attrs:'data-tell="apologize"', body:'<span class="opt-label">お詫びする</span>' },
     { attrs:'data-tell="smalltalk"', body:'<span class="opt-label">一言かける</span>' },

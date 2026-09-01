@@ -84,9 +84,10 @@ const mutations = [
     expected:'直近表示が「最新の顧客発話＋直前の自分」の最大2行ではない',
   },
   {
+    // デスク端末画面も同じ call-head を使うので、通話ヘッダ側だけを狙う。
     name:'ヘッダへ氏名を戻す', file:'p4_view.js',
-    from:'return \'<div class="call-head">\' +',
-    to:'return \'<div class="call-head"><span class="cname">\' + esc(t.s.name) + \'</span>\' +',
+    from:'const cost = (t.callSegmentMinutes || 0) * CALL_RATE_PER_MIN;\n  return \'<div class="call-head">\' +',
+    to:'const cost = (t.callSegmentMinutes || 0) * CALL_RATE_PER_MIN;\n  return \'<div class="call-head"><span class="cname">\' + esc(t.s.name) + \'</span>\' +',
     expected:'通話ヘッダにログへ移す情報が残っている: t.s.name',
   },
   {
@@ -138,7 +139,55 @@ const mutations = [
     name:'オフィスの電話をかけるボタンを消す', file:'p1_head.html',
     from:'      <button class="office-call-action" id="office-callback" data-office-callback="1"><b>電話をかける</b><span id="office-callback-status">折り返し 0件</span></button>\n',
     to:'',
-    expected:'オフィスの電話操作が受話・折り返しの2ボタンではない',
+    expected:'オフィスの操作が受話・折り返し・端末調査の3ボタンではない',
+  },
+  {
+    name:'折り返し待ちの端末調査を消す', file:'p1_head.html',
+    from:'      <button class="office-call-action" id="office-desk" data-office-desk="1"><b>端末で調べる</b><span id="office-desk-status">調査可能 0件</span></button>\n',
+    to:'',
+    expected:'オフィスの操作が受話・折り返し・端末調査の3ボタンではない',
+  },
+  {
+    name:'端末調査を通話中と同じストレス付きにする', file:'p3_game.js',
+    from:'  advance(DESK_LOOKUP_MINUTES);\n  // 時間を進めた結果、折り返しの相手が待ちきれずに切っていることがある。',
+    to:'  addStress(t, 5);\n  advance(DESK_LOOKUP_MINUTES);\n  // 時間を進めた結果、折り返しの相手が待ちきれずに切っていることがある。',
+    expected:'端末調査が時間を使わない、または通話中と同じストレスを与えている',
+  },
+  {
+    name:'選択肢ボタンを縦に潰せるようにする', file:'p1_head.html',
+    from:'  /* 選択肢は縦に潰さない。潰れると説明文や「前提不足」の理由が読めなくなる。 */\n  flex: none;\n',
+    to:'',
+    expected:'選択肢ボタンが縦に潰れて説明文が切れる',
+  },
+  {
+    name:'通話中の選択肢を小窓スクロールへ戻す', file:'p1_head.html',
+    from:'body.playing .opts{ max-height:none; overflow:visible; }',
+    to:'body.playing .opts{ max-height:min(32vh,300px); overflow-y:auto; }',
+    expected:'通話中の選択肢一覧が小窓スクロールに閉じ込められている',
+  },
+  {
+    name:'照会結果を客へ読み上げに戻す', file:'p3_game.js',
+    from:"  pushFlowLines(t, [{ who:'me', text:hold ? CALL_FLOW_LINES.lookup.holdComplete : CALL_FLOW_LINES.lookup.talkComplete }]);",
+    to:"  const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : l.spoken);\n  pushFlowLines(t, [{ who:'me', text:'お待たせしました。確認結果は、' + spokenSummary }]);",
+    expected:'社内照会の開始と完了の合図が発話で揃わない',
+  },
+  {
+    name:'滞在先未確認の折り返しを黙って握り潰す', file:'p3_game.js',
+    from:"  if (!t.asked.has('q_stay') || !t.stayAddress){ blindCallbackRedial(t); return; }",
+    to:"  if (!t.asked.has('q_stay') || !t.stayAddress){ render(); return; }",
+    expected:'滞在先未確認の折り返しを別扱いにしていない',
+  },
+  {
+    name:'折り返せなかった客を黙って待ち行列へ戻す', file:'p3_game.js',
+    from:'  t.redialOpening = CALL_FLOW_LINES.callback.blameOpenings[t.s.type];',
+    to:'  t.redialOpening = REDIAL_OPENINGS.direct;',
+    expected:'折り返せなかった客が理由を言わずに掛け直してくる',
+  },
+  {
+    name:'折り返しをコマンド直下の別枠へ戻す', file:'p4_view.js',
+    from:"    hotelCallbackOffered(t)\n      ? { attrs:'data-hotel-callback=\"1\"', body:'<span class=\"opt-label\">ホテルへ折り返す<span class=\"opt-sub\">' + esc(hotelCallbackSub(t)) + '</span></span>' }\n      : null,\n",
+    to:'',
+    expected:'「伝える」のID・項目名・注意書きが完全一致しない',
   },
   {
     name:'着信トーストを復活させる', file:'p3_game.js',
@@ -171,7 +220,8 @@ const mutations = [
     expected:'ストレス80超でメーターが点滅しない',
   },
   {
-    name:'再着信をオフィス記録から外す', file:'p3_game.js',
+    // 途中切断と、折り返せずに掛け直された場合の2か所で同じ記録を残している。
+    name:'再着信をオフィス記録から外す', file:'p3_game.js', all:true,
     from:"recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');", to:"void customerLabel(t, true);",
     expected:'再着信の情報が状態表示・会話メモ・無効理由へ移っていない',
   },
@@ -649,8 +699,8 @@ const mutations = [
   },
   {
     name:'照会完了の記録なし発話を復活させる', file:'p2_data.js',
-    from:"    completePrefix:'お待たせしました。確認結果は、',",
-    to:"    completePrefix:'お待たせしました。確認結果は、',\n    miss:'該当する記録は確認できませんでした。',",
+    from:"    talkComplete:'ありがとうございます。こちらでも確認が取れました。',",
+    to:"    talkComplete:'ありがとうございます。こちらでも確認が取れました。',\n    miss:'該当する記録は確認できませんでした。',",
     expected:'§26 CALL_FLOW_LINES.lookup.missが残っている',
   },
   {
@@ -660,10 +710,12 @@ const mutations = [
     expected:'§26 LOOKUPSの全項目に顧客向けspokenがない',
   },
   {
-    name:'既定照会結果をそのまま顧客へ読み上げる', file:'p3_game.js',
-    from:"const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : l.spoken);",
-    to:"const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : l.defaultResult);",
-    expected:'§26 案件固有結果なしでオペレーターがspokenを伝えない',
+    // §40で照会結果の読み上げ自体をやめたので、読み上げ内容の取り違えではなく
+    // 「読み上げに戻すこと」を変異として見る（上の「照会結果を客へ読み上げに戻す」）。
+    name:'照会完了の合図を空文字にする', file:'p2_data.js',
+    from:"    holdComplete:'お待たせしました。確認が取れました。',",
+    to:"    holdComplete:'',",
+    expected:'§40 照会完了の合図が保留・通話中で揃っていない',
   },
   {
     name:'既定照会結果をmissへ戻す', file:'p2_data.js',
@@ -804,9 +856,10 @@ const mutations = [
     expected:'ログで全履歴を表示しない',
   },
   {
+    // 折り返せなかった場合も同じ2行で待ち行列へ戻すので、途中切断側だけを狙う。
     name:'途中切断後の再着信を閉じる', file:'p3_game.js',
-    from:"  t.state = 'waiting';\n  t.arrivedTurn = state.turn;",
-    to:"  t.state = 'closed';\n  t.arrivedTurn = state.turn;",
+    from:"  t.pendingInterruption = false;\n  t.redialCount++;\n  t.state = 'waiting';\n  t.arrivedTurn = state.turn;",
+    to:"  t.pendingInterruption = false;\n  t.redialCount++;\n  t.state = 'closed';\n  t.arrivedTurn = state.turn;",
     expected:'途中切断した顧客がすぐ再着信しない',
   },
   {
@@ -959,9 +1012,9 @@ const mutations = [
   },
   {
     name:'社内照会の完了発話を消す', file:'p3_game.js',
-    from:"  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);",
-    to:'  void spokenSummary;',
-    expected:'社内照会の開始・完了・結果要約が発話で揃わない',
+    from:"  pushFlowLines(t, [{ who:'me', text:hold ? CALL_FLOW_LINES.lookup.holdComplete : CALL_FLOW_LINES.lookup.talkComplete }]);",
+    to:'  void hold;',
+    expected:'社内照会の開始と完了の合図が発話で揃わない',
   },
   {
     name:'会話記録の確認に余計な完了文を足す', file:'p3_game.js',
@@ -1835,10 +1888,11 @@ const mutations = [
     expected:'§39 検査5: 通話料を気にする発話を繰り返す',
   },
   {
+    // §40: 連絡先を持たないまま、ふつうの折り返しとして成立させてしまう変異。
     name:'滞在先未確認でも一般折り返しを開始する', file:'p3_game.js',
-    from:"if (!t.asked.has('q_stay') || !t.stayAddress){ render(); return; }",
-    to:"if (false && (!t.asked.has('q_stay') || !t.stayAddress)){ render(); return; }",
-    expected:'§39 検査6: 滞在先未確認で一般折り返しを開始できる',
+    from:"if (!t.asked.has('q_stay') || !t.stayAddress){ blindCallbackRedial(t); return; }",
+    to:"if (false && (!t.asked.has('q_stay') || !t.stayAddress)){ blindCallbackRedial(t); return; }",
+    expected:'§40 滞在先未確認の折り返しが、折り返せなかった扱いにならない',
   },
   {
     name:'Front Deskの選択肢を日本語にする', file:'p2_data.js',

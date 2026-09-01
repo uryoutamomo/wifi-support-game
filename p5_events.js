@@ -4,7 +4,7 @@
 
 document.addEventListener('click', (e) => {
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
+  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
   if (!el || el.disabled) return;
   playCommandSound();
   routeAction(el.dataset);
@@ -32,6 +32,14 @@ function handleOfficeAction(d){
     if (t) resumeCallback(t);
     return true;
   }
+  if (d.officeDesk){ openDeskLookup(); return true; }
+  return false;
+}
+
+function handleDeskAction(d){
+  if (d.desk === 'close'){ closeDeskLookup(); return true; }
+  if (d.deskTicket){ selectDeskTicket(d.deskTicket); return true; }
+  if (d.deskLookup){ doDeskLookup(d.deskLookup); return true; }
   return false;
 }
 
@@ -92,7 +100,7 @@ function handleResolutionAction(d){
 }
 
 function routeAction(d){
-  [handleDisplayAction, handleOfficeAction, handleCallNavigation, handleConversationAction, handleResolutionAction]
+  [handleDisplayAction, handleOfficeAction, handleDeskAction, handleCallNavigation, handleConversationAction, handleResolutionAction]
     .some(handler => handler(d));
 }
 

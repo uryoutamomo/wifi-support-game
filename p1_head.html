@@ -638,6 +638,8 @@ body.sheet-open .console{ display: none; }
 
 .opt{
   display: flex;
+  /* 選択肢は縦に潰さない。潰れると説明文や「前提不足」の理由が読めなくなる。 */
+  flex: none;
   align-items: flex-start;
   gap: 10px;
   background: var(--panel-2);
@@ -1342,6 +1344,9 @@ body.playing .actions{
   overflow:visible;
   padding:14px 12px calc(20px + env(safe-area-inset-bottom));
 }
+/* 通話中は画面ごと縦にスクロールする。選択肢だけを小窓に閉じ込めると、
+   14件の原因が3件ずつしか見えず、選択肢の文言も途中で切れる。 */
+body.playing .opts{ max-height:none; overflow:visible; }
 .call-head{ position:static; padding:12px; }
 .call-head .cname{ font-size:24px; }
 .call-head .ctype,.call-time,.call-meta{ font-size:15px; }
@@ -1447,6 +1452,7 @@ body.office-view .office-scene{ gap:14px; }
     <div class="office-call-actions" aria-label="電話操作">
       <button class="office-call-action" id="office-answer" data-office-answer="1"><b>電話を取る</b><span id="office-answer-status">待ち 0件</span></button>
       <button class="office-call-action" id="office-callback" data-office-callback="1"><b>電話をかける</b><span id="office-callback-status">折り返し 0件</span></button>
+      <button class="office-call-action" id="office-desk" data-office-desk="1"><b>端末で調べる</b><span id="office-desk-status">調査可能 0件</span></button>
     </div>
     <div class="office-status-grid">
       <div class="office-object office-board"><b>全社ホワイトボード</b><div id="office-notice"></div></div>

@@ -7,6 +7,7 @@ const SHIFT_START = 22 * 60; // 22:00 JST
 const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
+const DESK_LOOKUP_MINUTES = 2;  // 折り返し待ちのあいだ、デスク端末で1件調べるのにかかる時間
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
   shuffleArrival: true,
@@ -230,6 +231,14 @@ const CALL_FLOW_LINES = Object.freeze({
     }),
     promise:'通話料のご負担を止めるため、いったんお切りして、こちらからホテルへ折り返してもよろしいですか。',
     consent:'はい、ホテルで待っています。お願いします。',
+    /* 滞在先を聞かないまま切ると、折り返す先がない。客が自分から掛け直してくる。 */
+    noAddressNote:'滞在先を確認しないまま通話を切りました。折り返す先がありません。',
+    blameOpenings:Object.freeze({
+      anxious:'待っていたのに、電話が来ないんです…。ホテルの名前も聞かれていないのに、どこへかけるつもりだったんですか…？',
+      novice:'あの、いくら待ってもお電話が鳴らなくて…。私、宿の名前をお伝えしましたでしょうか。聞かれていない気がして…。',
+      hurried:'折り返すと言って切ったのに、来ませんでしたよね。ホテルも聞かずにどこへかけたんですか。時間を返してください。',
+      expert:'折り返しの連絡先を取得しないまま切断していますね。滞在先の確認は折り返しの前提条件のはずです。掛け直したのはこちらです。',
+    }),
   }),
   callChargeConcern:Object.freeze({
     anxious:'海外からの通話料が心配で…。このまま長くなっても大丈夫でしょうか。',
@@ -267,7 +276,10 @@ const CALL_FLOW_LINES = Object.freeze({
   lookup:Object.freeze({
     holdStart:'確認いたしますので、少々お待ちください。',
     talkStart:'お話ししながら確認いたしますね。',
-    completePrefix:'お待たせしました。確認結果は、',
+    /* 照会結果は端末に出るだけで、客へ話すかどうかはオペレーターが決める。
+       保留を解いた合図だけを返し、中身は「伝える」で自分が選ぶ。 */
+    holdComplete:'お待たせしました。確認が取れました。',
+    talkComplete:'ありがとうございます。こちらでも確認が取れました。',
   }),
   recordStart:'少し記録を確認させてください。',
   interrupt:'申し訳ございません、一度お切りします。',
@@ -366,6 +378,9 @@ const REDIAL_OPENINGS = Object.freeze({
   direct:'いま切りましたね。理由を短く説明してください。',
 });
 const REDIAL_STRESS = 25;
+/* 折り返すと約束しながら連絡先を持たずに切ったときの重さ。単なる切断より重い。 */
+const BLIND_CALLBACK_STRESS = 35;
+const BLIND_CALLBACK_CSAT_PENALTY = 1.5;
 
 /* ---------- 社内照会プール ---------- */
 
@@ -956,6 +971,41 @@ const SCENARIOS = [
     t_move:{ text:'ホテルの外まで出ましたが、やはり圏外です。', fact:{ text:'屋外へ移動しても圏外のまま', out:['location','coverage'] } },
   },
   debrief:'契約は有効でも、貸出記録には<em>申込国と違う、その国では利用できないSIM</em>が記録されていました。お客様は自分の設定ミスだと思っていましたが、原因は自社の手配ミスです。非を隠さず先にお詫びし、長期滞在・同じホテル・本人の希望を確認したうえで、使える代替機を届けるのが最適です。返金だけでは、残りの滞在中も通信が使えません。'
+},
+
+/* === 14. 台北：容量超過。実務でいちばん多い問い合わせを、素直な形でもう一件置く ===
+   S1と真因は同じだが、あちらが「自分のせいだ」と怯える客なのに対し、
+   こちらは「無制限だと思っていた」と食ってかかる客。同じ答えでも通し方が変わる。 */
+{
+  id:'S14', arrive:80, name:'原口 大地', nameEn:'Daichi Haraguchi', age:24, type:'hurried', abandonAfter:24, callbackTo:'mobile',
+  deviceInHand:true,
+  rushedReply:'はい。挨拶はいいです。原因を。', contractId:{ minutes:1, text:'GDW-771403。控えてあります。次。' },
+  country:'台湾', city:'台北', cityEn:'TAIPEI', localOffset:-1, carrierName:'Chunghwa Telecom', device:'GD-500', plan:'{country} ／ 1GBプラン',
+  opening:'昼から急に遅いです。動画は止まるし、地図もなかなか出ません。使い放題のはずでは？ 原因を短くお願いします。',
+  smalltalk:[{ id:'st_s14_work', reveal:'q_destination', askLabel:'お仕事で{city}へいらしているんですか？', tellLabel:'移動の合間にご不便をおかけしています', goodReply:'出張です。移動中に資料を落とすので通信は要ります。で、原因は？', badReply:'その話は後で。遅い理由を先に教えてください。' }],
+  panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:true, clients:1, maxClients:5, battery:58, ssid:'Globaldesk-3390' },
+  trueCause:'fup', best:'r_topup', partial:['r_slow_ok'],
+  replies:{
+    q_when:{ text:'昼過ぎからです。午前は普通に見られました。急に落ちた感じです。',
+      fact:{ text:'午前は正常で、昼過ぎから急に低速化した', hot:['fup'] } },
+    q_lamp:{ text:'棒は4本立っています。その下に小さい亀みたいな印が出ています。これ何ですか。',
+      fact:{ text:'アンテナ4本。本体に速度制限アイコンが表示されている', hot:['fup'], out:['sim','carrier','coverage'] } },
+    q_other_device:{ text:'パソコンでも同じです。両方遅い。端末の問題ではないですよね。',
+      fact:{ text:'複数端末で同じように遅い。端末固有ではない', out:['device_side','device_net'] } },
+    q_count:{ text:'私のスマホ1台だけです。ほかは繋いでいません。',
+      fact:{ text:'接続は1台のみ', out:['devices'] } },
+    q_what_fails:{ text:'全部です。特定のサービスだけということはありません。とにかく全体が重い。',
+      fact:{ text:'特定サービスではなく全体が低速', out:['geo_block'] } },
+    q_stay:{ text:'{city}駅前のホテル、704号室です。ただ日中は外に出ています。' },
+  },
+  lookups:{
+    l_plan:{ text:'[契約照会] プラン: 1GB/日 ／ 本日の使用量: 1,024MB（上限到達）／ 現在 速度制限中（最大128kbps）／ 追加購入: 未適用',
+      fact:{ text:'本日の使用量が上限1GBに到達し、速度制限がかかっている', hot:['fup'], out:['heavy','location','power','hardware','provision'] },
+      viz:{ label:'本日の使用量', value:1024, max:1024, unit:'MB', note:'1GBプラン' } },
+    l_outage:{ text:'[障害情報] {country} {carrier} 網 正常。障害報告なし。',
+      fact:{ text:'現地キャリアに障害なし', out:['carrier'] } },
+  },
+  debrief:'いちばん件数の多い問い合わせです。<em>「無制限だと思っていた」という思い込みと、実際の契約内容の食い違い</em>が正体で、機器はどこも壊れていません。契約照会で使用量の数字を出せば、その場で確定できます。急いでいる相手なので、原因を短く言い切ってから追加購入の選択肢を示すのが最短です。容量が戻るのは翌日で、今日中に使いたいなら追加購入しかない、という順番で伝えてください。'
 },
 
 ];

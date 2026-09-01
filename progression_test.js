@@ -77,7 +77,11 @@ assert(functionSource('startHotelCallback').includes("t.callbackReason = 'genera
 assert(functionSource('resumeCallback').includes("t.callbackStage = 'front_desk'") && functionSource('resumeCallback').includes("who:'front'"), '折り返しがFront Deskから始まらない');
 const frontChoiceSource = functionSource('handleFrontDeskChoice');
 assert(frontChoiceSource.includes("['guest','room','callback'].includes(choice)") && frontChoiceSource.includes("t.callbackStage = 'connected'") && !frontChoiceSource.includes("t.callbackStage = 'blocked'"), 'Front Deskの英語選択肢に詰み経路がある');
-assert(functionSource('renderHotelCallbackChoice').includes('滞在先が未確認') && functionSource('startHotelCallback').includes("!t.asked.has('q_stay')"), '滞在先未確認の折り返しを理由つきで止められない');
+// §40: 滞在先を聞かずに折り返しても詰まない。折り返せないまま客が掛け直してきて、対応を続けられる。
+assert(functionSource('startHotelCallback').includes("!t.asked.has('q_stay')") && functionSource('startHotelCallback').includes('blindCallbackRedial(t)'), '滞在先未確認の折り返しを別扱いにしていない');
+const blindRedialSource = functionSource('blindCallbackRedial');
+assert(blindRedialSource.includes("t.state = 'waiting'") && blindRedialSource.includes('t.arrivedTurn = state.turn') && blindRedialSource.includes('enterOffice()'), '折り返せなかった案件が待ち行列へ戻らず進行不能になる');
+assert(blindRedialSource.includes('t.redialOpening = CALL_FLOW_LINES.callback.blameOpenings[t.s.type]'), '折り返せなかった客が理由を言わずに掛け直してくる');
 
 // §27-3 検査8: 調べる・ログを開けない状態でも、「聞く」で本人特定して全案件の正解ルートへ進める。
 const identificationReady = new Function(functionSource('identificationReady') + '\nreturn identificationReady;')();

@@ -638,6 +638,8 @@ body.sheet-open .console{ display: none; }
 
 .opt{
   display: flex;
+  /* 選択肢は縦に潰さない。潰れると説明文や「前提不足」の理由が読めなくなる。 */
+  flex: none;
   align-items: flex-start;
   gap: 10px;
   background: var(--panel-2);
@@ -1342,6 +1344,9 @@ body.playing .actions{
   overflow:visible;
   padding:14px 12px calc(20px + env(safe-area-inset-bottom));
 }
+/* 通話中は画面ごと縦にスクロールする。選択肢だけを小窓に閉じ込めると、
+   14件の原因が3件ずつしか見えず、選択肢の文言も途中で切れる。 */
+body.playing .opts{ max-height:none; overflow:visible; }
 .call-head{ position:static; padding:12px; }
 .call-head .cname{ font-size:24px; }
 .call-head .ctype,.call-time,.call-meta{ font-size:15px; }
@@ -1447,6 +1452,7 @@ body.office-view .office-scene{ gap:14px; }
     <div class="office-call-actions" aria-label="電話操作">
       <button class="office-call-action" id="office-answer" data-office-answer="1"><b>電話を取る</b><span id="office-answer-status">待ち 0件</span></button>
       <button class="office-call-action" id="office-callback" data-office-callback="1"><b>電話をかける</b><span id="office-callback-status">折り返し 0件</span></button>
+      <button class="office-call-action" id="office-desk" data-office-desk="1"><b>端末で調べる</b><span id="office-desk-status">調査可能 0件</span></button>
     </div>
     <div class="office-status-grid">
       <div class="office-object office-board"><b>全社ホワイトボード</b><div id="office-notice"></div></div>
@@ -1500,6 +1506,7 @@ const SHIFT_START = 22 * 60; // 22:00 JST
 const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
+const DESK_LOOKUP_MINUTES = 2;  // 折り返し待ちのあいだ、デスク端末で1件調べるのにかかる時間
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
   shuffleArrival: true,
@@ -1723,6 +1730,14 @@ const CALL_FLOW_LINES = Object.freeze({
     }),
     promise:'通話料のご負担を止めるため、いったんお切りして、こちらからホテルへ折り返してもよろしいですか。',
     consent:'はい、ホテルで待っています。お願いします。',
+    /* 滞在先を聞かないまま切ると、折り返す先がない。客が自分から掛け直してくる。 */
+    noAddressNote:'滞在先を確認しないまま通話を切りました。折り返す先がありません。',
+    blameOpenings:Object.freeze({
+      anxious:'待っていたのに、電話が来ないんです…。ホテルの名前も聞かれていないのに、どこへかけるつもりだったんですか…？',
+      novice:'あの、いくら待ってもお電話が鳴らなくて…。私、宿の名前をお伝えしましたでしょうか。聞かれていない気がして…。',
+      hurried:'折り返すと言って切ったのに、来ませんでしたよね。ホテルも聞かずにどこへかけたんですか。時間を返してください。',
+      expert:'折り返しの連絡先を取得しないまま切断していますね。滞在先の確認は折り返しの前提条件のはずです。掛け直したのはこちらです。',
+    }),
   }),
   callChargeConcern:Object.freeze({
     anxious:'海外からの通話料が心配で…。このまま長くなっても大丈夫でしょうか。',
@@ -1760,7 +1775,10 @@ const CALL_FLOW_LINES = Object.freeze({
   lookup:Object.freeze({
     holdStart:'確認いたしますので、少々お待ちください。',
     talkStart:'お話ししながら確認いたしますね。',
-    completePrefix:'お待たせしました。確認結果は、',
+    /* 照会結果は端末に出るだけで、客へ話すかどうかはオペレーターが決める。
+       保留を解いた合図だけを返し、中身は「伝える」で自分が選ぶ。 */
+    holdComplete:'お待たせしました。確認が取れました。',
+    talkComplete:'ありがとうございます。こちらでも確認が取れました。',
   }),
   recordStart:'少し記録を確認させてください。',
   interrupt:'申し訳ございません、一度お切りします。',
@@ -1859,6 +1877,9 @@ const REDIAL_OPENINGS = Object.freeze({
   direct:'いま切りましたね。理由を短く説明してください。',
 });
 const REDIAL_STRESS = 25;
+/* 折り返すと約束しながら連絡先を持たずに切ったときの重さ。単なる切断より重い。 */
+const BLIND_CALLBACK_STRESS = 35;
+const BLIND_CALLBACK_CSAT_PENALTY = 1.5;
 
 /* ---------- 社内照会プール ---------- */
 
@@ -2451,6 +2472,41 @@ const SCENARIOS = [
   debrief:'契約は有効でも、貸出記録には<em>申込国と違う、その国では利用できないSIM</em>が記録されていました。お客様は自分の設定ミスだと思っていましたが、原因は自社の手配ミスです。非を隠さず先にお詫びし、長期滞在・同じホテル・本人の希望を確認したうえで、使える代替機を届けるのが最適です。返金だけでは、残りの滞在中も通信が使えません。'
 },
 
+/* === 14. 台北：容量超過。実務でいちばん多い問い合わせを、素直な形でもう一件置く ===
+   S1と真因は同じだが、あちらが「自分のせいだ」と怯える客なのに対し、
+   こちらは「無制限だと思っていた」と食ってかかる客。同じ答えでも通し方が変わる。 */
+{
+  id:'S14', arrive:80, name:'原口 大地', nameEn:'Daichi Haraguchi', age:24, type:'hurried', abandonAfter:24, callbackTo:'mobile',
+  deviceInHand:true,
+  rushedReply:'はい。挨拶はいいです。原因を。', contractId:{ minutes:1, text:'GDW-771403。控えてあります。次。' },
+  country:'台湾', city:'台北', cityEn:'TAIPEI', localOffset:-1, carrierName:'Chunghwa Telecom', device:'GD-500', plan:'{country} ／ 1GBプラン',
+  opening:'昼から急に遅いです。動画は止まるし、地図もなかなか出ません。使い放題のはずでは？ 原因を短くお願いします。',
+  smalltalk:[{ id:'st_s14_work', reveal:'q_destination', askLabel:'お仕事で{city}へいらしているんですか？', tellLabel:'移動の合間にご不便をおかけしています', goodReply:'出張です。移動中に資料を落とすので通信は要ります。で、原因は？', badReply:'その話は後で。遅い理由を先に教えてください。' }],
+  panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:true, clients:1, maxClients:5, battery:58, ssid:'Globaldesk-3390' },
+  trueCause:'fup', best:'r_topup', partial:['r_slow_ok'],
+  replies:{
+    q_when:{ text:'昼過ぎからです。午前は普通に見られました。急に落ちた感じです。',
+      fact:{ text:'午前は正常で、昼過ぎから急に低速化した', hot:['fup'] } },
+    q_lamp:{ text:'棒は4本立っています。その下に小さい亀みたいな印が出ています。これ何ですか。',
+      fact:{ text:'アンテナ4本。本体に速度制限アイコンが表示されている', hot:['fup'], out:['sim','carrier','coverage'] } },
+    q_other_device:{ text:'パソコンでも同じです。両方遅い。端末の問題ではないですよね。',
+      fact:{ text:'複数端末で同じように遅い。端末固有ではない', out:['device_side','device_net'] } },
+    q_count:{ text:'私のスマホ1台だけです。ほかは繋いでいません。',
+      fact:{ text:'接続は1台のみ', out:['devices'] } },
+    q_what_fails:{ text:'全部です。特定のサービスだけということはありません。とにかく全体が重い。',
+      fact:{ text:'特定サービスではなく全体が低速', out:['geo_block'] } },
+    q_stay:{ text:'{city}駅前のホテル、704号室です。ただ日中は外に出ています。' },
+  },
+  lookups:{
+    l_plan:{ text:'[契約照会] プラン: 1GB/日 ／ 本日の使用量: 1,024MB（上限到達）／ 現在 速度制限中（最大128kbps）／ 追加購入: 未適用',
+      fact:{ text:'本日の使用量が上限1GBに到達し、速度制限がかかっている', hot:['fup'], out:['heavy','location','power','hardware','provision'] },
+      viz:{ label:'本日の使用量', value:1024, max:1024, unit:'MB', note:'1GBプラン' } },
+    l_outage:{ text:'[障害情報] {country} {carrier} 網 正常。障害報告なし。',
+      fact:{ text:'現地キャリアに障害なし', out:['carrier'] } },
+  },
+  debrief:'いちばん件数の多い問い合わせです。<em>「無制限だと思っていた」という思い込みと、実際の契約内容の食い違い</em>が正体で、機器はどこも壊れていません。契約照会で使用量の数字を出せば、その場で確定できます。急いでいる相手なので、原因を短く言い切ってから追加購入の選択肢を示すのが最短です。容量が戻るのは翌日で、今日中に使いたいなら追加購入しかない、という順番で伝えてください。'
+},
+
 ];
 
 /* 名前・年齢と土地は、シフト開始時に案件本体から切り離して割り当てる。 */
@@ -2532,6 +2588,7 @@ const state = {
   holdVisual: false,
   busy: false,
   ui: defaultUi(),
+  desk: null,           // 折り返し待ちのあいだ、デスク端末で調べている案件
   slogan: '',
   report: null,
   career: null,
@@ -2838,6 +2895,7 @@ function resetGame(){
   state.holdVisual = false;
   state.busy = false;
   state.ui = defaultUi();
+  state.desk = null;
   state.slogan = SLOGANS[Math.floor(state.random() * SLOGANS.length)];
   state.report = null;
   state.careerUpdate = null;
@@ -3298,6 +3356,59 @@ function openLookup(){
   render();
 }
 
+/* ---------- 折り返し待ちのあいだ、デスク端末で調べる ----------
+   相手を待たせているのは通話ではないので、ストレスは増えない。
+   ただし時間は進むので、折り返しが約束の時刻に遅れる危険はそのまま残る。 */
+
+function deskTickets(){
+  return state.tickets.filter(t => t.state === 'callback').sort((a, b) => a.callbackDue - b.callbackDue);
+}
+
+function deskTicket(){
+  if (!state.desk || !state.desk.ticketId) return null;
+  return deskTickets().find(t => t.s.id === state.desk.ticketId) || null;
+}
+
+function openDeskLookup(){
+  const list = deskTickets();
+  if (!list.length || state.focus) return;
+  state.desk = { ticketId:list.length === 1 ? list[0].s.id : null };
+  enterDesk();
+}
+
+function selectDeskTicket(id){
+  if (!state.desk) return;
+  state.desk.ticketId = (id === '__back') ? null : id;
+  renderDesk();
+}
+
+function closeDeskLookup(){
+  state.desk = null;
+  enterOffice();
+}
+
+function doDeskLookup(lid){
+  const t = deskTicket();
+  if (!t || state.busy) return;
+  const l = LOOKUPS.find(x => x.id === lid);
+  if (!l || l.external || t.lookedUp.has(lid) || !identificationReady(t)) return;
+  t.lookedUp.add(lid);
+  const r = (t.s.lookups || {})[lid];
+  if (r){
+    t.transcript.push(lookupSystemLine(l, r));
+    if (r.fact) addFact(t, r.fact, 'デスク端末で照会');
+    if (r.outage) triggerOutage(t);
+  } else {
+    t.transcript.push(lookupSystemLine(l, null));
+    if (l.missFact) addFact(t, l.missFact, 'デスク端末で照会');
+    else t.wasted++;
+  }
+  advance(DESK_LOOKUP_MINUTES);
+  // 時間を進めた結果、折り返しの相手が待ちきれずに切っていることがある。
+  if (t.state !== 'callback'){ closeDeskLookup(); return; }
+  renderDesk();
+}
+
 function openRecord(){
   const t = state.focus;
   if (!t || !requireIdentification(t)) return;
@@ -3471,8 +3582,8 @@ function finishLookup(t, l, minutes, hold){
   state.busy = false;
   state.holdVisual = false;
   if (!continued){ render(); return; }
-  const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : l.spoken);
-  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);
+  // 照会しただけで結果を客へ読み上げない。何をどう伝えるかは「伝える」で選ぶ。
+  pushFlowLines(t, [{ who:'me', text:hold ? CALL_FLOW_LINES.lookup.holdComplete : CALL_FLOW_LINES.lookup.talkComplete }]);
   if (r && r.customerReply){
     pushCustomerLine(t, r.customerReply);
     if (!addStress(t, r.stressDelta || 0, false, true)){ render(); return; }
@@ -3573,11 +3684,12 @@ function startCarrierCallback(destination){
 function startHotelCallback(){
   const t = state.focus;
   if (!t || t.pendingResult || t.pendingInterruption || t.callbackStage === 'front_desk') return;
-  if (!t.asked.has('q_stay') || !t.stayAddress){ render(); return; }
   pushFlowLines(t, [
     { who:'me', text:CALL_FLOW_LINES.callback.promise },
     { who:'cust', text:CALL_FLOW_LINES.callback.consent },
   ]);
+  // 滞在先を聞かずに切ると、折り返す先がない。客が自分から掛け直してきて責める。
+  if (!t.asked.has('q_stay') || !t.stayAddress){ blindCallbackRedial(t); return; }
   t.transcript.push({ who:'note', text:'お客様の国際通話料を止め、ホテルへ折り返す約束を記録しました。' });
   t.callbackCount++;
   t.callbackDestination = 'hotel';
@@ -3589,6 +3701,26 @@ function startHotelCallback(){
   state.focus = null;
   state.ui = defaultUi();
   playDisconnectSound();
+  enterOffice();
+}
+
+/* 折り返しを約束しながら滞在先を持たずに切った場合。折り返せないので、客から掛かってくる。 */
+function blindCallbackRedial(t){
+  t.transcript.push({ who:'note', text:CALL_FLOW_LINES.callback.noAddressNote });
+  t.callbackPenalty = (t.callbackPenalty || 0) + BLIND_CALLBACK_CSAT_PENALTY;
+  if (!spendOnCall(t, 1, 0)) return;
+  if (!addStress(t, BLIND_CALLBACK_STRESS)){ render(); return; }
+  t.redialCount++;
+  t.state = 'waiting';
+  t.arrivedTurn = state.turn;
+  t.greeted = false;
+  t.redialOpening = CALL_FLOW_LINES.callback.blameOpenings[t.s.type];
+  t.redialSpoken = false;
+  t.redialGreeting = true;
+  state.focus = null;
+  state.ui = defaultUi();
+  playDisconnectSound();
+  recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');
   enterOffice();
 }
 
@@ -4039,6 +4171,7 @@ function startTyping(t){
 
 function render(){
   if (state.phase === 'office'){ renderOffice(); return; }
+  if (state.phase === 'desk'){ renderDesk(); return; }
   if (state.phase !== 'call') return;
   $('clock').textContent = fmtClock(state.clock);
   renderWorldStrip();
@@ -4306,6 +4439,8 @@ function renderOffice(){
   $('office-callback-status').textContent = callbacks.length
     ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '照会中 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
     : '折り返し 0件';
+  $('office-desk').disabled = !callbacks.length;
+  $('office-desk-status').textContent = callbacks.length ? '調査可能 ' + callbacks.length + '件' : '調査可能 0件';
 }
 
 function enterOffice(){
@@ -4319,6 +4454,67 @@ function enterCall(){
   state.phase = 'call';
   document.body.classList.remove('office-view'); document.body.classList.add('call-view'); render();
   window.scrollTo(0, 0);
+}
+function enterDesk(){
+  stopOfficeRing();
+  state.phase = 'desk';
+  document.body.classList.remove('office-view'); document.body.classList.add('call-view');
+  renderDesk();
+  window.scrollTo(0, 0);
+}
+
+/* 折り返し待ちの案件を、通話をつながずにデスク端末だけで調べる画面。 */
+function renderDesk(){
+  $('clock').textContent = fmtClock(state.clock);
+  renderWorldStrip();
+  renderQueue();
+  $('line-state').textContent = '端末作業中';
+  $('call').classList.remove('on-hold');
+  const t = deskTicket();
+  const list = deskTickets();
+  if (!list.length){ closeDeskLookup(); return; }
+  const head = '<div class="command-panel-head"><button class="command-back" data-desk="close">← オフィスへ戻る</button>' +
+    '<div><span>DESK TERMINAL ／ 折り返し待ちの調査</span><b>' +
+    (t ? esc(customerLabel(t, true)) + ' の社内照会' : 'どの案件を調べますか？') + '</b></div></div>';
+  const body = t ? renderDeskLookupOptions(t, list) : renderDeskTicketChoice(list);
+  $('call').innerHTML = renderDeskHeader(t || list[0]) +
+    '<div class="transcript recent" id="transcript">' + renderTranscript(t || list[0], false) + '</div>' +
+    '<div class="actions">' + head + body + '</div>';
+  const box = $('transcript');
+  if (box) box.scrollTop = box.scrollHeight;
+  renderBoard();
+}
+
+/* 通話は切れているので、通話時間と通話料の代わりに折り返しの約束時刻を出す。 */
+function renderDeskHeader(t){
+  return '<div class="call-head">' +
+      '<span class="call-ticket"><b>チケット</b> ' + esc(t.s.id) + '</span>' +
+      '<span class="call-time">通話は切断中</span>' +
+      '<span class="call-cost">折り返し ' + fmtClock(t.callbackDue) + '</span>' +
+    '</div>';
+}
+
+function renderDeskTicketChoice(list){
+  return '<div class="opts">' + list.map(t =>
+    '<button class="opt" data-desk-ticket="' + t.s.id + '"><span class="opt-label">' + esc(customerLabel(t, true)) +
+    '<span class="opt-sub">折り返しの約束 ' + fmtClock(t.callbackDue) + '</span></span></button>'
+  ).join('') + '</div><p class="hint-bar">折り返しを待っているあいだ、通話をつながずに社内システムだけを調べられます。</p>';
+}
+
+function renderDeskLookupOptions(t, list){
+  const back = list.length > 1
+    ? '<button class="opt" data-desk-ticket="__back"><span class="opt-label">← 案件の選び直し</span></button>'
+    : '';
+  if (!identificationReady(t)){
+    return back + '<p class="hint-bar">本人確認が済んでいないため、社内システムを開けません。折り返しの通話で確認してください。</p>';
+  }
+  const items = LOOKUPS.filter(l => !l.external).map(l =>
+    '<button class="opt" data-desk-lookup="' + l.id + '" ' + (t.lookedUp.has(l.id) ? 'disabled' : '') +
+    '><span class="opt-label">' + esc(l.label) + (t.lookedUp.has(l.id) ? '<span class="opt-sub">照会済み</span>' : '') +
+    '</span><span class="cost">' + DESK_LOOKUP_MINUTES + '分</span></button>'
+  ).join('');
+  return '<div class="opts">' + back + items + '</div>' +
+    '<p class="hint-bar">通話中ではないので、お客様の苛立ちは増えません。ただし時間は進むため、折り返しが約束より遅れることがあります。</p>';
 }
 
 function renderCall(){
@@ -4495,15 +4691,20 @@ function renderCommandMenu(t, actionClass){
   const optionalGreeting = !t.greeted && customerHasSpoken(t)
     ? '<button class="command-choice optional-greeting" data-greet="1"><span class="command-no">任意</span><span class="command-copy"><b>名乗る</b><small>急いでいるお客様には省略できます</small></span></button>'
     : '';
-  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div>' + optionalGreeting + '<div class="command-grid">' + choices + '</div></div>' + renderHotelCallbackChoice(t) + renderHangupButton() + '</div>';
+  const chargeHint = hotelCallbackOffered(t) && t.callChargeConcerned
+    ? '<p class="hint-bar">お客様が国際通話料を気にしています。「伝える」→「ホテルへ折り返す」で通話料を止められます。</p>'
+    : '';
+  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div>' + optionalGreeting + '<div class="command-grid">' + choices + '</div></div>' + chargeHint + renderHangupButton() + '</div>';
 }
 
-function renderHotelCallbackChoice(t){
-  if (t.callDirection === 'outbound') return '';
-  const ready = t.asked.has('q_stay') && Boolean(t.stayAddress);
-  const prompt = t.callChargeConcerned ? 'お客様が国際通話料を気にしています。' : '5分を超えそうなら、お客様の通話料を止められます。';
-  return '<div class="callback-offer"><button class="opt" data-hotel-callback="1" ' + (ready ? '' : 'disabled') + '><span class="opt-label">ホテルへ折り返す<span class="opt-sub">' + prompt + '</span></span></button>' +
-    (ready ? '' : '<p class="hint-bar">滞在先が未確認です。「聞く」→「顧客のこと」でホテル名と部屋番号を確認してください。</p>') + '</div>';
+/* 折り返しはこちらから掛け直す行為なので、折り返し中の通話には出さない。 */
+function hotelCallbackOffered(t){
+  return t.callDirection !== 'outbound';
+}
+
+function hotelCallbackSub(t){
+  if (!t.asked.has('q_stay') || !t.stayAddress) return '滞在先はまだ伺っていません。';
+  return t.callChargeConcerned ? 'お客様が国際通話料を気にしています。' : '5分を超えそうなら、お客様の通話料を止められます。';
 }
 
 function renderFrontDeskOptions(t){
@@ -4553,6 +4754,9 @@ function renderTellOptions(t){
     t.refundProposalRejected
       ? null
       : { attrs:'data-refund="refund"', body:'<span class="opt-label">返金をご案内する</span><span class="cost">¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + '</span>' },
+    hotelCallbackOffered(t)
+      ? { attrs:'data-hotel-callback="1"', body:'<span class="opt-label">ホテルへ折り返す<span class="opt-sub">' + esc(hotelCallbackSub(t)) + '</span></span>' }
+      : null,
     { attrs:'data-tell="soothe"', body:'<span class="opt-label">気持ちを落ち着ける</span>' },
     { attrs:'data-tell="apologize"', body:'<span class="opt-label">お詫びする</span>' },
     { attrs:'data-tell="smalltalk"', body:'<span class="opt-label">一言かける</span>' },
@@ -5526,7 +5730,7 @@ function cell(k, v, n){
 
 document.addEventListener('click', (e) => {
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
+  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
   if (!el || el.disabled) return;
   playCommandSound();
   routeAction(el.dataset);
@@ -5554,6 +5758,14 @@ function handleOfficeAction(d){
     if (t) resumeCallback(t);
     return true;
   }
+  if (d.officeDesk){ openDeskLookup(); return true; }
+  return false;
+}
+
+function handleDeskAction(d){
+  if (d.desk === 'close'){ closeDeskLookup(); return true; }
+  if (d.deskTicket){ selectDeskTicket(d.deskTicket); return true; }
+  if (d.deskLookup){ doDeskLookup(d.deskLookup); return true; }
   return false;
 }
 
@@ -5614,7 +5826,7 @@ function handleResolutionAction(d){
 }
 
 function routeAction(d){
-  [handleDisplayAction, handleOfficeAction, handleCallNavigation, handleConversationAction, handleResolutionAction]
+  [handleDisplayAction, handleOfficeAction, handleDeskAction, handleCallNavigation, handleConversationAction, handleResolutionAction]
     .some(handler => handler(d));
 }
 

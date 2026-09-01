@@ -53,6 +53,7 @@ const state = {
   holdVisual: false,
   busy: false,
   ui: defaultUi(),
+  desk: null,           // 折り返し待ちのあいだ、デスク端末で調べている案件
   slogan: '',
   report: null,
   career: null,
@@ -359,6 +360,7 @@ function resetGame(){
   state.holdVisual = false;
   state.busy = false;
   state.ui = defaultUi();
+  state.desk = null;
   state.slogan = SLOGANS[Math.floor(state.random() * SLOGANS.length)];
   state.report = null;
   state.careerUpdate = null;
@@ -819,6 +821,59 @@ function openLookup(){
   render();
 }
 
+/* ---------- 折り返し待ちのあいだ、デスク端末で調べる ----------
+   相手を待たせているのは通話ではないので、ストレスは増えない。
+   ただし時間は進むので、折り返しが約束の時刻に遅れる危険はそのまま残る。 */
+
+function deskTickets(){
+  return state.tickets.filter(t => t.state === 'callback').sort((a, b) => a.callbackDue - b.callbackDue);
+}
+
+function deskTicket(){
+  if (!state.desk || !state.desk.ticketId) return null;
+  return deskTickets().find(t => t.s.id === state.desk.ticketId) || null;
+}
+
+function openDeskLookup(){
+  const list = deskTickets();
+  if (!list.length || state.focus) return;
+  state.desk = { ticketId:list.length === 1 ? list[0].s.id : null };
+  enterDesk();
+}
+
+function selectDeskTicket(id){
+  if (!state.desk) return;
+  state.desk.ticketId = (id === '__back') ? null : id;
+  renderDesk();
+}
+
+function closeDeskLookup(){
+  state.desk = null;
+  enterOffice();
+}
+
+function doDeskLookup(lid){
+  const t = deskTicket();
+  if (!t || state.busy) return;
+  const l = LOOKUPS.find(x => x.id === lid);
+  if (!l || l.external || t.lookedUp.has(lid) || !identificationReady(t)) return;
+  t.lookedUp.add(lid);
+  const r = (t.s.lookups || {})[lid];
+  if (r){
+    t.transcript.push(lookupSystemLine(l, r));
+    if (r.fact) addFact(t, r.fact, 'デスク端末で照会');
+    if (r.outage) triggerOutage(t);
+  } else {
+    t.transcript.push(lookupSystemLine(l, null));
+    if (l.missFact) addFact(t, l.missFact, 'デスク端末で照会');
+    else t.wasted++;
+  }
+  advance(DESK_LOOKUP_MINUTES);
+  // 時間を進めた結果、折り返しの相手が待ちきれずに切っていることがある。
+  if (t.state !== 'callback'){ closeDeskLookup(); return; }
+  renderDesk();
+}
+
 function openRecord(){
   const t = state.focus;
   if (!t || !requireIdentification(t)) return;
@@ -992,8 +1047,8 @@ function finishLookup(t, l, minutes, hold){
   state.busy = false;
   state.holdVisual = false;
   if (!continued){ render(); return; }
-  const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : l.spoken);
-  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);
+  // 照会しただけで結果を客へ読み上げない。何をどう伝えるかは「伝える」で選ぶ。
+  pushFlowLines(t, [{ who:'me', text:hold ? CALL_FLOW_LINES.lookup.holdComplete : CALL_FLOW_LINES.lookup.talkComplete }]);
   if (r && r.customerReply){
     pushCustomerLine(t, r.customerReply);
     if (!addStress(t, r.stressDelta || 0, false, true)){ render(); return; }
@@ -1094,11 +1149,12 @@ function startCarrierCallback(destination){
 function startHotelCallback(){
   const t = state.focus;
   if (!t || t.pendingResult || t.pendingInterruption || t.callbackStage === 'front_desk') return;
-  if (!t.asked.has('q_stay') || !t.stayAddress){ render(); return; }
   pushFlowLines(t, [
     { who:'me', text:CALL_FLOW_LINES.callback.promise },
     { who:'cust', text:CALL_FLOW_LINES.callback.consent },
   ]);
+  // 滞在先を聞かずに切ると、折り返す先がない。客が自分から掛け直してきて責める。
+  if (!t.asked.has('q_stay') || !t.stayAddress){ blindCallbackRedial(t); return; }
   t.transcript.push({ who:'note', text:'お客様の国際通話料を止め、ホテルへ折り返す約束を記録しました。' });
   t.callbackCount++;
   t.callbackDestination = 'hotel';
@@ -1110,6 +1166,26 @@ function startHotelCallback(){
   state.focus = null;
   state.ui = defaultUi();
   playDisconnectSound();
+  enterOffice();
+}
+
+/* 折り返しを約束しながら滞在先を持たずに切った場合。折り返せないので、客から掛かってくる。 */
+function blindCallbackRedial(t){
+  t.transcript.push({ who:'note', text:CALL_FLOW_LINES.callback.noAddressNote });
+  t.callbackPenalty = (t.callbackPenalty || 0) + BLIND_CALLBACK_CSAT_PENALTY;
+  if (!spendOnCall(t, 1, 0)) return;
+  if (!addStress(t, BLIND_CALLBACK_STRESS)){ render(); return; }
+  t.redialCount++;
+  t.state = 'waiting';
+  t.arrivedTurn = state.turn;
+  t.greeted = false;
+  t.redialOpening = CALL_FLOW_LINES.callback.blameOpenings[t.s.type];
+  t.redialSpoken = false;
+  t.redialGreeting = true;
+  state.focus = null;
+  state.ui = defaultUi();
+  playDisconnectSound();
+  recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');
   enterOffice();
 }
 

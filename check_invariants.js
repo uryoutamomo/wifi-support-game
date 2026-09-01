@@ -2,9 +2,9 @@
 const fs = require('fs');
 const { readGameSource, functionSource: extractFunctionSource } = require('./test_helpers');
 const src = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,IDENTITY_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
+  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,IDENTITY_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
 const D = new Function(src)();
-const { CAUSES, TYPES, SCENARIOS, IDENTITY_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = D;
+const { CAUSES, TYPES, SCENARIOS, IDENTITY_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = D;
 
 const EXPECTED_SLOGANS = [
   '凡事徹底',
@@ -30,6 +30,7 @@ const EXPECT = {
   S11:{ cause:'location',    best:'r_move_guide',      noOut:null,               partial:['r_window_stationary'],tone:'brief' },
   S12:{ cause:'provision',   best:'r_carrier_reopened_explain',noOut:null,        partial:[],                 tone:'warm' },
   S13:{ cause:'logistics',   best:'r_logistics_replacement',noOut:null,           partial:['r_logistics_refund'],tone:'warm' },
+  S14:{ cause:'fup',         best:'r_topup',           noOut:null,               partial:['r_slow_ok'],      tone:'brief' },
 };
 
 // 依頼で渡した液晶データ
@@ -47,6 +48,7 @@ const PANEL = {
   S11:{ bars:1, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:2, battery:68 },
   S12:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:73 },
   S13:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:82 },
+  S14:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:true,  clients:1, battery:58 },
 };
 
 let ng = 0;
@@ -163,7 +165,7 @@ const hardwareSwap = D.REMEDIES.hardware.find(r => r.id === 'r_hardware_swap');
 if (!hardwareSwap || hardwareSwap.needsTestCount !== 2 || hardwareSwap.requiresLongStay !== 3 || !hardwareSwap.requiresConsent) bad('機器故障の代替機配送条件が確定仕様と違う');
 
 // §25: 折り返し先データは全案件に持たせる。
-const CALLBACK_TO = { S1:'hotel', S2:'mobile', S3:'mobile', S4:'hotel', S5:'hotel', S6:'mobile', S7:'hotel', S8:'hotel', S9:'mobile', S10:'hotel', S11:'mobile', S12:'hotel', S13:'hotel' };
+const CALLBACK_TO = { S1:'hotel', S2:'mobile', S3:'mobile', S4:'hotel', S5:'hotel', S6:'mobile', S7:'hotel', S8:'hotel', S9:'mobile', S10:'hotel', S11:'mobile', S12:'hotel', S13:'hotel', S14:'mobile' };
 SCENARIOS.forEach(s => {
   if (s.callbackTo !== CALLBACK_TO[s.id]) bad(s.id + ': callbackTo が ' + CALLBACK_TO[s.id] + ' のはずが ' + s.callbackTo);
 });
@@ -213,7 +215,9 @@ if (!QUESTIONS.every(question => typeof question.miss === 'string' && question.m
 const finishLookup26 = sourceOf('finishLookup');
 const lookupSystemLine26 = sourceOf('lookupSystemLine');
 const recentTranscript26 = sourceOf('recentTranscriptLines');
-if (!finishLookup26.includes('lookupSystemLine(l, null)') || !finishLookup26.includes('l.spoken') || finishLookup26.includes('lookup.miss')) bad('§26 案件固有結果なしで既定結果とspokenを使わない');
+if (!finishLookup26.includes('lookupSystemLine(l, null)') || finishLookup26.includes('lookup.miss')) bad('§26 案件固有結果なしで既定結果を使わない');
+// §40: 調べた結果を客へ勝手に読み上げない。何を伝えるかは「伝える」で選ぶ。
+if (finishLookup26.includes('r.fact ? r.fact.text') || finishLookup26.includes('l.spoken') || finishLookup26.includes('completePrefix')) bad('§40 照会しただけで結果の中身を客へ発話している');
 if (!lookupSystemLine26.includes('typed:true') || !recentTranscript26.includes('latestLookupIndex') || !recentTranscript26.includes('return [delivered[latestLookupIndex], playerAfter]')) bad('§26 照会直後にシステム結果画面と読み上げ要約が表示されない');
 const lookupScreen26 = sourceOf('renderLookupSystemScreen');
 const lookupRows26 = sourceOf('lookupResultRows');
@@ -300,6 +304,7 @@ const RUSHED_REPLIES = {
   S6:'分かってます。前置きは終わり。進めて。',
   S9:'はい。で、結論は？',
   S11:'はい。場所なら動く。指示を。',
+  S14:'はい。挨拶はいいです。原因を。',
 };
 SCENARIOS.forEach(s => {
   const want = RUSHED_REPLIES[s.id];
@@ -322,6 +327,7 @@ const CONTRACT_IDS = {
   S11:{ minutes:1, number:'GDW-562940' },
   S12:{ minutes:3, number:'GDW-348621' },
   S13:{ minutes:2, number:'GDW-630519' },
+  S14:{ minutes:1, number:'GDW-771403' },
 };
 SCENARIOS.forEach(s => {
   const want = CONTRACT_IDS[s.id];
@@ -454,7 +460,7 @@ if (JSON.stringify(SOOTHE_EFFECTS) !== JSON.stringify(SOOTHE_BY_TYPE)) bad('タ�
 if (JSON.stringify(SMALLTALK_EFFECTS) !== JSON.stringify({anxious:-10,novice:-12,hurried:14,expert:6})) bad('タイプ別の雑談効果が確定表と違う');
 if (JSON.stringify(IDENTITY_CALMING_EFFECTS) !== JSON.stringify({anxious:-10,novice:-8,hurried:-4,expert:0})) bad('高ストレス本人確認のタイプ別効果が確定表と違う');
 const requiredTopicFields = ['id','reveal','askLabel','tellLabel','goodReply','badReply'];
-if (SCENARIOS.length !== 13 || !SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0)))) bad('全13シナリオの雑談話題6項目が揃っていない');
+if (SCENARIOS.length !== 14 || !SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0)))) bad('全14シナリオの雑談話題6項目が揃っていない');
 const section13QuestionIds = new Set(QUESTIONS.map(question => question.id));
 const universallyReachableQuestions = new Set(['q_name','q_destination','q_contract']);
 if (!SCENARIOS.every(scenario => scenario.smalltalk.every(topic => topic.reveal === 'opening' || (section13QuestionIds.has(topic.reveal) && (universallyReachableQuestions.has(topic.reveal) || Boolean((scenario.replies || {})[topic.reveal])))))) bad('雑談話題のrevealが実際に到達できる質問へ接続されていない');
@@ -652,7 +658,7 @@ if (misFailure21 < 0 || misFailure21 >= misApology21 || misApology21 >= misStage
 // 7. 社内照会の開始・完了・要約。
 const lookupStart21 = sourceOf('doLookup');
 const lookupFinish21 = sourceOf('finishLookup');
-if (!lookupStart21.includes('lookup.holdStart') || !lookupStart21.includes('lookup.talkStart') || !lookupFinish21.includes('lookup.completePrefix') || !lookupFinish21.includes('r && r.fact ? r.fact.text')) bad('社内照会の開始・完了・結果要約が発話で揃わない');
+if (!lookupStart21.includes('lookup.holdStart') || !lookupStart21.includes('lookup.talkStart') || !lookupFinish21.includes('lookup.holdComplete') || !lookupFinish21.includes('lookup.talkComplete')) bad('社内照会の開始と完了の合図が発話で揃わない');
 // 8. 記録確認は開始だけ。
 const record21 = sourceOf('openRecord');
 if (!record21.includes('CALL_FLOW_LINES.recordStart') || record21.includes('completePrefix') || record21.includes('お待たせしました')) bad('会話記録の確認が開始文だけではない');
@@ -670,7 +676,7 @@ const duration21 = text => text.length * 25 + ((text.match(/[、。！？!?]/g) 
 const speech21 = [];
 const collect21 = value => typeof value === 'string' ? speech21.push(value) : value && typeof value === 'object' && Object.values(value).forEach(collect21);
 collect21(CALL_FLOW_LINES);
-SCENARIOS.forEach(scenario => Object.values(scenario.lookups || {}).forEach(result => result && result.text && speech21.push(CALL_FLOW_LINES.lookup.completePrefix + (result.fact ? result.fact.text : result.text))));
+/* 照会結果はシステム画面に出るだけなので、発話の所要時間には数えない。 */
 if (speech21.some(text => duration21(text) > 4000)) bad('§21の追加発話がtyping_budgetの4秒上限を超えている');
 // 12. 追加発話は1操作2行まで。テスト操作には追加しない。
 if (!sourceOf('pushFlowLines').includes('if (lines.length > 2) throw') || sourceOf('doTest').includes('CALL_FLOW_LINES')) bad('追加発話の2行上限またはテスト操作の無追加を守っていない');
@@ -777,7 +783,13 @@ if (!sourceOf('callCost').includes('t.outboundMinutes') || !sourceOf('customerCa
 if (!sourceOf('spendOnCall').includes("t.callDirection === 'outbound'") || !sourceOf('spendOnCall').includes('t.callChargeConcerned = true') || !sourceOf('spendOnCall').includes('CALL_FLOW_LINES.callChargeConcern[t.s.type]')) bad('§39 方向別分数または5分超の一度きり発話がない');
 if (Object.keys(CALL_FLOW_LINES.callChargeConcern).length !== 4 || new Set(Object.values(CALL_FLOW_LINES.callChargeConcern)).size !== 4) bad('§39 通話料を気にする発話が4タイプ分ない');
 if (!sourceOf('renderCallHeader').includes("outbound ? '当社負担' : 'お客様負担'") || !sourceOf('renderCallHeader').includes('t.callSegmentMinutes')) bad('§39 通話ヘッダに負担者と区間時間が出ない');
-if (!sourceOf('startHotelCallback').includes("!t.asked.has('q_stay')") || !sourceOf('renderHotelCallbackChoice').includes('滞在先が未確認')) bad('§39 滞在先未確認の一般折り返しを理由つきで止めない');
+// §40: 折り返しは「伝える」の中の一手。滞在先を聞かずに切ることもでき、その場合は折り返せず客から掛かってくる。
+if (!sourceOf('renderTellOptions').includes('data-hotel-callback') || sourceOf('renderCommandMenu').includes('data-hotel-callback')) bad('§40 ホテルへの折り返しが「伝える」の中にない');
+const blindCallback40 = sourceOf('blindCallbackRedial');
+if (!sourceOf('startHotelCallback').includes("!t.asked.has('q_stay')") || !sourceOf('startHotelCallback').includes('blindCallbackRedial(t)')) bad('§40 滞在先未確認の折り返しを取り違えずに分けていない');
+if (!blindCallback40.includes('CALL_FLOW_LINES.callback.blameOpenings[t.s.type]') || !blindCallback40.includes("t.state = 'waiting'") || !blindCallback40.includes('BLIND_CALLBACK_STRESS') || !blindCallback40.includes('BLIND_CALLBACK_CSAT_PENALTY')) bad('§40 折り返せなかった客が非難つきで掛け直してこない');
+if (Object.keys(CALL_FLOW_LINES.callback.blameOpenings).length !== 4 || new Set(Object.values(CALL_FLOW_LINES.callback.blameOpenings)).size !== 4) bad('§40 折り返しなしを責める発話が4タイプ分ない');
+if (BLIND_CALLBACK_STRESS <= REDIAL_STRESS) bad('§40 連絡先なしの切断が、ただの切断より軽い');
 if (!sourceOf('resumeCallback').includes("t.callbackStage = 'front_desk'") || !sourceOf('renderTranscript').includes("front:'Front Desk'")) bad('§39 折り返しでFront Deskの英語応対へ入らない');
 if (!Object.values(CALL_FLOW_LINES.frontDesk.options).every(line => /^[\x20-\x7E]+$/.test(line)) || !sourceOf('renderFrontDeskOptions').includes('Please choose what to say in English.')) bad('§39 Front Deskの選択肢が英語で揃っていない');
 if (!sourceOf('renderFrontDeskOptions').includes('front-desk-context') || !sourceOf('renderFrontDeskOptions').includes('latestFront.text')) bad('§39 Front Deskの発話が選択画面に固定表示されない');
