@@ -23,7 +23,7 @@ const EXPECT = {
   S4: { cause:'geo_block',   best:'r_vpn_plan',        noOut:null,               partial:['r_explain_block'],tone:'technical' },
   S5: { cause:'carrier',     best:'r_outage_explain',  noOut:'r_escalate_line',  partial:['r_escalate_line'],tone:'warm' },
   S6: { cause:'carrier',     best:'r_outage_explain',  noOut:'r_escalate_line',  partial:['r_escalate_line'],tone:'brief' },
-  S7: { cause:'coverage',    best:'r_escalate_band',   noOut:null,               partial:['r_city_only'],    tone:'technical' },
+  S7: { cause:'coverage',    best:'r_coverage_replacement',noOut:null,            partial:['r_coverage_refund'],tone:'technical' },
   S8: { cause:'sim',         best:'r_sim_clean',       noOut:null,               partial:['r_escalate_swap'],tone:'warm' },
   S9: { cause:'logistics',   best:'r_transfer_logi',   noOut:null,               partial:['r_come_tomorrow'],tone:'brief' },
   S10:{ cause:'hardware',    best:'r_hardware_swap',   noOut:null,               partial:['r_hardware_no_swap'],tone:'warm' },
@@ -58,10 +58,10 @@ if (LUCK_RATE !== 0.9) bad('運の本来どおり率が0.9ではない');
 if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55})) bad('運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う');
 if (JSON.stringify(REFUND_POLICY) !== JSON.stringify({
   amount:2400,
-  company:{causes:['hardware','provision','logistics','carrier','coverage'],satisfactionRate:0.5},
-  customer:{causes:['fup','devices','heavy','device_side','device_net','power'],satisfactionRate:0.1},
-  neutral:{causes:['location','geo_block','sim'],satisfactionRate:0.25},
-})) bad('返金の金額・14原因分類・満足率が確定値と違う');
+  company:{causes:['hardware','provision','logistics','carrier','coverage'],rejectionRate:0.05,satisfactionRate:0.5},
+  customer:{causes:['fup','devices','heavy','device_side','device_net','power'],rejectionRate:0.2,satisfactionRate:0.1},
+  neutral:{causes:['location','geo_block','sim'],rejectionRate:0.1,satisfactionRate:0.25},
+})) bad('返金の金額・14原因分類・拒否率・満足率が確定値と違う');
 const refundCauseIds = ['company','customer','neutral'].flatMap(group => REFUND_POLICY[group].causes);
 if (refundCauseIds.length !== CAUSES.length || new Set(refundCauseIds).size !== CAUSES.length || !CAUSES.every(cause => refundCauseIds.includes(cause.id))) bad('返金の責任所在で14原因に欠落・重複がある');
 
@@ -163,7 +163,7 @@ const hardwareSwap = D.REMEDIES.hardware.find(r => r.id === 'r_hardware_swap');
 if (!hardwareSwap || hardwareSwap.needsTestCount !== 2 || hardwareSwap.requiresLongStay !== 3 || !hardwareSwap.requiresConsent) bad('機器故障の代替機配送条件が確定仕様と違う');
 
 // §25: 折り返し先データは全案件に持たせる。
-const CALLBACK_TO = { S1:'hotel', S2:'mobile', S3:'mobile', S4:'hotel', S5:'hotel', S6:'mobile', S7:'mobile', S8:'hotel', S9:'mobile', S10:'hotel', S11:'mobile', S12:'hotel', S13:'hotel' };
+const CALLBACK_TO = { S1:'hotel', S2:'mobile', S3:'mobile', S4:'hotel', S5:'hotel', S6:'mobile', S7:'hotel', S8:'hotel', S9:'mobile', S10:'hotel', S11:'mobile', S12:'hotel', S13:'hotel' };
 SCENARIOS.forEach(s => {
   if (s.callbackTo !== CALLBACK_TO[s.id]) bad(s.id + ': callbackTo が ' + CALLBACK_TO[s.id] + ' のはずが ' + s.callbackTo);
 });
@@ -566,13 +566,39 @@ if (!gameSource.includes('if (index % 4) return')) bad('タイプ音が1文字�
 if (!gameSource.includes('previousStress <= 80 && t.stress > 80')) bad('苛立ち警告音が状態の80境界を再横断しても鳴らない');
 if (!gameSource.includes('id="balance-sound"') || !gameSource.includes('id="balance-volume"')) bad('ゲーム調整にミュートと音量がない');
 
-// §19: 返金は確認後に費用を払い、満足3.0／不満足1.0で単発クローズする。
-if (!gameSource.includes("kind:'refunded'") || !gameSource.includes('csat:satisfied ? 3.0 : 1.0')) bad('返金が満足3.0／不満足1.0で案件を閉じない');
-if (!gameSource.includes("defaultUi('refund_confirm')") || !gameSource.includes('この電話はこれで終わります')) bad('返金が金額・終話の確認を挟まない');
+// §19／§31: 返金は提案し、拒否なら通話継続、受入後だけ満足3.0／不満足1.0で閉じる。
+const refund31 = sourceOf('doRefund');
+const refundReject31 = sourceOf('refundProposalRejected');
+const refundConfirm31 = sourceOf('renderRefundConfirmation');
+const refundTell31 = sourceOf('renderTellOptions');
+if (!gameSource.includes("kind:'refunded'") || !gameSource.includes('csat:satisfied ? 3.0 : 1.0')) bad('返金受入が満足3.0／不満足1.0で案件を閉じない');
+if (!gameSource.includes("defaultUi('refund_confirm')") || !refundConfirm31.includes('返金をご提案します') || !refundConfirm31.includes('受け入れていただければ') || refundConfirm31.includes('この電話はこれで終わります。')) bad('返金確認が提案と条件つき終話を伝えない');
+if (!refundReject31.includes('GAME_FLAGS.luckRate === 1') || !refundReject31.includes('rejectionRate')) bad('返金拒否率またはluckRate 1.0の拒否なし経路がない');
+if (!refund31.includes('t.refundProposalRejected = true') || !refund31.includes('spendOnCall(t, 2, 0)') || !refund31.includes('addStress(t, 18)') || !refundTell31.includes('t.refundProposalRejected') || !refundTell31.includes('data-refund="refund"')) bad('返金拒否後の通話継続・2分・苛立ち・再提案禁止が揃っていない');
+if (!['anxious','novice','hurried','expert'].every(type => typeof TYPES[type].refundRejectReply === 'string' && TYPES[type].refundRejectReply.length)) bad('返金拒否の台詞が4タイプ分ない');
 if (/\brefunds\b|refundCsat|refundResult|refundEffect/.test(gameSource)) bad('旧返金の回数管理・CSAT逓減が残っている');
 if (!gameSource.includes("result.kind === 'closed' || result.kind === 'refunded'")) bad('不満足な返金が苦情メール対象に入らない');
 const outageRefundRemedy = REMEDIES.carrier.find(remedy => remedy.id === 'r_outage_explain');
 if (!outageRefundRemedy || outageRefundRemedy.cost !== 2400 || !outageRefundRemedy.needsOutage || outageRefundRemedy.kind !== 'resolve') bad('広域障害の正規対処 r_outage_explain が損なわれている');
+
+// §32: non-expertの客は見えたことだけを話し、オペレーター側のfact/hot/outは維持する。
+const scenarioSpeech32 = scenario => {
+  const speech = [scenario.opening,scenario.contractId && scenario.contractId.text,scenario.rushedReply];
+  Object.values(scenario.replies || {}).forEach(reply => speech.push(reply.text));
+  Object.values(scenario.tests || {}).forEach(test => {
+    if (test.text) speech.push(test.text);
+    (test.sequence || []).forEach(step => speech.push(step.text));
+  });
+  (scenario.smalltalk || []).forEach(topic => speech.push(topic.goodReply,topic.badReply));
+  return speech.filter(text => typeof text === 'string' && text.length);
+};
+const nonExpertSpeech32 = SCENARIOS.filter(scenario => scenario.type !== 'expert').flatMap(scenarioSpeech32);
+if (nonExpertSpeech32.some(text => /SIMがないという表示ではなく|SIMカードではなく|回線登録だけが|プロビジョニングでは|網側の(?:障害|拒否)では/.test(text))) bad('non-expertの客が知らない技術的区別を否定形で述べている');
+if (nonExpertSpeech32.some(text => /(?:^|[。！？…\s])(?:1|2|一|二)回目[、,]/.test(text))) bad('non-expertの客が自分の操作へ番号を振っている');
+const s10Speech32 = SCENARIOS.find(scenario => scenario.id === 'S10').tests.t_simout.sequence;
+const s13Lamp32 = SCENARIOS.find(scenario => scenario.id === 'S13').replies.q_lamp;
+if (s10Speech32[0].text.includes('1回目') || !s10Speech32[1].text.includes('もう一度') || s13Lamp32.text.includes('SIMがないという表示ではなく')) bad('S10/S13の指定台詞が自然な言い方へ直っていない');
+if (s10Speech32[0].fact.text !== '1回目のSIM清掃では認識しない' || s13Lamp32.fact.text !== 'SIMは認識しているが、到着時から現地回線を一度も捕捉していない' || JSON.stringify(s13Lamp32.fact.out) !== JSON.stringify(['sim','device_side','device_net'])) bad('台詞改稿でfactまたはhot/outが変わっている');
 
 // §15-5/§25: 1日は全案件から2〜5件を重複なく選び、先頭の到着枠へ詰める。
 try {
@@ -676,6 +702,41 @@ if (MORNING_STAFF.length !== 10 || !staff23.includes('MORNING_STAFF.forEach')) b
 if (MORNING_STAFF.some(staff => staff.facing !== 'back') || /eye|mouth|face/.test(staffMember23) || !staffMember23.includes('後頭部・肩・背中・立ち脚')) bad('社員が社長を見る後ろ姿になっていない');
 if (new Set(MORNING_STAFF.map(staff => staff.hair)).size < 3 || new Set(MORNING_STAFF.map(staff => staff.hairColor)).size < 3 || new Set(MORNING_STAFF.map(staff => staff.coat)).size < 5 || new Set(MORNING_STAFF.map(staff => staff.shoulders)).size < 3 || !staffMember23.includes('p[staff.hairColor]') || !staffMember23.includes('p[staff.coat]')) bad('社員の髪型・髪色・服色・肩幅が描き分けられていない');
 if (MORNING_STAFF.some(staff => Object.keys(staff).some(key => /player|highlight|arrow|label/i.test(key))) || /staff\.(?:player|highlight|arrow|label)/i.test(staffMember23)) bad('プレイヤーだけを示す強調表示がある');
+
+// §33: 未解決終話は現在の絞り込み状態に応じた次の一手と再入電を示す。
+const hangupGuide33 = sourceOf('unresolvedHangupGuide');
+if (!hangupGuide33.includes('hotCauses(t).size === 1') || !hangupGuide33.includes('「聞く」「調べる」で手がかりを集める') || !hangupGuide33.includes('「伝える」→「対処を伝える」') || !hangupGuide33.includes('お客様から再入電になります')) bad('§33 未解決終話の次手分岐・再入電説明が揃わない');
+if (!sourceOf('renderCloseFlow').includes('remedy-block-reason') || !pageSource.includes('.opt:disabled.has-block-reason') || !pageSource.includes('.remedy-block-reason')) bad('§33 前提不足の理由が通常説明と違う見た目にならない');
+if (!sourceOf('remedyBlockReason').includes('先に「伝える」→「やってみてもらう」を ')) bad('§33 前提不足の従来理由文が変わっている');
+
+// §34: S7は会社の機種選定ミスとして謝罪・対応機配送／返金で扱う。
+const s7_34 = SCENARIOS.find(scenario => scenario.id === 'S7');
+const s7Best34 = REMEDIES.coverage.find(remedy => remedy.id === s7_34.best);
+const s7Partial34 = REMEDIES.coverage.find(remedy => s7_34.partial.includes(remedy.id));
+if (!s7Best34 || s7Best34.label !== '手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する' || !s7Partial34 || s7Partial34.label !== '手配の誤りをお詫びし、返金する') bad('§34 S7の謝罪・代替機発送／返金が確定対処と違う');
+if (Object.values(REMEDIES).flat().some(remedy => ['r_escalate_band','r_city_only'].includes(remedy.id))) bad('§34 廃止対象のS7対処が残っている');
+if (JSON.stringify(s7Best34 && s7Best34.requiresQuestions) !== JSON.stringify(['q_stay','q_stay_length','q_replacement']) || s7Best34.requiresLongStay !== 3 || s7Best34.requiresConsent !== true || s7_34.stayDays < 3 || !s7_34.wantsReplacement) bad('§34 S7配送の既存3前提または長期滞在設定が違う');
+if (!s7_34.lookups.l_area.customerReply || s7_34.lookups.l_area.stressDelta <= 0 || !sourceOf('finishLookup').includes('pushCustomerLine(t, r.customerReply)')) bad('§34 手配ミス判明後のexpert非難または苛立ち増加がない');
+const s13_34 = SCENARIOS.find(scenario => scenario.id === 'S13');
+if (s7_34.trueCause !== 'coverage' || s13_34.trueCause !== 'logistics' || !/市街地では正常/.test(s7_34.opening) || !/一度も/.test(s13_34.opening + s13_34.replies.q_when.text)) bad('§34 S7とS13の症状・真因を書き分けていない');
+
+// §35: 機器未所持案件では成立しない質問・操作を表示も実行もしない。
+const s9_35 = SCENARIOS.find(scenario => scenario.id === 'S9');
+if (!SCENARIOS.every(scenario => typeof scenario.deviceInHand === 'boolean') || s9_35.deviceInHand !== false) bad('§35 全案件のdeviceInHandまたはS9=falseがない');
+if (!['q_lamp','q_ssid','q_battery'].every(id => QUESTIONS.find(question => question.id === id).needsDevice) || !D.TESTS.concat(D.RISKY).every(test => test.needsDevice)) bad('§35 機器が必要な質問・操作の印が不足している');
+if (!sourceOf('renderAskOptions').includes('!q.needsDevice || t.s.deviceInHand') || !sourceOf('renderTellOptions').includes('t.s.deviceInHand') || !sourceOf('renderTestOptions').includes('!test.needsDevice || t.s.deviceInHand')) bad('§35 機器未所持の質問・操作を一覧から隠していない');
+if (!sourceOf('doAsk').includes('q.needsDevice && !t.s.deviceInHand') || !sourceOf('doTest').includes('test.needsDevice && !t.s.deviceInHand')) bad('§35 非表示項目をイベント経由で実行できる');
+if (QUESTIONS.find(question => question.id === 'q_replacement').label.includes('直らない場合') || s9_35.replies.q_lamp || s9_35.replies.q_other_device || !(s9_35.replies.q_when.fact.hot || []).includes('logistics')) bad('§35 S9の前提不一致質問・回答または代替手がかりが直っていない');
+
+// §36: 復旧は客の発話で見せ、原因説明へ導く。対処の構造は変えない。
+const doTest36 = sourceOf('doTest');
+if (!doTest36.includes('TYPES[t.s.type].solvedReply') || !doTest36.includes('t.symptomResolved = true') || doTest36.includes("who:'note', text:'この操作で症状が解消しました")) bad('§36 復旧が客のタイプ別発話で通話画面に出ない');
+if (!Object.values(TYPES).every(type => type.solvedReply) || new Set(Object.values(TYPES).map(type => type.solvedReply)).size !== 4) bad('§36 復旧発話が4タイプ分書き分けられていない');
+if (!hangupGuide33.includes('t.symptomResolved') || !hangupGuide33.includes('症状は復旧しました') || !hangupGuide33.includes('原因をご説明すると、この電話を終われます')) bad('§36 復旧済み未案内の終話ガイドがない');
+const simClean36 = REMEDIES.sim.find(remedy => remedy.id === 'r_sim_clean');
+if (!simClean36 || simClean36.label !== '接点の一時的な接触不良だったことをご説明し、そのままご利用いただく' || simClean36.kind !== 'resolve' || simClean36.needsTest !== 't_simout' || simClean36.needsTestCount !== 2) bad('§36 r_sim_cleanの説明文または構造が違う');
+if (sourceOf('doApologize').includes('pendingResult') || sourceOf('doApologize').includes('closeTicket')) bad('§36 謝罪だけで終話できる');
+if (/who:'note', text:'[^']*(?:症状が解消|原因を確定して案内)/.test(gameSource)) bad('§36 次の手に必要な復旧情報がnoteへ残っている');
 
 // S2/S3 に q_lamp が入ったか
 ['S2','S3'].forEach(id => {

@@ -665,9 +665,12 @@ body.sheet-open .console{ display: none; }
 .opt.recommended:hover:not(:disabled){ border-color:var(--good); background:#D5EDDF; }
 .opt.danger:hover:not(:disabled){ border-color: var(--crit); }
 .opt.esc:hover:not(:disabled){ border-color: var(--signal); }
+.opt:disabled.has-block-reason{ opacity:1; border-color:var(--crit); background:var(--crit-soft); }
 
 .opt-label{ flex: 1; }
 .opt-sub{ display: block; font-size: 11px; color: var(--faint); margin-top: 2px; line-height: 1.55; }
+.remedy-block-reason{ margin-top:6px; padding:6px 8px; border-left:3px solid var(--crit); color:var(--crit); font-weight:700; }
+.remedy-block-reason b{ display:inline-block; margin-right:7px; padding:1px 5px; background:var(--crit); color:#fff; font-size:10px; letter-spacing:.08em; }
 
 .tone-row{
   display: flex;

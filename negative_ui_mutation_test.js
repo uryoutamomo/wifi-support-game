@@ -237,8 +237,8 @@ const mutations = [
   },
   {
     name:'未解決終話確認へ接尾辞を足す', file:'p4_view.js',
-    from:'<b>まだ対応が終わっていません。このまま切りますか？</b>', to:'<b>まだ対応が終わっていません。このまま切りますか？_x</b>',
-    expected:'未解決終話の確認文が完全一致しない',
+    from:'原因と対処を案内すると、この電話を終われます。', to:'説明を続けてください。',
+    expected:'§33 検査2: 原因絞り込み後の終話確認が対処案内を次手にしない',
   },
   {
     name:'1案件から雑談話題を外す', file:'p2_data.js',
@@ -421,9 +421,9 @@ const mutations = [
   },
   {
     name:'会社側返金満足率を60%へ変える', file:'p2_data.js',
-    from:"causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), satisfactionRate:0.5",
-    to:"causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), satisfactionRate:0.6",
-    expected:'会社側の返金満足率が50%ではない',
+    from:"causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), rejectionRate:0.05, satisfactionRate:0.5",
+    to:"causes:Object.freeze(['hardware','provision','logistics','carrier','coverage']), rejectionRate:0.05, satisfactionRate:0.6",
+    expected:'会社側の返金拒否率5%／満足率50%が違う',
   },
   {
     name:'返金額を0円にする', file:'p2_data.js',
@@ -437,13 +437,13 @@ const mutations = [
   },
   {
     name:'返金の確認を飛ばす', file:'p5_events.js',
-    from:"if (d.refund){ state.ui = defaultUi('refund_confirm'); render(); return true; }", to:"if (d.refund){ doRefund(); return true; }",
+    from:"if (d.refund){ if (!state.focus.refundProposalRejected) state.ui = defaultUi('refund_confirm'); render(); return true; }", to:"if (d.refund){ doRefund(); return true; }",
     expected:'返金が確認を挟まず実行される',
   },
   {
     name:'返金確認から終話明示を消す', file:'p4_view.js',
-    from:'この電話はこれで終わります。', to:'返金を実行します。',
-    expected:'返金確認に金額・終話の明示・確認ボタンが揃っていない',
+    from:'受け入れていただければ、この電話は終わります。', to:'返金を実行します。',
+    expected:'§31 検査9: 返金確認が提案と条件つき終話を伝えない',
   },
   {
     name:'返金費用を加算しない', file:'p3_game.js',
@@ -468,7 +468,7 @@ const mutations = [
   {
     name:'中立分類からsimを落とす', file:'p2_data.js',
     from:"causes:Object.freeze(['location','geo_block','sim'])", to:"causes:Object.freeze(['location','geo_block'])",
-    expected:'中立の返金満足率が25%ではない',
+    expected:'中立の返金拒否率10%／満足率25%が違う',
   },
   {
     name:'不満足返金にも別れの言葉を付ける', file:'p3_game.js',
@@ -947,8 +947,8 @@ const mutations = [
   },
   {
     name:'伝えるからやってみてもらうを外す', file:'p4_view.js',
-    from:'    \'<button class="opt" data-tell="try"><span class="command-no">2</span><span class="opt-label">やってみてもらう<span class="opt-sub">機器や端末で試していただくことを選びます。</span></span></button>\' +\n',
-    to:'',
+    from:'      ? { attrs:\'data-tell="try"\', body:\'<span class="opt-label">やってみてもらう<span class="opt-sub">機器や端末で試していただくことを選びます。</span></span>\' }',
+    to:'      ? null',
     expected:'「伝える」の項目から data-tell="try" が欠けている',
   },
   {
@@ -1333,13 +1333,13 @@ const mutations = [
   },
   {
     name:'S13最適対処から謝罪を外す', file:'p2_data.js',
-    from:'手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する',
-    to:'滞在期間と滞在先を確認したうえで代替機を発送する',
+    from:"{ id:'r_logistics_replacement', label:'手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する'",
+    to:"{ id:'r_logistics_replacement', label:'滞在期間と滞在先を確認したうえで代替機を発送する'",
     expected:'§30 検査5: 最適対処が謝罪と代替機発送を明記しない',
   },
   {
     name:'S13次善対処から謝罪を外す', file:'p2_data.js',
-    from:'手配の誤りをお詫びし、返金する', to:'返金する',
+    from:"{ id:'r_logistics_refund', label:'手配の誤りをお詫びし、返金する'", to:"{ id:'r_logistics_refund', label:'返金する'",
     expected:'§30 検査6: 次善対処が謝罪と返金を明記しない',
   },
   {
@@ -1356,7 +1356,7 @@ const mutations = [
   },
   {
     name:'S13次善対処へ隠蔽を混ぜる', file:'p2_data.js',
-    from:'手配の誤りをお詫びし、返金する', to:'手配の誤りをお詫びし、隠して返金する',
+    from:"{ id:'r_logistics_refund', label:'手配の誤りをお詫びし、返金する'", to:"{ id:'r_logistics_refund', label:'手配の誤りをお詫びし、隠して返金する'",
     expected:'§30 検査9: 非を認めず切り抜けるS13対処がある',
   },
   {
@@ -1374,6 +1374,353 @@ const mutations = [
     from:"    q_replacement:{ text:'はい、使えるものが届くなら代替機を送ってください。ホテルで受け取ります。',\n      fact:{ text:'本人が同じホテルへの代替機配送を希望している', hot:['logistics'] } },\n",
     to:'',
     expected:'§30 検査12: progression_test用の正解ルート前提が揃っていない',
+  },
+  {
+    name:'返金提案の拒否分岐を無効化する', file:'p3_game.js',
+    from:'if (refundProposalRejected(t.s.trueCause)){', to:'if (false && refundProposalRejected(t.s.trueCause)){',
+    expected:'§31 検査1: 返金が満足受入／不満受入／拒否の3通りにならない',
+  },
+  {
+    name:'返金拒否で案件をクローズ待ちにする', file:'p3_game.js',
+    from:'t.refundProposalRejected = true;', to:"t.refundProposalRejected = true;\n    t.pendingResult = {kind:'refunded',satisfied:false,csat:1.0};",
+    expected:'§31 検査1: 返金が満足受入／不満受入／拒否の3通りにならない',
+  },
+  {
+    name:'返金拒否でも費用を加算する', file:'p3_game.js',
+    from:'t.refundProposalRejected = true;', to:'t.refundProposalRejected = true;\n    state.cost += REFUND_POLICY.amount;',
+    expected:'§31 検査3: 拒否された返金提案で費用が加算される',
+  },
+  {
+    name:'返金拒否の所要時間を1分へ短縮する', file:'p3_game.js',
+    from:"pushCustomerLine(t, TYPES[t.s.type].refundRejectReply, { plain:true });\n    if (!spendOnCall(t, 2, 0)){ render(); return; }",
+    to:"pushCustomerLine(t, TYPES[t.s.type].refundRejectReply, { plain:true });\n    if (!spendOnCall(t, 1, 0)){ render(); return; }",
+    expected:'§31 検査4: 返金拒否で2分と苛立ち増を消費しない',
+  },
+  {
+    name:'返金拒否率の境界を以下へ緩める', file:'p3_game.js',
+    from:'return state.random() < REFUND_POLICY[group].rejectionRate;', to:'return state.random() <= REFUND_POLICY[group].rejectionRate;',
+    expected:'§31 検査5: 返金拒否率が会社5%／中立10%／顧客20%ではない',
+  },
+  {
+    name:'会社側の返金満足率を60%へ戻す', file:'p2_data.js',
+    from:'rejectionRate:0.05, satisfactionRate:0.5', to:'rejectionRate:0.05, satisfactionRate:0.6',
+    expected:'会社側の返金拒否率5%／満足率50%が違う',
+  },
+  {
+    name:'luckRate 1でも返金拒否を起こす', file:'p3_game.js',
+    from:'if (GAME_FLAGS.luckRate === 1) return false;\n  return state.random() < REFUND_POLICY[group].rejectionRate;',
+    to:'if (GAME_FLAGS.luckRate === 1) return true;\n  return state.random() < REFUND_POLICY[group].rejectionRate;',
+    expected:'§31 検査7: luckRate 1.0でも返金拒否が起きる',
+  },
+  {
+    name:'返金拒否後も案内ボタンを表示する', file:'p4_view.js',
+    from:'    t.refundProposalRejected\n      ? null\n      : { attrs:\'data-refund="refund"\'', to:'    false\n      ? null\n      : { attrs:\'data-refund="refund"\'',
+    expected:'§31 検査8: 拒否後に返金を再提案できる',
+  },
+  {
+    name:'返金確認を確定表現へ戻す', file:'p4_view.js',
+    from:'の返金をご提案します。受け入れていただければ、この電話は終わります。よろしいですか？',
+    to:'を返金します。この電話はこれで終わります。よろしいですか？',
+    expected:'§31 検査9: 返金確認が提案と条件つき終話を伝えない',
+  },
+  {
+    name:'不満足な返金を苦情メール対象から外す（§31）', file:'p3_game.js',
+    from:"return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false;",
+    to:"return result.kind === 'closed' && result.csat < 2 ? rollLuck() : false;",
+    expected:'不満足な返金が後日の苦情メール対象に入らない',
+  },
+  {
+    name:'返金拒否へ評価用CSAT変数を持ち込む', file:'p3_game.js',
+    from:'t.refundProposalRejected = true;', to:'t.refundProposalRejected = true;\n    const rejectionPenalty = {csat:1.0};',
+    expected:'§31 検査11: 返金拒否そのものが評価結果を確定する',
+  },
+  {
+    name:'返金拒否のexpert台詞をhurriedと同じにする', file:'p2_data.js',
+    from:"refundRejectReply:'返金提案は受けません。利用可能な状態への復旧を優先し、切り分けを続けてください。'",
+    to:"refundRejectReply:'返金は要らない。今つながる方法を出して。対応を続けてください。'",
+    expected:'§31 検査12: 返金を拒否する台詞が4タイプ分書き分けられていない',
+  },
+  {
+    name:'S13の客へSIM表示の鑑別を戻す', file:'p2_data.js',
+    from:'画面には「圏外」と出ています。アンテナの棒が、ずっと0本のままで…。',
+    to:'画面には「圏外」と出ています。SIMがないという表示ではなく、アンテナだけ0本です。',
+    expected:'§32 検査1: S13 q_lampが客自身にSIM表示の鑑別をさせている',
+  },
+  {
+    name:'S10の客へSIM清掃1回目を自己申告させる', file:'p2_data.js',
+    from:'乾いた布で拭いて、挿し直してみました。まだ「No SIM」です…。もう一度やってみましょうか？',
+    to:'1回目、乾いた布で拭いて挿しました。まだ「No SIM」です…。次もやって大丈夫ですか？',
+    expected:'§32 検査2: SIM清掃の初回が回数を自己申告する、または従来の再試行表現がない',
+  },
+  {
+    name:'non-expertの客へ網側障害の否定を言わせる', file:'p2_data.js',
+    from:'あの…受け取ってから一度もつながらず、ずっと圏外なんです。私が最初の設定を何か間違えたのでしょうか。',
+    to:'あの…受け取ってから一度もつながらず、ずっと圏外なんです。網側の障害ではなく、私が間違えたのでしょうか。',
+    expected:'§32 検査3: non-expertの客が知らない技術的区別を否定形で述べている',
+  },
+  {
+    name:'non-expertの客へ操作回数を自己申告させる', file:'p2_data.js',
+    from:'一度拭いて挿しました。まだ「No SIM」です…。もう一度で、本当にいいんですね？',
+    to:'1回目、拭いて挿しました。まだ「No SIM」です…。もう一度で、本当にいいんですね？',
+    expected:'§32 検査4: non-expertの客が自分の操作へ番号を振っている',
+  },
+  {
+    name:'expertの全断否定を平文化する', file:'p2_data.js',
+    from:'全断ではありません。現地系サイトは正常です。', to:'一部だけつながりません。現地系サイトは正常です。',
+    expected:'§32 検査5: expertの自然な否定形切り分けが失われている',
+  },
+  {
+    name:'S13の台詞改稿に紛れてfactを変える', file:'p2_data.js',
+    from:'SIMは認識しているが、到着時から現地回線を一度も捕捉していない',
+    to:'到着時から現地回線を一度も捕捉していない',
+    expected:'§32 検査6: 客の台詞改稿でfact.textが変わっている',
+  },
+  {
+    name:'S13の台詞改稿に紛れてsim除外を消す', file:'p2_data.js',
+    from:"out:['sim','device_side','device_net']", to:"out:['device_side','device_net']",
+    expected:'§32 検査7: 客の台詞改稿でhot/outの関係が変わっている',
+  },
+  {
+    name:'S13のl_shipからprovision除外を消して収束を壊す', file:'p2_data.js',
+    from:"fact:{ text:'申込国と異なる利用不可SIMを貸し出した自社の手配ミス', hot:['logistics'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','carrier','coverage','sim','hardware','provision'] }",
+    to:"fact:{ text:'申込国と異なる利用不可SIMを貸し出した自社の手配ミス', hot:['logistics'], out:[] }",
+    expected:'§32 検査8: verifyが13案件を真因1つへ収束させない',
+  },
+  {
+    name:'S10から配送先回答を消して進行を止める', file:'p2_data.js',
+    from:"    q_stay:{ text:'オペラ地区のホテル、704号室です。ここで待っていれば届きますか？' },\n",
+    to:'',
+    expected:'§32 検査9: progression_testが通らない',
+  },
+  {
+    name:'返金拒否台詞をtyping_budget超過へ伸ばす', file:'p2_data.js',
+    from:"refundRejectReply:'返金だけでは、この先も使えないままですよね…。お金ではなく、つながるようになるまで助けてください。'",
+    to:"refundRejectReply:'返金だけでは、この先も使えないままですよね…。お金ではなく、つながるようになるまで助けてください。状況が分からないまま終わるのは本当に困りますし、この先の予定にも必要なので、どうか最後まで確認を続けてください。'",
+    expected:'§31 検査12: 返金を拒否する台詞が4タイプ分書き分けられていない',
+  },
+  {
+    name:'未絞り込み終話から聞く・調べるの次手を消す', file:'p4_view.js',
+    from:'「聞く」「調べる」で手がかりを集める', to:'対応を続ける',
+    expected:'§33 検査1: 原因未絞り込みの終話確認が次の質問・照会を案内しない',
+  },
+  {
+    name:'絞り込み後終話から対処を伝える次手を消す', file:'p4_view.js',
+    from:'まだ対処をお伝えしていません。「伝える」→「対処を伝える」で原因と対処を案内すると、この電話を終われます。',
+    to:'まだ対処をお伝えしていません。対応を続けてください。',
+    expected:'§33 検査2: 原因絞り込み後の終話確認が対処案内を次手にしない',
+  },
+  {
+    name:'未解決切断の再入電説明を消す', file:'p4_view.js',
+    from:'このまま切ると、お客様から再入電になります。', to:'このまま電話を切ります。',
+    expected:'§33 検査3: 未解決切断で再入電になる説明が欠けている',
+  },
+  {
+    name:'終話ガイドの分岐を真因非依存と検証できない形へ変える', file:'p4_view.js',
+    from:'const causeNarrowed = hotCauses(t).size === 1;', to:'const causeNarrowed = 1 === hotCauses(t).size;',
+    expected:'§33 検査4: 終話ガイドが真因ではなく現在の絞り込み状態で分岐しない',
+  },
+  {
+    name:'前提不足の理由専用クラスを外す', file:'p4_view.js',
+    from:"' remedy-block-reason'", to:"' ordinary-block-reason'",
+    expected:'§33 検査5: 前提不足の対処と理由が通常説明とは違う見た目にならない',
+  },
+  {
+    name:'前提不足の従来理由文を書き換える', file:'p3_game.js',
+    from:'先に「伝える」→「やってみてもらう」を ', to:'先に操作を ',
+    expected:'§33 検査6: 前提不足の理由文そのものが変わっている',
+  },
+  {
+    name:'苛立ちの運ガードを同値だが契約外の形へ変える', file:'p3_game.js',
+    from:'if (!expectedOutcome) delta = 0;', to:'if (expectedOutcome !== true) delta = 0;',
+    expected:'裏目の苛立ち増減が0にならない',
+  },
+  {
+    name:'S7最適対処から滞在期間確認を消す', file:'p2_data.js',
+    from:'手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する', to:'手配の誤りをお詫びし、滞在先へ代替機を発送する',
+    expected:'§34 検査1: S7最適対処が謝罪・滞在確認・代替機発送ではない',
+  },
+  {
+    name:'S7次善対処から返金を消す', file:'p2_data.js',
+    from:"{ id:'r_coverage_refund', label:'手配の誤りをお詫びし、返金する'", to:"{ id:'r_coverage_refund', label:'手配の誤りをお詫びする'",
+    expected:'§34 検査2: S7次善対処が謝罪・返金ではない',
+  },
+  {
+    name:'S7両対処の会社非明示を弱める', file:'p2_data.js',
+    from:'手配の誤りをお詫びし', to:'ご不便をお詫びし', all:true,
+    expected:'§30 検査5: 最適対処が謝罪と代替機発送を明記しない',
+  },
+  {
+    name:'廃止したr_city_onlyを別選択肢として戻す', file:'p2_data.js',
+    from:"{ id:'r_swap_same'", to:"{ id:'r_city_only'",
+    expected:'§34 検査4: r_escalate_band または r_city_only が残っている',
+  },
+  {
+    name:'S7配送の長期滞在前提を外す', file:'p2_data.js',
+    from:"requiresQuestions:['q_stay','q_stay_length','q_replacement'], requiresLongStay:3, requiresConsent:true },\n    { id:'r_swap_same'",
+    to:"requiresQuestions:['q_stay','q_stay_length','q_replacement'], requiresConsent:true },\n    { id:'r_swap_same'",
+    expected:'§34 検査5: S7代替機が既存の長期滞在・同意条件を使わない',
+  },
+  {
+    name:'S7を短期滞在へ戻す', file:'p2_data.js',
+    from:"shipNeed:'next', stayDays:6, wantsReplacement:true", to:"shipNeed:'next', stayDays:2, wantsReplacement:true",
+    expected:'§32 検査9: progression_testが通らない',
+  },
+  {
+    name:'S7照会後の非難発話を消す', file:'p2_data.js',
+    from:",\n      customerReply:'申込地域では郊外利用も想定できたはずです。それに非対応の機種を御社が貸し出したのなら、これは利用者側ではなく手配側の責任ですよね。', stressDelta:35", to:'',
+    expected:'§34 検査7: S7の手配ミス判明後に客の非難発話が出ない',
+  },
+  {
+    name:'S7照会後の苛立ち増加をゼロにする', file:'p2_data.js',
+    from:'stressDelta:35', to:'stressDelta:0',
+    expected:'§34 検査8: S7の非難発話で苛立ちが上がらない',
+  },
+  {
+    name:'S7のexpert非難を感情的な罵声へ変える', file:'p2_data.js',
+    from:'申込地域では郊外利用も想定できたはずです。それに非対応の機種を御社が貸し出したのなら、これは利用者側ではなく手配側の責任ですよね。', to:'ふざけないでください！！ありえない対応です！！',
+    expected:'§34 検査9: S7の非難が事実を並べて責任を問うexpert調ではない',
+  },
+  {
+    name:'S7を市街地でも使えない症状へ変える', file:'p2_data.js',
+    from:'市街地では正常でしたが、郊外へ移動後は完全に圏外です。', to:'市街地でも郊外でも一度もつながりません。',
+    expected:'§34 検査10: S7の部分利用可とS13の初回から利用不可を書き分けていない',
+  },
+  {
+    name:'S7の真因をlogisticsへ混同する', file:'p2_data.js',
+    from:"trueCause:'coverage', best:'r_coverage_replacement'", to:"trueCause:'logistics', best:'r_coverage_replacement'",
+    expected:'§32 検査8: verifyが13案件を真因1つへ収束させない',
+  },
+  {
+    name:'他案件の回線エスカレーションをresolveへ変える', file:'p2_data.js',
+    from:"{ id:'r_escalate_line', label:'回線障害の疑いとして技術部門へエスカレーションする', sub:'枠を1つ消費。確実だが自己解決にはならない', kind:'escalate' }",
+    to:"{ id:'r_escalate_line', label:'回線障害の疑いとして技術部門へエスカレーションする', sub:'枠を1つ消費。確実だが自己解決にはならない', kind:'resolve' }",
+    expected:'§34 検査12: 他案件のエスカレーション設計が変わっている',
+  },
+  {
+    name:'S7照会からprovision除外を消して収束を壊す', file:'p2_data.js',
+    from:"hot:['coverage'], out:['sim','carrier','provision'] },\n      customerReply", to:"hot:['coverage'], out:['coverage','sim','carrier','provision'] },\n      customerReply",
+    expected:'§32 検査8: verifyが13案件を真因1つへ収束させない',
+  },
+  {
+    name:'S7から配送同意回答を消して正解経路を止める', file:'p2_data.js',
+    from:"    q_replacement:{ text:'はい、郊外でも使える対応機を同じホテルへ送ってください。受け取ります。',\n      fact:{ text:'本人が同じホテルへの対応機配送を希望している', hot:['coverage'] } },\n", to:'',
+    expected:'§32 検査9: progression_testが通らない',
+  },
+  {
+    name:'S1からdeviceInHandフラグを消す', file:'p2_data.js',
+    from:"  deviceInHand:true,\n  contractId:{ minutes:2, text:'予約番号", to:"  contractId:{ minutes:2, text:'予約番号",
+    expected:'§35 検査1: deviceInHandの明示フラグではなくdevice表示文字列で判定している',
+  },
+  {
+    name:'S9を機器所持済みにする', file:'p2_data.js',
+    from:"id:'S9', arrive:50, name:'石橋 玲', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',\n  deviceInHand:false",
+    to:"id:'S9', arrive:50, name:'石橋 玲', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',\n  deviceInHand:true",
+    expected:'§35 検査2: S9がdeviceInHand falseではない',
+  },
+  {
+    name:'q_lampから機器必須印を外す', file:'p2_data.js',
+    from:"{ id:'q_lamp', label:'本体の画面表示とアンテナの状態を教えてください', needsDevice:true", to:"{ id:'q_lamp', label:'本体の画面表示とアンテナの状態を教えてください'",
+    expected:'§35 検査3: 機器未所持のS9に本体表示・SSID・電池質問が出る',
+  },
+  {
+    name:'再起動から機器必須印を外す', file:'p2_data.js',
+    from:"wait:'再起動をお願いしました。立ち上がるまで少しかかります。', needsDevice:true", to:"wait:'再起動をお願いしました。立ち上がるまで少しかかります。'",
+    expected:'§35 検査4: 機器未所持のS9に機器操作が出る',
+  },
+  {
+    name:'q_replacementへ直らない場合を戻す', file:'p2_data.js',
+    from:"label:'代替機の配送をご希望ですか'", to:"label:'直らない場合、代替機の配送をご希望ですか'",
+    expected:'§35 検査5: q_replacementに「直らない場合」が残っている',
+  },
+  {
+    name:'機器なしでも見えるq_whenへ再起動前提を入れる', file:'p2_data.js',
+    from:'いつ、どのような状況で気づかれましたか？', to:'再起動しても直らないと気づいたのはいつですか？',
+    expected:'§35 検査6: 機器なし案件に見える質問が特定症状を前提にしている',
+  },
+  {
+    name:'S9へ成立しないq_lamp回答を戻す', file:'p2_data.js',
+    from:"    q_when:{ text:'予約は20時。到着したら無人。いま22時半。タクシーを待たせてます。'",
+    to:"    q_lamp:{ text:'機器は未受取なので画面は見られません。' },\n    q_when:{ text:'予約は20時。到着したら無人。いま22時半。タクシーを待たせてます。'",
+    expected:'§35 検査7: S9に成立しないq_lampまたはq_other_device回答が残っている',
+  },
+  {
+    name:'S9の成立するq_whenから物流手がかりを外す', file:'p2_data.js',
+    from:"fact:{ text:'受取予約は20時。現地時刻はすでに22時半', hot:['logistics'] }",
+    to:"fact:{ text:'受取予約は20時。現地時刻はすでに22時半' }",
+    expected:'§35 検査8: S9から削った無効回答に代わる物流の手がかりが成立する質問にない',
+  },
+  {
+    name:'機器所持案件から全操作を隠す', file:'p4_view.js',
+    from:'TESTS.filter(test => !test.needsDevice || t.s.deviceInHand)', to:'TESTS.filter(test => !test.needsDevice && t.s.deviceInHand)',
+    expected:'§35 検査9: 機器所持案件の質問・操作一覧が従来どおりではない',
+  },
+  {
+    name:'S9貸出記録からprovision除外を消す', file:'p2_data.js',
+    from:"out:['sim','hardware','carrier','coverage','provision','fup','devices','geo_block','device_side','device_net','location','power','heavy'] } },",
+    to:"out:['logistics','sim','hardware','carrier','coverage','provision','fup','devices','geo_block','device_side','device_net','location','power','heavy'] } },",
+    expected:'§32 検査8: verifyが13案件を真因1つへ収束させない',
+  },
+  {
+    name:'S10から配送先回答を消して進行を止める（§35）', file:'p2_data.js',
+    from:"    q_stay:{ text:'オペラ地区のホテル、704号室です。ここで待っていれば届きますか？' },\n", to:'',
+    expected:'§32 検査9: progression_testが通らない',
+  },
+  {
+    name:'「伝える」の表示番号を2開始にする', file:'p4_view.js',
+    from:"' + (index + 1) + '</span>'",
+    to:"' + (index + 2) + '</span>'",
+    expected:'§35 追加検査: 「伝える」の表示項目が1からの連番ではない',
+  },
+  {
+    name:'復旧結果を客発話からnoteへ戻す', file:'p3_game.js',
+    from:'pushCustomerLine(t, def.solves ? TYPES[t.s.type].solvedReply : def.text);',
+    to:"pushCustomerLine(t, def.text);\n    if (def.solves) t.transcript.push({ who:'note', text:'この操作で症状が解消しました。原因を確定して案内できます。' });",
+    expected:'§36 検査1: def.solvesの復旧がnoteのままで通話画面に出ない',
+  },
+  {
+    name:'復旧発話を客タイプから切り離す', file:'p3_game.js',
+    from:'def.solves ? TYPES[t.s.type].solvedReply : def.text', to:"def.solves ? '症状が解消しました。' : def.text",
+    expected:'§36 検査1: def.solvesの復旧がnoteのままで通話画面に出ない',
+  },
+  {
+    name:'noviceとanxiousの復旧発話を同じにする', file:'p2_data.js',
+    from:"solvedReply:'まあ、つながりました！ 何が起きていたのかも教えてください。'",
+    to:"solvedReply:'あ、つながりました…！ 何が原因だったのかも教えていただけますか？'",
+    expected:'§36 検査3: 復旧発話が4タイプ分書き分けられていない',
+  },
+  {
+    name:'復旧済み終話ガイドを通常の絞り込み案内へ戻す', file:'p4_view.js',
+    from:"const next = t.symptomResolved\n    ? '症状は復旧しました。「伝える」→「対処を伝える」で原因をご説明すると、この電話を終われます。'\n    : causeNarrowed",
+    to:'const next = causeNarrowed',
+    expected:'§36 検査4: 復旧済み未案内の終話確認に第三の次手が出ない',
+  },
+  {
+    name:'r_sim_cleanを手順記録ラベルへ戻す', file:'p2_data.js',
+    from:'接点の一時的な接触不良だったことをご説明し、そのままご利用いただく',
+    to:'2回目のSIM抜き差しと接点清掃で認識が戻ったことを確認し、利用を再開していただく',
+    expected:'§36 検査5: r_sim_cleanが手順記録のままで原因説明になっていない',
+  },
+  {
+    name:'r_topupを説明のない手順ラベルへ戻す', file:'p2_data.js',
+    from:'容量超過だったことと追加購入の選択肢をご説明し、希望時はその場で適用する',
+    to:'追加データをその場で購入して適用する',
+    expected:'§36 検査6: 他のresolve対処に手順記録のままのラベルが残っている',
+  },
+  {
+    name:'r_sim_cleanのkindをescalateへ変える', file:'p2_data.js',
+    from:"kind:'resolve', needsTest:'t_simout', needsTestCount:2 },\n    { id:'r_escalate_swap'",
+    to:"kind:'escalate', needsTest:'t_simout', needsTestCount:2 },\n    { id:'r_escalate_swap'",
+    expected:'§36 検査7: resolve対処のID・kind・needsTestが文言修正に紛れて変わっている',
+  },
+  {
+    name:'謝罪だけで評価結果を確定する', file:'p3_game.js',
+    from:'const previous = t.apologies.get(id) || 0;', to:"t.pendingResult = {kind:'closed'};\n  const previous = t.apologies.get(id) || 0;",
+    expected:'§36 検査8: 謝罪だけで終話でき、原因案内が不要になっている',
+  },
+  {
+    name:'S7配送前提回答を消してprogressionを壊す（§36）', file:'p2_data.js',
+    from:"    q_stay_length:{ text:'今日を含めてあと6泊です。郊外へ出る予定が続くので、対応機なら受け取る意味があります。',\n      fact:{ text:'残り6泊、同じホテルに滞在するため代替機を使える期間が十分にある', hot:['coverage'] } },\n", to:'',
+    expected:'§32 検査9: progression_testが通らない',
   },
 ];
 

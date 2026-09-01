@@ -508,7 +508,7 @@ function renderActions(t){
     return '<div class="actions">' + renderHangupButton('お客様との会話が終わりました。終話してください。', pendingResultButtonLabel(t.pendingResult)) + '</div>';
   }
   if (t.pendingInterruption) return '<div class="actions">' + renderHangupButton('こちらから通話を切ります。', 'オフィスへ戻る') + '</div>';
-  if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation() + '</div>';
+  if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation(t) + '</div>';
   if (state.ui.tab === 'refund_confirm') return '<div class="actions">' + renderRefundConfirmation() + '</div>';
 
   if (!t.greeted && !customerHasSpoken(t)) return '<div class="actions"><div class="command-box"><div class="command-title"><span>CALL</span><b>まず名乗ってください</b></div><button class="command-choice" data-greet="1"><span class="command-no">1</span><span class="command-copy"><b>名乗る</b><small>お電話ありがとうございます。グローバルデスクでございます</small></span></button></div>' + renderHangupButton() + '</div>';
@@ -550,12 +550,22 @@ function renderHangupButton(note, label = '電話を切る'){
   return '<div class="hangup-box">' + (note ? '<p>' + esc(note) + '</p>' : '') + '<button class="hangup-button" data-hangup="1">' + esc(label) + '</button></div>';
 }
 
-function renderHangupConfirmation(){
-  return '<div class="hangup-confirm"><b>まだ対応が終わっていません。このまま切りますか？</b><div><button class="hangup-button" data-hangup-confirm="1">電話を切る</button><button class="command-back" data-hangup-cancel="1">対応に戻る</button></div></div>';
+function unresolvedHangupGuide(t){
+  const causeNarrowed = hotCauses(t).size === 1;
+  const next = t.symptomResolved
+    ? '症状は復旧しました。「伝える」→「対処を伝える」で原因をご説明すると、この電話を終われます。'
+    : causeNarrowed
+    ? 'まだ対処をお伝えしていません。「伝える」→「対処を伝える」で原因と対処を案内すると、この電話を終われます。'
+    : 'まだ原因を絞れていません。「聞く」「調べる」で手がかりを集めると、対処を案内できるようになります。';
+  return '<b>' + next + '</b><p>このまま切ると、お客様から再入電になります。</p>';
+}
+
+function renderHangupConfirmation(t){
+  return '<div class="hangup-confirm">' + unresolvedHangupGuide(t) + '<div><button class="hangup-button" data-hangup-confirm="1">電話を切る</button><button class="command-back" data-hangup-cancel="1">対応に戻る</button></div></div>';
 }
 
 function renderRefundConfirmation(){
-  return '<div class="hangup-confirm"><b>¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + 'を返金します。この電話はこれで終わります。よろしいですか？</b><div><button class="hangup-button" data-refund-confirm="1">返金して終わる</button><button class="command-back" data-refund-cancel="1">対応に戻る</button></div></div>';
+  return '<div class="hangup-confirm"><b>¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + 'の返金をご提案します。受け入れていただければ、この電話は終わります。よろしいですか？</b><div><button class="hangup-button" data-refund-confirm="1">返金を提案する</button><button class="command-back" data-refund-cancel="1">対応に戻る</button></div></div>';
 }
 
 function renderCommandMenu(t, actionClass){
@@ -571,28 +581,43 @@ function renderCommandMenu(t, actionClass){
 }
 
 function renderAskGroups(t){
-  return '<div class="opts ask-groups">' + QUESTION_GROUPS.map(group => {
-    const complete = group.questionIds.every(id => t.asked.has(id));
+  const groups = QUESTION_GROUPS.filter(group => group.questionIds.some(id => {
+    const question = QUESTIONS.find(item => item.id === id);
+    return question && (!question.needsDevice || t.s.deviceInHand);
+  }));
+  return '<div class="opts ask-groups">' + groups.map(group => {
+    const availableIds = group.questionIds.filter(id => {
+      const question = QUESTIONS.find(item => item.id === id);
+      return question && (!question.needsDevice || t.s.deviceInHand);
+    });
+    const complete = availableIds.every(id => t.asked.has(id));
     return '<button class="command-choice ask-group-choice" data-ask-group="' + group.id + '" ' + (complete ? 'disabled' : '') + '><span class="command-copy"><b>' + esc(group.label) + '</b></span></button>';
   }).join('') + '</div>';
 }
 
 function renderAskOptions(t, group){
-  const questions = group.questionIds.map(id => QUESTIONS.find(q => q.id === id)).filter(Boolean);
+  const questions = group.questionIds.map(id => QUESTIONS.find(q => q.id === id)).filter(q => q && (!q.needsDevice || t.s.deviceInHand));
   return '<div class="opts">' + questions.map(q =>
     '<button class="opt" data-ask="' + q.id + '"><span class="opt-label">' + esc(q.label) + ((t.askCounts.get(q.id) || 0) ? '<span class="opt-sub">確認済み ' + t.askCounts.get(q.id) + '回</span>' : '') + '</span><span class="cost">' + (q.id === 'q_contract' && !t.asked.has(q.id) ? t.s.contractId.minutes : 1) + '分</span></button>'
   ).join('') + (group.id === 'customer' ? renderSmalltalkChoices(t, 'ask') : '') + '</div><p class="hint-bar">同じ質問もできますが、時間を使い、回答済みならお客様のストレスが大きく増えます。</p>';
 }
 
 function renderTellOptions(t){
-  return '<div class="opts">' +
-    '<button class="opt" data-tell="close"><span class="command-no">1</span><span class="opt-label">対処を伝える<span class="opt-sub">原因を見立てて、対処をご案内します。</span></span></button>' +
-    '<button class="opt" data-tell="try"><span class="command-no">2</span><span class="opt-label">やってみてもらう<span class="opt-sub">機器や端末で試していただくことを選びます。</span></span></button>' +
-    '<button class="opt" data-refund="refund"><span class="command-no">3</span><span class="opt-label">返金をご案内する</span><span class="cost">¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + '</span></button>' +
-    '<button class="opt" data-tell="soothe"><span class="command-no">4</span><span class="opt-label">気持ちを落ち着ける</span></button>' +
-    '<button class="opt" data-tell="apologize"><span class="command-no">5</span><span class="opt-label">お詫びする</span></button>' +
-    '<button class="opt" data-tell="smalltalk"><span class="command-no">6</span><span class="opt-label">一言かける</span></button>' +
-    '</div>';
+  const entries = [
+    { attrs:'data-tell="close"', body:'<span class="opt-label">対処を伝える<span class="opt-sub">原因を見立てて、対処をご案内します。</span></span>' },
+    t.s.deviceInHand
+      ? { attrs:'data-tell="try"', body:'<span class="opt-label">やってみてもらう<span class="opt-sub">機器や端末で試していただくことを選びます。</span></span>' }
+      : null,
+    t.refundProposalRejected
+      ? null
+      : { attrs:'data-refund="refund"', body:'<span class="opt-label">返金をご案内する</span><span class="cost">¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + '</span>' },
+    { attrs:'data-tell="soothe"', body:'<span class="opt-label">気持ちを落ち着ける</span>' },
+    { attrs:'data-tell="apologize"', body:'<span class="opt-label">お詫びする</span>' },
+    { attrs:'data-tell="smalltalk"', body:'<span class="opt-label">一言かける</span>' },
+  ].filter(Boolean);
+  return '<div class="opts">' + entries.map((entry, index) =>
+    '<button class="opt" ' + entry.attrs + '><span class="command-no">' + (index + 1) + '</span>' + entry.body + '</button>'
+  ).join('') + '</div>';
 }
 
 function availableSmalltalkTopics(t){
@@ -642,16 +667,18 @@ function simCleaningRecommended(t){
 
 function renderTestOptions(t){
   const recommendCleaning = simCleaningRecommended(t);
-  const safe = TESTS.map(test => {
+  const availableTests = TESTS.filter(test => !test.needsDevice || t.s.deviceInHand);
+  const availableRisky = RISKY.filter(test => !test.needsDevice || t.s.deviceInHand);
+  const safe = availableTests.map(test => {
     const recommended = test.id === 't_simout' && recommendCleaning;
     const count = t.testCounts.get(test.id) || 0;
     return '<button class="opt ' + (recommended ? 'recommended' : '') + '" data-test="' + test.id + '">' +
       '<span class="opt-label">' + (recommended ? '● 推奨：' : '') + esc(test.label) + (test.sub ? '<span class="opt-sub">' + esc(test.sub) + '</span>' : '') + (count ? '<span class="opt-sub">実施済み ' + count + '回</span>' : '') + '</span><span class="cost">' + test.turns + '分</span></button>';
   }).join('');
-  const risky = RISKY.map(test =>
+  const risky = availableRisky.map(test =>
     '<button class="opt danger" data-test="' + test.id + '"><span class="opt-label">' + esc(test.label) + ((t.testCounts.get(test.id) || 0) ? '<span class="opt-sub">実施済み ' + t.testCounts.get(test.id) + '回</span>' : '') + '</span><span class="cost">' + test.turns + '分</span></button>'
   ).join('');
-  return '<div class="opts">' + safe + '<p class="hint-bar" style="margin:6px 0 2px">— 以下は本体や端末の設定を壊しうる操作です —</p>' + risky + '</div>' +
+  return '<div class="opts">' + safe + (availableRisky.length ? '<p class="hint-bar" style="margin:6px 0 2px">— 以下は本体や端末の設定を壊しうる操作です —</p>' + risky : '') + '</div>' +
     '<p class="hint-bar">操作が終わるまで通話をつないだまま待ち、所要時間は自動で進みます。</p>';
 }
 function renderSootheOptions(t){
@@ -763,8 +790,8 @@ function renderCloseFlow(t){
         const block = remedyBlockReason(t, r);
         const dis = Boolean(block);
         const sub = block || r.sub || '';
-        return '<button class="opt ' + (r.kind === 'escalate' ? 'esc' : '') + '" data-remedy="' + r.id + '" ' + (dis ? 'disabled' : '') + '>' +
-          '<span class="opt-label">' + esc(r.label) + '<span class="opt-sub">' + esc(sub) + '</span></span>' +
+        return '<button class="opt ' + (r.kind === 'escalate' ? 'esc ' : '') + (dis ? 'has-block-reason' : '') + '" data-remedy="' + r.id + '" ' + (dis ? 'disabled' : '') + '>' +
+          '<span class="opt-label">' + esc(r.label) + '<span class="opt-sub' + (dis ? ' remedy-block-reason' : '') + '">' + (dis ? '<b>前提不足</b>' : '') + esc(sub) + '</span></span>' +
           '<span class="cost">' + (r.cost ? '¥' + r.cost.toLocaleString('ja-JP') : '—') + '</span></button>';
       }).join('') + '</div>' +
       '<p class="hint-bar">診断: ' + esc(cause.label) + '</p>';

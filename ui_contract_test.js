@@ -1,6 +1,7 @@
 /* UIとSIM清掃の、見た目に依存しない回帰契約。 */
 const assert = require('assert');
 const fs = require('fs');
+const { spawnSync } = require('child_process');
 const { readGameSource, functionSource: extractFunctionSource, builtIndexSource } = require('./test_helpers');
 const { SOURCE_PARTS } = require('./source_manifest');
 
@@ -216,8 +217,8 @@ assert(sootheSource.includes('state.ui = defaultUi(); render();'), 'なだめた
 
 const askOptionsSource = functionSource('renderAskOptions');
 const askGroupsSource = functionSource('renderAskGroups');
-assert(askGroupsSource.includes('QUESTION_GROUPS.map'), '「聞く」が4区分を表示しない');
-assert(askGroupsSource.includes('data-ask-group=') && askGroupsSource.includes('group.questionIds.every'), '質問区分の選択または完了時disabledがない');
+assert(askGroupsSource.includes('QUESTION_GROUPS.filter') && askGroupsSource.includes('groups.map'), '「聞く」が利用可能な4区分を表示しない');
+assert(askGroupsSource.includes('data-ask-group=') && askGroupsSource.includes('availableIds.every'), '質問区分の選択または完了時disabledがない');
 assert(!/残り|questionIds\.length/.test(askGroupsSource), '質問区分に件数を表示している');
 assert(askOptionsSource.includes('group.questionIds.map') && !askOptionsSource.includes('QUESTIONS.map'), '「聞く」で区分を挟まず15問を直接表示する');
 assert(!askOptionsSource.includes("t.asked.has(q.id) ? 'disabled'"), '確認済みの質問が再質問できない');
@@ -297,7 +298,7 @@ const tellSource = functionSource('renderTellOptions');
 ['data-tell="close"','data-tell="try"','data-tell="soothe"','data-tell="apologize"'].forEach(marker => assert(tellSource.includes(marker), '「伝える」の項目から ' + marker + ' が欠けている'));
 assert(tellSource.includes('data-refund="refund"'), '「伝える」にrefund項目がない');
 const renderTellOptions = new Function('REFUND_POLICY', tellSource + '\nreturn renderTellOptions;')(REFUND_POLICY);
-const tellHtml = renderTellOptions();
+const tellHtml = renderTellOptions({refundProposalRejected:false,s:{deviceInHand:true}});
 assert(!/hardware|provision|logistics|carrier|coverage|fup|devices|heavy|device_side|device_net|power|location|geo_block|sim|会社側|顧客側|中立/.test(tellHtml), '返金の責任所在一覧が画面・ログ・ラベルに漏れる');
 const tellEntries = [...tellHtml.matchAll(/data-(tell|refund)="([^"]+)"[\s\S]*?<span class="opt-label">([^<]+)(?:<span class="opt-sub">([^<]+)<\/span>)?/g)]
   .map(match => ({ id:match[2], label:match[3], note:match[4] || '' }));
@@ -496,7 +497,7 @@ assert(typeNames.every(type => APOLOGY_REPLIES[type] && ['brief','accepted','rep
 const customerDialogue = [];
 typeNames.forEach(type => {
   dialogueStages.forEach(stage => customerDialogue.push(...TYPES[type][stage]));
-  customerDialogue.push(TYPES[type].sootheReply, TYPES[type].sootheMissReply, TYPES[type].sootheRepeatReply);
+  customerDialogue.push(TYPES[type].sootheReply, TYPES[type].sootheMissReply, TYPES[type].sootheRepeatReply, TYPES[type].solvedReply, TYPES[type].refundRejectReply);
   customerDialogue.push(...Object.values(APOLOGY_REPLIES[type]));
 });
 SCENARIOS.forEach(scenario => {
@@ -527,11 +528,11 @@ assert.deepEqual(typeNames.map(type => [type,TYPES[type].stressStart,TYPES[type]
 assert.equal(LUCK_RATE, 0.9, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
 assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
 
-// §19: 返金は確認後に2,400円を払い、その場で終わらせる単発の賭け。
+// §19／§31: 返金は確認後に提案し、受入後の満足判定とは別に、まれな拒否を持つ。
 assert.equal(REFUND_POLICY.amount, 2400, '返金額が確定値2,400円ではない');
-assert.deepEqual(REFUND_POLICY.company, {causes:['hardware','provision','logistics','carrier','coverage'],satisfactionRate:0.5}, '会社側の返金満足率が50%ではない');
-assert.deepEqual(REFUND_POLICY.customer, {causes:['fup','devices','heavy','device_side','device_net','power'],satisfactionRate:0.1}, '顧客側の返金満足率が10%ではない');
-assert.deepEqual(REFUND_POLICY.neutral, {causes:['location','geo_block','sim'],satisfactionRate:0.25}, '中立の返金満足率が25%ではない');
+assert.deepEqual(REFUND_POLICY.company, {causes:['hardware','provision','logistics','carrier','coverage'],rejectionRate:0.05,satisfactionRate:0.5}, '会社側の返金拒否率5%／満足率50%が違う');
+assert.deepEqual(REFUND_POLICY.customer, {causes:['fup','devices','heavy','device_side','device_net','power'],rejectionRate:0.2,satisfactionRate:0.1}, '顧客側の返金拒否率20%／満足率10%が違う');
+assert.deepEqual(REFUND_POLICY.neutral, {causes:['location','geo_block','sim'],rejectionRate:0.1,satisfactionRate:0.25}, '中立の返金拒否率10%／満足率25%が違う');
 const refundCauseIds = ['company','customer','neutral'].flatMap(group => REFUND_POLICY[group].causes).sort();
 assert.deepEqual(refundCauseIds, CAUSES.map(cause => cause.id).sort(), '返金の責任所在で14原因に欠落・重複がある');
 const refundResponsibilitySource = functionSource('refundResponsibility');
@@ -546,36 +547,64 @@ assert.deepEqual([
 ], [true,false,true,false,true,false], '返金の満足確率が会社50%／中立25%／顧客10%ではない');
 assert.deepEqual(['hardware','sim','fup'].map(cause => makeRefundSatisfied(1, () => 0)(cause)), [true,false,false], 'luckRate 1.0で会社側だけが返金に満足する決定論へ戻らない');
 
-function runRefund(satisfied){
-  const ticket = {s:{trueCause:'hardware',type:'expert'},state:'open',transcript:[]};
+const refundProposalRejectedSource = functionSource('refundProposalRejected');
+const makeRefundProposalRejected = (luckRate, random) => new Function('REFUND_POLICY','GAME_FLAGS','state','refundResponsibility', refundProposalRejectedSource + '\nreturn refundProposalRejected;')(REFUND_POLICY,{luckRate},{random},refundResponsibility);
+assert.deepEqual([
+  makeRefundProposalRejected(.9, () => .0499)('hardware'), makeRefundProposalRejected(.9, () => .05)('hardware'),
+  makeRefundProposalRejected(.9, () => .0999)('sim'), makeRefundProposalRejected(.9, () => .1)('sim'),
+  makeRefundProposalRejected(.9, () => .1999)('fup'), makeRefundProposalRejected(.9, () => .2)('fup'),
+], [true,false,true,false,true,false], '§31 検査5: 返金拒否率が会社5%／中立10%／顧客20%ではない');
+assert.deepEqual(['hardware','sim','fup'].map(cause => makeRefundProposalRejected(1, () => 0)(cause)), [false,false,false], '§31 検査7: luckRate 1.0でも返金拒否が起きる');
+
+function runRefund({rejected=false,satisfied=false,type='expert'}={}){
+  const ticket = {s:{trueCause:'hardware',type},state:'open',transcript:[],callMinutes:0,holdMinutes:0,stress:10,maxStress:10,refundProposalRejected:false};
   const refundState = {focus:ticket,cost:0,ui:{tab:'refund_confirm'}};
   const deps = {
-    state:refundState, REFUND_POLICY, refundSatisfied:() => satisfied,
+    state:refundState, REFUND_POLICY, TYPES, refundProposalRejected:() => rejected, refundSatisfied:() => satisfied,
     pushCustomerLine:(t,text) => t.transcript.push({who:'cust',text}), farewellLine:() => '通常の別れの言葉',
     pushFlowLines:(t,lines) => lines.forEach(line => t.transcript.push({who:line.who,text:line.text})),
+    spendOnCall:(t,minutes) => { t.callMinutes += minutes; return true; },
+    addStress:(t,amount) => { t.stress += amount; t.maxStress = Math.max(t.maxStress,t.stress); return true; },
     CALL_FLOW_LINES, defaultUi:() => ({}), render:() => {},
   };
-  new Function(...Object.keys(deps), functionSource('doRefund') + '\nreturn doRefund;')(...Object.values(deps))();
-  return {ticket,state:refundState,result:ticket.pendingResult};
+  const refund = new Function(...Object.keys(deps), functionSource('doRefund') + '\nreturn doRefund;')(...Object.values(deps));
+  refund();
+  return {ticket,state:refundState,result:ticket.pendingResult,refund};
 }
-const satisfiedRefund = runRefund(true);
-const dissatisfiedRefund = runRefund(false);
+const satisfiedRefund = runRefund({satisfied:true});
+const dissatisfiedRefund = runRefund({satisfied:false});
+const rejectedRefund = runRefund({rejected:true,type:'anxious'});
+assert.deepEqual([Boolean(satisfiedRefund.result),Boolean(dissatisfiedRefund.result),Boolean(rejectedRefund.result)],[true,true,false], '§31 検査1: 返金が満足受入／不満受入／拒否の3通りにならない');
 assert.equal(satisfiedRefund.ticket.state, 'open', '返金の最後の発話前に案件がclosedになる');
 assert.deepEqual([satisfiedRefund.result.kind,satisfiedRefund.result.satisfied,satisfiedRefund.result.csat], ['refunded',true,3.0], '満足した返金のkind／satisfied／CSATが違う');
 assert.deepEqual([dissatisfiedRefund.result.kind,dissatisfiedRefund.result.satisfied,dissatisfiedRefund.result.csat], ['refunded',false,1.0], '不満足な返金のkind／satisfied／CSATが違う');
 assert.equal(satisfiedRefund.state.cost, 2400, '満足した返金で2,400円が加算されない');
 assert.equal(dissatisfiedRefund.state.cost, 2400, '不満足な返金で2,400円が加算されない');
+assert.equal(rejectedRefund.state.cost, 0, '§31 検査3: 拒否された返金提案で費用が加算される');
+assert(rejectedRefund.ticket.state === 'open' && !rejectedRefund.ticket.pendingResult, '§31 検査2: 返金拒否で案件がクローズする');
+assert(rejectedRefund.ticket.callMinutes === 2 && rejectedRefund.ticket.stress > 10, '§31 検査4: 返金拒否で2分と苛立ち増を消費しない');
 assert(satisfiedRefund.ticket.transcript.some(line => line.text === '通常の別れの言葉'), '満足した返金に通常の別れの言葉が付かない');
 assert(!dissatisfiedRefund.ticket.transcript.some(line => line.text === '通常の別れの言葉'), '不満足な返金に別れの言葉が付く');
 assert(satisfiedRefund.result.csat < 4, '返金に満足したCSATが正しく解決した4点台へ届く');
 const refundComplaintArrival = new Function('rollLuck', functionSource('complaintEmailArrives') + '\nreturn complaintEmailArrives;')(() => true);
 assert.equal(refundComplaintArrival({kind:'refunded',csat:1.0}), true, '不満足な返金が後日の苦情メール対象に入らない');
 const refundConfirmSource = functionSource('renderRefundConfirmation');
-assert(refundConfirmSource.includes('REFUND_POLICY.amount.toLocaleString') && refundConfirmSource.includes('この電話はこれで終わります') && refundConfirmSource.includes('data-refund-confirm'), '返金確認に金額・終話の明示・確認ボタンが揃っていない');
+assert(refundConfirmSource.includes('REFUND_POLICY.amount.toLocaleString') && refundConfirmSource.includes('返金をご提案します') && refundConfirmSource.includes('受け入れていただければ') && !refundConfirmSource.includes('この電話はこれで終わります。') && refundConfirmSource.includes('data-refund-confirm'), '§31 検査9: 返金確認が提案と条件つき終話を伝えない');
 const refundEventSource = functionSource('handleConversationAction');
 assert(refundEventSource.includes("defaultUi('refund_confirm')") && refundEventSource.includes('if (d.refundConfirm){ doRefund()'), '返金が確認を挟まず実行される');
 assert(!/\brefunds\b|refundCsat|refundResult|refundEffect/.test(gameLogicSource), '旧返金の回数管理・CSAT逓減がコードに残っている');
 assert(functionSource('doRefund').includes("kind:'refunded'") && !functionSource('doRefund').includes("state = 'waiting'") && !functionSource('doRefund').includes('redial'), '返金クローズした案件が再入電する');
+const rejectedTranscriptCount = rejectedRefund.ticket.transcript.length;
+rejectedRefund.state.ui = {tab:'refund_confirm'};
+rejectedRefund.refund();
+assert(rejectedRefund.ticket.transcript.length === rejectedTranscriptCount && functionSource('renderTellOptions').includes('t.refundProposalRejected') && functionSource('renderTellOptions').includes('data-refund="refund"'), '§31 検査8: 拒否後に返金を再提案できる');
+assert(!/pendingResult|csat|result\s*=/.test(functionSource('doRefund').slice(functionSource('doRefund').indexOf('if (refundProposalRejected'),functionSource('doRefund').indexOf('const satisfied'))), '§31 検査11: 返金拒否そのものが評価結果を確定する');
+assert.deepEqual(typeNames.map(type => TYPES[type].refundRejectReply),[
+  '返金だけでは、この先も使えないままですよね…。お金ではなく、つながるようになるまで助けてください。',
+  '返金のお話より、使えるようにしていただきたいんです。まだ何をすればいいか教えてください。',
+  '返金は要らない。今つながる方法を出して。対応を続けてください。',
+  '返金提案は受けません。利用可能な状態への復旧を優先し、切り分けを続けてください。',
+], '§31 検査12: 返金を拒否する台詞が4タイプ分書き分けられていない');
 const outageRefund = REMEDIES.carrier.find(remedy => remedy.id === 'r_outage_explain');
 assert(outageRefund && outageRefund.cost === 2400 && outageRefund.needsOutage === true && outageRefund.kind === 'resolve', '広域障害の正規対処 r_outage_explain が損なわれている');
 assert(game.includes('[data-refund]') && refundEventSource.includes('d.refund'), '返金ボタンが実行処理へ接続されていない');
@@ -712,7 +741,7 @@ const pendingBranch = actionsSource.slice(actionsSource.indexOf('if (t.pendingRe
 assert(pendingBranch.includes('pendingTypedLine(t)') && pendingBranch.includes('pendingResultButtonLabel(t.pendingResult)'), '解決後に顧客発話待ちと経路別終話ボタンだけが残らない');
 assert(!/data-command|data-greet|renderCommandMenu|renderCallback/.test(pendingBranch), '解決後も別の操作ができる');
 const hangupConfirmSource = functionSource('renderHangupConfirmation');
-assert(hangupConfirmSource.includes('<b>まだ対応が終わっていません。このまま切りますか？</b>'), '未解決終話の確認文が完全一致しない');
+assert(hangupConfirmSource.includes('unresolvedHangupGuide(t)'), '未解決終話の確認が次の一手ガイドを表示しない');
 const routeHangup = functionSource('handleCallNavigation');
 const hangupBranch = routeHangup.slice(routeHangup.indexOf('if (d.hangup){'), routeHangup.indexOf('if (d.hangupConfirm)'));
 assert(hangupBranch.includes("defaultUi('hangup_confirm')") && !hangupBranch.includes('interruptCall('), '未解決の電話を確認なしで切れる');
@@ -1527,6 +1556,149 @@ assert(SCENARIOS.length === 13 && functionSource('careerEndingQueue').includes('
 
 // §30-6 検査12: progression_testが辿る既存前提データをS13にも揃える。
 assert(s13Best30.requiresQuestions.every(id => QUESTIONS.some(question => question.id === id) && s13Logistics30.replies[id]) && s13Logistics30.stayDays >= s13Best30.requiresLongStay && s13Logistics30.wantsReplacement === true, '§30 検査12: progression_test用の正解ルート前提が揃っていない');
+
+// §32-6: 客の口調だけを自然にし、診断情報と到達性は変えない。
+const s10Dialogue32 = SCENARIOS.find(scenario => scenario.id === 'S10');
+const s13Dialogue32 = SCENARIOS.find(scenario => scenario.id === 'S13');
+assert(!s13Dialogue32.replies.q_lamp.text.includes('SIMがないという表示ではなく') && s13Dialogue32.replies.q_lamp.text.includes('アンテナの棒が、ずっと0本'), '§32 検査1: S13 q_lampが客自身にSIM表示の鑑別をさせている');
+const s10SimSequence32 = s10Dialogue32.tests.t_simout.sequence;
+assert(!s10SimSequence32[0].text.includes('1回目') && s10SimSequence32[0].text.includes('乾いた布で拭いて、挿し直してみました') && s10SimSequence32[1].text.includes('もう一度'), '§32 検査2: SIM清掃の初回が回数を自己申告する、または従来の再試行表現がない');
+
+function scenarioCustomerUtterances32(scenario){
+  const utterances = [scenario.opening,scenario.contractId && scenario.contractId.text,scenario.rushedReply];
+  Object.values(scenario.replies || {}).forEach(reply => utterances.push(reply.text));
+  Object.values(scenario.tests || {}).forEach(test => {
+    if (test.text) utterances.push(test.text);
+    (test.sequence || []).forEach(step => utterances.push(step.text));
+  });
+  (scenario.smalltalk || []).forEach(topic => utterances.push(topic.goodReply,topic.badReply));
+  return utterances.filter(text => typeof text === 'string' && text.length);
+}
+const nonExpertUtterances32 = SCENARIOS.filter(scenario => scenario.type !== 'expert').flatMap(scenarioCustomerUtterances32);
+const unnaturalTechnicalDenial32 = /SIMがないという表示ではなく|SIMカードではなく|回線登録だけが|プロビジョニングでは|網側の(?:障害|拒否)では/;
+assert(nonExpertUtterances32.every(text => !unnaturalTechnicalDenial32.test(text)), '§32 検査3: non-expertの客が知らない技術的区別を否定形で述べている');
+assert(nonExpertUtterances32.every(text => !/(?:^|[。！？…\s])(?:1|2|一|二)回目[、,]/.test(text)), '§32 検査4: non-expertの客が自分の操作へ番号を振っている');
+const expertUtterances32 = SCENARIOS.filter(scenario => scenario.type === 'expert').flatMap(scenarioCustomerUtterances32).join('\n');
+assert(['全断ではありません','経時劣化ではありません','単純な無電波地域ではありません'].every(text => expertUtterances32.includes(text)), '§32 検査5: expertの自然な否定形切り分けが失われている');
+
+assert(s13Dialogue32.replies.q_lamp.fact.text === 'SIMは認識しているが、到着時から現地回線を一度も捕捉していない' &&
+  s10SimSequence32[0].fact.text === '1回目のSIM清掃では認識しない' &&
+  s10SimSequence32[1].fact.text === 'SIM清掃と正しい挿し直しを2回行っても認識しない。本体SIMリーダー故障と判断できる', '§32 検査6: 客の台詞改稿でfact.textが変わっている');
+assert.deepEqual({
+  s13Hot:s13Dialogue32.replies.q_lamp.fact.hot,s13Out:s13Dialogue32.replies.q_lamp.fact.out,
+  s10FirstHot:s10SimSequence32[0].fact.hot,s10SecondHot:s10SimSequence32[1].fact.hot,s10SecondOut:s10SimSequence32[1].fact.out,
+},{
+  s13Hot:['coverage','provision','logistics'],s13Out:['sim','device_side','device_net'],
+  s10FirstHot:['sim','hardware'],s10SecondHot:['hardware'],s10SecondOut:['sim','fup','devices','geo_block','heavy','device_side','device_net','location','power','carrier','coverage','provision','logistics'],
+}, '§32 検査7: 客の台詞改稿でhot/outの関係が変わっている');
+
+const verify32 = spawnSync(process.execPath,['verify.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(verify32.status,0,'§32 検査8: verifyが13案件を真因1つへ収束させない\n' + (verify32.stdout || '') + (verify32.stderr || ''));
+const progression32 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(progression32.status,0,'§32 検査9: progression_testが通らない\n' + (progression32.stdout || '') + (progression32.stderr || ''));
+const allCustomerUtterances32 = SCENARIOS.flatMap(scenarioCustomerUtterances32).concat(typeNames.flatMap(type => [TYPES[type].solvedReply,TYPES[type].refundRejectReply]));
+assert(allCustomerUtterances32.every(text => dialogueDuration(text) <= 4000), '§32 検査10: 改稿後の顧客台詞がtyping_budgetの4秒を超える');
+
+// §33-5: 未解決で切ろうとしたとき、止めるだけでなく次の一手を示す。
+const unresolvedGuide33 = new Function('hotCauses','esc', functionSource('unresolvedHangupGuide') + '\nreturn unresolvedHangupGuide;')(
+  ticket => ticket.hot, String
+);
+const notNarrowedGuide33 = unresolvedGuide33({hot:new Set(['sim','hardware'])});
+const narrowedGuide33 = unresolvedGuide33({hot:new Set(['hardware'])});
+assert(notNarrowedGuide33.includes('「聞く」「調べる」で手がかりを集める') && notNarrowedGuide33.includes('対処を案内できるようになります'), '§33 検査1: 原因未絞り込みの終話確認が次の質問・照会を案内しない');
+assert(narrowedGuide33.includes('「伝える」→「対処を伝える」') && narrowedGuide33.includes('原因と対処を案内すると、この電話を終われます'), '§33 検査2: 原因絞り込み後の終話確認が対処案内を次手にしない');
+assert([notNarrowedGuide33,narrowedGuide33].every(html => html.includes('このまま切ると、お客様から再入電になります')), '§33 検査3: 未解決切断で再入電になる説明が欠けている');
+assert(functionSource('unresolvedHangupGuide').includes('hotCauses(t).size === 1'), '§33 検査4: 終話ガイドが真因ではなく現在の絞り込み状態で分岐しない');
+assert(functionSource('renderCloseFlow').includes('has-block-reason') && functionSource('renderCloseFlow').includes('remedy-block-reason') && page.includes('.opt:disabled.has-block-reason') && page.includes('.remedy-block-reason'), '§33 検査5: 前提不足の対処と理由が通常説明とは違う見た目にならない');
+const unchangedBlockReason33 = remedyBlockReason30({asked:new Set(),testCounts:new Map([['t_simout',0]])},{kind:'resolve',needsTest:'t_simout',needsTestCount:2});
+assert.equal(unchangedBlockReason33,'先に「伝える」→「やってみてもらう」を 2回行ってください（現在 0回）','§33 検査6: 前提不足の理由文そのものが変わっている');
+assert(functionSource('addStress').includes('base * type.stressRate * (miss ? type.missRate : 1)') && functionSource('changeStress').includes('if (!expectedOutcome) delta = 0') && functionSource('stressDisplayStage').includes('value <= 50'), '§33 検査7: 苛立ちの加算・運・表示境界が変わっている');
+
+// §34-5: S7を会社の機種選定ミスとして謝罪・代替機発送／返金で扱う。
+const s7Coverage34 = SCENARIOS.find(scenario => scenario.id === 'S7');
+const s7Best34 = REMEDIES.coverage.find(remedy => remedy.id === s7Coverage34.best);
+const s7Partial34 = REMEDIES.coverage.find(remedy => s7Coverage34.partial.includes(remedy.id));
+assert.equal(s7Best34.label,'手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する','§34 検査1: S7最適対処が謝罪・滞在確認・代替機発送ではない');
+assert.equal(s7Partial34.label,'手配の誤りをお詫びし、返金する','§34 検査2: S7次善対処が謝罪・返金ではない');
+assert([s7Best34,s7Partial34].every(remedy => remedy.label.includes('手配の誤りをお詫びし')),'§34 検査3: S7対処ラベルが会社の非を認めない');
+assert(!Object.values(REMEDIES).flat().some(remedy => ['r_escalate_band','r_city_only'].includes(remedy.id)),'§34 検査4: r_escalate_band または r_city_only が残っている');
+assert.deepEqual(s7Best34.requiresQuestions,['q_stay','q_stay_length','q_replacement'],'§34 検査5: S7代替機が既存requiresQuestionsを使わない');
+assert(s7Best34.requiresLongStay === 3 && s7Best34.requiresConsent === true,'§34 検査5: S7代替機が既存の長期滞在・同意条件を使わない');
+assert(s7Coverage34.stayDays >= 3 && s7Coverage34.wantsReplacement === true && s7Coverage34.callbackTo === 'hotel' && s7Coverage34.replies.q_stay.text.includes('同じホテル'),'§34 検査6: S7が長期滞在・同じホテル・配送希望に設定されていない');
+const finishLookup34 = new Function('state','lookupSystemLine','addFact','triggerOutage','spendOnCall','pushFlowLines','CALL_FLOW_LINES','pushCustomerLine','addStress','render','defaultUi', functionSource('finishLookup') + '\nreturn finishLookup;');
+const s7Lookup34 = s7Coverage34.lookups.l_area;
+const s7Ticket34 = {s:s7Coverage34,state:'open',lookedUp:new Set(),transcript:[],stress:8};
+const s7State34 = {focus:s7Ticket34,busy:true,holdVisual:false,ui:null};
+let s7StressDelta34 = 0;
+finishLookup34(s7State34,(lookup,result) => ({who:'sys',text:result.text}),() => {},() => {},() => true,(ticket,lines) => ticket.transcript.push(...lines),CALL_FLOW_LINES,(ticket,text) => ticket.transcript.push({who:'cust',text}),(_ticket,delta) => { s7StressDelta34 += delta; return true; },() => {},() => ({tab:'command'}))(s7Ticket34,{id:'l_area',spoken:'照会結果'},3,0);
+assert(s7Ticket34.transcript.some(line => line.who === 'cust' && line.text === s7Lookup34.customerReply),'§34 検査7: S7の手配ミス判明後に客の非難発話が出ない');
+assert(s7StressDelta34 === 35 && s7Lookup34.stressDelta > 0,'§34 検査8: S7の非難発話で苛立ちが上がらない');
+assert(/申込地域|非対応|御社|手配側の責任/.test(s7Lookup34.customerReply) && !/[!！]{2,}|ふざけ|ありえない/.test(s7Lookup34.customerReply),'§34 検査9: S7の非難が事実を並べて責任を問うexpert調ではない');
+const s13Symptoms34 = s13Logistics30.opening + s13Logistics30.replies.q_when.text;
+assert(/市街地では正常|郊外.*圏外/.test(s7Coverage34.opening) && !/一度も.*(?:使え|つなが)/.test(s7Coverage34.opening) && /一度も.*(?:使え|つなが)/.test(s13Symptoms34),'§34 検査10: S7の部分利用可とS13の初回から利用不可を書き分けていない');
+assert(s7Coverage34.trueCause === 'coverage' && s13Logistics30.trueCause === 'logistics','§34 検査11: S7とS13の真因が別のままではない');
+assert(['r_escalate_line','r_escalate_swap','r_escalate_prov'].every(id => Object.values(REMEDIES).flat().some(remedy => remedy.id === id && remedy.kind === 'escalate')),'§34 検査12: 他案件のエスカレーション設計が変わっている');
+const verify34 = spawnSync(process.execPath,['verify.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(verify34.status,0,'§34 検査13: verifyが13案件を真因1つへ収束させない\n' + (verify34.stdout || '') + (verify34.stderr || ''));
+const progression34 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(progression34.status,0,'§34 検査14: progression_testが通らない\n' + (progression34.stdout || '') + (progression34.stderr || ''));
+
+// §35-7: 手元に機器がない案件から、成立しない質問・操作を隠す。
+const s9Device35 = SCENARIOS.find(scenario => scenario.id === 'S9');
+assert(SCENARIOS.every(scenario => typeof scenario.deviceInHand === 'boolean') && !/device\s*(?:===|!==)|device\.includes\(/.test(functionSource('renderAskOptions') + functionSource('renderTestOptions') + functionSource('doAsk') + functionSource('doTest')),'§35 検査1: deviceInHandの明示フラグではなくdevice表示文字列で判定している');
+assert.equal(s9Device35.deviceInHand,false,'§35 検査2: S9がdeviceInHand falseではない');
+const renderAskOptions35 = new Function('QUESTIONS','esc', functionSource('renderAskOptions') + '\nreturn renderAskOptions;')(QUESTIONS,String);
+const s9AskTicket35 = {s:s9Device35,asked:new Set(),askCounts:new Map()};
+const s9DeviceQuestions35 = renderAskOptions35(s9AskTicket35,QUESTION_GROUPS.find(group => group.id === 'device'));
+assert(!['q_lamp','q_ssid','q_battery'].some(id => s9DeviceQuestions35.includes('data-ask="' + id + '"')),'§35 検査3: 機器未所持のS9に本体表示・SSID・電池質問が出る');
+const renderTellOptions35 = new Function('REFUND_POLICY', functionSource('renderTellOptions') + '\nreturn renderTellOptions;')(REFUND_POLICY);
+const renderTestOptions35 = new Function('simCleaningRecommended','TESTS','RISKY','esc', functionSource('renderTestOptions') + '\nreturn renderTestOptions;')(() => false,TESTS,RISKY,String);
+assert(!renderTellOptions35({s:s9Device35,refundProposalRejected:false}).includes('data-tell="try"') && !renderTestOptions35({s:s9Device35,testCounts:new Map()}).includes('data-test='),'§35 検査4: 機器未所持のS9に機器操作が出る');
+const tellNumbers35 = html => [...html.matchAll(/class="command-no">(\d+)<\/span>/g)].map(match => Number(match[1]));
+[
+  { ticket:{s:s9Device35,refundProposalRejected:false}, expected:[1,2,3,4,5] },
+  { ticket:{s:s9Device35,refundProposalRejected:true}, expected:[1,2,3,4] },
+  { ticket:{s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:false}, expected:[1,2,3,4,5,6] },
+  { ticket:{s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:true}, expected:[1,2,3,4,5] },
+].forEach(({ticket,expected}) => assert.deepEqual(tellNumbers35(renderTellOptions35(ticket)),expected,'§35 追加検査: 「伝える」の表示項目が1からの連番ではない'));
+const replacementQuestion35 = QUESTIONS.find(question => question.id === 'q_replacement');
+assert(!replacementQuestion35.label.includes('直らない場合') && replacementQuestion35.label === '代替機の配送をご希望ですか','§35 検査5: q_replacementに「直らない場合」が残っている');
+const s9VisibleQuestions35 = QUESTIONS.filter(question => !question.needsDevice).map(question => question.label);
+assert(s9VisibleQuestions35.every(label => !/直らない場合|再起動しても|圏外なら|接続できない場合/.test(label)),'§35 検査6: 機器なし案件に見える質問が特定症状を前提にしている');
+assert(!s9Device35.replies.q_lamp && !s9Device35.replies.q_other_device,'§35 検査7: S9に成立しないq_lampまたはq_other_device回答が残っている');
+assert(s9Device35.replies.q_when.fact && s9Device35.replies.q_when.fact.hot.includes('logistics'),'§35 検査8: S9から削った無効回答に代わる物流の手がかりが成立する質問にない');
+const deviceGroup35 = QUESTION_GROUPS.find(group => group.id === 'device');
+const trueDeviceTicket35 = {s:{deviceInHand:true},asked:new Set(),askCounts:new Map(),testCounts:new Map(),refundProposalRejected:false};
+const trueDeviceAsk35 = renderAskOptions35(trueDeviceTicket35,deviceGroup35);
+const trueDeviceTests35 = renderTestOptions35(trueDeviceTicket35);
+assert(deviceGroup35.questionIds.every(id => trueDeviceAsk35.includes('data-ask="' + id + '"')) && [...TESTS,...RISKY].every(test => trueDeviceTests35.includes('data-test="' + test.id + '"')) && renderTellOptions35(trueDeviceTicket35).includes('data-tell="try"'),'§35 検査9: 機器所持案件の質問・操作一覧が従来どおりではない');
+const verify35 = spawnSync(process.execPath,['verify.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(verify35.status,0,'§35 検査10: verifyが13案件を真因1つへ収束させない\n' + (verify35.stdout || '') + (verify35.stderr || ''));
+const progression35 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(progression35.status,0,'§35 検査11: progression_testが通らない\n' + (progression35.stdout || '') + (progression35.stderr || ''));
+
+// §36-6: 操作で復旧した事実と、次に原因を説明することを通話画面で分かるようにする。
+const doTest36 = functionSource('doTest');
+assert(doTest36.includes('pushCustomerLine(t, def.solves ? TYPES[t.s.type].solvedReply : def.text)') && !doTest36.includes("who:'note', text:'この操作で症状が解消しました"),'§36 検査1: def.solvesの復旧がnoteのままで通話画面に出ない');
+assert(doTest36.includes('TYPES[t.s.type].solvedReply') && doTest36.includes('t.symptomResolved = true'),'§36 検査2: 復旧が客の発話ではなくオペレーター宣言になっている');
+const solvedReplies36 = typeNames.map(type => TYPES[type].solvedReply);
+assert(solvedReplies36.every(Boolean) && new Set(solvedReplies36).size === typeNames.length && solvedReplies36.every(reply => /つなが|復旧/.test(reply)),'§36 検査3: 復旧発話が4タイプ分書き分けられていない');
+const resolvedGuide36 = unresolvedGuide33({hot:new Set(['sim']),symptomResolved:true});
+assert(resolvedGuide36.includes('症状は復旧しました') && resolvedGuide36.includes('「伝える」→「対処を伝える」') && resolvedGuide36.includes('原因をご説明すると、この電話を終われます'),'§36 検査4: 復旧済み未案内の終話確認に第三の次手が出ない');
+const simClean36 = REMEDIES.sim.find(remedy => remedy.id === 'r_sim_clean');
+assert.equal(simClean36.label,'接点の一時的な接触不良だったことをご説明し、そのままご利用いただく','§36 検査5: r_sim_cleanが手順記録のままで原因説明になっていない');
+const explanationRemedies36 = ['r_topup','r_slow_ok','r_disconnect','r_vpn_plan','r_throttle_talk','r_forget_guide','r_vpn_off','r_move_guide','r_charge_guide'].map(id => Object.values(REMEDIES).flat().find(remedy => remedy.id === id));
+assert(explanationRemedies36.every(remedy => remedy && /説明|ご説明/.test(remedy.label)),'§36 検査6: 他のresolve対処に手順記録のままのラベルが残っている');
+assert.deepEqual([
+  [simClean36.id,simClean36.kind,simClean36.needsTest,simClean36.needsTestCount],
+  [REMEDIES.location.find(remedy => remedy.id === 'r_move_guide').id,REMEDIES.location.find(remedy => remedy.id === 'r_move_guide').kind,REMEDIES.location.find(remedy => remedy.id === 'r_move_guide').needsTest],
+  [REMEDIES.device_side.find(remedy => remedy.id === 'r_forget_guide').id,REMEDIES.device_side.find(remedy => remedy.id === 'r_forget_guide').kind],
+  [REMEDIES.devices.find(remedy => remedy.id === 'r_disconnect').id,REMEDIES.devices.find(remedy => remedy.id === 'r_disconnect').kind],
+],[['r_sim_clean','resolve','t_simout',2],['r_move_guide','resolve','t_move'],['r_forget_guide','resolve'],['r_disconnect','resolve']],'§36 検査7: resolve対処のID・kind・needsTestが文言修正に紛れて変わっている');
+assert(!functionSource('doApologize').includes('pendingResult') && !functionSource('doApologize').includes('closeTicket') && functionSource('doClose').includes('t.pendingResult = result'),'§36 検査8: 謝罪だけで終話でき、原因案内が不要になっている');
+const progression36 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(progression36.status,0,'§36 検査9: progression_testが通らない\n' + (progression36.stdout || '') + (progression36.stderr || ''));
+assert(!/who:'note', text:'[^']*(?:症状が解消|原因を確定して案内|次の手を選)/.test(game),'§36 note監査: 次の手に必要な情報が非表示noteへ残っている');
 
 // 編集用の3素材と配布用 index.html は、build.js と同じ規則で完全一致する。
 const expectedIndex = builtIndexSource(__dirname);

@@ -15,7 +15,7 @@ const SHIP_LEVELS = [
   { id:'next', label:'翌日便', eta:'現地翌日中', fee:9000, rank:2 },
   { id:'normal', label:'通常便', eta:'2〜3日', fee:4000, rank:1 },
 ];
-const SHIPPING_REMEDIES = new Set(['r_hardware_swap','r_escalate_band','r_transfer_logi','r_second_unit','r_logistics_replacement']);
+const SHIPPING_REMEDIES = new Set(['r_hardware_swap','r_coverage_replacement','r_transfer_logi','r_second_unit','r_logistics_replacement']);
 const DESTINATION_IN_OPENING = new Set(['S9','S11']);
 function callCost(t){ return t.callMinutes * CALL_RATE_PER_MIN; }
 function totalCost(){ return state.cost + state.tickets.reduce((n,t) => n + callCost(t), 0); }
@@ -225,7 +225,7 @@ function newTicket(s){
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, holdMinutes:0,
     callbackCount:0, callbackDue:null, callbackLate:false, callbackDestination:null, callbackPenalty:0, carrierLookupStarted:false,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, shipment:null, apologies:new Map(),
-    misdiagnoses:0, damage:0, wasted:0, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
+    misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
     complaintEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
   };
 }
@@ -660,9 +660,25 @@ function refundSatisfied(causeId){
   return state.random() < REFUND_POLICY[group].satisfactionRate;
 }
 
+function refundProposalRejected(causeId){
+  const group = refundResponsibility(causeId);
+  if (GAME_FLAGS.luckRate === 1) return false;
+  return state.random() < REFUND_POLICY[group].rejectionRate;
+}
+
 function doRefund(){
   const t = state.focus;
-  if (!t || state.ui.tab !== 'refund_confirm') return;
+  if (!t || state.ui.tab !== 'refund_confirm' || t.refundProposalRejected) return;
+  if (refundProposalRejected(t.s.trueCause)){
+    t.refundProposalRejected = true;
+    t.transcript.push({ who:'me', text:'ご不便のお詫びとして、今回のご利用料金から2,400円の返金をご提案いたします。' });
+    pushCustomerLine(t, TYPES[t.s.type].refundRejectReply, { plain:true });
+    if (!spendOnCall(t, 2, 0)){ render(); return; }
+    if (!addStress(t, 18)){ render(); return; }
+    state.ui = defaultUi();
+    render();
+    return;
+  }
   const satisfied = refundSatisfied(t.s.trueCause);
   state.cost += REFUND_POLICY.amount;
   t.transcript.push({ who:'me', text:'ご不便のお詫びとして、今回のご利用料金から2,400円を返金いたします。' });
@@ -687,7 +703,7 @@ function doRefund(){
 function doAsk(qid){
   const t = state.focus;
   const q = QUESTIONS.find(x => x.id === qid);
-  if (!t || !q) return;
+  if (!t || !q || (q.needsDevice && !t.s.deviceInHand)) return;
   const previous = t.askCounts.get(qid) || 0;
   t.askCounts.set(qid, previous + 1);
   t.questionCount++;
@@ -798,6 +814,10 @@ function finishLookup(t, l, minutes, hold){
   if (!continued){ render(); return; }
   const spokenSummary = r && r.fact ? r.fact.text : (r ? r.text : l.spoken);
   pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);
+  if (r && r.customerReply){
+    pushCustomerLine(t, r.customerReply);
+    if (!addStress(t, r.stressDelta || 0, false, true)){ render(); return; }
+  }
   state.ui = defaultUi();
   render();
 }
@@ -826,7 +846,7 @@ function doTest(tid){
   const t = state.focus;
   const risky = RISKY.find(x => x.id === tid);
   const test = risky || TESTS.find(x => x.id === tid);
-  if (!t || !test) return;
+  if (!t || !test || (test.needsDevice && !t.s.deviceInHand)) return;
   const previous = t.testCounts.get(tid) || 0;
   const attempt = previous + 1;
   t.testCounts.set(tid, attempt);
@@ -847,10 +867,10 @@ function doTest(tid){
     t.damage += risky.damage;
     playBadActionSound();
   } else if (def && !redundant){
-    pushCustomerLine(t, def.text);
+    pushCustomerLine(t, def.solves ? TYPES[t.s.type].solvedReply : def.text);
     t.transcript.push({ who:'note', text:'操作結果：' + def.text });
     if (def.fact) addFact(t, def.fact, '操作の結果');
-    if (def.solves) t.transcript.push({ who:'note', text:'この操作で症状が解消しました。原因を確定して案内できます。' });
+    if (def.solves) t.symptomResolved = true;
   } else {
     pushCustomerLine(t, previous > 0 ? '同じ操作はもう行いました。もう一度やっても変わりません。' : 'やってみましたが、変わりませんでした。');
     t.transcript.push({ who:'note', text:'操作結果：症状に変化はありませんでした。' });

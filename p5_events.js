@@ -62,7 +62,7 @@ function handleCallNavigation(d){
 function handleConversationAction(d){
   if (d.ask){ doAsk(d.ask); return true; }
   if (d.smalltalk){ doSmalltalk(d.smalltalk, d.smalltalkMode); return true; }
-  if (d.refund){ state.ui = defaultUi('refund_confirm'); render(); return true; }
+  if (d.refund){ if (!state.focus.refundProposalRejected) state.ui = defaultUi('refund_confirm'); render(); return true; }
   if (d.refundConfirm){ doRefund(); return true; }
   if (d.refundCancel){ state.ui = defaultUi('tell'); render(); return true; }
   if (d.soothe){ doSoothe(d.soothe); return true; }
