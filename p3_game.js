@@ -17,9 +17,24 @@ const SHIP_LEVELS = [
 ];
 const SHIPPING_REMEDIES = new Set(['r_hardware_swap','r_coverage_replacement','r_transfer_logi','r_second_unit','r_logistics_replacement']);
 const DESTINATION_IN_OPENING = new Set(['S9','S11']);
-function callCost(t){ return t.callMinutes * CALL_RATE_PER_MIN; }
+function callCost(t){ return (t.outboundMinutes || 0) * CALL_RATE_PER_MIN; }
+function customerCallCost(t){ return (t.inboundMinutes || 0) * CALL_RATE_PER_MIN; }
 function totalCost(){ return state.cost + state.tickets.reduce((n,t) => n + callCost(t), 0); }
-function pendingTypedLine(t){ return t.transcript.find(x => (x.who === 'cust' || x.who === 'sys') && !x.typed); }
+function pendingTypedLine(t){ return t.transcript.find(x => (x.who === 'cust' || x.who === 'front' || x.who === 'sys') && !x.typed); }
+
+function ticketLocalMinute(t){
+  const utc = state.clock - 9 * 60;
+  return ((utc + t.s.localOffset * 60) % 1440 + 1440) % 1440;
+}
+function isLateLocalTime(t){
+  const minute = ticketLocalMinute(t);
+  return minute >= 22 * 60 || minute < 6 * 60;
+}
+
+function hotelRoom(t){
+  const match = String(t.stayAddress || '').match(/(?:room\s*)?(\d{3,4})(?:号室)?/i);
+  return match ? match[1] : null;
+}
 
 function defaultUi(tab = 'command'){
   return { tab, cause:null, remedy:null, lookup:null, askGroup:null, boardExcludedOpen:false };
@@ -34,6 +49,7 @@ const state = {
   escLeft: ESCALATIONS,
   cost: 0,
   outageKnown: false,
+  outageRegion: null,
   holdVisual: false,
   busy: false,
   ui: defaultUi(),
@@ -70,13 +86,109 @@ function dailyTicketCount(random, flags = GAME_FLAGS){
   return 2 + Math.floor(random() * 4);
 }
 
+function scenarioLocalMinute(scenario, place){
+  const absolute = SHIFT_START + scenario.arrive + place.localOffset * 60;
+  return ((absolute % 1440) + 1440) % 1440;
+}
+
+function placeAllowedForScenario(scenario, place){
+  const constraint = PLACE_CONSTRAINTS[scenario.trueCause];
+  if (constraint === 'china_only') return place.cityEn === 'SHANGHAI';
+  if (constraint === 'deep_night'){
+    const minute = scenarioLocalMinute(scenario, place);
+    return minute >= 22 * 60 || minute < 4 * 60;
+  }
+  return true;
+}
+
+function scenarioNeedsSharedRegion(scenario){
+  return ['carrier'].includes(scenario.trueCause);
+}
+
+function assignScenarioPlaces(scenarios, random){
+  const shuffledPlaces = shuffleScenarios(PLACE_POOL, random);
+  const carrierCount = scenarios.filter(scenarioNeedsSharedRegion).length;
+  const candidatesFor = scenario => shuffledPlaces.filter(place => {
+    if (!placeAllowedForScenario(scenario, place)) return false;
+    if (!scenarioNeedsSharedRegion(scenario) || carrierCount < 2) return true;
+    return place.regionGroup && shuffledPlaces.filter(item => item.regionGroup === place.regionGroup).length >= carrierCount;
+  });
+  const ordered = scenarios.slice().sort((a,b) => candidatesFor(a).length - candidatesFor(b).length);
+  const assigned = new Map();
+  const used = new Set();
+  const visit = index => {
+    if (index === ordered.length) return true;
+    const scenario = ordered[index];
+    const sharedCarrierRegion = [...assigned.entries()].find(([id]) => {
+      const other = scenarios.find(item => item.id === id);
+      return other && scenarioNeedsSharedRegion(other);
+    });
+    for (const place of candidatesFor(scenario)){
+      if (used.has(place.sourceScenarioId)) continue;
+      if (scenarioNeedsSharedRegion(scenario) && carrierCount >= 2 && sharedCarrierRegion && place.regionGroup !== sharedCarrierRegion[1].regionGroup) continue;
+      assigned.set(scenario.id, place);
+      used.add(place.sourceScenarioId);
+      if (visit(index + 1)) return true;
+      assigned.delete(scenario.id);
+      used.delete(place.sourceScenarioId);
+    }
+    return false;
+  };
+  if (!visit(0)) throw new Error('土地の割り当て条件を満たせません');
+  return assigned;
+}
+
+function replaceScenarioTemplates(value, replacements){
+  if (typeof value === 'string') return value.replace(/\{(city|country|carrier|region|wrongCountry)\}/g, (_, key) => replacements[key]);
+  if (Array.isArray(value)) return value.map(item => replaceScenarioTemplates(item, replacements));
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).map(([key,item]) => [key,replaceScenarioTemplates(item,replacements)]));
+}
+
+function scenarioWithIdentityAndPlace(scenario, identity, place, wrongCountry){
+  const replacements = {
+    city:place.city,
+    country:place.country,
+    carrier:place.carrier,
+    region:place.regionName,
+    wrongCountry,
+  };
+  const assigned = replaceScenarioTemplates(scenario, replacements);
+  return Object.assign(assigned, identity, {
+    country:place.country,
+    city:place.city,
+    cityEn:place.cityEn,
+    localOffset:place.localOffset,
+    carrierName:place.carrier,
+    regionGroup:place.regionGroup,
+    regionName:place.regionName,
+    placeSourceScenarioId:place.sourceScenarioId,
+    wrongCountry,
+  });
+}
+
+function assignScenarioIdentities(scenarios, random, flags = GAME_FLAGS){
+  const identities = flags.shuffleIdentity ? shuffleScenarios(IDENTITY_POOL, random) : scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age}));
+  const assignedPlaces = flags.shuffleIdentity ? assignScenarioPlaces(scenarios, random) : new Map(scenarios.map(scenario => {
+    const place = PLACE_POOL.find(item => item.sourceScenarioId === scenario.id);
+    return [scenario.id, place];
+  }));
+  const wrongCountryOrder = shuffleScenarios(PLACE_POOL, random);
+  return scenarios.map((scenario,index) => {
+    const place = assignedPlaces.get(scenario.id);
+    const wrongPlace = wrongCountryOrder.find(item => item.country !== place.country);
+    return scenarioWithIdentityAndPlace(scenario, identities[index], place, wrongPlace.country);
+  });
+}
+
 function prepareDailyScenarios(scenarios, random, flags = GAME_FLAGS){
   const count = dailyTicketCount(random, flags);
   const ordered = flags.shuffleArrival ? shuffleScenarios(scenarios, random) : scenarios.slice();
   const arrivalSlots = scenarios.map(scenario => scenario.arrive).sort((a, b) => a - b).slice(0, count);
-  return ordered.slice(0, count).map((scenario, index) =>
+  const selected = ordered.slice(0, count).map((scenario, index) =>
     Object.assign({}, scenario, { arrive:arrivalSlots[index] })
   );
+  return assignScenarioIdentities(selected, random, flags);
 }
 
 /* ---------- キャリア記録 ---------- */
@@ -222,8 +334,11 @@ function newTicket(s){
     facts:[], asked:new Set(), askCounts:new Map(), questionCount:0, lookedUp:new Set(), tested:new Set(), testCounts:new Map(),
     transcript:[], callTranscriptStart:0, greeted:false, identified:false, nameKnown:false, destinationKnown:false,
     stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
-    speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, holdMinutes:0,
+    speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, inboundMinutes:0, outboundMinutes:0, callSegmentMinutes:0, callDirection:'inbound', holdMinutes:0,
+    callChargeConcerned:false,
     callbackCount:0, callbackDue:null, callbackLate:false, callbackDestination:null, callbackPenalty:0, carrierLookupStarted:false,
+    callbackReason:null, callbackStage:null, frontDeskAttempts:0,
+    carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
     complaintEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
@@ -240,6 +355,7 @@ function resetGame(){
   state.escLeft = ESCALATIONS;
   state.cost = 0;
   state.outageKnown = false;
+  state.outageRegion = null;
   state.holdVisual = false;
   state.busy = false;
   state.ui = defaultUi();
@@ -252,6 +368,27 @@ function resetGame(){
 function recordOfficeEvent(kind, text){
   state.officeEvents.push({ kind, text });
   if (state.officeEvents.length > 6) state.officeEvents.shift();
+}
+
+function carrierReplyProbability(flags = GAME_FLAGS){
+  return flags.luckRate === 1 ? 1 : CARRIER_REPLY_RATE;
+}
+
+function carrierReference(t){
+  const match = t && t.s && t.s.contractId && String(t.s.contractId.text).match(/GDW-\d+/);
+  return match ? match[0] : (t && t.s ? t.s.id : '番号不明');
+}
+
+function resolveCarrierRequest(t){
+  if (!t || !t.carrierLookupStarted || t.carrierReplyStatus !== 'pending' || state.clock < t.callbackDue) return false;
+  const arrived = state.random() < carrierReplyProbability();
+  t.carrierReplyStatus = arrived ? 'arrived' : 'missing';
+  if (arrived){
+    recordOfficeEvent('carrier', '[現地キャリア] 回線の再開通を完了しました（' + carrierReference(t) + '）');
+  } else {
+    recordOfficeEvent('carrier', '[現地キャリア] 30分経過しましたが完了連絡は届いていません（' + carrierReference(t) + '）');
+  }
+  return true;
 }
 
 /* ---------- ターン進行 ---------- */
@@ -272,6 +409,8 @@ function advance(turns){
   for (let i = 0; i < turns; i++){
     state.turn++;
     state.clock += TURN_MIN;
+
+    state.tickets.forEach(t => resolveCarrierRequest(t));
 
     // すでに待っている呼だけが、この1分の待ち時間を消費する
     state.tickets.forEach(t => {
@@ -301,13 +440,14 @@ function addFact(t, fact, src){
 function triggerOutage(origin){
   if (state.outageKnown) return;
   state.outageKnown = true;
-  origin.transcript.push({ who:'note', text:'[全社通知] 米国北東部 提携キャリアの広域障害を確認。同一エリアの他チケットにも当てはまります。' });
+  state.outageRegion = origin.s.regionName || origin.s.country;
+  origin.transcript.push({ who:'note', text:'[全社通知] ' + state.outageRegion + ' 提携キャリアの広域障害を確認。同一エリアの他チケットにも当てはまります。' });
 
   state.tickets.forEach(t => {
     if (t === origin) return;
     if (t.s.trueCause !== 'carrier') return;
     if (t.state === 'closed') return;
-    t.transcript.push({ who:'sys', text:'[全社通知] 米国北東部 提携キャリアの広域障害を確認。同一エリアからの入電はこの障害による可能性が高い。' });
+    t.transcript.push({ who:'sys', text:'[全社通知] ' + state.outageRegion + ' 提携キャリアの広域障害を確認。同一エリアからの入電はこの障害による可能性が高い。' });
     addFact(t, { text:'同じエリアで広域障害が確認された', hot:['carrier'], out:['sim','coverage','provision','device_side','device_net'] }, '全社通知');
   });
 }
@@ -318,6 +458,9 @@ function pickup(t){
   if (state.focus) return;
   playPickupSound();
   t.state = 'open';
+  t.callDirection = 'inbound';
+  t.callSegmentMinutes = 0;
+  t.callbackStage = null;
   t.callTranscriptStart = t.transcript.length;
   deliverCustomerOpening(t, true);
   state.focus = t;
@@ -343,19 +486,47 @@ function resumeCallback(t){
   playPickupSound();
   t.callbackLate = state.clock > t.callbackDue;
   t.state = 'open';
+  t.callDirection = 'outbound';
+  t.callSegmentMinutes = 0;
+  t.callbackStage = 'front_desk';
+  t.frontDeskAttempts = 0;
   t.callTranscriptStart = t.transcript.length;
   state.focus = t;
-  if (t.callbackDestination !== t.s.callbackTo){
-    t.callbackPenalty = t.callbackDestination === 'hotel' ? 1.0 : 0.5;
-    if (!spendOnCall(t, 2, 0)){ render(); return; }
-  }
-  pushFlowLines(t, [
-    { who:'me', text:callbackOperatorLine(t) },
-    { who:'cust', text:CALL_FLOW_LINES.callback.replies[t.s.type] },
-  ]);
-  finishCarrierLookup(t);
+  resolveCarrierRequest(t);
+  t.transcript.push({ who:'front', text:CALL_FLOW_LINES.frontDesk.greeting + (isLateLocalTime(t) ? ' ' + CALL_FLOW_LINES.frontDesk.lateQuestion : '') });
   state.ui = defaultUi();
   enterCall();
+}
+
+function callbackCustomerReply(t){
+  const carrierResult = (t.s.lookups || {}).l_carrier;
+  if (t.callbackReason === 'carrier' && t.carrierReplyStatus === 'arrived' && carrierResult && carrierResult.restores) return CALL_FLOW_LINES.carrier.reopenedReplies[t.s.type];
+  if (t.callbackReason === 'carrier' && t.carrierReplyStatus === 'missing') return CALL_FLOW_LINES.carrier.pendingReplies[t.s.type];
+  return CALL_FLOW_LINES.callback.replies[t.s.type];
+}
+
+function handleFrontDeskChoice(choice){
+  const t = state.focus;
+  if (!t || t.callbackStage !== 'front_desk' || !['guest','room','callback'].includes(choice)) return;
+  if (choice === 'guest' && !t.nameKnown) return;
+  if (choice === 'room' && !hotelRoom(t)) return;
+  const option = CALL_FLOW_LINES.frontDesk.options[choice]
+    .replace('{name}', t.s.nameEn)
+    .replace('{room}', hotelRoom(t) || 'the guest room');
+  t.transcript.push({ who:'me', text:option });
+  const late = isLateLocalTime(t);
+  const direct = choice === 'callback';
+  t.frontDeskAttempts++;
+  if (!spendOnCall(t, late && !direct ? 2 : 1, 0)){ render(); return; }
+  const frontReply = late && !direct ? CALL_FLOW_LINES.frontDesk.delayedConnect : CALL_FLOW_LINES.frontDesk.connect;
+  pushFlowLines(t, [
+    { who:'front', text:frontReply },
+    { who:'cust', text:callbackCustomerReply(t) },
+  ]);
+  t.callbackStage = 'connected';
+  finishCarrierLookup(t);
+  state.ui = defaultUi();
+  render();
 }
 
 function callbackOperatorLine(t){
@@ -367,9 +538,18 @@ function callbackOperatorLine(t){
 
 function spendOnCall(t, minutes, holdMinutes){
   const before = t.callMinutes;
+  const inboundBefore = t.inboundMinutes || 0;
   t.callMinutes += minutes;
+  t.callSegmentMinutes = (t.callSegmentMinutes || 0) + minutes;
+  if (t.callDirection === 'outbound') t.outboundMinutes = (t.outboundMinutes || 0) + minutes;
+  else t.inboundMinutes = inboundBefore + minutes;
   t.holdMinutes += holdMinutes || 0;
   advance(minutes);
+  if (!t.callChargeConcerned && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5 && t.state === 'open' && !t.pendingResult){
+    t.callChargeConcerned = true;
+    pushCustomerLine(t, CALL_FLOW_LINES.callChargeConcern[t.s.type], { plain:true });
+    if (!changeStress(t, 4, true)) return false;
+  }
   const longMinutes = Math.max(0, t.callMinutes - 10) - Math.max(0, before - 10);
   if (longMinutes && t.state === 'open') addStress(t, longMinutes * 2);
   return t.state === 'open' && !t.pendingResult;
@@ -823,22 +1003,27 @@ function finishLookup(t, l, minutes, hold){
 }
 
 function finishCarrierLookup(t){
-  if (!t || !t.carrierLookupStarted || t.lookedUp.has('l_carrier')) return false;
+  if (!t || !t.carrierLookupStarted || t.lookedUp.has('l_carrier') || !['arrived','missing'].includes(t.carrierReplyStatus)) return false;
   const l = LOOKUPS.find(item => item.id === 'l_carrier');
   if (!l) return false;
-  t.lookedUp.add(l.id);
   t.carrierLookupStarted = false;
   const result = (t.s.lookups || {})[l.id];
-  if (result){
+  if (t.carrierReplyStatus === 'arrived' && result){
+    t.lookedUp.add(l.id);
     t.transcript.push(lookupSystemLine(l, result));
     if (result.fact) addFact(t, result.fact, '現地キャリア照会');
-  } else {
+    if (result.restores){
+      t.carrierRestored = true;
+      t.symptomResolved = true;
+    }
+  } else if (t.carrierReplyStatus === 'arrived') {
+    t.lookedUp.add(l.id);
     t.transcript.push(lookupSystemLine(l, null));
     if (l.missFact) addFact(t, l.missFact, '現地キャリア照会');
     else t.wasted++;
+  } else {
+    t.transcript.push({ who:'sys', text:'[現地キャリア] 完了連絡なし。回線はまだ再開通されていません。' });
   }
-  const spokenSummary = result && result.fact ? result.fact.text : (result ? result.text : l.spoken);
-  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.lookup.completePrefix + spokenSummary }]);
   return true;
 }
 
@@ -884,18 +1069,43 @@ function startCarrierCallback(destination){
   const t = state.focus;
   const lookup = LOOKUPS.find(item => item.id === 'l_carrier');
   if (!t || !lookup || state.ui.tab !== 'lookup' || state.ui.lookup !== lookup.id || t.carrierLookupStarted || t.lookedUp.has(lookup.id)) return;
-  if (!['hotel','mobile'].includes(destination)) return;
-  if (destination === 'hotel' && !t.asked.has('q_stay')){ render(); return; }
+  if (destination !== 'hotel' || !t.asked.has('q_stay')){ render(); return; }
   pushFlowLines(t, [
     { who:'me', text:CALL_FLOW_LINES.carrier.promise },
     { who:'cust', text:CALL_FLOW_LINES.carrier.consent },
   ]);
-  t.transcript.push({ who:'note', text:(destination === 'hotel' ? 'ホテル客室' : '携帯') + 'へ30分後に折り返す約束と、現地キャリアへの照会を記録しました。' });
+  t.transcript.push({ who:'note', text:'ホテルへ30分後に折り返す約束と、現地キャリアへの再開通依頼を記録しました。' });
   t.callbackCount++;
-  t.callbackDestination = destination;
+  t.callbackDestination = 'hotel';
+  t.callbackReason = 'carrier';
+  t.callbackStage = null;
   t.carrierLookupStarted = true;
+  t.carrierReplyStatus = 'pending';
+  t.carrierRequestAttempts++;
   if (!spendOnCall(t, 1, 0)) return;
   t.callbackDue = state.clock + lookup.minutes;
+  t.state = 'callback';
+  state.focus = null;
+  state.ui = defaultUi();
+  playDisconnectSound();
+  enterOffice();
+}
+
+function startHotelCallback(){
+  const t = state.focus;
+  if (!t || t.pendingResult || t.pendingInterruption || t.callbackStage === 'front_desk') return;
+  if (!t.asked.has('q_stay') || !t.stayAddress){ render(); return; }
+  pushFlowLines(t, [
+    { who:'me', text:CALL_FLOW_LINES.callback.promise },
+    { who:'cust', text:CALL_FLOW_LINES.callback.consent },
+  ]);
+  t.transcript.push({ who:'note', text:'お客様の国際通話料を止め、ホテルへ折り返す約束を記録しました。' });
+  t.callbackCount++;
+  t.callbackDestination = 'hotel';
+  t.callbackReason = 'general';
+  t.callbackStage = null;
+  if (!spendOnCall(t, 1, 0)) return;
+  t.callbackDue = state.clock;
   t.state = 'callback';
   state.focus = null;
   state.ui = defaultUi();
@@ -910,6 +1120,7 @@ function remedyNeedsShipping(id){ return SHIPPING_REMEDIES.has(id); }
 function remedyBlockReason(t, remedy){
   if (remedy.kind === 'escalate' && state.escLeft <= 0) return 'エスカレーション枠を使い切っています';
   if (remedy.needsOutage && !state.outageKnown) return '障害の裏付けが取れていないため、この案内はできません';
+  if (remedy.needsCarrierRestored && !t.carrierRestored) return '現地キャリアから再開通完了の連絡がまだ届いていません';
   if (remedy.needsTest){
     const required = remedy.needsTestCount || 1;
     const count = t.testCounts.get(remedy.needsTest) || 0;
@@ -1007,7 +1218,7 @@ function doClose(causeId, remedyId, toneId){
 
   const causeMatched = causeId === s.trueCause;
   if (causeMatched) playClueSound();
-  const treatmentWorked = treatmentSucceeds(causeMatched);
+  const treatmentWorked = remedy.reportsRestored ? causeMatched && t.carrierRestored : treatmentSucceeds(causeMatched);
   // 見立て違いのやり直し時間は選択内容で決まり、抽選結果では揺らさない。
   if (!causeMatched) advance(2);
 
@@ -1069,8 +1280,10 @@ function doClose(causeId, remedyId, toneId){
 
   const result = { kind:'closed', csat, grade, toneOk, remedyId, causeId, toneId,
     causeMatched, firstCallResolved:grade === 'best' && t.callbackCount === 0 && t.misdiagnoses === 0, label:gradeLabel(grade) };
-  const resolutionReply = causeMatched
-    ? closingLine(s, grade, toneOk)
+  const resolutionReply = remedy.reportsRestored
+    ? '原因まで分かって安心しました。回線を戻していただき、ありがとうございました。'
+    : causeMatched
+      ? closingLine(s, grade, toneOk)
     : 'あ、繋がりました。これで使えそうです。';
   pushCustomerLine(t, resolutionReply, { plain:true });
   pushFlowLines(t, [{ who:'me', text:resolutionOperatorClosing(grade, causeMatched) }]);

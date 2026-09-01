@@ -517,8 +517,8 @@ const mutations = [
   },
   {
     name:'社内照会へモデル運営会社名を混ぜる', file:'p2_data.js',
-    from:'提携: T-Mobile US ✓',
-    to:'提携: T-Mobile US ✓ ／ 運営: エクスコムグローバル',
+    from:'提携: {carrier} ✓ ／ 備考: 通常のデータプラン',
+    to:'提携: {carrier} ✓ ／ 運営: エクスコムグローバル ／ 備考: 通常のデータプラン',
     expected:'公開画面にモデル企業名が含まれている',
   },
   {
@@ -586,8 +586,8 @@ const mutations = [
   },
   {
     name:'現地キャリア照会を29分へ短縮する', file:'p2_data.js',
-    from:"title:'現地キャリア照会', spoken:'現地キャリア側でも契約は有効で、開通状態に問題はありませんでした。', minutes:30, external:true",
-    to:"title:'現地キャリア照会', spoken:'現地キャリア側でも契約は有効で、開通状態に問題はありませんでした。', minutes:29, external:true",
+    from:"title:'現地キャリアへの再開通依頼', spoken:'現地キャリアへ再開通を依頼しました。', minutes:30, external:true",
+    to:"title:'現地キャリアへの再開通依頼', spoken:'現地キャリアへ再開通を依頼しました。', minutes:29, external:true",
     expected:'§25 l_carrierが30分の社外照会ではない',
   },
   {
@@ -610,18 +610,18 @@ const mutations = [
   {
     name:'ホテル折り返し先の選択を消す', file:'p4_view.js',
     from:'data-callback-destination="hotel"', to:'data-callback-hotel="1"',
-    expected:'§25 折り返し先の2択またはホテル確認条件がない',
+    expected:'§39 現地キャリア折り返しがホテルと滞在先確認へ統一されていない',
   },
   {
-    name:'折り返し先違いの判定を無効化する', file:'p3_game.js',
-    from:'t.callbackDestination !== t.s.callbackTo', to:'false',
-    expected:'§25 宛先違いの罰が戻っていない',
+    name:'折り返しのFront Desk段階を飛ばす', file:'p3_game.js',
+    from:"t.callbackStage = 'front_desk';", to:"t.callbackStage = 'connected';",
+    expected:'§39 折り返しがホテルのフロントから始まらない',
   },
   {
     name:'折り返し再接続から顧客発話を消す', file:'p3_game.js',
-    from:"{ who:'cust', text:CALL_FLOW_LINES.callback.replies[t.s.type] },",
-    to:"{ who:'note', text:CALL_FLOW_LINES.callback.replies[t.s.type] },",
-    expected:'§25 折り返し再接続にオペレーターと顧客の発話が揃わない',
+    from:"{ who:'cust', text:callbackCustomerReply(t) },",
+    to:"{ who:'note', text:callbackCustomerReply(t) },",
+    expected:'§39 フロント接続後にFront Deskと顧客の発話が揃わない',
   },
   {
     name:'S12現地照会から0時停止を消す', file:'p2_data.js',
@@ -821,8 +821,8 @@ const mutations = [
   },
   {
     name:'固定都市リストにないcityを通常案件の第一声へ入れる', file:'p2_data.js',
-    from:"city:'バンコク', cityEn:'BANGKOK', localOffset:-2, device:'GD-500', plan:'タイ ／ 500MBプラン',\n  opening:'あの…地図が全然開かないんです。",
-    to:"city:'架空都市', cityEn:'BANGKOK', localOffset:-2, device:'GD-500', plan:'タイ ／ 500MBプラン',\n  opening:'架空都市です。あの…地図が全然開かないんです。",
+    from:"country:'タイ', city:'バンコク', cityEn:'BANGKOK', localOffset:-2, carrierName:'AIS', device:'GD-500', plan:'{country} ／ 500MBプラン',\n  opening:'あの…地図が全然開かないんです。",
+    to:"country:'タイ', city:'架空都市', cityEn:'BANGKOK', localOffset:-2, carrierName:'AIS', device:'GD-500', plan:'{country} ／ 500MBプラン',\n  opening:'架空都市です。あの…地図が全然開かないんです。",
     expected:'通常案件の第一声に自身のcityが残っている',
   },
   {
@@ -887,8 +887,8 @@ const mutations = [
   },
   {
     name:'日次案件を同じ1件の重複にする', file:'p3_game.js',
-    from:'return ordered.slice(0, count).map((scenario, index) =>',
-    to:'return Array(count).fill(ordered[0]).map((scenario, index) =>',
+    from:'const selected = ordered.slice(0, count).map((scenario, index) =>',
+    to:'const selected = Array(count).fill(ordered[0]).map((scenario, index) =>',
     expected:'日次案件の選択に重複がある',
   },
   {
@@ -1322,13 +1322,13 @@ const mutations = [
   },
   {
     name:'S13の貸出SIMを申込国向けへ変える', file:'p2_data.js',
-    from:'貸出品: タイ向けSIM', to:'貸出品: ポルトガル向けSIM',
+    from:'貸出品: {wrongCountry}向けSIM', to:'貸出品: {country}向けSIM',
     expected:'§30 検査3: l_shipに申込国と利用不可SIMの食い違いがない',
   },
   {
     name:'S13の正常契約を失効へ変える', file:'p2_data.js',
-    from:'[契約照会] 申込: ポルトガル ／ 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし',
-    to:'[契約照会] 申込: ポルトガル ／ 契約: 失効 ／ 使用量: 制限内 ／ 速度制限なし',
+    from:'[契約照会] 申込: {country} ／ 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし',
+    to:'[契約照会] 申込: {country} ／ 契約: 失効 ／ 使用量: 制限内 ／ 速度制限なし',
     expected:'§30 検査4: l_planが有効・制限内の正常契約ではない',
   },
   {
@@ -1361,7 +1361,7 @@ const mutations = [
   },
   {
     name:'S13の顧客タイプをexpertへ変える', file:'p2_data.js',
-    from:"id:'S13', arrive:74, name:'秋山 美咲', age:32, type:'anxious'", to:"id:'S13', arrive:74, name:'秋山 美咲', age:32, type:'expert'",
+    from:"id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, type:'anxious'", to:"id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, type:'expert'",
     expected:'§30 検査10: anxiousの自己責任型第一声になっていない',
   },
   {
@@ -1613,8 +1613,8 @@ const mutations = [
   },
   {
     name:'S9を機器所持済みにする', file:'p2_data.js',
-    from:"id:'S9', arrive:50, name:'石橋 玲', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',\n  deviceInHand:false",
-    to:"id:'S9', arrive:50, name:'石橋 玲', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',\n  deviceInHand:true",
+    from:"id:'S9', arrive:50, name:'石橋 玲', nameEn:'Rei Ishibashi', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',\n  deviceInHand:false",
+    to:"id:'S9', arrive:50, name:'石橋 玲', nameEn:'Rei Ishibashi', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',\n  deviceInHand:true",
     expected:'§35 検査2: S9がdeviceInHand falseではない',
   },
   {
@@ -1639,14 +1639,14 @@ const mutations = [
   },
   {
     name:'S9へ成立しないq_lamp回答を戻す', file:'p2_data.js',
-    from:"    q_when:{ text:'予約は20時。到着したら無人。いま22時半。タクシーを待たせてます。'",
-    to:"    q_lamp:{ text:'機器は未受取なので画面は見られません。' },\n    q_when:{ text:'予約は20時。到着したら無人。いま22時半。タクシーを待たせてます。'",
+    from:"    q_when:{ text:'予約時刻を過ぎて到着したら無人でした。担当者も不在です。タクシーを待たせてます。'",
+    to:"    q_lamp:{ text:'機器は未受取なので画面は見られません。' },\n    q_when:{ text:'予約時刻を過ぎて到着したら無人でした。担当者も不在です。タクシーを待たせてます。'",
     expected:'§35 検査7: S9に成立しないq_lampまたはq_other_device回答が残っている',
   },
   {
     name:'S9の成立するq_whenから物流手がかりを外す', file:'p2_data.js',
-    from:"fact:{ text:'受取予約は20時。現地時刻はすでに22時半', hot:['logistics'] }",
-    to:"fact:{ text:'受取予約は20時。現地時刻はすでに22時半' }",
+    from:"fact:{ text:'予約時刻を過ぎ、カウンターは臨時閉鎖。担当者も不在', hot:['logistics'] }",
+    to:"fact:{ text:'予約時刻を過ぎ、カウンターは臨時閉鎖。担当者も不在' }",
     expected:'§35 検査8: S9から削った無効回答に代わる物流の手がかりが成立する質問にない',
   },
   {
@@ -1721,6 +1721,213 @@ const mutations = [
     name:'S7配送前提回答を消してprogressionを壊す（§36）', file:'p2_data.js',
     from:"    q_stay_length:{ text:'今日を含めてあと6泊です。郊外へ出る予定が続くので、対応機なら受け取る意味があります。',\n      fact:{ text:'残り6泊、同じホテルに滞在するため代替機を使える期間が十分にある', hot:['coverage'] } },\n", to:'',
     expected:'§32 検査9: progression_testが通らない',
+  },
+  {
+    name:'キャリア完了連絡率を80%から下げる', file:'p2_data.js',
+    from:'const CARRIER_REPLY_RATE = 0.8;', to:'const CARRIER_REPLY_RATE = 0.7;',
+    expected:'§37 検査3: キャリア完了連絡の既定確率が80%ではない',
+  },
+  {
+    name:'luckRate 1でもキャリア連絡を確定させない', file:'p3_game.js',
+    from:'return flags.luckRate === 1 ? 1 : CARRIER_REPLY_RATE;', to:'return CARRIER_REPLY_RATE;',
+    expected:'§37 検査4: luckRate 1.0でキャリア完了連絡が必ず届かない',
+  },
+  {
+    name:'S12折り返し冒頭から復旧済み発話を消す', file:'p2_data.js',
+    from:'あ、さっきから使えてます！ もうつながっています。直してくださって、本当にありがとうございます。',
+    to:'その後どうなりましたか。状況を教えてください。',
+    expected:'§37 検査7: 客室接続後に客が復旧と感謝を先に伝えない',
+  },
+  {
+    name:'キャリア未返信でも客を復旧済みにする', file:'p2_data.js',
+    from:'まだ圏外のままです…。連絡が来なかったのですね。もう一度お願いできますか。',
+    to:'もうつながっています。ありがとうございました。',
+    expected:'§37 検査9: 完了連絡なしでも回線が直り、客の落胆が出ない',
+  },
+  {
+    name:'キャリア復旧前にS12の最適説明を許す', file:'p2_data.js',
+    from:'kind:\'resolve\', needsCarrierRestored:true, reportsRestored:true',
+    to:'kind:\'resolve\', reportsRestored:true',
+    expected:'§37 検査11: 再開通完了の説明が返金より高い最適評価にならない',
+  },
+  {
+    name:'人物シャッフルを常に無効にする', file:'p3_game.js',
+    from:'const identities = flags.shuffleIdentity ? shuffleScenarios(IDENTITY_POOL, random) : scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age}));',
+    to:'const identities = scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age}));',
+    expected:'§38 検査1: 名前・ローマ字・年齢が案件から切り離され、シフトごとに割り当てられない',
+  },
+  {
+    name:'geo_blockを中国以外にも割り当てる', file:'p3_game.js',
+    from:"if (constraint === 'china_only') return place.cityEn === 'SHANGHAI';",
+    to:"if (constraint === 'china_only') return true;",
+    expected:'§38 検査6-1: geo_block案件が中国以外へ割り当てられる',
+  },
+  {
+    name:'provisionの深夜制約を外す', file:'p3_game.js',
+    from:'return minute >= 22 * 60 || minute < 4 * 60;',
+    to:'return true;',
+    expected:'§38 検査6: S12が日付境界の話として成立しない時差の土地へ割り当てられる',
+  },
+  {
+    name:'S9へ固定時刻を戻す', file:'p2_data.js',
+    from:'カウンターは無人で、機器を受け取れていません。',
+    to:'現地22:35、カウンターは無人で、機器を受け取れていません。',
+    expected:'§38 検査6-4: S9に固定時刻が残る、または営業時間外の芯が消えている',
+  },
+  {
+    name:'S13へ申込国と同じSIMを割り当てる', file:'p3_game.js',
+    from:'const wrongPlace = wrongCountryOrder.find(item => item.country !== place.country);',
+    to:'const wrongPlace = wrongCountryOrder.find(item => item.country === place.country);',
+    expected:'§38 検査6-5: S13の貸出品が申込国と別の土地から差し込まれない',
+  },
+  {
+    name:'土地bundleと違うキャリア名を入れる', file:'p3_game.js',
+    from:'carrierName:place.carrier,',
+    to:"carrierName:'Broken Carrier',",
+    expected:'§38 検査2: 国・都市・cityEn・localOffset・キャリアが1組で割り当てられない',
+  },
+  {
+    name:'S7へ固定周波数帯を戻す', file:'p2_data.js',
+    from:'郊外をカバーする周波数帯に非対応',
+    to:'B20 800MHzに非対応',
+    expected:'§38 検査6-7: 周波数帯の具体名が残っている',
+  },
+  {
+    name:'都市テンプレートの差し込みを外す', file:'p3_game.js',
+    from:'city|country|carrier|region|wrongCountry',
+    to:'country|carrier|region|wrongCountry',
+    expected:'§38 検査3: 台詞・照会結果に固定都市名または未解決の差し込みが残っている',
+  },
+  {
+    name:'土地の一晩重複識別子を同じにする', file:'p3_game.js',
+    from:'placeSourceScenarioId:place.sourceScenarioId,',
+    to:"placeSourceScenarioId:'duplicate',",
+    expected:'§38 検査8: 同じ名前または同じ土地が一晩に二度出る',
+  },
+  {
+    name:'shuffleIdentity falseでも人物をシャッフルする', file:'p3_game.js',
+    from:': scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age}));',
+    to:': shuffleScenarios(IDENTITY_POOL, random);',
+    expected:'§38 検査9: shuffleIdentity falseで案件データどおりの割り当てに戻らない',
+  },
+  {
+    name:'入電通話料を会社負担へ戻す', file:'p3_game.js',
+    from:'function callCost(t){ return (t.outboundMinutes || 0) * CALL_RATE_PER_MIN; }',
+    to:'function callCost(t){ return (t.inboundMinutes || 0) * CALL_RATE_PER_MIN; }',
+    expected:'§39 検査1: 客からかかってきた通話の料金が会社費用に計上される',
+  },
+  {
+    name:'通話ヘッダの負担者を常に当社にする', file:'p4_view.js',
+    from:"const payer = outbound ? '当社負担' : 'お客様負担';",
+    to:"const payer = '当社負担';",
+    expected:'通話ヘッダがチケットID・通話時間・負担者つき費用だけを表示していない',
+  },
+  {
+    name:'通話料の心配をタイプ間で使い回す', file:'p2_data.js',
+    from:'国際通話が5分を超えています。以降はホテルへの折り返しに切り替えられますか。',
+    to:'海外からの通話料が心配で…。このまま長くなっても大丈夫でしょうか。',
+    expected:'§39 検査4: 通話料を気にする発話がタイプ別に書き分けられていない',
+  },
+  {
+    name:'5分超の通話料発話を毎分繰り返す', file:'p3_game.js',
+    from:"!t.callChargeConcerned && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5",
+    to:"t.callDirection === 'inbound' && t.inboundMinutes > 5",
+    expected:'§39 検査5: 通話料を気にする発話を繰り返す',
+  },
+  {
+    name:'滞在先未確認でも一般折り返しを開始する', file:'p3_game.js',
+    from:"if (!t.asked.has('q_stay') || !t.stayAddress){ render(); return; }",
+    to:"if (false && (!t.asked.has('q_stay') || !t.stayAddress)){ render(); return; }",
+    expected:'§39 検査6: 滞在先未確認で一般折り返しを開始できる',
+  },
+  {
+    name:'Front Deskの選択肢を日本語にする', file:'p2_data.js',
+    from:"This is a callback. The guest called us earlier.",
+    to:'先ほどお客様からお電話をいただいた件の折り返しです。',
+    expected:'§39 検査8: Front Deskの発話と選択肢が平易な英語で揃わない',
+  },
+  {
+    name:'Front Deskの話者表示を客にする', file:'p4_view.js',
+    from:"front:'Front Desk'", to:"front:'客'",
+    expected:'§39 検査9: 客室接続後に話者がFront Deskから客へ切り替わらない',
+  },
+  {
+    name:'現地深夜判定を常に無効にする', file:'p3_game.js',
+    from:'return minute >= 22 * 60 || minute < 6 * 60;',
+    to:'return false;',
+    expected:'§39 検査10: 現地22時以降の深夜判定ができない',
+  },
+  {
+    name:'折り返し説明でも深夜対応を遅らせる', file:'p3_game.js',
+    from:"const direct = choice === 'callback';",
+    to:'const direct = false;',
+    expected:'§39 検査11: 折り返しと伝えてもFront Deskが円滑につながない',
+  },
+  {
+    name:'折り返し以外の英語選択肢を詰ませる', file:'p3_game.js',
+    from:"if (choice === 'room' && !hotelRoom(t)) return;",
+    to:"if (choice === 'room' && !hotelRoom(t)) return;\n  if (choice !== 'callback') return;",
+    expected:'§39 検査12: 別の英語選択肢で客室へつながらず詰む',
+  },
+  {
+    name:'現地時刻から土地の時差を外す', file:'p3_game.js',
+    from:'utc + t.s.localOffset * 60',
+    to:'utc',
+    expected:'§39 検査13: 現地時刻が割り当て土地のlocalOffsetから計算されない',
+  },
+  {
+    name:'一般折り返しをキャリア専用扱いにする', file:'p3_game.js',
+    from:"t.callbackReason = 'general';",
+    to:"t.callbackReason = 'carrier';",
+    expected:'§32 検査9: progression_testが通らない',
+  },
+  {
+    name:'Front Deskの発話を選択画面から隠す', file:'p4_view.js',
+    from:"return frontContext + renderCommandHead('Front Desk'",
+    to:"return renderCommandHead('Front Desk'",
+    expected:'§39 検査7: Front Deskの発話が選択画面に表示されない',
+  },
+  {
+    name:'Front Deskへ顧客名を日本語で伝える', file:'p4_view.js',
+    from:"options.guest.replace('{name}', t.s.nameEn)",
+    to:"options.guest.replace('{name}', t.s.name)",
+    expected:'§39 検査8: Front Deskへ伝える顧客名がローマ字になっていない',
+  },
+  {
+    name:'部屋番号不明でもroom選択肢を表示する', file:'p4_view.js',
+    from:'const roomChoice = room\n    ?',
+    to:"const roomChoice = room || '—'\n    ?",
+    expected:'§39 検査8: 部屋番号不明時にroom選択肢またはダッシュが表示される',
+  },
+  {
+    name:'S2へ同行者をいま待たせている台詞を戻す', file:'p2_data.js',
+    from:'同行のお二人にも迷惑をかけないか心配で…。',
+    to:'同行のお二人をいま待たせています…。',
+    expected:'§38 検査6-8: S2に同行者をいま待たせている現在進行が残っている',
+  },
+  {
+    name:'S9へ退勤済み表現を戻す', file:'p2_data.js',
+    from:'担当者も不在です。タクシーを待たせてます。',
+    to:'担当者も退勤済みです。タクシーを待たせてます。',
+    expected:'§38 検査6-9: S9が時間帯に依存しない担当者不在の表現になっていない',
+  },
+  {
+    name:'S11へ会議開始カウントダウンを戻す', file:'p2_data.js',
+    from:'切り分けを急いでいます。次の指示をください。',
+    to:'会議開始まで5分です。次の指示をください。',
+    expected:'§38 検査6-10: S11の会議カウントダウンが消えていない、または会議場・地下の芯が消えている',
+  },
+  {
+    name:'hurried共通文へ会議開始を戻す', file:'p2_data.js',
+    from:'時計見てます？ 次の予定が迫ってる。急いで。',
+    to:'時計見てます？ 会議が始まる。急いで。',
+    expected:'§38 検査6-11: hurried共通文が予定一般の表現になっていない',
+  },
+  {
+    name:'土地制約へcarrierを追加する', file:'p2_data.js',
+    from:"  provision:'deep_night',\n});",
+    to:"  provision:'deep_night',\n  carrier:'shared_region',\n});",
+    expected:'§38 検査6-12: 土地の制約がgeo_blockとprovisionの2つだけではない',
   },
 ];
 

@@ -4,7 +4,7 @@
 
 document.addEventListener('click', (e) => {
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-callback-destination],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
+  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
   if (!el || el.disabled) return;
   playCommandSound();
   routeAction(el.dataset);
@@ -37,6 +37,8 @@ function handleOfficeAction(d){
 
 function handleCallNavigation(d){
   if (d.callbackDestination){ startCarrierCallback(d.callbackDestination); return true; }
+  if (d.hotelCallback){ startHotelCallback(); return true; }
+  if (d.frontDesk){ handleFrontDeskChoice(d.frontDesk); return true; }
   if (d.hangup){
     const t = state.focus;
     if (!t) return true;

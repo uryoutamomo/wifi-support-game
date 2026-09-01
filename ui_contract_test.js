@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
-const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,IDENTITY_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
+const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, IDENTITY_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -107,10 +107,10 @@ assert(!hurriedRedial.redialOpening && !hurriedRedial.redialSpoken, '再入電�
 
 const openingDestinationIds = ['S9','S11'];
 assert(game.includes("const DESTINATION_IN_OPENING = new Set(['S9','S11'])"), '第一声で地名を話す案件がS9とS11の2件ではない');
-assert.deepEqual(SCENARIOS.filter(scenario => openingDestinationIds.includes(scenario.id) && scenario.opening.includes(scenario.city)).map(scenario => scenario.id), openingDestinationIds, '地名を許した2案件の第一声に渡航先がない');
+assert.deepEqual(SCENARIOS.filter(scenario => openingDestinationIds.includes(scenario.id) && scenario.opening.includes('{city}')).map(scenario => scenario.id), openingDestinationIds, '地名を許した2案件の第一声に渡航先がない');
 const forbiddenOpeningContext = /バンコク|ロンドン|ホノルル|上海|ニューヨーク|バルセロナ|ドバイ|パリ|新婚旅行|夫|妻|娘|家族旅行|ツアー|出張|会議|同僚|お仕事/;
 assert(SCENARIOS.filter(scenario => !openingDestinationIds.includes(scenario.id)).every(scenario => !forbiddenOpeningContext.test(scenario.opening)), '第一声に渡航先・旅行目的・同行者の情報が残っている');
-assert(SCENARIOS.filter(scenario => !openingDestinationIds.includes(scenario.id)).every(scenario => !scenario.opening.includes(scenario.city)), '通常案件の第一声に自身のcityが残っている');
+assert(SCENARIOS.filter(scenario => !openingDestinationIds.includes(scenario.id)).every(scenario => !scenario.opening.includes('{city}') && !scenario.opening.includes(scenario.city)), '通常案件の第一声に自身のcityが残っている');
 
 const reachableIdentityQuestions = new Set(['q_name','q_destination','q_contract']);
 const section13QuestionIds = new Set(QUESTIONS.map(question => question.id));
@@ -266,7 +266,7 @@ const headerSource = functionSource('renderCallHeader');
 ['t.s.name','t.s.city','localClock','t.s.device','t.s.plan','TYPES','call-guide','hold-state'].forEach(leak => {
   assert(!headerSource.includes(leak), '通話ヘッダにログへ移す情報が残っている: ' + leak);
 });
-assert(headerSource.includes('t.s.id') && headerSource.includes('t.callMinutes') && headerSource.includes('callCost(t)'), '通話ヘッダがチケットID・通話時間・費用だけを表示していない');
+assert(headerSource.includes('t.s.id') && headerSource.includes('t.callSegmentMinutes') && headerSource.includes("outbound ? '当社負担' : 'お客様負担'") && headerSource.includes('CALL_RATE_PER_MIN'), '通話ヘッダがチケットID・通話時間・負担者つき費用だけを表示していない');
 const stressPanelSource = functionSource('renderStressPanel');
 assert(stressPanelSource.includes('if (!customerHasSpoken(t))'), '顧客が話す前にも苛立ちの数値が見える');
 assert(stressPanelSource.includes('<b>—</b>') && stressPanelSource.includes('<strong>まだ不明</strong>'), '発話前の苛立ち表示が不明値と完全一致しない');
@@ -361,7 +361,7 @@ assert(!askGroupsSource.includes('group.no') && !askGroupsSource.includes('comma
 
 // §9: 90/10の運、反応と対処だけの揺れ、登場順シャッフル、旧挙動への復帰。
 assert.equal(LUCK_RATE, 0.9, '運の本来どおり率が0.9ではない');
-assert.deepEqual(GAME_FLAGS, { luckRate:0.9, shuffleArrival:true, dailyTickets:null, careerStage:null, unlockedBadges:null, solvedScenarios:null, soundEnabled:true, soundVolume:0.55 }, '運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う');
+assert.deepEqual(GAME_FLAGS, { luckRate:0.9, shuffleArrival:true, shuffleIdentity:true, dailyTickets:null, careerStage:null, unlockedBadges:null, solvedScenarios:null, soundEnabled:true, soundVolume:0.55 }, '運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う');
 const rollLuckSource = functionSource('rollLuck');
 assert(rollLuckSource.includes('state.random() < GAME_FLAGS.luckRate'), 'rollLuckが注入可能な乱数源とGAME_FLAGSを使わない');
 assert.equal((game.match(/Math\.random/g) || []).length, 1, 'Math.randomがstate.random以外でも直接使われている');
@@ -526,7 +526,7 @@ assert.deepEqual(typeNames.map(type => [type,TYPES[type].stressStart,TYPES[type]
   ['anxious',20,1.2,1.0], ['novice',5,0.9,1.0], ['hurried',15,1.6,1.3], ['expert',5,1.0,2.0],
 ], '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
 assert.equal(LUCK_RATE, 0.9, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
-assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
+assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
 
 // §19／§31: 返金は確認後に提案し、受入後の満足判定とは別に、まれな拒否を持つ。
 assert.equal(REFUND_POLICY.amount, 2400, '返金額が確定値2,400円ではない');
@@ -636,7 +636,7 @@ assert(!/trueCause\s*=/.test(game), 'プレイ中に真因を書き換える経�
 const balanceConsoleSource = functionSource('showBalanceConsole');
 assert(balanceConsoleSource.includes('id="balance-luck"') && balanceConsoleSource.includes('id="balance-shuffle"'), '調整コンソールに運と登場順の切り替えがない');
 assert(balanceConsoleSource.includes('GAME_FLAGS.luckRate = event.target.checked ? LUCK_RATE : 1.0') && balanceConsoleSource.includes('GAME_FLAGS.shuffleArrival = event.target.checked'), '調整コンソールの切り替えがGAME_FLAGSへ反映されない');
-const balanceNodes = { sheet:{innerHTML:''}, 'balance-luck':{}, 'balance-shuffle':{}, 'balance-sound':{}, 'balance-volume':{}, 'balance-replay-ending':{}, 'balance-replay-secret-ending':{}, 'balance-clear-career':{}, 'btn-close-balance':{} };
+const balanceNodes = { sheet:{innerHTML:''}, 'balance-luck':{}, 'balance-shuffle':{}, 'balance-identity':{}, 'balance-sound':{}, 'balance-volume':{}, 'balance-replay-ending':{}, 'balance-replay-secret-ending':{}, 'balance-clear-career':{}, 'btn-close-balance':{} };
 const balanceDeps = {
   state:{phase:'briefing'}, GAME_FLAGS, LUCK_RATE, COMMAND_DEFS, SCENARIOS, TYPES, REMEDIES,
   $:id => balanceNodes[id], esc:value => String(value), causeName:id => id, scenarioRoute:() => [],
@@ -645,12 +645,15 @@ const balanceDeps = {
 new Function(...Object.keys(balanceDeps), balanceConsoleSource + '\nreturn showBalanceConsole;')(...Object.values(balanceDeps))();
 assert.equal(typeof balanceNodes['balance-luck'].onchange, 'function', '運の切り替えイベントが接続されない');
 assert.equal(typeof balanceNodes['balance-shuffle'].onchange, 'function', '登場順の切り替えイベントが接続されない');
+assert.equal(typeof balanceNodes['balance-identity'].onchange, 'function', '名前・土地シャッフルの切り替えイベントが接続されない');
 balanceNodes['balance-luck'].onchange({target:{checked:false}});
 balanceNodes['balance-shuffle'].onchange({target:{checked:false}});
-assert.deepEqual(GAME_FLAGS, {luckRate:1.0,shuffleArrival:false,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '調整コンソールから運なし・定義順へ切り替わらない');
+balanceNodes['balance-identity'].onchange({target:{checked:false}});
+assert.deepEqual(GAME_FLAGS, {luckRate:1.0,shuffleArrival:false,shuffleIdentity:false,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '調整コンソールから運なし・定義順へ切り替わらない');
 balanceNodes['balance-luck'].onchange({target:{checked:true}});
 balanceNodes['balance-shuffle'].onchange({target:{checked:true}});
-assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '調整コンソールから運あり・シャッフルへ戻せない');
+balanceNodes['balance-identity'].onchange({target:{checked:true}});
+assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '調整コンソールから運あり・シャッフルへ戻せない');
 assert(!functionSource('renderCall').includes('GAME_FLAGS'), '運の設定がプレイ画面に表示される');
 assert(!/GAME_FLAGS\.luckRate\s*===?\s*1|GAME_FLAGS\.luckRate\s*!==?\s*1/.test(rollLuckSource), '運なし専用の特別経路がrollLuckにある');
 const noLuckRoll = makeRollLuck(() => 0.999999999, {luckRate:1.0});
@@ -668,9 +671,9 @@ assert.deepEqual(SCENARIOS.map(s => s.id), ['S1','S2','S3','S4','S5','S6','S7','
 const dailyCountSource = functionSource('dailyTicketCount');
 const dailyTicketCount = new Function(dailyCountSource + '\nreturn dailyTicketCount;')();
 const prepareDailyScenarios = new Function(
-  'shuffleScenarios','dailyTicketCount',
+  'shuffleScenarios','dailyTicketCount','assignScenarioIdentities',
   functionSource('prepareDailyScenarios') + '\nreturn prepareDailyScenarios;'
-)(shuffleScenarios, dailyTicketCount);
+)(shuffleScenarios, dailyTicketCount, scenarios => scenarios);
 const randomCounts = [0,.249999,.25,.5,.999999].map(value => dailyTicketCount(() => value, {dailyTickets:null}));
 assert.deepEqual(randomCounts, [2,2,3,4,5], 'ランダムな1日件数が2〜5の境界に収まらない');
 assert(new Set(randomCounts).size === 4, '1日件数が日によって変わらない');
@@ -798,10 +801,10 @@ const locationPartial = REMEDIES.location.find(remedy => remedy.id === 'r_window
 assert(locationPartial && locationScenario.partial.includes(locationPartial.id), 'S11に不便が残る次善策がない');
 
 // 連続する未表示行でも、先頭から一行ずつ表示する。後続行を先行行へ流し込まない。
-assert(game.includes("return t.transcript.find(x => (x.who === 'cust' || x.who === 'sys') && !x.typed);"), '未表示行を会話順に選んでいない');
+assert(game.includes("return t.transcript.find(x => (x.who === 'cust' || x.who === 'front' || x.who === 'sys') && !x.typed);"), '未表示行を会話順に選んでいない');
 assert(game.includes('const pending = pendingTypedLine(t);'), '文字送り対象の行を固定していない');
 assert(game.includes('const typing = l === pending;'), '複数の未表示行を同時に typing にしている');
-assert(game.includes("if ((l.who === 'cust' || l.who === 'sys') && !l.typed && l !== pending) return '';"), '順番待ちの発話を先読み表示している');
+assert(game.includes("if ((l.who === 'cust' || l.who === 'front' || l.who === 'sys') && !l.typed && l !== pending) return '';"), '順番待ちの発話を先読み表示している');
 
 // 同じ配送対処の再選択は、手配と費用を再発生させない。配送画面からも戻れる。
 assert(game.includes('if (t.shipment && t.shipment.remedyId === remedyId){'), '同じ配送手配の重複防止がない');
@@ -1293,12 +1296,12 @@ assert(CAREER_BADGES.some(badge => badge.id === 'ten_nights' && badge.label === 
 
 // §25-7 検査1: l_carrierは30分の社外照会。
 const carrierLookup25 = LOOKUPS.find(lookup => lookup.id === 'l_carrier');
-assert(carrierLookup25 && carrierLookup25.label === '現地キャリアへ回線契約の状態を問い合わせる' && carrierLookup25.minutes === 30 && carrierLookup25.external === true, '§25 l_carrierが30分の社外照会ではない');
+assert(carrierLookup25 && carrierLookup25.label === '現地キャリアへ回線の再開通を依頼する' && carrierLookup25.minutes === 30 && carrierLookup25.external === true, '§25 l_carrierが30分の社外照会ではない');
 
 // §25-7 検査2: 保留・通話継続は無効で、理由を表示する。
 const carrierLookupUi25 = functionSource('renderCarrierLookupOptions');
 assert.equal((carrierLookupUi25.match(/disabled/g) || []).length, 3, '§25 l_carrierの通話継続2経路または未確認ホテルが無効化されない');
-assert(carrierLookupUi25.includes('通話をつないだままでは実行できません') && carrierLookupUi25.includes('社外への問い合わせのため、通話継続では実行できません'), '§25 l_carrierを通話継続できない理由が画面にない');
+assert(carrierLookupUi25.includes('通話をつないだままでは実行できません') && carrierLookupUi25.includes('社外への再開通依頼のため、通話継続では実行できません'), '§25 l_carrierを通話継続できない理由が画面にない');
 assert(functionSource('doLookup').includes('if (l.external) return'), '§25 l_carrierをdoLookupから直接実行できる');
 
 // §25-7 検査3: l_carrier選択後に折り返しを約束した場合だけ開始・完了する。
@@ -1310,10 +1313,10 @@ carrierState25.focus = carrierTicket25; carrierState25.tickets = [carrierTicket2
 const startCarrier25 = new Function('LOOKUPS','CALL_FLOW_LINES','state','pushFlowLines','spendOnCall','defaultUi','playDisconnectSound','enterOffice','render', startCarrierSource25 + '\nreturn startCarrierCallback;')(
   LOOKUPS,CALL_FLOW_LINES,carrierState25,(ticket,lines) => ticket.transcript.push(...lines),() => true,tab => ({tab:tab || 'command'}),() => {},() => {},() => {}
 );
-startCarrier25('mobile');
+startCarrier25('hotel');
 assert.equal(carrierTicket25.state, undefined, '§25 l_carrier選択前に折り返しを開始できる');
 carrierState25.ui = {tab:'lookup',lookup:'l_carrier'};
-startCarrier25('mobile');
+startCarrier25('hotel');
 assert(carrierTicket25.carrierLookupStarted && carrierTicket25.state === 'callback' && carrierTicket25.callbackDue === 130 && carrierState25.focus === null, '§25 折り返し約束後に30分照会が始まらない');
 const finishCarrier25 = new Function('LOOKUPS','addFact', functionSource('finishCarrierLookup') + '\nreturn finishCarrierLookup;')(
   LOOKUPS,(ticket,fact,src) => ticket.facts = [{fact,src}]
@@ -1328,13 +1331,13 @@ assert.deepEqual(COMMAND_DEFS.map(command => command.label), ['聞く','調べ�
 assert(page.includes('data-office-callback="1"') && page.includes('>電話をかける<') && page.includes('id="office-tray-status"'), '§25 オフィスの電話をかけるボタンまたは折り返し待ち表示がない');
 assert(officeSource.includes('readyCallbacks') && officeSource.includes('callbackDue <= state.clock'), '§25 30分経過前から電話をかけるボタンが有効になる');
 
-// §25-7 検査6: 携帯／ホテルを選び、宛先違いを評価へ反映する。
-assert(carrierLookupUi25.includes('data-callback-destination="mobile"') && carrierLookupUi25.includes('data-callback-destination="hotel"') && carrierLookupUi25.includes("t.asked.has('q_stay')"), '§25 折り返し先の2択またはホテル確認条件がない');
+// §25-7 検査6は§39でホテル折り返しへ統一した。
+assert(!carrierLookupUi25.includes('data-callback-destination="mobile"') && carrierLookupUi25.includes('data-callback-destination="hotel"') && carrierLookupUi25.includes("t.asked.has('q_stay')"), '§39 現地キャリア折り返しがホテルと滞在先確認へ統一されていない');
 const resumeCallback25 = functionSource('resumeCallback');
-assert(resumeCallback25.includes('t.callbackDestination !== t.s.callbackTo') && resumeCallback25.includes('t.callbackPenalty') && closeSource.includes('base -= t.callbackPenalty || 0'), '§25 宛先違いの罰が戻っていない');
+assert(resumeCallback25.includes("t.callbackStage = 'front_desk'") && resumeCallback25.includes("who:'front'"), '§39 折り返しがホテルのフロントから始まらない');
 
-// §25-7 検査7: 再接続時にオペレーターと顧客の発話を積む。
-assert(resumeCallback25.includes("{ who:'me', text:callbackOperatorLine(t) }") && resumeCallback25.includes("{ who:'cust', text:CALL_FLOW_LINES.callback.replies[t.s.type] }"), '§25 折り返し再接続にオペレーターと顧客の発話が揃わない');
+// §25-7 検査7は§39でフロント接続後に顧客発話を積む。
+assert(functionSource('handleFrontDeskChoice').includes("{ who:'front', text:frontReply }") && functionSource('handleFrontDeskChoice').includes("{ who:'cust', text:callbackCustomerReply(t) }"), '§39 フロント接続後にFront Deskと顧客の発話が揃わない');
 assert.deepEqual(Object.keys(CALL_FLOW_LINES.callback.replies).sort(), ['anxious','expert','hurried','novice'], '§25 折り返し再接続の顧客応答が4タイプ分ない');
 
 // §25-7 検査8: S12は自社では有効、現地では0時失効となり、現地照会でprovisionをほぼ確定する。
@@ -1391,7 +1394,7 @@ const externalScreen26 = renderScreen26({lookupId:'l_carrier',lookupTitle:'現�
 assert(externalScreen26.includes('lookup-system-screen external') && externalScreen26.includes('外部照会'), '§26 l_carrierが外部照会として見分けられない');
 
 // §27-3 検査1〜10: 調べる・ログは常時押せ、共通の本人確認ガードで時間無消費の案内へ分岐する。
-const renderMenu27 = new Function('COMMAND_DEFS','esc','renderHangupButton', menuSource + '\nreturn renderCommandMenu;')(COMMAND_DEFS,esc26,() => '');
+const renderMenu27 = new Function('COMMAND_DEFS','esc','renderHotelCallbackChoice','renderHangupButton', menuSource + '\nreturn renderCommandMenu;')(COMMAND_DEFS,esc26,() => '',() => '');
 const menuBefore27 = renderMenu27({greeted:true,identified:false,nameKnown:false,destinationKnown:false}, 'actions');
 const recordButton27 = html => (html.match(/<button class="command-choice" data-command="record"[^>]*>[\s\S]*?<\/button>/) || [''])[0];
 assert(recordButton27(menuBefore27) && !recordButton27(menuBefore27).includes('disabled'), '§27 本人特定前のログが押せない');
@@ -1517,7 +1520,7 @@ assert(s9Logistics30.device === '（未受取）' && /受け取ってから一�
 
 // §30-6 検査3: 貸出記録が申込国と利用不可SIMの食い違いを自社の記録として示す。
 const s13Ship30 = s13Logistics30.lookups.l_ship;
-assert(s13Ship30.text.includes('申込: ポルトガル') && s13Ship30.text.includes('貸出品: タイ向けSIM') && s13Ship30.text.includes('ポルトガル: 利用不可') && (s13Ship30.fact.hot || []).includes('logistics'), '§30 検査3: l_shipに申込国と利用不可SIMの食い違いがない');
+assert(s13Ship30.text.includes('申込: {country}') && s13Ship30.text.includes('貸出品: {wrongCountry}向けSIM') && s13Ship30.text.includes('{country}: 利用不可') && (s13Ship30.fact.hot || []).includes('logistics'), '§30 検査3: l_shipに申込国と利用不可SIMの食い違いがない');
 
 // §30-6 検査4: 契約照会自体は正常である。
 const s13Plan30 = s13Logistics30.lookups.l_plan;
@@ -1699,6 +1702,180 @@ assert(!functionSource('doApologize').includes('pendingResult') && !functionSour
 const progression36 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
 assert.equal(progression36.status,0,'§36 検査9: progression_testが通らない\n' + (progression36.stdout || '') + (progression36.stderr || ''));
 assert(!/who:'note', text:'[^']*(?:症状が解消|原因を確定して案内|次の手を選)/.test(game),'§36 note監査: 次の手に必要な情報が非表示noteへ残っている');
+
+// §37-6: S12は現地キャリアへ再開通を依頼し、完了結果を待ってから折り返す。
+const s12Carrier37 = SCENARIOS.find(scenario => scenario.id === 'S12');
+const carrierRequest37 = LOOKUPS.find(lookup => lookup.id === 'l_carrier');
+const carrierRemedy37 = REMEDIES.provision.find(remedy => remedy.id === 'r_carrier_reopened_explain');
+assert(carrierRequest37.label === '現地キャリアへ回線の再開通を依頼する' && /再開通を依頼/.test(CALL_FLOW_LINES.carrier.promise) && !/状態を問い合わせ/.test(carrierRequest37.label),'§37 検査1: l_carrierが「照会」ではなく「再開通の依頼」として扱われない');
+assert(startCarrierSource25.includes('t.callbackDue = state.clock + lookup.minutes') && startCarrierSource25.includes("t.state = 'callback'") && startCarrierSource25.includes('state.focus = null'),'§37 検査2: 折り返しを約束して通話を切る従来フローがない');
+const carrierProbabilityRaw37 = new Function('CARRIER_REPLY_RATE',functionSource('carrierReplyProbability') + '\nreturn carrierReplyProbability;')(CARRIER_REPLY_RATE);
+const carrierProbability37 = () => carrierProbabilityRaw37(GAME_FLAGS);
+assert.equal(CARRIER_REPLY_RATE,0.8,'§37 検査3: キャリア完了連絡の既定確率が80%ではない');
+assert.equal(carrierProbabilityRaw37({luckRate:1}),1,'§37 検査4: luckRate 1.0でキャリア完了連絡が必ず届かない');
+const carrierReference37 = new Function(functionSource('carrierReference') + '\nreturn carrierReference;')();
+const makeResolveCarrier37 = state37 => new Function('state','carrierReplyProbability','recordOfficeEvent','carrierReference',functionSource('resolveCarrierRequest') + '\nreturn resolveCarrierRequest;')(
+  state37,carrierProbability37,(kind,text) => state37.officeEvents.push({kind,text}),carrierReference37
+);
+const arrivedState37 = {clock:130,random:() => .79,officeEvents:[]};
+const arrivedTicket37 = {carrierLookupStarted:true,carrierReplyStatus:'pending',callbackDue:130,s:s12Carrier37};
+assert(makeResolveCarrier37(arrivedState37)(arrivedTicket37) && arrivedTicket37.carrierReplyStatus === 'arrived' && arrivedState37.officeEvents.some(event => /再開通を完了.*GDW-348621/.test(event.text)),'§37 検査5: 完了連絡が折り返し前にオフィスで分からない');
+const missingState37 = {clock:130,random:() => .8,officeEvents:[]};
+const missingTicket37 = {carrierLookupStarted:true,carrierReplyStatus:'pending',callbackDue:130,s:s12Carrier37};
+assert(makeResolveCarrier37(missingState37)(missingTicket37) && missingTicket37.carrierReplyStatus === 'missing' && missingState37.officeEvents.some(event => /完了連絡は届いていません/.test(event.text)),'§37 検査6: 連絡が届かなかったことをオフィスで確認できない');
+const frontDeskChoice37 = functionSource('handleFrontDeskChoice');
+assert(/あ、さっきから使えてます/.test(CALL_FLOW_LINES.carrier.reopenedReplies.novice) && /ありがとう/.test(CALL_FLOW_LINES.carrier.reopenedReplies.novice) && frontDeskChoice37.indexOf('callbackCustomerReply(t)') < frontDeskChoice37.indexOf('finishCarrierLookup(t)'),'§37 検査7: 客室接続後に客が復旧と感謝を先に伝えない');
+assert(carrierRemedy37 && carrierRemedy37.label === '契約情報の同期ずれで回線が停止していたこと、現地キャリアによる再開通が完了したことをご説明する' && carrierRemedy37.reportsRestored === true,'§37 検査8: 復旧後の対処が原因と復旧の説明になっていない');
+assert(/まだ圏外|まだつなが/.test(CALL_FLOW_LINES.carrier.pendingReplies.novice) && /もう一度/.test(CALL_FLOW_LINES.carrier.pendingReplies.novice) && !missingTicket37.carrierRestored,'§37 検査9: 完了連絡なしでも回線が直り、客の落胆が出ない');
+const finishCarrier37 = new Function('LOOKUPS','lookupSystemLine','addFact',functionSource('finishCarrierLookup') + '\nreturn finishCarrierLookup;')(LOOKUPS,() => ({who:'sys'}),() => {});
+const retryTicket37 = {carrierLookupStarted:true,carrierReplyStatus:'missing',carrierRestored:false,lookedUp:new Set(),s:s12Carrier37,transcript:[]};
+assert(finishCarrier37(retryTicket37) && !retryTicket37.carrierLookupStarted && !retryTicket37.lookedUp.has('l_carrier') && startCarrierSource25.includes("t.lookedUp.has(lookup.id)"),'§37 検査10: 完了連絡なしの後に再依頼できず解決経路が詰む');
+assert(s12Carrier37.best === carrierRemedy37.id && carrierRemedy37.needsCarrierRestored === true && functionSource('doClose').includes('remedy.reportsRestored ? causeMatched && t.carrierRestored'),'§37 検査11: 再開通完了の説明が返金より高い最適評価にならない');
+const verify37 = spawnSync(process.execPath,['verify.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(verify37.status,0,'§37 検査12: verifyが13案件を真因1つへ収束させない\n' + (verify37.stdout || '') + (verify37.stderr || ''));
+const progression37 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(progression37.status,0,'§37 検査10: 完了連絡なしを含む解決経路でprogression_testが通らない\n' + (progression37.stdout || '') + (progression37.stderr || ''));
+
+// §38-6: 名前・年齢と土地bundleを、症状の土地制約を守ってシフトごとに割り当てる。
+const identityModule38 = new Function(
+  'SHIFT_START','PLACE_POOL','PLACE_CONSTRAINTS','IDENTITY_POOL','shuffleScenarios',
+  [
+    functionSource('scenarioLocalMinute'),functionSource('placeAllowedForScenario'),functionSource('scenarioNeedsSharedRegion'),functionSource('assignScenarioPlaces'),
+    functionSource('replaceScenarioTemplates'),functionSource('scenarioWithIdentityAndPlace'),functionSource('assignScenarioIdentities'),
+  ].join('\n') + '\nreturn {scenarioLocalMinute,placeAllowedForScenario,assignScenarioPlaces,replaceScenarioTemplates,scenarioWithIdentityAndPlace,assignScenarioIdentities};'
+)(22 * 60,PLACE_POOL,PLACE_CONSTRAINTS,IDENTITY_POOL,shuffleScenarios);
+const identitySelection38 = ['S4','S5','S6','S12','S13'].map((id,index) => Object.assign({},SCENARIOS.find(scenario => scenario.id === id),{arrive:[0,5,11,18,25][index]}));
+const assigned38 = identityModule38.assignScenarioIdentities(identitySelection38,() => .37,{shuffleIdentity:true});
+const byId38 = id => assigned38.find(scenario => scenario.id === id);
+assert(assigned38.every(scenario => IDENTITY_POOL.some(identity => identity.name === scenario.name && identity.nameEn === scenario.nameEn && identity.age === scenario.age)) && IDENTITY_POOL.every(identity => /^[A-Za-z]+(?: [A-Za-z]+)+$/.test(identity.nameEn)) && new Set(assigned38.map(scenario => scenario.name)).size === assigned38.length && new Set(assigned38.map(scenario => scenario.nameEn)).size === assigned38.length && assigned38.some(scenario => scenario.name !== SCENARIOS.find(raw => raw.id === scenario.id).name),'§38 検査1: 名前・ローマ字・年齢が案件から切り離され、シフトごとに割り当てられない');
+assert(assigned38.every(scenario => PLACE_POOL.some(place => place.country === scenario.country && place.city === scenario.city && place.cityEn === scenario.cityEn && place.localOffset === scenario.localOffset && place.carrier === scenario.carrierName)),'§38 検査2: 国・都市・cityEn・localOffset・キャリアが1組で割り当てられない');
+const scenarioStrings38 = scenario => {
+  const strings = [];
+  const walk = (value,key) => {
+    if (typeof value === 'string'){ if (!['name','country','city','cityEn','carrierName','regionName'].includes(key)) strings.push(value); return; }
+    if (Array.isArray(value)){ value.forEach(item => walk(item,key)); return; }
+    if (value && typeof value === 'object') Object.entries(value).forEach(([childKey,item]) => walk(item,childKey));
+  };
+  walk(scenario,'scenario');
+  return strings;
+};
+const fixedCities38 = PLACE_POOL.map(place => place.city);
+assert(SCENARIOS.every(scenario => !scenarioStrings38(scenario).some(text => fixedCities38.some(city => text.includes(city)))) && assigned38.every(scenario => !scenarioStrings38(scenario).some(text => /\{(?:city|country|carrier|region|wrongCountry)\}/.test(text))),'§38 検査3: 台詞・照会結果に固定都市名または未解決の差し込みが残っている');
+assert(!scenarioStrings38(SCENARIOS.find(scenario => scenario.id === 'S9')).some(text => /ノイバイ/.test(text)),'§38 検査4: 固有空港名が一般名詞へ直されていない');
+assert(!SCENARIOS.some(scenario => scenario.city.includes('近郊')) && !scenarioStrings38(SCENARIOS.find(scenario => scenario.id === 'S7')).some(text => /バルセロナ近郊/.test(text)),'§38 検査5: 都市名に地形を含む固定表現が残っている');
+const provision38 = byId38('S12');
+const provisionMinute38 = identityModule38.scenarioLocalMinute(provision38,provision38);
+assert(provisionMinute38 >= 22 * 60 || provisionMinute38 < 4 * 60,'§38 検査6: S12が日付境界の話として成立しない時差の土地へ割り当てられる');
+assert(byId38('S4').cityEn === 'SHANGHAI' && /中国/.test(byId38('S4').country),'§38 検査6-1: geo_block案件が中国以外へ割り当てられる');
+assert(Object.keys(PLACE_CONSTRAINTS).every(cause => {
+  if (PLACE_CONSTRAINTS[cause] === 'shared_region') return PLACE_POOL.some(place => place.regionGroup && PLACE_POOL.filter(other => other.regionGroup === place.regionGroup).length >= 2);
+  const scenario = SCENARIOS.find(item => item.trueCause === cause);
+  return scenario && PLACE_POOL.some(place => identityModule38.placeAllowedForScenario(scenario,place));
+}),'§38 検査6-2: 土地を選ぶ症状に割り当て可能な土地がない');
+assert(byId38('S5').regionGroup && byId38('S5').regionGroup === byId38('S6').regionGroup && byId38('S5').city !== byId38('S6').city,'§38 検査6-3: S5/S6が同じ地域の別都市へ割り当てられない');
+const s9Texts38 = scenarioStrings38(SCENARIOS.find(scenario => scenario.id === 'S9'));
+assert(!s9Texts38.some(text => /20時|22時|\d{1,2}:\d{2}/.test(text)) && s9Texts38.some(text => /営業時間外|臨時閉鎖/.test(text)),'§38 検査6-4: S9に固定時刻が残る、または営業時間外の芯が消えている');
+const s13Assigned38 = byId38('S13');
+assert(s13Assigned38.wrongCountry !== s13Assigned38.country && s13Assigned38.lookups.l_ship.text.includes(s13Assigned38.wrongCountry + '向けSIM') && s13Assigned38.lookups.l_ship.text.includes('申込: ' + s13Assigned38.country),'§38 検査6-5: S13の貸出品が申込国と別の土地から差し込まれない');
+assert(assigned38.every(scenario => !scenario.panel || scenario.panel.carrier === null || scenario.panel.carrier === scenario.carrierName) && assigned38.every(scenario => PLACE_POOL.some(place => place.city === scenario.city && place.carrier === scenario.carrierName)),'§38 検査6-6: キャリア名が土地プールに含まれず割り当て土地と一致しない');
+assert(!/B20|\b(?:700|800|900|1800|2100|2600)MHz\b/.test(SCENARIOS.find(scenario => scenario.id === 'S7').lookups.l_area.text) && /郊外をカバーする周波数帯/.test(SCENARIOS.find(scenario => scenario.id === 'S7').lookups.l_area.text),'§38 検査6-7: 周波数帯の具体名が残っている');
+const s2Texts38 = scenarioStrings38(SCENARIOS.find(scenario => scenario.id === 'S2'));
+assert(!s2Texts38.some(text => /同行.{0,8}(?:いま|今).{0,8}待たせ|待たせて(?:います|いる|ます)/.test(text)),'§38 検査6-8: S2に同行者をいま待たせている現在進行が残っている');
+assert(!s9Texts38.some(text => /退勤済み|退勤した/.test(text)) && s9Texts38.some(text => /担当者も不在/.test(text)),'§38 検査6-9: S9が時間帯に依存しない担当者不在の表現になっていない');
+const s11Texts38 = scenarioStrings38(SCENARIOS.find(scenario => scenario.id === 'S11'));
+assert(!s11Texts38.some(text => /会議開始まで|開始まで\d+分|残り\d+分|これから始まる|間に合った/.test(text)) && s11Texts38.some(text => /会議場/.test(text)) && s11Texts38.some(text => /地下/.test(text)),'§38 検査6-10: S11の会議カウントダウンが消えていない、または会議場・地下の芯が消えている');
+assert(!TYPES.hurried.angry.some(text => /会議が始まる/.test(text)) && TYPES.hurried.angry.some(text => /次の予定が迫って/.test(text)),'§38 検査6-11: hurried共通文が予定一般の表現になっていない');
+assert.deepEqual(PLACE_CONSTRAINTS,{geo_block:'china_only',provision:'deep_night'},'§38 検査6-12: 土地の制約がgeo_blockとprovisionの2つだけではない');
+assert(!SCENARIOS.some(scenario => Object.prototype.hasOwnProperty.call(scenario,'timeConstraint')) && !functionSource('placeAllowedForScenario').includes('timeConstraint'),'§38 検査6-12: 案件固有の追加土地・時間帯制約が残っている');
+assert(!SCENARIOS.filter(scenario => scenario.id !== 'S12').flatMap(scenarioStrings38).some(text => /現地(?:はいま|時刻は).*\d|日付が変わった瞬間/.test(text)),'§38 検査7: S12以外に土地と矛盾する固定の現地時刻・昼夜表現が残っている');
+assert(new Set(assigned38.map(scenario => scenario.name)).size === assigned38.length && new Set(assigned38.map(scenario => scenario.placeSourceScenarioId)).size === assigned38.length && new Set(PLACE_POOL.map(place => place.city)).size === PLACE_POOL.length,'§38 検査8: 同じ名前または同じ土地が一晩に二度出る');
+const unshuffled38 = identityModule38.assignScenarioIdentities(SCENARIOS,() => .37,{shuffleIdentity:false});
+assert(unshuffled38.every((scenario,index) => scenario.name === SCENARIOS[index].name && scenario.nameEn === SCENARIOS[index].nameEn && scenario.age === SCENARIOS[index].age && scenario.city === SCENARIOS[index].city && scenario.country === SCENARIOS[index].country && scenario.localOffset === SCENARIOS[index].localOffset),'§38 検査9: shuffleIdentity falseで案件データどおりの割り当てに戻らない');
+assert(assigned38.every(scenario => {
+  const raw = SCENARIOS.find(item => item.id === scenario.id);
+  return scenario.type === raw.type && scenario.trueCause === raw.trueCause && scenario.best === raw.best && JSON.stringify(scenario.partial || []) === JSON.stringify(raw.partial || []);
+}),'§38 検査10: 症状・タイプ・真因・対処までシャッフルされている');
+const verify38 = spawnSync(process.execPath,['verify.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(verify38.status,0,'§38 検査11: verifyが13案件を真因1つへ収束させない\n' + (verify38.stdout || '') + (verify38.stderr || ''));
+const progression38 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(progression38.status,0,'§38 検査12: progression_testが通らない\n' + (progression38.stdout || '') + (progression38.stderr || ''));
+
+// §39-8: 客の国際通話料を止め、ホテルのFront Deskを英語で通して折り返す。
+const callCost39 = new Function('CALL_RATE_PER_MIN',functionSource('callCost') + '\nreturn callCost;')(180);
+const customerCallCost39 = new Function('CALL_RATE_PER_MIN',functionSource('customerCallCost') + '\nreturn customerCallCost;')(180);
+assert.equal(callCost39({inboundMinutes:8,outboundMinutes:0}),0,'§39 検査1: 客からかかってきた通話の料金が会社費用に計上される');
+assert.equal(customerCallCost39({inboundMinutes:8,outboundMinutes:0}),1440,'§39 検査1: 客負担の国際通話料を追跡できない');
+assert.equal(callCost39({inboundMinutes:8,outboundMinutes:3}),540,'§39 検査2: 折り返した通話の料金が会社費用に計上されない');
+const totalCost39 = new Function('state','callCost',functionSource('totalCost') + '\nreturn totalCost;')({cost:100,tickets:[{outboundMinutes:3},{outboundMinutes:0}]},callCost39);
+assert.equal(totalCost39(),640,'§39 検査1/2: totalCostが入電と折り返しの負担を分離しない');
+
+const renderHeader39 = new Function('esc','CALL_RATE_PER_MIN',functionSource('renderCallHeader') + '\nreturn renderCallHeader;')(value => String(value),180);
+assert(/通話 08分[\s\S]*お客様負担 ¥1,440/.test(renderHeader39({s:{id:'S1'},callDirection:'inbound',callSegmentMinutes:8})) && /通話 03分[\s\S]*当社負担 ¥540/.test(renderHeader39({s:{id:'S1'},callDirection:'outbound',callSegmentMinutes:3})),'§39 検査3: 通話ヘッダに時間・負担者・費用が揃わない');
+
+assert.deepEqual(Object.keys(CALL_FLOW_LINES.callChargeConcern).sort(),['anxious','expert','hurried','novice'],'§39 検査4: 通話料を気にする発話が4タイプ分ない');
+assert.equal(new Set(Object.values(CALL_FLOW_LINES.callChargeConcern)).size,4,'§39 検査4: 通話料を気にする発話がタイプ別に書き分けられていない');
+const spend39 = new Function('CALL_FLOW_LINES','advance','pushCustomerLine','changeStress','addStress',functionSource('spendOnCall') + '\nreturn spendOnCall;')(
+  CALL_FLOW_LINES,() => {},(ticket,text) => ticket.concerns.push(text),(ticket,delta) => { ticket.stress += delta; return true; },() => true
+);
+Object.keys(TYPES).forEach(type => {
+  const ticket = {s:{type},state:'open',pendingResult:null,callMinutes:5,inboundMinutes:5,outboundMinutes:0,callSegmentMinutes:5,callDirection:'inbound',holdMinutes:0,callChargeConcerned:false,stress:10,concerns:[]};
+  assert(spend39(ticket,1,0) && ticket.concerns[0] === CALL_FLOW_LINES.callChargeConcern[type] && ticket.stress === 14,'§39 検査4: 5分超でタイプ別発話と小さな苛立ち増が起きない');
+  spend39(ticket,1,0);
+  assert.equal(ticket.concerns.length,1,'§39 検査5: 通話料を気にする発話を繰り返す');
+});
+
+const callbackChoice39 = new Function(functionSource('renderHotelCallbackChoice') + '\nreturn renderHotelCallbackChoice;')();
+assert(callbackChoice39({callDirection:'inbound',asked:new Set(),stayAddress:null,callChargeConcerned:true}).includes('disabled') && callbackChoice39({callDirection:'inbound',asked:new Set(),stayAddress:null,callChargeConcerned:true}).includes('滞在先が未確認'),'§39 検査6: 滞在先未確認でも折り返せる、または理由が出ない');
+assert(!/data-hotel-callback="1" disabled/.test(callbackChoice39({callDirection:'inbound',asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',callChargeConcerned:true})),'§39 検査6: 滞在先確認後もホテルへ折り返せない');
+const startState39 = {clock:100,focus:null,ui:{tab:'command'}};
+const startHotel39 = new Function('CALL_FLOW_LINES','state','pushFlowLines','spendOnCall','defaultUi','playDisconnectSound','enterOffice','render',functionSource('startHotelCallback') + '\nreturn startHotelCallback;')(
+  CALL_FLOW_LINES,startState39,(ticket,lines) => ticket.transcript.push(...lines),() => true,() => ({tab:'command'}),() => {},() => {},() => {}
+);
+const noStay39 = {asked:new Set(),stayAddress:null,transcript:[],callbackCount:0,state:'open'};
+startState39.focus = noStay39; startHotel39();
+assert.equal(noStay39.state,'open','§39 検査6: 滞在先未確認で一般折り返しを開始できる');
+const readyStay39 = {asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',transcript:[],callbackCount:0,state:'open'};
+startState39.focus = readyStay39; startHotel39();
+assert(readyStay39.state === 'callback' && readyStay39.callbackReason === 'general' && readyStay39.callbackDue === 100 && startState39.focus === null,'§39 検査14: l_carrier以外から一般折り返しを開始できない');
+
+const resume39 = functionSource('resumeCallback');
+assert(resume39.includes("t.callbackStage = 'front_desk'") && resume39.includes("who:'front'") && resume39.includes('CALL_FLOW_LINES.frontDesk.greeting'),'§39 検査7: 折り返すと最初にFront Deskへつながらない');
+const frontOptions39 = Object.values(CALL_FLOW_LINES.frontDesk.options);
+assert(frontOptions39.length === 3 && frontOptions39.every(line => /^[\x20-\x7E]+$/.test(line)) && functionSource('renderFrontDeskOptions').includes('Please choose what to say in English.'),'§39 検査8: Front Deskの発話と選択肢が平易な英語で揃わない');
+assert(functionSource('renderTranscript').includes("front:'Front Desk'") && functionSource('handleFrontDeskChoice').includes("{ who:'cust', text:callbackCustomerReply(t) }"),'§39 検査9: 客室接続後に話者がFront Deskから客へ切り替わらない');
+const renderFront39 = new Function('CALL_FLOW_LINES','esc','renderCommandHead',functionSource('hotelRoom') + '\n' + functionSource('renderFrontDeskOptions') + '\nreturn renderFrontDeskOptions;')(
+  CALL_FLOW_LINES,value => String(value),() => '<div class="head">Front Desk</div>'
+);
+const frontGreeting39 = CALL_FLOW_LINES.frontDesk.greeting;
+const unknownRoomFront39 = renderFront39({nameKnown:true,stayAddress:'ホテル名のみ',s:{name:'試験 顧客',nameEn:'Test Customer'},transcript:[{who:'front',text:frontGreeting39,typed:true}]});
+assert(unknownRoomFront39.includes('front-desk-context') && unknownRoomFront39.includes('Front Desk') && unknownRoomFront39.includes(frontGreeting39),'§39 検査7: Front Deskの発話が選択画面に表示されない');
+assert(unknownRoomFront39.includes('Test Customer') && !unknownRoomFront39.includes('試験 顧客'),'§39 検査8: Front Deskへ伝える顧客名がローマ字になっていない');
+assert(!unknownRoomFront39.includes('data-front-desk="room"') && !unknownRoomFront39.includes('—'),'§39 検査8: 部屋番号不明時にroom選択肢またはダッシュが表示される');
+const knownRoomFront39 = renderFront39({nameKnown:true,stayAddress:'ホテル、512号室',s:{name:'試験 顧客',nameEn:'Test Customer'},transcript:[{who:'front',text:frontGreeting39,typed:true}]});
+assert(knownRoomFront39.includes('data-front-desk="room"') && knownRoomFront39.includes('512'),'§39 検査8: 部屋番号判明後もroom選択肢が表示されない');
+
+const localModule39 = new Function('state',functionSource('ticketLocalMinute') + '\n' + functionSource('isLateLocalTime') + '\nreturn {ticketLocalMinute,isLateLocalTime};');
+const lateLocal39 = localModule39({clock:22*60});
+assert.equal(localModule39({clock:10*60}).ticketLocalMinute({s:{localOffset:-5}}),20*60,'§39 検査13: 現地時刻が割り当て土地のlocalOffsetから計算されない');
+assert(lateLocal39.isLateLocalTime({s:{localOffset:9}}) && !localModule39({clock:21*60}).isLateLocalTime({s:{localOffset:9}}),'§39 検査10: 現地22時以降の深夜判定ができない');
+assert(resume39.includes('isLateLocalTime(t)') && resume39.includes('CALL_FLOW_LINES.frontDesk.lateQuestion'),'§39 検査10: 深夜のFront Deskが難色を示さない');
+
+const frontState39 = {clock:22*60,focus:null,ui:{tab:'command'}};
+const frontModule39 = new Function('state','CALL_FLOW_LINES','spendOnCall','pushFlowLines','finishCarrierLookup','defaultUi','render',[
+  functionSource('ticketLocalMinute'),functionSource('isLateLocalTime'),functionSource('hotelRoom'),functionSource('callbackCustomerReply'),functionSource('handleFrontDeskChoice'),
+].join('\n') + '\nreturn handleFrontDeskChoice;')(
+  frontState39,CALL_FLOW_LINES,(ticket,minutes) => { ticket.spent = minutes; return true; },(ticket,lines) => ticket.lines = lines,() => true,() => ({tab:'command'}),() => {}
+);
+const makeFrontTicket39 = () => ({callbackStage:'front_desk',callbackReason:'general',nameKnown:true,stayAddress:'ホテル、512号室',s:{name:'試験 顧客',nameEn:'Test Customer',type:'novice',localOffset:9,lookups:{}},transcript:[],frontDeskAttempts:0});
+const directFront39 = makeFrontTicket39(); frontState39.focus = directFront39; frontModule39('callback');
+assert(directFront39.callbackStage === 'connected' && directFront39.spent === 1 && directFront39.lines[0].text === CALL_FLOW_LINES.frontDesk.connect,'§39 検査11: 折り返しと伝えてもFront Deskが円滑につながない');
+['guest','room'].forEach(choice => {
+  const ticket = makeFrontTicket39(); frontState39.focus = ticket; frontModule39(choice);
+  assert(ticket.callbackStage === 'connected' && ticket.spent === 2 && ticket.lines.some(line => line.who === 'cust'),'§39 検査12: 別の英語選択肢で客室へつながらず詰む');
+});
+assert(functionSource('startHotelCallback').includes("t.callbackReason = 'general'") && !functionSource('startHotelCallback').includes('l_carrier'),'§39 検査14: 一般折り返しがl_carrier専用のまま');
+const progression39 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
+assert.equal(progression39.status,0,'§39 検査15: progression_testが通らない\n' + (progression39.stdout || '') + (progression39.stderr || ''));
 
 // 編集用の3素材と配布用 index.html は、build.js と同じ規則で完全一致する。
 const expectedIndex = builtIndexSource(__dirname);

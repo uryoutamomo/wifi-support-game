@@ -2,9 +2,9 @@
 const fs = require('fs');
 const { readGameSource, functionSource: extractFunctionSource } = require('./test_helpers');
 const src = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
+  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,IDENTITY_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
 const D = new Function(src)();
-const { CAUSES, TYPES, SCENARIOS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = D;
+const { CAUSES, TYPES, SCENARIOS, IDENTITY_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = D;
 
 const EXPECTED_SLOGANS = [
   '凡事徹底',
@@ -28,23 +28,23 @@ const EXPECT = {
   S9: { cause:'logistics',   best:'r_transfer_logi',   noOut:null,               partial:['r_come_tomorrow'],tone:'brief' },
   S10:{ cause:'hardware',    best:'r_hardware_swap',   noOut:null,               partial:['r_hardware_no_swap'],tone:'warm' },
   S11:{ cause:'location',    best:'r_move_guide',      noOut:null,               partial:['r_window_stationary'],tone:'brief' },
-  S12:{ cause:'provision',   best:'r_escalate_prov',   noOut:null,               partial:[],                 tone:'warm' },
+  S12:{ cause:'provision',   best:'r_carrier_reopened_explain',noOut:null,        partial:[],                 tone:'warm' },
   S13:{ cause:'logistics',   best:'r_logistics_replacement',noOut:null,           partial:['r_logistics_refund'],tone:'warm' },
 };
 
 // 依頼で渡した液晶データ
 const PANEL = {
-  S1:{ bars:3, carrier:'AIS',          sim:'ok',   throttle:true,  clients:2, battery:62 },
-  S2:{ bars:4, carrier:'Vodafone UK',  sim:'ok',   throttle:false, clients:3, battery:71 },
-  S3:{ bars:4, carrier:'T-Mobile US',  sim:'ok',   throttle:false, clients:5, battery:55 },
-  S4:{ bars:4, carrier:'China Unicom', sim:'ok',   throttle:false, clients:2, battery:80 },
+  S1:{ bars:3, carrier:'{carrier}',     sim:'ok',   throttle:true,  clients:2, battery:62 },
+  S2:{ bars:4, carrier:'{carrier}',     sim:'ok',   throttle:false, clients:3, battery:71 },
+  S3:{ bars:4, carrier:'{carrier}',     sim:'ok',   throttle:false, clients:5, battery:55 },
+  S4:{ bars:4, carrier:'{carrier}',     sim:'ok',   throttle:false, clients:2, battery:80 },
   S5:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:45 },
   S6:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:38 },
   S7:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:3, battery:66 },
   S8:{ bars:null, carrier:null,        sim:'none', throttle:false, clients:0, battery:80 },
   S9:null,
   S10:{ bars:null, carrier:null,        sim:'none', throttle:false, clients:0, battery:76 },
-  S11:{ bars:1, carrier:'TIM',          sim:'ok',   throttle:false, clients:2, battery:68 },
+  S11:{ bars:1, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:2, battery:68 },
   S12:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:73 },
   S13:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:82 },
 };
@@ -55,7 +55,7 @@ const bad = (m) => { console.log('  NG  ' + m); ng++; };
 if (JSON.stringify(SLOGANS) !== JSON.stringify(EXPECTED_SLOGANS)) bad('SLOGANS が確定6文言・順番と一致しない');
 if (SLOGANS.some(slogan => !slogan)) bad('SLOGANS に空文字がある');
 if (LUCK_RATE !== 0.9) bad('運の本来どおり率が0.9ではない');
-if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55})) bad('運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う');
+if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55})) bad('運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う');
 if (JSON.stringify(REFUND_POLICY) !== JSON.stringify({
   amount:2400,
   company:{causes:['hardware','provision','logistics','carrier','coverage'],rejectionRate:0.05,satisfactionRate:0.5},
@@ -194,11 +194,11 @@ if (!/const CALL_RATE_PER_MIN = 180;/.test(gameSource)) bad('国際通話料が1
 if (/const CALLBACKS|callbacksLeft/.test(gameSource)) bad('現地キャリア照会と無関係な折り返し枠が戻っている');
 const carrierLookup25 = LOOKUPS.find(lookup => lookup.id === 'l_carrier');
 if (!carrierLookup25 || carrierLookup25.minutes !== 30 || carrierLookup25.external !== true) bad('l_carrierが30分の社外照会ではない');
-if (!sourceOf('doLookup').includes('if (l.external) return') || !sourceOf('startCarrierCallback').includes("state.ui.lookup !== lookup.id")) bad('l_carrier以外または通話継続から折り返しを開始できる');
+if (!sourceOf('doLookup').includes('if (l.external) return') || !sourceOf('startCarrierCallback').includes("state.ui.lookup !== lookup.id")) bad('l_carrierの再開通依頼を通常照会として実行できる');
 if (COMMAND_DEFS.length !== 4 || COMMAND_DEFS.some(command => command.id === 'callback')) bad('折り返すが5つ目の主コマンドへ戻っている');
 if (!pageSource.includes('data-office-callback="1"') || !pageSource.includes('id="office-tray-status"')) bad('オフィスの電話をかけるボタンまたは折り返し待ち表示がない');
-if (!sourceOf('resumeCallback').includes('t.callbackDestination !== t.s.callbackTo') || !sourceOf('doClose').includes('base -= t.callbackPenalty || 0')) bad('折り返し先違いの罰が戻っていない');
-if (!sourceOf('resumeCallback').includes('callbackOperatorLine(t)') || !sourceOf('resumeCallback').includes('CALL_FLOW_LINES.callback.replies[t.s.type]')) bad('折り返し再接続の会話が戻っていない');
+if (!sourceOf('resumeCallback').includes("t.callbackStage = 'front_desk'") || !sourceOf('resumeCallback').includes("who:'front'")) bad('ホテル折り返しがFront Deskから始まらない');
+if (!sourceOf('handleFrontDeskChoice').includes("{ who:'front', text:frontReply }") || !sourceOf('handleFrontDeskChoice').includes("{ who:'cust', text:callbackCustomerReply(t) }")) bad('Front Deskから客へ話者が切り替わらない');
 const s12Carrier25 = SCENARIOS.find(s => s.id === 'S12');
 if (!s12Carrier25 || !s12Carrier25.lookups.l_plan.text.includes('契約: 有効') || !s12Carrier25.lookups.l_carrier.text.includes('00:00 に契約満了として停止') || (s12Carrier25.lookups.l_carrier.fact.hot || []).join(',') !== 'provision' || s12Carrier25.lookups.l_carrier.fact.out.length !== CAUSES.length - 1) bad('S12の自社契約照会と現地キャリア照会の食い違い・provision確定力がない');
 if (/00:00|0時|日付が変わ/.test(s12Carrier25.opening) || !(s12Carrier25.replies.q_when.fact.hot || []).includes('provision')) bad('S12の第一声が正確な日付境界を漏らす、またはq_whenで手がかりを得られない');
@@ -389,7 +389,7 @@ const STRESS_LANGUAGE = {
   },
   hurried:{
     irritated:['あと何分？ バス、もう着きます。', '前置きはいい。次は？'],
-    angry:['その話、後。結論を言って。', '時計見てます？ 会議が始まる。急いで。'],
+    angry:['その話、後。結論を言って。', '時計見てます？ 次の予定が迫ってる。急いで。'],
     furious:['もう待てない。責任者に代わって。今。', 'ここで終わらせる。解約の手順だけ言って。'],
   },
   expert:{
@@ -431,7 +431,7 @@ try {
   t.stress = 91; speech.pushCustomerLine(t, '返答F'); speech.pushCustomerLine(t, '除外', {plain:true});
   const want = [
     'あと何分？ バス、もう着きます。 返答A', '返答B', '前置きはいい。次は？ 返答C',
-    'その話、後。結論を言って。 返答D', '時計見てます？ 会議が始まる。急いで。 返答E',
+    'その話、後。結論を言って。 返答D', '時計見てます？ 次の予定が迫ってる。急いで。 返答E',
     'もう待てない。責任者に代わって。今。 返答F', '除外',
   ];
   if (JSON.stringify(t.transcript.map(line => line.text)) !== JSON.stringify(want)) bad('言葉遣いの頻度・順番・plain除外が仕様と違う');
@@ -515,7 +515,7 @@ if (!/\.stress-panel\{[^}]*position:sticky/.test(pageSource)) bad('苛立ちメ�
 const recentStart = gameSource.indexOf('function recentTranscriptLines(');
 const recentEnd = gameSource.indexOf('\n\nfunction renderTranscript', recentStart);
 const recentSource = recentStart < 0 || recentEnd < 0 ? '' : gameSource.slice(recentStart, recentEnd);
-if (!recentSource.includes("line.who === 'cust' || line.who === 'me'") || !recentSource.includes('return player ? [player, customer] : [customer]')) bad('直近会話が顧客最新発話と直前の自分の最大2行ではない');
+if (!recentSource.includes("line.who === 'cust' || line.who === 'front' || line.who === 'me'") || !recentSource.includes('return player ? [player, customer] : [customer]')) bad('直近会話が顧客またはFront Deskの最新発話と直前の自分の最大2行ではない');
 const headerStart = gameSource.indexOf('function renderCallHeader(');
 const headerEnd = gameSource.indexOf('\n\nfunction stressDisplayStage', headerStart);
 const headerSource = headerStart < 0 || headerEnd < 0 ? '' : gameSource.slice(headerStart, headerEnd);
@@ -604,7 +604,7 @@ if (s10Speech32[0].fact.text !== '1回目のSIM清掃では認識しない' || s
 try {
   const dailyCount15 = new Function(sourceOf('dailyTicketCount') + '\nreturn dailyTicketCount;')();
   const shuffle15 = new Function(sourceOf('shuffleScenarios') + '\nreturn shuffleScenarios;')();
-  const prepare15 = new Function('shuffleScenarios','dailyTicketCount', sourceOf('prepareDailyScenarios') + '\nreturn prepareDailyScenarios;')(shuffle15,dailyCount15);
+  const prepare15 = new Function('shuffleScenarios','dailyTicketCount','assignScenarioIdentities', sourceOf('prepareDailyScenarios') + '\nreturn prepareDailyScenarios;')(shuffle15,dailyCount15,scenarios => scenarios);
   // 1-2. 何度選んでも2〜5件で、乱数境界により日ごとに変わる。
   const counts15 = [0,.249999,.25,.5,.999999].map(value => dailyCount15(() => value, {dailyTickets:null}));
   if (JSON.stringify(counts15) !== JSON.stringify([2,2,3,4,5]) || new Set(counts15).size !== 4) bad('1日件数が2〜5の範囲で日ごとに変わらない');
@@ -737,6 +737,55 @@ const simClean36 = REMEDIES.sim.find(remedy => remedy.id === 'r_sim_clean');
 if (!simClean36 || simClean36.label !== '接点の一時的な接触不良だったことをご説明し、そのままご利用いただく' || simClean36.kind !== 'resolve' || simClean36.needsTest !== 't_simout' || simClean36.needsTestCount !== 2) bad('§36 r_sim_cleanの説明文または構造が違う');
 if (sourceOf('doApologize').includes('pendingResult') || sourceOf('doApologize').includes('closeTicket')) bad('§36 謝罪だけで終話できる');
 if (/who:'note', text:'[^']*(?:症状が解消|原因を確定して案内)/.test(gameSource)) bad('§36 次の手に必要な復旧情報がnoteへ残っている');
+
+// §37: 現地キャリアへ再開通を依頼し、完了連絡を待ってから説明する。
+const s12_37 = SCENARIOS.find(scenario => scenario.id === 'S12');
+const carrier37 = LOOKUPS.find(lookup => lookup.id === 'l_carrier');
+const remedy37 = REMEDIES.provision.find(remedy => remedy.id === 'r_carrier_reopened_explain');
+if (!carrier37 || carrier37.label !== '現地キャリアへ回線の再開通を依頼する' || CARRIER_REPLY_RATE !== 0.8) bad('§37 再開通依頼または80%完了連絡が定義されていない');
+if (!sourceOf('startCarrierCallback').includes("t.carrierReplyStatus = 'pending'") || !sourceOf('resolveCarrierRequest').includes("state.random() < carrierReplyProbability()")) bad('§37 30分後の完了連絡を確率で一度だけ決めていない');
+if (!sourceOf('carrierReplyProbability').includes('flags.luckRate === 1 ? 1') || !sourceOf('resolveCarrierRequest').includes("recordOfficeEvent('carrier'")) bad('§37 luckRate 1.0の確定連絡またはホワイトボード通知がない');
+if (!CALL_FLOW_LINES.carrier.reopenedReplies.novice.includes('あ、さっきから使えてます') || !CALL_FLOW_LINES.carrier.pendingReplies.novice.includes('まだ圏外')) bad('§37 折り返し冒頭の復旧感謝または未復旧の落胆がない');
+if (!remedy37 || s12_37.best !== remedy37.id || !remedy37.needsCarrierRestored || !remedy37.reportsRestored || !/同期ずれ.*再開通が完了/.test(remedy37.label)) bad('§37 S12最適対処が復旧後の原因説明になっていない');
+if (!sourceOf('finishCarrierLookup').includes("t.carrierReplyStatus === 'arrived'") || !sourceOf('finishCarrierLookup').includes('t.carrierRestored = true') || !sourceOf('remedyBlockReason').includes('remedy.needsCarrierRestored')) bad('§37 未完了のまま復旧説明を選べる');
+
+// §38: 人物と土地だけを日ごとに入れ替え、土地依存の症状制約とbundleを保つ。
+const identities38 = new Set(IDENTITY_POOL.map(identity => identity.name + ':' + identity.nameEn + ':' + identity.age));
+const cities38 = new Set(PLACE_POOL.map(place => place.city));
+if (IDENTITY_POOL.length !== SCENARIOS.length || identities38.size !== SCENARIOS.length || IDENTITY_POOL.some(identity => !/^[A-Za-z]+(?: [A-Za-z]+)+$/.test(identity.nameEn))) bad('§38 名前・ローマ字・年齢プールに欠落、重複、または非ローマ字がある');
+if (PLACE_POOL.length !== SCENARIOS.length || cities38.size !== SCENARIOS.length || PLACE_POOL.some(place => !place.country || !place.cityEn || !Number.isFinite(place.localOffset) || !place.carrier)) bad('§38 土地bundleに欠落または都市重複がある');
+if (JSON.stringify(PLACE_CONSTRAINTS) !== JSON.stringify({geo_block:'china_only',provision:'deep_night'})) bad('§38 検査6-12: 土地制約がgeo_blockとprovisionの2つだけではない');
+const assign38 = sourceOf('assignScenarioIdentities');
+const allowed38 = sourceOf('placeAllowedForScenario');
+const places38 = sourceOf('assignScenarioPlaces');
+if (!GAME_FLAGS.shuffleIdentity || !assign38.includes('flags.shuffleIdentity ? shuffleScenarios(IDENTITY_POOL, random)') || !assign38.includes('item.country !== place.country')) bad('§38 人物・土地シャッフルまたは別国SIMの差し込みがない');
+if (!allowed38.includes("place.cityEn === 'SHANGHAI'") || !allowed38.includes('minute >= 22 * 60 || minute < 4 * 60')) bad('§38 中国限定または深夜限定の土地制約がない');
+if (!sourceOf('scenarioNeedsSharedRegion').includes("['carrier'].includes(scenario.trueCause)") || !places38.includes('place.regionGroup !== sharedCarrierRegion[1].regionGroup') || !places38.includes('used.has(place.sourceScenarioId)')) bad('§38 キャリア同地域または一晩の土地重複防止がない');
+if (!sourceOf('replaceScenarioTemplates').includes('city|country|carrier|region|wrongCountry')) bad('§38 土地bundleの差し込み対象が不足している');
+if (/20時|22時|22:35/.test(SCENARIOS.find(scenario => scenario.id === 'S9').opening + SCENARIOS.find(scenario => scenario.id === 'S9').replies.q_when.text)) bad('§38 S9に固定時刻が残っている');
+if (/B20|1800MHz|2100MHz/.test(SCENARIOS.find(scenario => scenario.id === 'S7').lookups.l_area.text)) bad('§38 S7に特定キャリア依存の周波数名が残っている');
+const strings38 = scenario => JSON.stringify(scenario);
+if (/同行.{0,8}(?:いま|今).{0,8}待たせ|待たせて(?:います|いる|ます)/.test(strings38(SCENARIOS.find(scenario => scenario.id === 'S2')))) bad('§38 検査6-8: S2に同行者をいま待たせている現在進行が残っている');
+if (/退勤済み|退勤した/.test(strings38(SCENARIOS.find(scenario => scenario.id === 'S9'))) || !/担当者も不在/.test(strings38(SCENARIOS.find(scenario => scenario.id === 'S9')))) bad('§38 検査6-9: S9が時間帯に依存しない担当者不在の表現ではない');
+const s11Strings38 = strings38(SCENARIOS.find(scenario => scenario.id === 'S11'));
+if (/会議開始まで|開始まで\d+分|残り\d+分|これから始まる|間に合った/.test(s11Strings38) || !/会議場/.test(s11Strings38) || !/地下/.test(s11Strings38)) bad('§38 検査6-10: S11の会議カウントダウンが残る、または会議場・地下の芯がない');
+if (TYPES.hurried.angry.some(text => /会議が始まる/.test(text)) || !TYPES.hurried.angry.some(text => /次の予定が迫って/.test(text))) bad('§38 検査6-11: hurried共通文が予定一般の表現ではない');
+if (SCENARIOS.some(scenario => Object.prototype.hasOwnProperty.call(scenario,'timeConstraint')) || allowed38.includes('timeConstraint')) bad('§38 検査6-12: 案件固有の追加土地・時間帯制約が残っている');
+
+// §39: 入電は客負担、ホテル折り返しは当社負担。Front Deskを英語で通す。
+if (!sourceOf('callCost').includes('t.outboundMinutes') || !sourceOf('customerCallCost').includes('t.inboundMinutes') || sourceOf('callCost').includes('t.callMinutes')) bad('§39 入電と折り返しの通話料負担が分離されていない');
+if (!sourceOf('spendOnCall').includes("t.callDirection === 'outbound'") || !sourceOf('spendOnCall').includes('t.callChargeConcerned = true') || !sourceOf('spendOnCall').includes('CALL_FLOW_LINES.callChargeConcern[t.s.type]')) bad('§39 方向別分数または5分超の一度きり発話がない');
+if (Object.keys(CALL_FLOW_LINES.callChargeConcern).length !== 4 || new Set(Object.values(CALL_FLOW_LINES.callChargeConcern)).size !== 4) bad('§39 通話料を気にする発話が4タイプ分ない');
+if (!sourceOf('renderCallHeader').includes("outbound ? '当社負担' : 'お客様負担'") || !sourceOf('renderCallHeader').includes('t.callSegmentMinutes')) bad('§39 通話ヘッダに負担者と区間時間が出ない');
+if (!sourceOf('startHotelCallback').includes("!t.asked.has('q_stay')") || !sourceOf('renderHotelCallbackChoice').includes('滞在先が未確認')) bad('§39 滞在先未確認の一般折り返しを理由つきで止めない');
+if (!sourceOf('resumeCallback').includes("t.callbackStage = 'front_desk'") || !sourceOf('renderTranscript').includes("front:'Front Desk'")) bad('§39 折り返しでFront Deskの英語応対へ入らない');
+if (!Object.values(CALL_FLOW_LINES.frontDesk.options).every(line => /^[\x20-\x7E]+$/.test(line)) || !sourceOf('renderFrontDeskOptions').includes('Please choose what to say in English.')) bad('§39 Front Deskの選択肢が英語で揃っていない');
+if (!sourceOf('renderFrontDeskOptions').includes('front-desk-context') || !sourceOf('renderFrontDeskOptions').includes('latestFront.text')) bad('§39 Front Deskの発話が選択画面に固定表示されない');
+if (!sourceOf('renderFrontDeskOptions').includes('t.s.nameEn') || !sourceOf('handleFrontDeskChoice').includes('t.s.nameEn')) bad('§39 Front Deskへ伝える顧客名がローマ字ではない');
+if (!sourceOf('renderFrontDeskOptions').includes("const roomChoice = room") || sourceOf('renderFrontDeskOptions').includes("replace('{room}', room || '—')")) bad('§39 部屋番号不明時にroom選択肢またはダッシュが出る');
+if (!sourceOf('isLateLocalTime').includes('ticketLocalMinute(t)') || !sourceOf('ticketLocalMinute').includes('t.s.localOffset') || !sourceOf('resumeCallback').includes('CALL_FLOW_LINES.frontDesk.lateQuestion')) bad('§39 土地のlocalOffsetによる深夜判定または難色発話がない');
+if (!sourceOf('handleFrontDeskChoice').includes("const direct = choice === 'callback'") || !sourceOf('handleFrontDeskChoice').includes("t.callbackStage = 'connected'") || sourceOf('handleFrontDeskChoice').includes("t.callbackStage = 'blocked'")) bad('§39 折り返し説明の円滑接続または他選択肢の非詰みを守らない');
+if (sourceOf('startHotelCallback').includes('l_carrier') || !sourceOf('startHotelCallback').includes("t.callbackReason = 'general'")) bad('§39 一般折り返しがl_carrier専用のまま');
 
 // S2/S3 に q_lamp が入ったか
 ['S2','S3'].forEach(id => {

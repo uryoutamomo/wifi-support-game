@@ -6,9 +6,11 @@ const TURN_MIN = 1;          // 時間進行の最小単位＝ゲーム内1分
 const SHIFT_START = 22 * 60; // 22:00 JST
 const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
+const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
   shuffleArrival: true,
+  shuffleIdentity: true,
   dailyTickets: null,
   careerStage: null,
   unlockedBadges: null,
@@ -170,7 +172,7 @@ const TYPES = {
     furious:['これ以上は検証になりません。責任者へ引き継いでください。', 'この品質なら、契約継続は再検討します。記録を残してください。'] },
   hurried: { label:'急いでいる', tone:'brief', note:'前置きは邪魔。結論から短く。', stressStart:15, stressRate:1.6, missRate:1.3, sootheReply:'分かった。次。結論から。', sootheMissReply:'落ち着く話は後。結論を。', sootheRepeatReply:'それは聞いた。次へ。', solvedReply:'復旧した。原因だけ短く説明して。', refundRejectReply:'返金は要らない。今つながる方法を出して。対応を続けてください。',
     irritated:['あと何分？ バス、もう着きます。', '前置きはいい。次は？'],
-    angry:['その話、後。結論を言って。', '時計見てます？ 会議が始まる。急いで。'],
+    angry:['その話、後。結論を言って。', '時計見てます？ 次の予定が迫ってる。急いで。'],
     furious:['もう待てない。責任者に代わって。今。', 'ここで終わらせる。解約の手順だけ言って。'] },
 };
 
@@ -226,10 +228,41 @@ const CALL_FLOW_LINES = Object.freeze({
       hurried:'はい。待ってました。結論からお願いします。',
       expert:'はい。調査結果をお願いします。',
     }),
+    promise:'通話料のご負担を止めるため、いったんお切りして、こちらからホテルへ折り返してもよろしいですか。',
+    consent:'はい、ホテルで待っています。お願いします。',
+  }),
+  callChargeConcern:Object.freeze({
+    anxious:'海外からの通話料が心配で…。このまま長くなっても大丈夫でしょうか。',
+    novice:'この電話、海外からなので料金がかかりますよね。まだ長くなりますか？',
+    hurried:'もう5分超えてます。国際電話代もあるので、長引くなら折り返してください。',
+    expert:'国際通話が5分を超えています。以降はホテルへの折り返しに切り替えられますか。',
+  }),
+  frontDesk:Object.freeze({
+    greeting:'Good evening, this is the front desk. How may I help you?',
+    lateQuestion:"It's quite late here. May I ask what this is regarding?",
+    connect:'I see. One moment, please.',
+    delayedConnect:"I understand. It's quite late, but I'll connect you this time. One moment, please.",
+    options:Object.freeze({
+      guest:"I'd like to speak with a guest, Mr./Ms. {name}.",
+      room:'Could you connect me to room {room}?',
+      callback:'This is a callback. The guest called us earlier.',
+    }),
   }),
   carrier:Object.freeze({
-    promise:'現地キャリアへの照会には30分ほどかかります。いったんお切りして、結果が分かり次第お電話してもよろしいですか。',
+    promise:'現地キャリアへ回線の再開通を依頼します。30分ほどかかりますので、いったんお切りして、完了状況が分かり次第お電話してもよろしいですか。',
     consent:'分かりました。お願いします。',
+    reopenedReplies:Object.freeze({
+      anxious:'あ、さっきから使えてます…！ もう駄目かと思いました。直してくださって、本当にありがとうございます。',
+      novice:'あ、さっきから使えてます！ もうつながっています。直してくださって、本当にありがとうございます。',
+      hurried:'あ、さっきから使えてます。直りました、ありがとう。原因だけ教えてください。',
+      expert:'先ほどから疎通が戻っています。再開通を確認しました。対応ありがとうございます。原因をご説明ください。',
+    }),
+    pendingReplies:Object.freeze({
+      anxious:'まだつながっていません…。返事も来なかったんですね。もう一度お願いするか、ほかの方法はありますか。',
+      novice:'まだ圏外のままです…。連絡が来なかったのですね。もう一度お願いできますか。',
+      hurried:'まだ圏外。返事なしですね。再依頼か返金か、次を決めてください。',
+      expert:'疎通は戻っていません。先方から完了連絡もないなら、再依頼または代替案を提示してください。',
+    }),
   }),
   lookup:Object.freeze({
     holdStart:'確認いたしますので、少々お待ちください。',
@@ -343,8 +376,8 @@ const LOOKUPS = [
   { id:'l_area',    label:'渡航先の対応エリアと機種対応を確認', title:'エリア照会', spoken:'渡航先は対応地域内で、貸出機種も対応しています。', defaultResult:'[エリア照会] 渡航先: 対応地域内 ／ 貸出機種: 対応 ✓' },
   { id:'l_ship',    label:'貸出・返却・配送の記録を照会', title:'貸出記録', spoken:'貸出と返却の記録に問題はなく、特記事項もありませんでした。', defaultResult:'[貸出記録] 通常の貸出。受取済み・返却期限内。特記事項なし。',
     missFact:{ text:'貸出・返却に問題はなく、物流側の案件ではない', out:['logistics'] } },
-  { id:'l_carrier', label:'現地キャリアへ回線契約の状態を問い合わせる', title:'現地キャリア照会', spoken:'現地キャリア側でも契約は有効で、開通状態に問題はありませんでした。', minutes:30, external:true,
-    defaultResult:'[現地キャリア照会] 回線契約: 有効 ／ 開通状態: 正常 ／ 同期エラーなし',
+  { id:'l_carrier', label:'現地キャリアへ回線の再開通を依頼する', title:'現地キャリアへの再開通依頼', spoken:'現地キャリアへ再開通を依頼しました。', minutes:30, external:true,
+    defaultResult:'[現地キャリア] 再開通依頼を受け付けました ／ 完了連絡待ち',
     missFact:{ text:'現地キャリア側でも回線契約は有効で、開通設定の不備はない', out:['provision'] } },
 ];
 
@@ -430,6 +463,7 @@ const REMEDIES = {
     { id:'r_hardware_no_swap', label:'機器故障と診断し、交換せず利用料金の返金だけを案内する', sub:'短期滞在または配送を希望しない場合', kind:'escalate', needsTest:'t_simout', needsTestCount:2 },
   ],
   provision: [
+    { id:'r_carrier_reopened_explain', label:'契約情報の同期ずれで回線が停止していたこと、現地キャリアによる再開通が完了したことをご説明する', sub:'現地キャリアへ依頼し、実際に回線が復旧した後の結果報告', kind:'resolve', needsCarrierRestored:true, reportsRestored:true },
     { id:'r_escalate_prov', label:'開通設定の不備としてプロビジョニング担当へエスカレーションする', sub:'枠を1つ消費', kind:'escalate' },
   ],
   logistics: [
@@ -447,16 +481,16 @@ const SCENARIOS = [
 
 /* === 1. バンコク：容量超過。導入。社内照会で確定できる === */
 {
-  id:'S1', arrive:0, name:'三宅 千夏', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel',
+  id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel',
   deviceInHand:true,
   contractId:{ minutes:2, text:'予約番号…はい、探します。手が震えて…すみません。ありました。GDW-410882、これで合っていますか？' },
-  city:'バンコク', cityEn:'BANGKOK', localOffset:-2, device:'GD-500', plan:'タイ ／ 500MBプラン',
+  country:'タイ', city:'バンコク', cityEn:'BANGKOK', localOffset:-2, carrierName:'AIS', device:'GD-500', plan:'{country} ／ 500MBプラン',
   opening:'あの…地図が全然開かないんです。昨日まで使えたのに、今日だけ急に遅くて…。どうしたらいいでしょうか。',
   smalltalk:[
-    { id:'st_s1_trip', reveal:'q_when', askLabel:'バンコクでは、どちらを回られるご予定ですか？', tellLabel:'新婚旅行、おめでとうございます', goodReply:'ありがとうございます…。夫と一緒だと思ったら、少し息ができました。', badReply:'ありがとうございます。でも地図がないと、ホテルにも戻れなくなりそうで…。' },
+    { id:'st_s1_trip', reveal:'q_when', askLabel:'{city}では、どちらを回られるご予定ですか？', tellLabel:'新婚旅行、おめでとうございます', goodReply:'ありがとうございます…。夫と一緒だと思ったら、少し息ができました。', badReply:'ありがとうございます。でも地図がないと、ホテルにも戻れなくなりそうで…。' },
     { id:'st_s1_movie', reveal:'q_when', askLabel:'昨夜は、どのような映画をご覧になったんですか？', tellLabel:'お二人で映画を楽しまれたんですね', goodReply:'はい…つい見入ってしまって。思い出したら、少し落ち着きました。', badReply:'映画の話をしたら、私が使いすぎたせいって決まるんでしょうか…？' },
   ],
-  panel:{ bars:3, carrier:'AIS', sim:'ok', throttle:true, clients:2, maxClients:5, battery:62, ssid:'Globaldesk-2210' },
+  panel:{ bars:3, carrier:'{carrier}', sim:'ok', throttle:true, clients:2, maxClients:5, battery:62, ssid:'Globaldesk-2210' },
   trueCause:'fup', best:'r_topup', partial:['r_slow_ok'],
   replies:{
     q_other_device:{ text:'夫のスマホも同じです。二人とも遅くて…。端末まで二つとも壊れたんでしょうか？',
@@ -469,13 +503,13 @@ const SCENARIOS = [
       fact:{ text:'接続は2台のみ', out:['devices'] } },
     q_what_fails:{ text:'全部です。ずっとくるくる回って…。何も開かなくなるんじゃないかって。',
       fact:{ text:'特定サービスではなく全体が低速', out:['geo_block'] } },
-    q_stay:{ text:'バンコクのホテル、1208号室です。ここまで来ていただけるんですか？' },
+    q_stay:{ text:'{city}のホテル、1208号室です。ここまで来ていただけるんですか？' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] プラン: 500MB/日 ／ 本日の使用量: 512MB（上限到達）／ 現在 速度制限中（最大128kbps）／ 前日使用量: 4.2GB',
       fact:{ text:'本日の使用量が上限に到達し、速度制限がかかっている', hot:['fup'], out:['heavy','location','power','hardware','provision'] },
       viz:{ label:'本日の使用量', value:512, max:500, unit:'MB', note:'前日 4,200MB' } },
-    l_outage:{ text:'[障害情報] タイ AIS 網 正常。障害報告なし。',
+    l_outage:{ text:'[障害情報] {country} {carrier} 網 正常。障害報告なし。',
       fact:{ text:'現地キャリアに障害なし', out:['carrier'] } },
   },
   debrief:'いちばん素直な形。<em>社内の使用量照会で裏が取れる「確定」案件</em>で、客に余計な操作をさせる必要はありません。前夜の動画視聴という自己申告だけで決めつけず、契約照会まで引いて数字を見たかどうかが分かれ目でした。'
@@ -483,16 +517,16 @@ const SCENARIOS = [
 
 /* === 2. ロンドン：一台だけ繋がらない。端末側の保存情報 === */
 {
-  id:'S2', arrive:5, name:'田辺 幸子', age:71, type:'novice', abandonAfter:30, callbackTo:'mobile',
+  id:'S2', arrive:5, name:'田辺 幸子', nameEn:'Sachiko Tanabe', age:71, type:'novice', abandonAfter:30, callbackTo:'mobile',
   deviceInHand:true,
   contractId:{ minutes:4, text:'番号…どの紙でしょう。すみません、老眼鏡も見つからなくて…。これですか？ GDW-336104。違っていたら、ごめんなさいね。' },
-  city:'ロンドン', cityEn:'LONDON', localOffset:-8, device:'GD-500', plan:'イギリス ／ 無制限プラン',
+  country:'イギリス', city:'ロンドン', cityEn:'LONDON', localOffset:-8, carrierName:'Vodafone UK', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'も、もしもし。インターネットが繋がらなくて…。変な所を押して壊したんでしょうか。すみません、機械のことが本当に分からなくて…。',
-  smalltalk:[{ id:'st_s2_tour', reveal:'q_other_device', askLabel:'ツアーでは、今日はどちらを回られたんですか？', tellLabel:'皆様とのご旅行、素敵ですね', goodReply:'今日は博物館へ…。皆さんと一緒だと思うと、少し心強いです。', badReply:'お気遣いまで、すみません。でも私だけ待たせていて…どうしましょう。' }],
-  panel:{ bars:4, carrier:'Vodafone UK', sim:'ok', throttle:false, clients:3, maxClients:5, battery:71, ssid:'Globaldesk-4471' },
+  smalltalk:[{ id:'st_s2_tour', reveal:'q_other_device', askLabel:'ツアーでは、どちらを回られたんですか？', tellLabel:'皆様とのご旅行、素敵ですね', goodReply:'旅程では博物館へ…。皆さんと一緒だと思うと、少し心強いです。', badReply:'お気遣いまで、すみません。同行のお二人にも迷惑をかけないか心配で…。' }],
+  panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:3, maxClients:5, battery:71, ssid:'Globaldesk-4471' },
   trueCause:'device_side', best:'r_forget_guide', partial:['r_use_other'],
   replies:{
-    q_other_device:{ text:'ツアーのほかのお二人は繋がっています。同じ機械なのに私だけで…。やっぱり私の押し方ですか？',
+    q_other_device:{ text:'ツアー同行のお二人は繋がっています。同じ機械なのに私だけで…。やっぱり私の押し方ですか？',
       fact:{ text:'同一ルーターで他端末は正常。本人の端末だけ不通', hot:['device_side','device_net'], out:['carrier','sim','hardware','coverage','fup','provision'] } },
     q_lamp:{ text:'四角い画面に棒が4本…数字は3です。これで合っていますか？ 見る所、違いませんか？',
       fact:{ text:'アンテナ4本。接続3台。本体は正常に電波を掴んでいる', out:['sim','carrier','coverage','power'] } },
@@ -500,7 +534,7 @@ const SCENARIOS = [
       fact:{ text:'SSIDは見えており、認証の段階で失敗している', out:['sim','power','location','geo_block','heavy'] } },
     q_count:{ text:'三人ですから、三台…ですよね？ 数え方、これでいいでしょうか。',
       fact:{ text:'接続は3台', out:['devices'] } },
-    q_when:{ text:'今朝ホテルを出てからです。昨日は使えました。私、今朝何か触ったかしら…。' },
+    q_when:{ text:'旅行中にホテルを出てからです。それまでは使えました。私、何か触ったかしら…。' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] プラン: 無制限 ／ 使用量: 1.8GB ／ 速度制限なし',
@@ -520,13 +554,13 @@ const SCENARIOS = [
 
 /* === 3. ホノルル：同時接続台数の上限超過。FUPと紛らわしい === */
 {
-  id:'S3', arrive:11, name:'大久保 健', age:44, type:'hurried', abandonAfter:22, callbackTo:'mobile',
+  id:'S3', arrive:11, name:'大久保 健', nameEn:'Ken Okubo', age:44, type:'hurried', abandonAfter:22, callbackTo:'mobile',
   deviceInHand:true,
   rushedReply:'はい。挨拶は分かった。続き、早く。', contractId:{ minutes:1, text:'メールにあります。GDW-529017。はい、次。' },
-  city:'ホノルル', cityEn:'HONOLULU', localOffset:-19, device:'GD-500', plan:'ハワイ ／ 無制限プラン',
+  country:'ハワイ', city:'ホノルル', cityEn:'HONOLULU', localOffset:-19, carrierName:'T-Mobile US', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'急いでます。一台だけ繋がりません。ほかは使えます。あと10分で移動しないといけません。何を見ればいいですか。',
   smalltalk:[{ id:'st_s3_daughter', reveal:'q_other_device', askLabel:'お嬢様はタブレットで何をご覧になるんですか？', tellLabel:'お嬢様とのご旅行、楽しそうですね', goodReply:'家族旅行です。…はい、少し落ち着きました。次は？', badReply:'その話は後。バスが着きます。直し方を先に。' }],
-  panel:{ bars:4, carrier:'T-Mobile US', sim:'ok', throttle:false, clients:5, maxClients:5, battery:55, ssid:'Globaldesk-8802' },
+  panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:5, maxClients:5, battery:55, ssid:'Globaldesk-8802' },
   trueCause:'devices', best:'r_disconnect', partial:['r_second_unit'], shipNeed:'normal',
   replies:{
     q_other_device:{ text:'私と妻は使えてます。子どもの分だけ駄目。次の質問は？',
@@ -541,7 +575,7 @@ const SCENARIOS = [
       fact:{ text:'SSIDは見えているが参加できない', out:['location','power','device_net'] } },
     q_what_fails:{ text:'Wi-Fi自体に入れない。サイト以前。次。',
       fact:{ text:'接続自体ができていない', out:['geo_block'] } },
-    q_stay:{ text:'ワイキキのホテル。未到着だから部屋番号はまだ。' },
+    q_stay:{ text:'{city}市内のホテル。未到着だから部屋番号はまだ。' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] プラン: 無制限 ／ 使用量: 2.1GB ／ 速度制限なし',
@@ -560,13 +594,13 @@ const SCENARIOS = [
 
 /* === 4. 上海：渡航先の通信規制。技術に明るい客 === */
 {
-  id:'S4', arrive:18, name:'森 達彦', age:39, type:'expert', abandonAfter:35, callbackTo:'hotel',
+  id:'S4', arrive:18, name:'森 達彦', nameEn:'Tatsuhiko Mori', age:39, type:'expert', abandonAfter:35, callbackTo:'hotel',
   deviceInHand:true,
   contractId:{ minutes:1, text:'GDW-118350です。控えてあります。' },
-  city:'上海', cityEn:'SHANGHAI', localOffset:-1, device:'GD-500', plan:'中国本土 ／ 1GBプラン',
+  country:'中国本土', city:'上海', cityEn:'SHANGHAI', localOffset:-1, carrierName:'China Unicom', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'電波強度と回線速度は正常。ただ、社内システムと海外系サービスだけ到達しません。疎通は取れて、名前解決で落ちます。経路条件を疑っています。',
-  smalltalk:[{ id:'st_s4_work', reveal:'q_when', askLabel:'上海では、どのようなお仕事をされているんですか？', tellLabel:'上海でのお仕事、お疲れさまです', goodReply:'ありがとうございます。現地チームとの技術打ち合わせです。では続けましょう。', badReply:'お気遣いは不要です。その質問が障害切り分けにどう寄与しますか。' }],
-  panel:{ bars:4, carrier:'China Unicom', sim:'ok', throttle:false, clients:2, maxClients:5, battery:80, ssid:'Globaldesk-1174' },
+  smalltalk:[{ id:'st_s4_work', reveal:'q_when', askLabel:'{city}では、どのようなお仕事をされているんですか？', tellLabel:'{city}でのお仕事、お疲れさまです', goodReply:'ありがとうございます。現地チームとの技術打ち合わせです。では続けましょう。', badReply:'お気遣いは不要です。その質問が障害切り分けにどう寄与しますか。' }],
+  panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:2, maxClients:5, battery:80, ssid:'Globaldesk-1174' },
   trueCause:'geo_block', best:'r_vpn_plan', partial:['r_explain_block'],
   replies:{
     q_what_fails:{ text:'全断ではありません。現地系サイトは正常です。落ちるのは海外系サービスと、社内の暗号化ゲートウェイです。',
@@ -577,12 +611,12 @@ const SCENARIOS = [
       fact:{ text:'現地キャリアを正常に掴んでいる', out:['sim','hardware','coverage','provision'] } },
     q_when:{ text:'現地チームとの技術打ち合わせで到着した初日から再現しています。経時劣化ではありません。',
       fact:{ text:'渡航当初から一貫して同じ症状', out:['heavy'] } },
-    q_stay:{ text:'浦東のホテル、1506号室です。この情報は配送判断用ですか？' },
+    q_stay:{ text:'{city}市内のホテル、1506号室です。この情報は配送判断用ですか？' },
   },
   lookups:{
-    l_area:{ text:'[エリア照会] 中国本土 ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: China Unicom ✓ ／ 備考: 通常のデータプランには現地の通信規制を回避する経路が含まれない。規制対象サービスの利用には「VPN付きオプション」の追加が必要。',
+    l_area:{ text:'[エリア照会] {country} ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: {carrier} ✓ ／ 備考: 通常のデータプランには現地の通信規制を回避する経路が含まれない。規制対象サービスの利用には「VPN付きオプション」の追加が必要。',
       fact:{ text:'契約プランが規制回避に対応していない。VPN付きプランで解消する', hot:['geo_block'], out:['coverage','provision'] } },
-    l_outage:{ text:'[障害情報] 中国 China Unicom 網 正常。障害報告なし。',
+    l_outage:{ text:'[障害情報] {country} {carrier} 網 正常。障害報告なし。',
       fact:{ text:'現地キャリアに障害なし', out:['carrier'] } },
   },
   debrief:'「繋がらない」の中身を分けられたかどうかです。<em>回線は生きていて、特定のサービスだけが落ちている</em>なら、疑うのは機器ではなく契約と地域の条件。相手はpingとDNSの区別がつく人なので、噛み砕きすぎるとかえって信用を落とします。'
@@ -590,10 +624,10 @@ const SCENARIOS = [
 
 /* === 5. ニューヨーク①：広域障害。この時点ではまだ見えない === */
 {
-  id:'S5', arrive:25, name:'小林 亜衣', age:33, type:'anxious', abandonAfter:28, callbackTo:'hotel',
+  id:'S5', arrive:25, name:'小林 亜衣', nameEn:'Ai Kobayashi', age:33, type:'anxious', abandonAfter:28, callbackTo:'hotel',
   deviceInHand:true,
   contractId:{ minutes:2, text:'はい…会社の手配です。えっと、GDW-673925。間違っていませんよね？' },
-  city:'ニューヨーク', cityEn:'NEW YORK', localOffset:-13, device:'GD-500', plan:'アメリカ ／ 無制限プラン',
+  country:'アメリカ', city:'ニューヨーク', cityEn:'NEW YORK', localOffset:-13, carrierName:'T-Mobile US', regionGroup:'us_northeast', regionName:'米国北東部', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'あの…30分前に全部切れて、再起動しても戻りません。明朝までに必要な資料が開けなくて…。失敗したらと思うと、手が震えます。どうしよう…。',
   smalltalk:[{ id:'st_s5_visit', reveal:'q_when', askLabel:'明日は、どのようなお客様を訪問されるんですか？', tellLabel:'明日のご訪問、うまく進むといいですね', goodReply:'ありがとうございます…。大事な提案なので、その一言で少し呼吸が戻りました。', badReply:'ありがとうございます。でも、このままだと提案そのものができなくなります…。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:45, ssid:'Globaldesk-6390' },
@@ -603,16 +637,16 @@ const SCENARIOS = [
       fact:{ text:'複数端末で同時に不通', out:['device_side','device_net'] } },
     q_lamp:{ text:'アンテナ0本、「圏外」です。さっきまで4本だったのに…。急に全部消えました。',
       fact:{ text:'圏外表示。直前まで電波は正常だった', hot:['carrier','sim','coverage'], out:['fup','devices','geo_block','heavy'] } },
-    q_where:{ text:'ミッドタウンのホテルです。窓際もロビーも駄目で…。もう外へ出るしかないですか？',
+    q_where:{ text:'{city}中心部のホテルです。窓際もロビーも駄目で…。もう外へ出るしかないですか？',
       fact:{ text:'複数の場所で試しても圏外のまま', out:['location'] } },
     q_when:{ text:'30分前です。急に切れて…。明朝に大事な提案があるのに、それまで普通だったから、余計に怖くて。',
       fact:{ text:'突発的に発生。前兆なし', out:['power'] } },
-    q_stay:{ text:'ミッドタウンのホテル、816号室です。ここで待っていて大丈夫でしょうか？' },
+    q_stay:{ text:'{city}中心部のホテル、816号室です。ここで待っていて大丈夫でしょうか？' },
   },
   lookups:{
-    l_outage:{ text:'[障害情報] 米国 提携キャリア: 現時点で報告なし（最終更新 03:10）',
+    l_outage:{ text:'[障害情報] {region} {carrier}: 現時点で報告なし（更新待ち）',
       fact:{ text:'障害情報はまだ上がっていない（更新が古い）' } },
-    l_area:{ text:'[エリア照会] 米国 ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: T-Mobile US ✓',
+    l_area:{ text:'[エリア照会] {country} ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: {carrier} ✓',
       fact:{ text:'渡航先も機種も対応範囲内', out:['coverage'] } },
     l_plan:{ text:'[契約照会] プラン: 無制限 ／ 使用量: 0.9GB ／ 速度制限なし',
       fact:{ text:'容量制限はかかっていない', out:['fup'] } },
@@ -630,18 +664,18 @@ const SCENARIOS = [
 
 /* === 6. ニューヨーク②：ここで相関が見える。山場 === */
 {
-  id:'S6', arrive:31, name:'渡辺 圭吾', age:52, type:'hurried', abandonAfter:20, callbackTo:'mobile',
+  id:'S6', arrive:31, name:'渡辺 圭吾', nameEn:'Keigo Watanabe', age:52, type:'hurried', abandonAfter:20, callbackTo:'mobile',
   deviceInHand:true,
   rushedReply:'分かってます。前置きは終わり。進めて。', contractId:{ minutes:1, text:'毎月使うので控えてます。GDW-206441。次。' },
-  city:'ニューヨーク', cityEn:'NEW YORK', localOffset:-13, device:'GD-500', plan:'アメリカ ／ 無制限プラン',
+  country:'アメリカ', city:'ボストン', cityEn:'BOSTON', localOffset:-13, carrierName:'T-Mobile US', regionGroup:'us_northeast', regionName:'米国北東部', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'急に圏外。再起動済み、変化なし。次の移動まで15分。交換が要るか、いま判断してください。',
-  smalltalk:[{ id:'st_s6_regular', reveal:'q_when', askLabel:'毎月のご出張では、いつもニューヨークへ来られるんですか？', tellLabel:'いつもご利用いただき、ありがとうございます', goodReply:'毎月です。はい、少しだけ落ち着きました。判断を。', badReply:'利用歴の話は後。残り15分。交換判断を先に。' }],
+  smalltalk:[{ id:'st_s6_regular', reveal:'q_when', askLabel:'毎月のご出張では、いつも{city}へ来られるんですか？', tellLabel:'いつもご利用いただき、ありがとうございます', goodReply:'毎月です。はい、少しだけ落ち着きました。判断を。', badReply:'利用歴の話は後。残り15分。交換判断を先に。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:38, ssid:'Globaldesk-6512' },
   trueCause:'carrier', best:'r_outage_explain', bestNoOutage:'r_escalate_line', partial:['r_escalate_line'],
   replies:{
     q_lamp:{ text:'圏外。アンテナ0。回線名も消えた。',
       fact:{ text:'圏外表示。キャリア名も表示されない', hot:['carrier','sim','coverage'], out:['fup','devices','geo_block','heavy'] } },
-    q_where:{ text:'ブルックリン。歩いて移動中。ずっと圏外。',
+    q_where:{ text:'{city}市内。歩いて移動中。ずっと圏外。',
       fact:{ text:'移動しながらでも一貫して圏外', out:['location'] } },
     q_other_device:{ text:'2台とも駄目。端末の話はこれで終わり。',
       fact:{ text:'複数端末で同時に不通', out:['device_side','device_net'] } },
@@ -649,11 +683,11 @@ const SCENARIOS = [
       fact:{ text:'突発的に発生', out:['power'] } },
   },
   lookups:{
-    l_outage:{ text:'[障害情報] 米国 提携キャリア T-Mobile US ／ 04:40頃より北東部で広域の接続障害を確認（最終更新 05:22）。復旧見込み: 未定。同一エリアからの入電: 2件。',
-      fact:{ text:'ニューヨークを含む北東部で提携キャリアの広域障害が発生中', hot:['carrier'], out:['sim','coverage','provision','device_side','device_net'] }, outage:true },
+    l_outage:{ text:'[障害情報] {region} 提携キャリア {carrier} ／ 広域の接続障害を確認。復旧見込み: 未定。同一エリアからの入電: 2件。',
+      fact:{ text:'{region}で提携キャリアの広域障害が発生中', hot:['carrier'], out:['sim','coverage','provision','device_side','device_net'] }, outage:true },
     l_session:{ text:'[セッション] 05:31以降、圏内復帰なし。SIM認識: 正常。',
       fact:{ text:'SIMは認識されている。本体側の故障ではない', out:['sim','hardware','provision'] } },
-    l_area:{ text:'[エリア照会] 米国 ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: T-Mobile US ✓',
+    l_area:{ text:'[エリア照会] {country} ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: {carrier} ✓',
       fact:{ text:'渡航先も機種も対応範囲内', out:['coverage'] } },
   },
   debrief:'同じ都市から似た症状が続いたら、個別の故障ではなく<em>地域で起きていること</em>を疑う。障害情報の照会でそれが裏付けられ、先に受けた一件の答えもここで確定します。障害と分かってさえいれば、代替機を送らずに説明と返金で収められました。'
@@ -661,36 +695,36 @@ const SCENARIOS = [
 
 /* === 7. バルセロナ郊外：対象エリア外。上級 === */
 {
-  id:'S7', arrive:38, name:'中西 悠真', age:29, type:'expert', abandonAfter:38, callbackTo:'hotel',
+  id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, type:'expert', abandonAfter:38, callbackTo:'hotel',
   deviceInHand:true,
   contractId:{ minutes:1, text:'GDW-887302。画面に出しています。照合してください。' },
-  city:'バルセロナ近郊', cityEn:'BARCELONA', localOffset:-7, device:'GD-200', plan:'ヨーロッパ周遊 ／ 1GBプラン',
+  country:'スペイン', city:'バルセロナ', cityEn:'BARCELONA', localOffset:-7, carrierName:'Orange ES', device:'GD-200', plan:'{country} ／ 1GBプラン',
   opening:'市街地では正常でしたが、郊外へ移動後は完全に圏外です。3台とも同じなので端末要因は除外済み。地域差か対応周波数を確認していただけますか。',
-  smalltalk:[{ id:'st_s7_village', reveal:'q_where', askLabel:'その村へは、どのような目的で来られたんですか？', tellLabel:'バルセロナ近郊の村、素敵なところでしょうね', goodReply:'静かで景色のよい場所です。ありがとうございます。では確認を。', badReply:'観光情報は障害条件ではありません。地域と機種の適合を確認してください。' }],
+  smalltalk:[{ id:'st_s7_village', reveal:'q_where', askLabel:'その村へは、どのような目的で来られたんですか？', tellLabel:'{city}近郊の村、素敵なところでしょうね', goodReply:'静かで景色のよい場所です。ありがとうございます。では確認を。', badReply:'観光情報は障害条件ではありません。地域と機種の適合を確認してください。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:3, maxClients:5, battery:66, ssid:'Globaldesk-3028' },
   trueCause:'coverage', best:'r_coverage_replacement', partial:['r_coverage_refund'], shipNeed:'next', stayDays:6, wantsReplacement:true,
   replies:{
     q_other_device:{ text:'3台で同一症状です。ルーター自体が圏外なので、端末要因は除外できますよね。',
       fact:{ text:'複数端末で同時に不通。ルーター自体が圏外', out:['device_side','device_net'] } },
-    q_where:{ text:'ジローナ手前の山寄りの村です。現地端末は正常なので、単純な無電波地域ではありません。',
+    q_where:{ text:'{city}近郊の山寄りの村です。現地端末は正常なので、単純な無電波地域ではありません。',
       fact:{ text:'現地の携帯は通じている場所で、ルーターだけが圏外', hot:['coverage'], out:['location'] } },
     q_moved:{ text:'村内3地点と丘の上で再現しました。場所要因の再確認は不要です。',
       fact:{ text:'複数地点で試しても圏外のまま', out:['location'] } },
     q_lamp:{ text:'圏外表示で回線名なし。市内では現地回線名が表示されていました。',
       fact:{ text:'市内では接続実績あり。郊外でのみ圏外', hot:['coverage'], out:['sim','provision','fup','devices','geo_block','heavy'] } },
-    q_stay:{ text:'ジローナのホテル・ノルテ、312号室です。帰国まで同じホテルに滞在します。' },
+    q_stay:{ text:'{city}近郊のホテル、312号室です。帰国まで同じホテルに滞在します。' },
     q_stay_length:{ text:'今日を含めてあと6泊です。郊外へ出る予定が続くので、対応機なら受け取る意味があります。',
       fact:{ text:'残り6泊、同じホテルに滞在するため代替機を使える期間が十分にある', hot:['coverage'] } },
     q_replacement:{ text:'はい、郊外でも使える対応機を同じホテルへ送ってください。受け取ります。',
       fact:{ text:'本人が同じホテルへの対応機配送を希望している', hot:['coverage'] } },
   },
   lookups:{
-    l_area:{ text:'[エリア照会] スペイン ／ 貸出機種: GD-200（旧型・3バンド）／ 提携: Orange ES ／ 備考: GD-200 は Orange ES の800MHz帯(B20)非対応。1800/2100MHz帯のみ対応のため、郊外・山間部では圏外となる場合あり。',
+    l_area:{ text:'[エリア照会] {country} ／ 貸出機種: GD-200（旧型）／ 提携: {carrier} ／ 備考: GD-200 は提携キャリアが郊外をカバーする周波数帯に非対応のため、郊外・山間部では圏外となる場合あり。',
       fact:{ text:'貸出機種が現地の郊外カバー用バンドに非対応。機種を替えないと解決しない', hot:['coverage'], out:['sim','carrier','provision'] },
       customerReply:'申込地域では郊外利用も想定できたはずです。それに非対応の機種を御社が貸し出したのなら、これは利用者側ではなく手配側の責任ですよね。', stressDelta:35 },
     l_session:{ text:'[セッション] 07:40以降、圏内復帰なし。SIM認識: 正常。',
       fact:{ text:'SIMは認識されている。本体側の故障ではない', out:['sim','hardware'] } },
-    l_outage:{ text:'[障害情報] スペイン Orange ES 網 正常。障害報告なし。',
+    l_outage:{ text:'[障害情報] {country} {carrier} 網 正常。障害報告なし。',
       fact:{ text:'現地キャリアに障害なし', out:['carrier'] } },
   },
   tests:{
@@ -704,12 +738,12 @@ const SCENARIOS = [
 
 /* === 8. ドバイ：SIM未認識。清掃と挿し直しで復旧 === */
 {
-  id:'S8', arrive:44, name:'藤川 みどり', age:58, type:'novice', abandonAfter:26, callbackTo:'hotel',
+  id:'S8', arrive:44, name:'藤川 みどり', nameEn:'Midori Fujikawa', age:58, type:'novice', abandonAfter:26, callbackTo:'hotel',
   deviceInHand:true,
   contractId:{ minutes:3, text:'番号…箱の紙ですか？ すみません、見方が…。あ、GDW-745168。これでしょうか？' },
-  city:'ドバイ', cityEn:'DUBAI', localOffset:-5, device:'GD-500', plan:'UAE ／ 1GBプラン',
+  country:'UAE', city:'ドバイ', cityEn:'DUBAI', localOffset:-5, carrierName:'Etisalat', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'あの、すみません。今日受け取って、電源を入れただけなのに「SIMカードがありません」と…。再起動は何度かしました。私、最初から何か間違えましたでしょうか。',
-  smalltalk:[{ id:'st_s8_arrival', reveal:'q_when', askLabel:'ドバイには、今日着かれたばかりですか？', tellLabel:'長いご移動、お疲れさまでした', goodReply:'はい、着いたばかりです。お気遣いまで…少し安心しました。', badReply:'ありがとうございます。でも受け取ってすぐなので、私が壊したのかと…。' }],
+  smalltalk:[{ id:'st_s8_arrival', reveal:'q_when', askLabel:'{city}には、今日着かれたばかりですか？', tellLabel:'長いご移動、お疲れさまでした', goodReply:'はい、着いたばかりです。お気遣いまで…少し安心しました。', badReply:'ありがとうございます。でも受け取ってすぐなので、私が壊したのかと…。' }],
   panel:{ bars:null, carrier:null, sim:'none', throttle:false, clients:0, maxClients:5, battery:80, ssid:'Globaldesk-7745' },
   trueCause:'sim', best:'r_sim_clean', partial:['r_escalate_swap'],
   replies:{
@@ -726,11 +760,11 @@ const SCENARIOS = [
   lookups:{
     l_session:{ text:'[セッション] 本体からのSIM認識イベントなし。最終認識は出荷検品時（8/28 11:20）。接点の汚れまたは装着不良の可能性あり。',
       fact:{ text:'出荷検品後、SIMを認識していない。接点の汚れまたは装着不良が疑われる', hot:['sim'], out:['provision','carrier','coverage'] } },
-    l_ship:{ text:'[貸出記録] ドバイ国際空港カウンター受取 8/31 18:40 ／ 検品ステータス: 出荷時OK ／ 代替機在庫: 市内デポに 3台',
+    l_ship:{ text:'[貸出記録] {city}国際空港カウンター受取 ／ 検品ステータス: 出荷時OK ／ 代替機在庫: 市内デポに 3台',
       fact:{ text:'市内デポに代替機の在庫があり、当日配送が可能', hot:['sim'], out:['logistics'] } },
-    l_area:{ text:'[エリア照会] UAE ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: Etisalat ✓',
+    l_area:{ text:'[エリア照会] {country} ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: {carrier} ✓',
       fact:{ text:'渡航先も機種も対応範囲内', out:['coverage'] } },
-    l_outage:{ text:'[障害情報] UAE Etisalat 網 正常。障害報告なし。',
+    l_outage:{ text:'[障害情報] {country} {carrier} 網 正常。障害報告なし。',
       fact:{ text:'現地キャリアに障害なし', out:['carrier'] } },
   },
   tests:{
@@ -748,22 +782,22 @@ const SCENARIOS = [
 
 /* === 9. ハノイ：技術ではない。物流案件 === */
 {
-  id:'S9', arrive:50, name:'石橋 玲', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',
+  id:'S9', arrive:50, name:'石橋 玲', nameEn:'Rei Ishibashi', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',
   deviceInHand:false,
   rushedReply:'はい。で、結論は？', contractId:{ minutes:1, text:'GDW-091774。番号は最初からあります。次。' },
-  city:'ハノイ', cityEn:'HANOI', localOffset:-2, device:'（未受取）', plan:'ベトナム ／ 500MBプラン',
-  opening:'ハノイ空港。カウンターは無人で、機器を受け取れていません。タクシーを待たせています。市内へ出る前に、受取方法を決めてください。',
-  smalltalk:[{ id:'st_s9_city', reveal:'opening', askLabel:'市内では、まずどちらへ向かわれるんですか？', tellLabel:'ハノイまでのご移動、お疲れさまでした', goodReply:'旧市街のホテルです。ありがとう。では、受取方法を。', badReply:'行き先の話は後。タクシーが待ってる。受取方法を今。' }],
+  country:'ベトナム', city:'ハノイ', cityEn:'HANOI', localOffset:-2, carrierName:'Viettel', device:'（未受取）', plan:'{country} ／ 500MBプラン',
+  opening:'{city}国際空港。カウンターは無人で、機器を受け取れていません。タクシーを待たせています。市内へ出る前に、受取方法を決めてください。',
+  smalltalk:[{ id:'st_s9_city', reveal:'opening', askLabel:'市内では、まずどちらへ向かわれるんですか？', tellLabel:'{city}までのご移動、お疲れさまでした', goodReply:'市内のホテルです。ありがとう。では、受取方法を。', badReply:'行き先の話は後。タクシーが待ってる。受取方法を今。' }],
   panel:null,
   trueCause:'logistics', best:'r_transfer_logi', partial:['r_come_tomorrow'], shipNeed:'fast',
   techPenalty:true,
   replies:{
-    q_when:{ text:'予約は20時。到着したら無人。いま22時半。タクシーを待たせてます。',
-      fact:{ text:'受取予約は20時。現地時刻はすでに22時半', hot:['logistics'] } },
-    q_stay:{ text:'旧市街のホテルへ向かいます。名称は予約票にあります。そこへ配送できますか。' },
+    q_when:{ text:'予約時刻を過ぎて到着したら無人でした。担当者も不在です。タクシーを待たせてます。',
+      fact:{ text:'予約時刻を過ぎ、カウンターは臨時閉鎖。担当者も不在', hot:['logistics'] } },
+    q_stay:{ text:'{city}市内のホテルへ向かいます。名称は予約票にあります。そこへ配送できますか。' },
   },
   lookups:{
-    l_ship:{ text:'[貸出記録] ハノイ ノイバイ空港 受取予約 8/31 20:00 ／ カウンター営業時間 06:00-21:00（現地）／ 現在 現地22:35（営業時間外）／ ステータス: 未受取 ／ 市内デポからの宿泊先配送: 当日手配可（到着目安 90分）',
+    l_ship:{ text:'[貸出記録] {city}国際空港 受取予約 ／ 予約時刻経過後にカウンター臨時閉鎖・担当者不在 ／ ステータス: 未受取 ／ 市内デポからの宿泊先配送: 当日手配可（到着目安 90分）',
       fact:{ text:'カウンターは営業時間外。市内デポから宿泊先への当日配送が手配できる', hot:['logistics'], out:['sim','hardware','carrier','coverage','provision','fup','devices','geo_block','device_side','device_net','location','power','heavy'] } },
   },
   debrief:'テクニカルサポートにかかってくる電話が、いつも技術の話とはかぎりません。<em>手元に機器がない相手に切り分けの質問をするのは、時間を奪っているだけ</em>です。技術案件でないと早く見抜き、物流担当へ確実に渡すのがこの一件の正解でした。'
@@ -771,12 +805,12 @@ const SCENARIOS = [
 
 /* === 10. パリ：SIM清掃を2回試しても戻らない機器故障。長期滞在なら交換 === */
 {
-  id:'S10', arrive:56, name:'佐伯 奈緒', age:41, type:'anxious', abandonAfter:30, callbackTo:'hotel',
+  id:'S10', arrive:56, name:'佐伯 奈緒', nameEn:'Nao Saeki', age:41, type:'anxious', abandonAfter:30, callbackTo:'hotel',
   deviceInHand:true,
   contractId:{ minutes:2, text:'予約番号はGDW-814263です。あと6日もあるのに…。すみません、ちゃんと控えていてよかった…。' },
-  city:'パリ', cityEn:'PARIS', localOffset:-8, device:'GD-500', plan:'フランス ／ 1GBプラン',
+  country:'フランス', city:'パリ', cityEn:'PARIS', localOffset:-8, carrierName:'Orange FR', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'3日使えたのに、突然「No SIM」になって…。再起動しても戻りません。このまま全部の予定が駄目になったらと思うと…すみません、助けてください。',
-  smalltalk:[{ id:'st_s10_stay', reveal:'q_stay_length', askLabel:'パリには、あと6日ほどお仕事で滞在されるんですね？', tellLabel:'長いご滞在でのお仕事、お疲れさまです', goodReply:'ありがとうございます…。まだ一人じゃないと思えて、少し落ち着きました。', badReply:'ありがとうございます。でも残り6日、全部使えないままだったらどうしよう…。' }],
+  smalltalk:[{ id:'st_s10_stay', reveal:'q_stay_length', askLabel:'{city}には、あと6日ほどお仕事で滞在されるんですね？', tellLabel:'長いご滞在でのお仕事、お疲れさまです', goodReply:'ありがとうございます…。まだ一人じゃないと思えて、少し落ち着きました。', badReply:'ありがとうございます。でも残り6日、全部使えないままだったらどうしよう…。' }],
   panel:{ bars:null, carrier:null, sim:'none', throttle:false, clients:0, maxClients:5, battery:76, ssid:'Globaldesk-9031' },
   trueCause:'hardware', best:'r_hardware_swap', partial:['r_hardware_no_swap'], shipNeed:'next', stayDays:6, wantsReplacement:true,
   replies:{
@@ -795,9 +829,9 @@ const SCENARIOS = [
   lookups:{
     l_session:{ text:'[セッション] SIMリーダー応答途絶。再起動後もカード検出信号なし。出荷時検品と直近3日間の通信は正常。',
       fact:{ text:'SIMカードではなく本体SIMリーダーの応答が途絶している疑い', hot:['hardware'], out:['provision'] } },
-    l_ship:{ text:'[貸出記録] パリ市内デポに交換用GD-500在庫あり。翌日便でホテル配送可能。',
+    l_ship:{ text:'[貸出記録] {city}市内デポに交換用GD-500在庫あり。翌日便でホテル配送可能。',
       fact:{ text:'滞在中に使える日程で代替機を配送できる', hot:['hardware'], out:['logistics'] } },
-    l_area:{ text:'[エリア照会] フランス ／ GD-500: 対応 ✓ ／ Orange FR: 正常',
+    l_area:{ text:'[エリア照会] {country} ／ GD-500: 対応 ✓ ／ {carrier}: 正常',
       fact:{ text:'渡航先・機種・回線契約は対応範囲内', out:['coverage','carrier','provision'] } },
   },
   tests:{
@@ -813,16 +847,16 @@ const SCENARIOS = [
 
 /* === 11. ローマ：地下の会議室だけ電波が弱い。場所移動で即復旧 === */
 {
-  id:'S11', arrive:62, name:'川上 亮', age:36, type:'hurried', abandonAfter:20, callbackTo:'mobile',
+  id:'S11', arrive:62, name:'川上 亮', nameEn:'Ryo Kawakami', age:36, type:'hurried', abandonAfter:20, callbackTo:'mobile',
   deviceInHand:true,
   rushedReply:'はい。場所なら動く。指示を。', contractId:{ minutes:1, text:'GDW-562940。はい、次。' },
-  city:'ローマ', cityEn:'ROME', localOffset:-8, device:'GD-500', plan:'イタリア ／ 無制限プラン',
-  opening:'ローマの会議場。地下へ入ったら圏外。地上では使えました。会議開始まで5分。場所なら動きます。次の指示をください。',
-  smalltalk:[{ id:'st_s11_meeting', reveal:'opening', askLabel:'これから始まるのは、どのような会議ですか？', tellLabel:'会議前のお忙しいところ、お電話ありがとうございます', goodReply:'海外拠点との会議です。ありがとう。次の確認を。', badReply:'会議内容は後。開始まで5分。通信確認を先に。' }],
-  panel:{ bars:1, carrier:'TIM', sim:'ok', throttle:false, clients:2, maxClients:5, battery:68, ssid:'Globaldesk-6154' },
+  country:'イタリア', city:'ローマ', cityEn:'ROME', localOffset:-8, carrierName:'TIM', device:'GD-500', plan:'{country} ／ 無制限プラン',
+  opening:'{city}の会議場。地下へ入ったときだけ圏外。地上では使えました。場所なら動けます。切り分けを急いでいます。次の指示をください。',
+  smalltalk:[{ id:'st_s11_meeting', reveal:'opening', askLabel:'この会議場では、どのような会議に参加されるんですか？', tellLabel:'会議場からのお電話、ありがとうございます', goodReply:'海外拠点との会議で使っています。ありがとう。次の確認を。', badReply:'会議内容は後。通信確認を先に。' }],
+  panel:{ bars:1, carrier:'{carrier}', sim:'ok', throttle:false, clients:2, maxClients:5, battery:68, ssid:'Globaldesk-6154' },
   trueCause:'location', best:'r_move_guide', partial:['r_window_stationary'],
   replies:{
-    q_other_device:{ text:'スマホもPCも駄目。ルーターのアンテナは1本。残り4分。',
+    q_other_device:{ text:'スマホもPCも駄目。ルーターのアンテナは1本。切り分けを急いでいます。',
       fact:{ text:'複数端末で同じ。本体の受信電波が弱い', hot:['location'], out:['device_side','device_net','hardware'] } },
     q_lamp:{ text:'回線名あり、アンテナ1本、ときどき圏外。SIM認識あり。次。',
       fact:{ text:'SIMとキャリア認識は正常だが受信強度が極端に弱い', hot:['location'], out:['sim','hardware','fup','devices','geo_block','heavy','provision'] } },
@@ -831,11 +865,11 @@ const SCENARIOS = [
     q_moved:{ text:'まだ地下。廊下に階段あり。上がればいい？' },
   },
   lookups:{
-    l_area:{ text:'[エリア照会] ローマ中心部 ／ GD-500: 対応 ✓ ／ TIM: 対応 ✓', fact:{ text:'地域と機種は対応範囲内', out:['coverage'] } },
-    l_outage:{ text:'[障害情報] ローマ TIM網 正常。周辺障害なし。', fact:{ text:'現地キャリア障害なし', out:['carrier'] } },
+    l_area:{ text:'[エリア照会] {city}中心部 ／ GD-500: 対応 ✓ ／ {carrier}: 対応 ✓', fact:{ text:'地域と機種は対応範囲内', out:['coverage'] } },
+    l_outage:{ text:'[障害情報] {city} {carrier}網 正常。周辺障害なし。', fact:{ text:'現地キャリア障害なし', out:['carrier'] } },
   },
   tests:{
-    t_move:{ text:'地上ロビーに出た。アンテナ4本、接続復旧。間に合った。ありがとう。',
+    t_move:{ text:'地上ロビーに出た。アンテナ4本、接続復旧。これで使えます。ありがとう。',
       fact:{ text:'地下から地上へ移動しただけで電波4本となり通信が復旧した', hot:['location'], out:['hardware','sim','carrier','coverage','provision','fup','devices','geo_block','heavy','device_side','device_net','power','logistics'] }, solves:true },
   },
   debrief:'場所が原因なら、設定変更より先に<em>遮蔽物の外へ移動する</em>のが最も速く安全です。地下から地上へ出ただけで電波が1本から4本へ戻りました。場所を変えず再起動を繰り返すのは時間とストレスの無駄です。'
@@ -843,14 +877,14 @@ const SCENARIOS = [
 
 /* === 12. シドニー：日付境界で回線停止。契約終了日の登録不備 === */
 {
-  id:'S12', arrive:68, name:'吉田 和子', age:64, type:'novice', abandonAfter:28, callbackTo:'hotel',
+  id:'S12', arrive:68, name:'吉田 和子', nameEn:'Kazuko Yoshida', age:64, type:'novice', abandonAfter:28, callbackTo:'hotel',
   deviceInHand:true,
   contractId:{ minutes:3, text:'予約番号ですね…。箱の裏に、GDW-348621とあります。これで合っていますか？' },
-  city:'シドニー', cityEn:'SYDNEY', localOffset:1, device:'GD-500', plan:'オーストラリア ／ 無制限プラン',
+  country:'オーストラリア', city:'シドニー', cityEn:'SYDNEY', localOffset:1, carrierName:'Telstra', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'夜になって急に圏外になりました。さっきまで使えていたのに、再起動しても戻りません。私、何か設定を変えてしまったのでしょうか。',
   smalltalk:[{ id:'st_s12_night', reveal:'q_when', askLabel:'夜になってから、急に使えなくなったのですね？', tellLabel:'遅い時間に突然つながらなくなると、ご不安ですよね', goodReply:'そうなんです。日付が変わる頃までは使えていたのですが…。ゆっくり確認していただけると助かります。', badReply:'ありがとうございます。でも、夜になって急に止まった理由が分からなくて…。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:73, ssid:'Globaldesk-4826' },
-  trueCause:'provision', best:'r_escalate_prov', partial:[],
+  trueCause:'provision', best:'r_carrier_reopened_explain', partial:[],
   replies:{
     q_when:{ text:'時計を見たら、ちょうど日付が変わったあたりです。23時台は使えていて、0時を過ぎた直後から急に圏外になりました。',
       fact:{ text:'現地の日付が変わる境目までは正常で、その直後に回線だけが停止した', hot:['provision'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','coverage','sim','hardware','logistics'] } },
@@ -858,22 +892,22 @@ const SCENARIOS = [
       fact:{ text:'SIMは認識しているが、回線登録だけが失われている', hot:['provision','carrier'], out:['sim','hardware','device_side','device_net'] } },
     q_other_device:{ text:'スマートフォンとパソコンの両方が同じです。どちらもWi-Fiにはつながりますが、インターネットが使えません。',
       fact:{ text:'複数端末が本体には接続できるが、回線通信だけができない', out:['device_side','device_net','devices'] } },
-    q_where:{ text:'シドニー中心部のホテルです。昼間も同じ部屋で普通に使えていました。',
+    q_where:{ text:'{city}中心部のホテルです。日付が変わる前は同じ部屋で普通に使えていました。',
       fact:{ text:'同じ市内ホテルの部屋で直前まで通信できていた', out:['location','coverage'] } },
     q_moved:{ text:'ロビーとホテルの外でも試しましたが、圏外のままです。',
       fact:{ text:'ホテル内外へ移動しても圏外のまま', out:['location'] } },
     q_battery:{ text:'73%あります。充電もできています。', fact:{ text:'電源と充電は正常', out:['power'] } },
-    q_stay:{ text:'シドニー中心部のホテル、512号室です。折り返しでしたら、こちらへお願いします。' },
+    q_stay:{ text:'{city}中心部のホテル、512号室です。折り返しでしたら、こちらへお願いします。' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] 契約: 有効 ／ 利用終了予定: 9/4 ／ 使用量: 制限内 ／ 速度制限なし',
       fact:{ text:'自社の契約登録では利用期間内で、容量制限もない', hot:['provision'], out:['fup','heavy','logistics'] } },
     l_session:{ text:'[セッション] 現地時間 23:59 まで通信正常 ／ 00:00 以降、網側から登録拒否 ／ SIM認識: 正常',
       fact:{ text:'日付境界を挟んで網側の登録拒否へ切り替わった', hot:['provision','carrier'], out:['sim','hardware','power'] } },
-    l_outage:{ text:'[障害情報] シドニー周辺の提携キャリア 障害報告なし。', fact:{ text:'周辺の広域障害は報告されていない', out:['carrier'] } },
-    l_area:{ text:'[エリア照会] シドニー中心部 ／ GD-500: 対応 ✓ ／ 提携キャリア: 対応 ✓', fact:{ text:'地域と機種は対応範囲内', out:['coverage'] } },
-    l_carrier:{ text:'[現地キャリア照会] 当該回線は現地時間 00:00 に契約満了として停止 ／ 自社登録の終了日と同期不一致 ／ 再開通可能',
-      fact:{ text:'現地キャリア側だけ終了日が早く登録され、日付境界で回線を停止していた', hot:['provision'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','carrier','coverage','sim','hardware','logistics'] } },
+    l_outage:{ text:'[障害情報] {city}周辺の{carrier} 障害報告なし。', fact:{ text:'周辺の広域障害は報告されていない', out:['carrier'] } },
+    l_area:{ text:'[エリア照会] {city}中心部 ／ GD-500: 対応 ✓ ／ {carrier}: 対応 ✓', fact:{ text:'地域と機種は対応範囲内', out:['coverage'] } },
+    l_carrier:{ text:'[現地キャリア] 当該回線は現地時間 00:00 に契約満了として停止 ／ 自社登録の終了日と同期不一致 ／ 再開通完了', restores:true,
+      fact:{ text:'現地キャリア側だけ終了日が早く登録され、日付境界で停止していた回線の再開通が完了した', hot:['provision'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','carrier','coverage','sim','hardware','logistics'] } },
   },
   tests:{
     t_reboot:{ text:'再起動しましたが、やはり圏外です。SIMがないという表示は出ていません。', fact:{ text:'再起動しても回線登録は戻らない', out:['power','device_side'] } },
@@ -884,10 +918,10 @@ const SCENARIOS = [
 
 /* === 13. リスボン：申込国と異なるSIMを貸し出した手配ミス === */
 {
-  id:'S13', arrive:74, name:'秋山 美咲', age:32, type:'anxious', abandonAfter:30, callbackTo:'hotel',
+  id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, type:'anxious', abandonAfter:30, callbackTo:'hotel',
   deviceInHand:true,
   contractId:{ minutes:2, text:'予約番号はGDW-630519です。受け取ったときの紙にありました。私の扱い方が悪かったのでしょうか…。' },
-  city:'リスボン', cityEn:'LISBON', localOffset:-8, device:'GD-500', plan:'ポルトガル ／ 無制限プラン',
+  country:'ポルトガル', city:'リスボン', cityEn:'LISBON', localOffset:-8, carrierName:'MEO', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'あの…受け取ってから一度もつながらず、ずっと圏外なんです。私が最初の設定を何か間違えたのでしょうか。',
   smalltalk:[{ id:'st_s13_stay', reveal:'q_stay_length', askLabel:'こちらのホテルには、あと7日ほどご滞在の予定ですか？', tellLabel:'長いご滞在の初日からつながらず、ご不安でしたよね', goodReply:'はい、あと7泊ずっと同じホテルです。そう言っていただけると、少し安心します…。', badReply:'はい、あと7泊です。でも初日から使えないのは、やはり私のせいでしょうか…。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:82, ssid:'Globaldesk-3418' },
@@ -899,22 +933,22 @@ const SCENARIOS = [
       fact:{ text:'SIMは認識しているが、到着時から現地回線を一度も捕捉していない', hot:['coverage','provision','logistics'], out:['sim','device_side','device_net'] } },
     q_when:{ text:'今日、空港で受け取ってホテルに着いてからです。箱から出した最初の電源投入から、一度もつながっていません。',
       fact:{ text:'機器は受取済みで、初回起動から一度も通信できていない', hot:['coverage','provision','logistics'], out:['fup','heavy'] } },
-    q_where:{ text:'リスボン中心部のホテルです。部屋でもロビーでも、外へ出ても同じでした。',
+    q_where:{ text:'{city}中心部のホテルです。部屋でもロビーでも、外へ出ても同じでした。',
       fact:{ text:'市内ホテルの内外で圏外が続く', out:['location'] } },
     q_battery:{ text:'82%です。充電もできています。電池は足りていますよね…？', fact:{ text:'電源と充電は正常', out:['power'] } },
-    q_stay:{ text:'リスボン中心部のホテル・アズール、608号室です。滞在中はずっとこちらにいます。' },
+    q_stay:{ text:'{city}中心部のホテル、608号室です。滞在中はずっとこちらにいます。' },
     q_stay_length:{ text:'今日を含めてあと7泊です。帰国まで同じホテルに滞在します。',
       fact:{ text:'残り7泊、同じホテルに滞在するため代替機を使える期間が十分にある', hot:['logistics'] } },
     q_replacement:{ text:'はい、使えるものが届くなら代替機を送ってください。ホテルで受け取ります。',
       fact:{ text:'本人が同じホテルへの代替機配送を希望している', hot:['logistics'] } },
   },
   lookups:{
-    l_plan:{ text:'[契約照会] 申込: ポルトガル ／ 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし',
-      fact:{ text:'ポルトガル向け契約は有効で、使用量も制限内', out:['fup','heavy'] } },
-    l_ship:{ text:'[貸出記録] 申込: ポルトガル ／ 貸出品: タイ向けSIM ／ ポルトガル: 利用不可 ／ 貸出済み ／ 市内デポに対応代替機あり',
+    l_plan:{ text:'[契約照会] 申込: {country} ／ 契約: 有効 ／ 使用量: 制限内 ／ 速度制限なし',
+      fact:{ text:'{country}向け契約は有効で、使用量も制限内', out:['fup','heavy'] } },
+    l_ship:{ text:'[貸出記録] 申込: {country} ／ 貸出品: {wrongCountry}向けSIM ／ {country}: 利用不可 ／ 貸出済み ／ 市内デポに対応代替機あり',
       fact:{ text:'申込国と異なる利用不可SIMを貸し出した自社の手配ミス', hot:['logistics'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','carrier','coverage','sim','hardware','provision'] } },
-    l_outage:{ text:'[障害情報] リスボン周辺の提携キャリア 障害報告なし。', fact:{ text:'現地キャリアに広域障害なし', out:['carrier'] } },
-    l_area:{ text:'[エリア照会] ポルトガル ／ 貸出機種 GD-500: 対応 ✓ ／ ポルトガル向けSIM: 対応 ✓',
+    l_outage:{ text:'[障害情報] {city}周辺の{carrier} 障害報告なし。', fact:{ text:'現地キャリアに広域障害なし', out:['carrier'] } },
+    l_area:{ text:'[エリア照会] {country} ／ 貸出機種 GD-500: 対応 ✓ ／ {country}向けSIM: 対応 ✓',
       fact:{ text:'地域と機種は対応範囲内で、正しいSIMなら利用できる', out:['coverage'] } },
   },
   tests:{
@@ -925,3 +959,27 @@ const SCENARIOS = [
 },
 
 ];
+
+/* 名前・年齢と土地は、シフト開始時に案件本体から切り離して割り当てる。 */
+const IDENTITY_POOL = Object.freeze(SCENARIOS.map(scenario => Object.freeze({
+  name:scenario.name,
+  nameEn:scenario.nameEn,
+  age:scenario.age,
+})));
+
+/* キャリア名と地域も土地に従属する。sourceScenarioId は shuffleIdentity:false の復元に使う。 */
+const PLACE_POOL = Object.freeze(SCENARIOS.map(scenario => Object.freeze({
+  sourceScenarioId:scenario.id,
+  country:scenario.country,
+  city:scenario.city,
+  cityEn:scenario.cityEn,
+  localOffset:scenario.localOffset,
+  regionGroup:scenario.regionGroup || null,
+  regionName:scenario.regionName || scenario.country,
+  carrier:scenario.carrierName,
+})));
+
+const PLACE_CONSTRAINTS = Object.freeze({
+  geo_block:'china_only',
+  provision:'deep_night',
+});

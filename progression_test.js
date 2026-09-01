@@ -57,6 +57,7 @@ SCENARIOS.forEach(scenario => {
   });
   if (best.requiresLongStay) assert(scenario.stayDays >= best.requiresLongStay, scenario.id + ': 正解配送なのに滞在期間が条件を満たさない');
   if (best.requiresConsent) assert(scenario.wantsReplacement === true, scenario.id + ': 正解配送なのに顧客が希望していない');
+  if (best.needsCarrierRestored) assert(scenario.lookups && scenario.lookups.l_carrier && scenario.lookups.l_carrier.restores === true, scenario.id + ': 正解対処が要求する現地キャリア復旧結果がない');
 });
 const carrierLookup = LOOKUPS.find(lookup => lookup.id === 'l_carrier');
 assert(carrierLookup && carrierLookup.minutes === 30 && carrierLookup.external === true, '現地キャリア照会が30分の社外照会ではない');
@@ -66,6 +67,17 @@ assert(SCENARIOS.every(scenario => {
   const best = (REMEDIES[scenario.trueCause] || []).find(remedy => remedy.id === scenario.best);
   return best && best.needsLookup !== 'l_carrier';
 }), '現地キャリア照会が正解ルートの必須条件になっている');
+const carrierFinishSource = functionSource('finishCarrierLookup');
+assert(carrierFinishSource.includes("t.carrierReplyStatus === 'arrived'") && carrierFinishSource.includes("t.transcript.push({ who:'sys', text:'[現地キャリア] 完了連絡なし"), 'S12の完了連絡なし経路が未復旧を明示しない');
+assert(carrierFinishSource.includes('t.carrierLookupStarted = false') && !carrierFinishSource.includes("t.lookedUp.add(l.id);\n  t.carrierLookupStarted = false"), 'S12の完了連絡なし経路から現地キャリアへ再依頼できない');
+assert(functionSource('remedyBlockReason').includes('remedy.needsCarrierRestored && !t.carrierRestored'), 'S12が現地キャリアの再開通前に最適対処で閉じられる');
+
+// §39: 一般のホテル折り返しでも、英語選択肢の違いで進行不能にならない。
+assert(functionSource('startHotelCallback').includes("t.callbackReason = 'general'") && functionSource('startHotelCallback').includes("t.state = 'callback'"), 'l_carrier以外のホテル折り返しを開始できない');
+assert(functionSource('resumeCallback').includes("t.callbackStage = 'front_desk'") && functionSource('resumeCallback').includes("who:'front'"), '折り返しがFront Deskから始まらない');
+const frontChoiceSource = functionSource('handleFrontDeskChoice');
+assert(frontChoiceSource.includes("['guest','room','callback'].includes(choice)") && frontChoiceSource.includes("t.callbackStage = 'connected'") && !frontChoiceSource.includes("t.callbackStage = 'blocked'"), 'Front Deskの英語選択肢に詰み経路がある');
+assert(functionSource('renderHotelCallbackChoice').includes('滞在先が未確認') && functionSource('startHotelCallback').includes("!t.asked.has('q_stay')"), '滞在先未確認の折り返しを理由つきで止められない');
 
 // §27-3 検査8: 調べる・ログを開けない状態でも、「聞く」で本人特定して全案件の正解ルートへ進める。
 const identificationReady = new Function(functionSource('identificationReady') + '\nreturn identificationReady;')();

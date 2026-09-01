@@ -382,7 +382,7 @@ function renderOffice(){
   $('office-ship-status').textContent = '手配 ' + shipments + '件 ／ 費用 ¥' + state.tickets.reduce((n,t) => n + (t.shipment ? t.shipment.fee : 0), 0).toLocaleString('ja-JP');
   $('office-tray-status').textContent = callbacks.length ? '折り返し待ち ' + callbacks.length + '件 ／ 最短 ' + fmtClock(callbacks[0].callbackDue) : '折り返し待ち 0件';
   const officeNotices = [];
-  if (state.outageKnown) officeNotices.push('米国北東部：提携キャリアの広域障害<br>復旧見込み 未定');
+  if (state.outageKnown) officeNotices.push(esc(state.outageRegion) + '：提携キャリアの広域障害<br>復旧見込み 未定');
   state.officeEvents.slice(-3).forEach(event => officeNotices.push(esc(event.text)));
   $('office-notice').innerHTML = officeNotices.length
     ? officeNotices.map(text => '<div class="notice">' + text + '</div>').join('')
@@ -427,10 +427,13 @@ function renderCall(){
 }
 
 function renderCallHeader(t){
+  const outbound = t.callDirection === 'outbound';
+  const payer = outbound ? '当社負担' : 'お客様負担';
+  const cost = (t.callSegmentMinutes || 0) * CALL_RATE_PER_MIN;
   return '<div class="call-head">' +
       '<span class="call-ticket"><b>チケット</b> ' + esc(t.s.id) + '</span>' +
-      '<span class="call-time">通話 ' + String(t.callMinutes).padStart(2,'0') + '分</span>' +
-      '<span class="call-cost">¥' + callCost(t).toLocaleString('ja-JP') + '</span>' +
+      '<span class="call-time">通話 ' + String(t.callSegmentMinutes || 0).padStart(2,'0') + '分</span>' +
+      '<span class="call-cost">' + payer + ' ¥' + cost.toLocaleString('ja-JP') + '</span>' +
     '</div>';
 }
 
@@ -467,15 +470,15 @@ function recentTranscriptLines(t){
     const playerAfter = afterLookup.slice().reverse().find(line => line.who === 'me');
     if (!customerAfter && playerAfter) return [delivered[latestLookupIndex], playerAfter];
   }
-  const spoken = t.transcript.slice(0, end).filter(line => line.who === 'cust' || line.who === 'me');
+  const spoken = t.transcript.slice(0, end).filter(line => line.who === 'cust' || line.who === 'front' || line.who === 'me');
   if (spoken.length && spoken[spoken.length - 1].who === 'me'){
     const player = spoken[spoken.length - 1];
-    const customer = spoken.slice(0, -1).reverse().find(line => line.who === 'cust');
+    const customer = spoken.slice(0, -1).reverse().find(line => line.who === 'cust' || line.who === 'front');
     return customer ? [customer, player] : [player];
   }
   let customerIndex = -1;
   for (let i = spoken.length - 1; i >= 0; i--){
-    if (spoken[i].who === 'cust'){ customerIndex = i; break; }
+    if (spoken[i].who === 'cust' || spoken[i].who === 'front'){ customerIndex = i; break; }
   }
   if (customerIndex < 0) return spoken.slice(-1);
   const customer = spoken[customerIndex];
@@ -487,12 +490,13 @@ function renderTranscript(t, full){
   const pending = pendingTypedLine(t);
   const lines = full ? t.transcript : recentTranscriptLines(t);
   return lines.map(l => {
-    if ((l.who === 'cust' || l.who === 'sys') && !l.typed && l !== pending) return '';
-    const who = { cust:'客', me:'あなた', sys:'社内システム', note:'メモ' }[l.who];
+    if ((l.who === 'cust' || l.who === 'front' || l.who === 'sys') && !l.typed && l !== pending) return '';
+    const who = { cust:'客', front:'Front Desk', me:'あなた', sys:'社内システム', note:'メモ' }[l.who];
     const typing = l === pending;
     const lookupResult = l.who === 'sys' && l.lookupTitle;
+    const roleClass = l.who === 'front' ? 'front cust' : l.who;
     const content = typing ? '' : lookupResult ? renderLookupSystemScreen(l) : esc(l.text) + (l.viz ? renderLookupViz(l.viz) : '');
-    return '<div class="line ' + l.who + (lookupResult ? ' lookup-result' : '') + (typing ? ' typing' : '') + '"><span class="who">' + who + '</span>' +
+    return '<div class="line ' + roleClass + (lookupResult ? ' lookup-result' : '') + (typing ? ' typing' : '') + '"><span class="who">' + who + '</span>' +
       '<span class="say">' + content + '</span></div>';
   }).join('');
 }
@@ -510,6 +514,7 @@ function renderActions(t){
   if (t.pendingInterruption) return '<div class="actions">' + renderHangupButton('こちらから通話を切ります。', 'オフィスへ戻る') + '</div>';
   if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation(t) + '</div>';
   if (state.ui.tab === 'refund_confirm') return '<div class="actions">' + renderRefundConfirmation() + '</div>';
+  if (t.callbackStage === 'front_desk') return '<div class="actions">' + renderFrontDeskOptions(t) + '</div>';
 
   if (!t.greeted && !customerHasSpoken(t)) return '<div class="actions"><div class="command-box"><div class="command-title"><span>CALL</span><b>まず名乗ってください</b></div><button class="command-choice" data-greet="1"><span class="command-no">1</span><span class="command-copy"><b>名乗る</b><small>お電話ありがとうございます。グローバルデスクでございます</small></span></button></div>' + renderHangupButton() + '</div>';
 
@@ -577,7 +582,31 @@ function renderCommandMenu(t, actionClass){
   const optionalGreeting = !t.greeted && customerHasSpoken(t)
     ? '<button class="command-choice optional-greeting" data-greet="1"><span class="command-no">任意</span><span class="command-copy"><b>名乗る</b><small>急いでいるお客様には省略できます</small></span></button>'
     : '';
-  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div>' + optionalGreeting + '<div class="command-grid">' + choices + '</div></div>' + renderHangupButton() + '</div>';
+  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div>' + optionalGreeting + '<div class="command-grid">' + choices + '</div></div>' + renderHotelCallbackChoice(t) + renderHangupButton() + '</div>';
+}
+
+function renderHotelCallbackChoice(t){
+  if (t.callDirection === 'outbound') return '';
+  const ready = t.asked.has('q_stay') && Boolean(t.stayAddress);
+  const prompt = t.callChargeConcerned ? 'お客様が国際通話料を気にしています。' : '5分を超えそうなら、お客様の通話料を止められます。';
+  return '<div class="callback-offer"><button class="opt" data-hotel-callback="1" ' + (ready ? '' : 'disabled') + '><span class="opt-label">ホテルへ折り返す<span class="opt-sub">' + prompt + '</span></span></button>' +
+    (ready ? '' : '<p class="hint-bar">滞在先が未確認です。「聞く」→「顧客のこと」でホテル名と部屋番号を確認してください。</p>') + '</div>';
+}
+
+function renderFrontDeskOptions(t){
+  const room = hotelRoom(t);
+  const options = CALL_FLOW_LINES.frontDesk.options;
+  const latestFront = t.transcript.slice().reverse().find(line => line.who === 'front');
+  const frontContext = latestFront && latestFront.typed
+    ? '<div class="line front cust front-desk-context"><span class="who">Front Desk</span><span class="say">' + esc(latestFront.text) + '</span></div>'
+    : '';
+  const roomChoice = room
+    ? '<button class="opt" data-front-desk="room"><span class="opt-label">' + esc(options.room.replace('{room}', room)) + '</span></button>'
+    : '';
+  return frontContext + renderCommandHead('Front Desk', 'Please choose what to say in English.') + '<div class="opts front-desk-options">' +
+    '<button class="opt" data-front-desk="guest" ' + (t.nameKnown ? '' : 'disabled') + '><span class="opt-label">' + esc(options.guest.replace('{name}', t.s.nameEn)) + '</span></button>' +
+    roomChoice +
+    '<button class="opt" data-front-desk="callback"><span class="opt-label">' + esc(options.callback) + '</span></button></div>';
 }
 
 function renderAskGroups(t){
@@ -640,7 +669,7 @@ function renderSmalltalkOptions(t, mode){
 function renderLookupOptions(t){
   if (!state.ui.lookup){
     return '<div class="opts">' + LOOKUPS.map(l =>
-      '<button class="opt" data-lookup="' + l.id + '" ' + (t.lookedUp.has(l.id) || t.carrierLookupStarted ? 'disabled' : '') + '><span class="opt-label">' + esc(l.label) + (l.external ? '<span class="opt-sub">社外照会。通話を切り、30分後に折り返します</span>' : '') + '</span>' + (l.external ? '<span class="cost">30分</span>' : '') + '</button>'
+      '<button class="opt" data-lookup="' + l.id + '" ' + (t.lookedUp.has(l.id) || t.carrierLookupStarted ? 'disabled' : '') + '><span class="opt-label">' + esc(l.label) + (l.external ? '<span class="opt-sub">社外へ再開通を依頼。通話を切り、30分後に折り返します</span>' : '') + '</span>' + (l.external ? '<span class="cost">30分</span>' : '') + '</button>'
     ).join('') + '</div><p class="hint-bar">照会項目を選んだあと、保留にするか話しながら調べるかを選びます。</p>';
   }
   const lookup = LOOKUPS.find(x => x.id === state.ui.lookup);
@@ -654,10 +683,9 @@ function renderCarrierLookupOptions(t, lookup){
   const hotelReady = t.asked.has('q_stay');
   return '<div class="opts"><button class="opt" data-lookup-back="1"><span class="opt-label">← 照会項目の選び直し</span></button>' +
     '<button class="opt" disabled><span class="opt-label">保留にして調べる<span class="opt-sub">30分かかるため、通話をつないだままでは実行できません</span></span><span class="cost">不可</span></button>' +
-    '<button class="opt" disabled><span class="opt-label">話しながら調べる<span class="opt-sub">社外への問い合わせのため、通話継続では実行できません</span></span><span class="cost">不可</span></button></div>' +
-    '<p class="hint-bar"><b>30分ほどお時間をいただきます。折り返しでもよろしいですか。</b><br>折り返し先を選ぶと、通話を終えて現地キャリアへの照会を始めます。</p>' +
-    '<div class="opts"><button class="opt" data-callback-destination="mobile"><span class="opt-label">携帯へ折り返す<span class="opt-sub">移動中でもつながるが、宛先違いなら国際ローミング通話料の罰があります</span></span><span class="cost">' + lookup.minutes + '分</span></button>' +
-    '<button class="opt" data-callback-destination="hotel" ' + (hotelReady ? '' : 'disabled') + '><span class="opt-label">ホテル客室へ折り返す<span class="opt-sub">滞在先の確認が必要です</span></span><span class="cost">' + lookup.minutes + '分</span></button></div>' +
+    '<button class="opt" disabled><span class="opt-label">話しながら調べる<span class="opt-sub">社外への再開通依頼のため、通話継続では実行できません</span></span><span class="cost">不可</span></button></div>' +
+    '<p class="hint-bar"><b>現地キャリアへ再開通を依頼します。30分ほどお時間をいただき、完了状況が分かり次第折り返します。</b><br>折り返し先を選ぶと、通話を終えて再開通依頼を始めます。</p>' +
+    '<div class="opts"><button class="opt" data-callback-destination="hotel" ' + (hotelReady ? '' : 'disabled') + '><span class="opt-label">ホテルへ折り返す<span class="opt-sub">滞在先へ電話し、フロントを通して客室につないでもらいます</span></span><span class="cost">' + lookup.minutes + '分</span></button></div>' +
     (hotelReady ? '' : '<p class="hint-bar">ホテル客室は滞在先が未確認です。「聞く」で確認してください。</p>');
 }
 
@@ -1183,6 +1211,7 @@ function showBalanceConsole(){
     '<h2>比較設定</h2><div class="balance-flags">' +
       '<label><input type="checkbox" id="balance-luck"' + (luckEnabled ? ' checked' : '') + '> 運を入れる（本来どおり ' + Math.round(LUCK_RATE * 100) + '%）</label>' +
       '<label><input type="checkbox" id="balance-shuffle"' + (GAME_FLAGS.shuffleArrival ? ' checked' : '') + '> 案件の登場順をシャッフルする（次のシフトから反映）</label>' +
+      '<label><input type="checkbox" id="balance-identity"' + (GAME_FLAGS.shuffleIdentity ? ' checked' : '') + '> 名前・年齢と土地をシャッフルする（次のシフトから反映）</label>' +
       '<label><input type="checkbox" id="balance-sound"' + (GAME_FLAGS.soundEnabled ? ' checked' : '') + '> 効果音を鳴らす</label>' +
       '<label>音量 <input type="range" id="balance-volume" min="0" max="1" step="0.05" value="' + GAME_FLAGS.soundVolume + '"></label>' +
       '<p>OFFにすると従来の決定論的な挙動へ戻ります。抽選結果はプレイ画面や会話記録には表示されません。</p>' +
@@ -1202,6 +1231,9 @@ function showBalanceConsole(){
   };
   $('balance-shuffle').onchange = event => {
     GAME_FLAGS.shuffleArrival = event.target.checked;
+  };
+  $('balance-identity').onchange = event => {
+    GAME_FLAGS.shuffleIdentity = event.target.checked;
   };
   $('balance-sound').onchange = event => {
     GAME_FLAGS.soundEnabled = event.target.checked;
@@ -1229,18 +1261,18 @@ function reportOptions(){
   const shipments = state.tickets.filter(t => t.shipment);
   const byId = id => state.tickets.find(t => t.s.id === id);
   const special = [];
-  if (state.outageKnown) special.push({ id:'outage', required:true, ticketId:'S5', text:'米国北東部で提携キャリアの広域障害。同一エリアから2件入電、復旧見込み未定' });
+  if (state.outageKnown) special.push({ id:'outage', required:true, ticketId:'S5', text:state.outageRegion + 'で提携キャリアの広域障害。同一エリアから2件入電、復旧見込み未定' });
   if (handled('S7')) special.push({ id:'gd200', required:true, ticketId:'S7', text:'GD-200 が現地の郊外カバー用周波数に非対応。市内では使えるが郊外で圏外となる事例' });
   if (shipments.length) special.push({ id:'shipments', required:true, ticketId:shipments[0].s.id, text:'代替機を ' + shipments.length + '台手配（費用計 ¥' + shipments.reduce((n,t) => n + t.shipment.fee, 0).toLocaleString('ja-JP') + '）' });
   if (handled('S9')) special.push({ id:'counter', required:true, ticketId:'S9', text:'空港カウンターの営業時間外受取が発生。デポからの配送で対応' });
-  if (handled('S1')) special.push({ id:'s1_daily', required:false, ticketId:'S1', text:'バンコクのお客様が容量超過。追加データの案内で解決' });
-  if (handled('S2')) special.push({ id:'s2_daily', required:false, ticketId:'S2', text:'ロンドンのお客様の端末側Wi-Fi設定を作り直して復旧' });
-  if (handled('S3')) special.push({ id:'s3_daily', required:false, ticketId:'S3', text:'ホノルルのお客様に接続台数の上限を説明' });
+  if (handled('S1')) special.push({ id:'s1_daily', required:false, ticketId:'S1', text:byId('S1').s.city + 'のお客様が容量超過。追加データの案内で解決' });
+  if (handled('S2')) special.push({ id:'s2_daily', required:false, ticketId:'S2', text:byId('S2').s.city + 'のお客様の端末側Wi-Fi設定を作り直して復旧' });
+  if (handled('S3')) special.push({ id:'s3_daily', required:false, ticketId:'S3', text:byId('S3').s.city + 'のお客様に接続台数の上限を説明' });
 
   const handoff = [];
-  if (state.outageKnown) handoff.push({ id:'outage_watch', required:true, ticketId:'S5', text:'米国北東部の障害は未復旧。朝の入電増に注意' });
+  if (state.outageKnown) handoff.push({ id:'outage_watch', required:true, ticketId:'S5', text:state.outageRegion + 'の障害は未復旧。朝の入電増に注意' });
   const s8 = byId('S8');
-  if (s8 && s8.shipment) handoff.push({ id:'s8_delivery', required:true, ticketId:'S8', text:'ドバイ宛の代替機が現地' + fmtClock(s8.shipment.eta) + '到着予定。着荷確認が必要' });
+  if (s8 && s8.shipment) handoff.push({ id:'s8_delivery', required:true, ticketId:'S8', text:s8.s.city + '宛の代替機が現地' + fmtClock(s8.shipment.eta) + '到着予定。着荷確認が必要' });
   return { special, handoff };
 }
 
