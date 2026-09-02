@@ -644,9 +644,9 @@ function unresolvedHangupGuide(t){
   }
   const causeNarrowed = hotCauses(t).size === 1;
   const next = t.symptomResolved
-    ? '症状は復旧しました。「伝える」→「対処を伝える」で原因をご説明すると、この電話を終われます。'
+    ? '症状は復旧しました。「伝える」→「原因を伝える」で原因をご説明すると、この電話を終われます。'
     : causeNarrowed
-    ? 'まだ対処をお伝えしていません。「伝える」→「対処を伝える」で原因と対処を案内すると、この電話を終われます。'
+    ? 'まだ対処をお伝えしていません。「伝える」→「原因と対処を伝える」で原因と対処を案内すると、この電話を終われます。'
     : 'まだ原因を絞れていません。「聞く」「調べる」で手がかりを集めると、対処を案内できるようになります。';
   return '<b>' + next + '</b><p>このまま切ると、お客様から再入電になります。</p>';
 }
@@ -728,7 +728,7 @@ function renderAskOptions(t, group){
 
 function renderTellOptions(t){
   const entries = [
-    { attrs:'data-tell="close"', body:'<span class="opt-label">対処を伝える<span class="opt-sub">原因を見立てて、対処をご案内します。</span></span>' },
+    { attrs:'data-tell="close"', body:'<span class="opt-label">' + (t.symptomResolved ? '原因を伝える' : '原因と対処を伝える') + '<span class="opt-sub">' + (t.symptomResolved ? '復旧した原因をご説明します。' : '原因を見立てて、対処をご案内します。') + '</span></span>' },
     t.s.deviceInHand
       ? { attrs:'data-tell="try"', body:'<span class="opt-label">やってみてもらう<span class="opt-sub">機器や端末で試していただくことを選びます。</span></span>' }
       : null,
@@ -898,7 +898,7 @@ function commandPrompt(tab){
     smalltalk:['一言かける', '会話に出た話題から選んでください'],
     record:['ログ', 'この通話の状況と全履歴'],
     identity_denied:['本人確認', '本人確認が必要です'],
-    close:['対処を伝える', state.ui.cause ? 'どのように対処を伝えますか？' : '原因を選んでください'],
+    close:[state.focus && state.focus.symptomResolved ? '原因を伝える' : '原因と対処を伝える', state.ui.cause ? (state.focus && state.focus.symptomResolved ? 'どの対処が効いたかを選んでください' : '対処を選んでください') : '原因を選んでください'],
   }[tab] || ['コマンド', '次の行動を選んでください'];
 }
 
@@ -908,16 +908,10 @@ function renderCommandHead(command, prompt, backTarget = 'command'){
 }
 
 function renderCloseFlow(t){
-  const ruled = ruledOut(t);
-  const hot = hotCauses(t);
-
   if (!state.ui.cause){
     return '<div class="opts">' + CAUSES.map(c => {
-      const out = ruled.has(c.id);
-      const isHot = hot.has(c.id);
-      return '<button class="opt ' + (out ? 'used' : '') + '" data-cause="' + c.id + '">' +
-        '<span class="opt-label">' + (isHot ? '● ' : '') + esc(c.label) +
-        '<span class="opt-sub">' + c.tier + (out ? ' ／ 集めた情報とは噛み合いません' : (isHot ? ' ／ 手がかりが指しています' : '')) + '</span></span>' +
+      return '<button class="opt" data-cause="' + c.id + '">' +
+        '<span class="opt-label">' + esc(c.label) + '<span class="opt-sub">' + c.tier + '</span></span>' +
         '</button>';
     }).join('') + '</div>' +
     '<p class="hint-bar">原因を選ぶと、その原因に対する対処が出ます。</p>';
@@ -944,11 +938,7 @@ function renderCloseFlow(t){
     return '<div class="pending-note">配送手配を完了してから、客への案内を選びます。</div>';
   }
 
-  const ty = TYPES[t.s.type];
-  return '<div class="tone-row">' + TONES.map(tn =>
-    '<button class="tone" data-tone="' + tn.id + '"><span class="tname">' + tn.name + '</span>' + esc(tn.sub) + '</button>'
-  ).join('') + '</div>' +
-  '<p class="hint-bar">相手は「' + esc(ty.label) + '」タイプです。' + esc(ty.note) + ' 相手に合わせて伝え方を選んでください。</p>';
+  return '<button class="btn-primary" data-close-confirm="1">この内容をお客様へ伝える</button>';
 }
 
 function renderShipping(t){
@@ -1270,11 +1260,10 @@ function scenarioRoute(s){
     }
   }
   const cause = CAUSES.find(item => item.id === s.trueCause);
-  route.push('伝える → 対処を伝える: ' + (cause ? cause.label : s.trueCause));
+  route.push('伝える → 原因と対処を伝える: ' + (cause ? cause.label : s.trueCause));
   if (s.bestNoOutage) route.push('障害未確認なら「' + ((REMEDIES[s.trueCause] || []).find(item => item.id === s.bestNoOutage) || {}).label + '」');
   route.push('対処: ' + (remedy ? remedy.label : s.best));
   if (remedy && remedyNeedsShipping(remedy.id)) route.push('配送: 滞在先・残り日数・本人希望を確認し、必要速度のTGX便を選ぶ');
-  route.push('伝え方: ' + toneLabel(TYPES[s.type].tone));
   return route;
 }
 
@@ -1660,8 +1649,8 @@ function renderDebrief(){
     if (r.kind === 'abandoned') judge = '呼び出しに応答できず、放棄呼になりました。';
     else if (r.kind === 'complaint') judge = r.reason === 'misdiagnosis' ? '見立てが二度外れ、お客様が強い苦情を述べて終話しました。' : 'お客様の苛立ちが限界に達し、強い苦情を述べて終話しました。';
     else if (r.kind === 'hangup') judge = r.reason === 'misdiagnosis' ? '見立てが二度外れ、お客様が一方的に通話を切りました。' : 'お客様の苛立ちが限界に達し、一方的に通話を切りました。';
-    else if (r.causeMatched === false) judge = '選んだ対応のあと通信は復旧し、一次解決になりました。' + (r.toneOk ? '伝え方も相手に合っていました。' : 'ただし話し方が相手に合っていませんでした。');
-    else if (r.grade === 'best') judge = '原因も対処も最適でした。' + (r.toneOk ? '伝え方も相手に合っていました。' : 'ただし話し方が相手に合っていませんでした。');
+    else if (r.causeMatched === false) judge = '選んだ対応のあと通信は復旧し、一次解決になりました。';
+    else if (r.grade === 'best') judge = '原因も対処も最適でした。';
     else if (r.grade === 'partial') judge = '原因は当たっていましたが、対処は次善どまりでした。';
     else judge = '原因は当たっていましたが、対処が噛み合っていませんでした。';
 
@@ -1672,7 +1661,11 @@ function renderDebrief(){
       '<span class="rs">CSAT ' + r.csat.toFixed(1) + ' ／ ' + esc(r.label) + ' ／ 通話' + t.callMinutes + '分（保留' + t.holdMinutes + '分）</span></div>' +
       '<div class="review-csat" aria-label="CSAT ' + r.csat.toFixed(1) + ' / 5"><i style="width:' + clamp(r.csat / 5 * 100, 0, 100) + '%"></i></div>' +
       '<div class="rb"><b style="color:var(--text);font-weight:500">真の原因：' + esc(causeName(t.s.trueCause)) + '</b><br>' +
-      esc(judge) + '<br>' + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
+      esc(judge) + '<br>' + (r.identityRecordMissing
+        ? '本人確認を完了できなかったため、記録不足として評価を下げました。<br>'
+        : t.identityStressSeen
+          ? '苛立ちが高く本人確認を求められなかったため、記録不足の減点は免除しました。<br>'
+          : '') + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
   }).join('');
 
   const complaintEmails = ts.filter(t => t.complaintEmail).map(t => {

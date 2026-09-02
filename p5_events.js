@@ -4,7 +4,7 @@
 
 document.addEventListener('click', (e) => {
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-tone],[data-board-excluded]');
+  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-board-excluded]');
   if (!el || el.disabled) return;
   playCommandSound();
   routeAction(el.dataset);
@@ -101,7 +101,7 @@ function handleResolutionAction(d){
   if (d.shipLevel){ chooseShipLevel(d.shipLevel); return true; }
   if (d.shipConfirm){ confirmShipment(); return true; }
   if (d.reportSubmit){ submitReport(); return true; }
-  if (d.tone){ doClose(state.ui.cause, state.ui.remedy, d.tone); return true; }
+  if (d.closeConfirm){ doClose(state.ui.cause, state.ui.remedy); return true; }
   return false;
 }
 

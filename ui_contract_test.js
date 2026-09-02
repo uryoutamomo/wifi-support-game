@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
-const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
+const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -179,7 +179,7 @@ assert(!customerLineSource.includes("who:'sys'") && !customerLineSource.includes
 assert.equal((game.match(/stressLeadIn\(/g) || []).length, 2, 'ストレス前置きが顧客発話以外にも適用されている');
 assert(openingDeliverySource.includes("pushCustomerLine(t, t.s.rushedReply, { plain:true })"), 'rushedReply にストレス前置きが付く');
 const closeCustomerReplySource = functionSource('doClose') + functionSource('finishSuccessfulClose');
-assert(closeCustomerReplySource.includes('closingLine(s, grade, toneOk)') && closeCustomerReplySource.includes('pushCustomerLine(t, resolutionReply, { plain:true })'), 'closingLine にストレス前置きが付く');
+assert(closeCustomerReplySource.includes('closingLine(s, grade)') && closeCustomerReplySource.includes('pushCustomerLine(t, resolutionReply, { plain:true })'), 'closingLine にストレス前置きが付く');
 
 assert.equal(functionSource('queueCard'), '', '廃止した着信一覧の queueCard が残っている');
 ['office-incoming', 'office-queue', 'office-callbacks', 'office-next', 'data-office-phone'].forEach(removed => {
@@ -341,7 +341,7 @@ assert(!/hardware|provision|logistics|carrier|coverage|fup|devices|heavy|device_
 const tellEntries = [...tellHtml.matchAll(/data-(tell|refund|hotel-callback)="([^"]+)"[\s\S]*?<span class="opt-label">([^<]+)(?:<span class="opt-sub">([^<]+)<\/span>)?/g)]
   .map(match => ({ id:match[1] === 'hotel-callback' ? 'hotel-callback' : match[2], label:match[3], note:match[4] || '' }));
 assert.deepEqual(tellEntries, [
-  { id:'close', label:'対処を伝える', note:'原因を見立てて、対処をご案内します。' },
+  { id:'close', label:'原因と対処を伝える', note:'原因を見立てて、対処をご案内します。' },
   { id:'try', label:'やってみてもらう', note:'機器や端末で試していただくことを選びます。' },
   { id:'refund', label:'返金をご案内する', note:'' },
   { id:'hotel-callback', label:'いますぐ折り返す', note:'すぐにこちらから掛け直します' },
@@ -441,11 +441,11 @@ assert.equal(expectedTreatment(false), false, '本来どおり時に誤診が失
 assert.equal(adverseTreatment(true), false, '裏目時に正しい対処が未解決にならない');
 assert.equal(adverseTreatment(false), true, '裏目時に誤診が解決しない');
 
-function runCloseContract(causeMatched, expectedOutcome){
+function runCloseContract(causeMatched, expectedOutcome, identityStressSeen = false){
   const ticket = {
     s:{ trueCause:'right', best:'r_right', partial:[], type:'hurried' }, state:'open', transcript:[],
     callMinutes:0, holdMinutes:0, stress:10, patience:100, damage:0, wasted:0, misdiagnoses:0,
-    shipment:null, pendingResult:null, extraMinutes:0,
+    shipment:null, pendingResult:null, extraMinutes:0, identityStressSeen,
   };
   const closeState = { focus:ticket, cost:0, escLeft:3, ui:null };
   const deps = {
@@ -455,6 +455,7 @@ function runCloseContract(causeMatched, expectedOutcome){
       wrong:[{id:'r_wrong', label:'誤った対処', cost:200, kind:'guide', verifiable:true}],
     },
     TYPES:{ hurried:{tone:'brief'} },
+    IDENTITY_RECORD_PENALTY,
     remedyBlockReason:() => '', toneLabel:id => id,
     spendOnCall:(t, minutes) => { t.callMinutes += minutes; return true; },
     treatmentSucceeds:matched => expectedOutcome ? matched : !matched,
@@ -472,7 +473,7 @@ function runCloseContract(causeMatched, expectedOutcome){
     resolutionOperatorClosing:() => '失礼いたします', CALL_FLOW_LINES,
   };
   const run = new Function(...Object.keys(deps), functionSource('finishSuccessfulClose') + '\n' + functionSource('doClose') + '\nreturn doClose;')(...Object.values(deps));
-  run(causeMatched ? 'right' : 'wrong', causeMatched ? 'r_right' : 'r_wrong', 'brief');
+  run(causeMatched ? 'right' : 'wrong', causeMatched ? 'r_right' : 'r_wrong');
   ticket.totalCost = closeState.cost;
   return ticket;
 }
@@ -780,7 +781,7 @@ assert(functionSource('careerBriefingHtml').includes("state.tickets.length + '�
 assert(Object.prototype.hasOwnProperty.call(GAME_FLAGS, 'dailyTickets') && GAME_FLAGS.dailyTickets === null, 'GAME_FLAGSから日次件数を固定できない');
 
 const baselineClosed = runCloseContract(true, true);
-assert.equal(baselineClosed.pendingResult.csat, 5.0, '運なしの同一操作列でCSATが決定論的な旧結果に戻らない');
+assert.equal(baselineClosed.pendingResult.csat, 4.6, '運なしの同一操作列でCSATが決定論的な結果に戻らない（本人確認なしの記録不足0.4を含む）');
 assert(functionSource('renderDebrief').includes("r.causeMatched === false") && functionSource('renderDebrief').includes('選んだ対応のあと通信は復旧し、一次解決になりました。'), '誤診から復旧した振り返りが原因・対処とも最適と誤表示する');
 
 // 6-C: 解決後の別れの言葉と明示終話、途中切断からの再着信。
@@ -1020,7 +1021,7 @@ assert(endingTickets.every(ticket => ticket.transcript.slice(-3).some(line => li
 
 const misdiagnosisSource = functionSource('doClose');
 const flowAdvanceSource = functionSource('advanceConversationFlow');
-const treatmentIndex = misdiagnosisSource.indexOf("text:'【' + toneLabel(toneId) + '】' + remedy.label");
+const treatmentIndex = misdiagnosisSource.indexOf("text:remedy.label");
 const failureIndex = misdiagnosisSource.indexOf('CALL_FLOW_LINES.misdiagnosis.failure');
 const apologyIndex = misdiagnosisSource.indexOf('CALL_FLOW_LINES.misdiagnosis.apology');
 const stagedIndex = misdiagnosisSource.indexOf("pendingConversation = { kind:'second_misdiagnosis'");
@@ -1676,7 +1677,7 @@ const unresolvedGuide33 = new Function('hotCauses','esc', functionSource('unreso
 const notNarrowedGuide33 = unresolvedGuide33({hot:new Set(['sim','hardware'])});
 const narrowedGuide33 = unresolvedGuide33({hot:new Set(['hardware'])});
 assert(notNarrowedGuide33.includes('「聞く」「調べる」で手がかりを集める') && notNarrowedGuide33.includes('対処を案内できるようになります'), '§33 検査1: 原因未絞り込みの終話確認が次の質問・照会を案内しない');
-assert(narrowedGuide33.includes('「伝える」→「対処を伝える」') && narrowedGuide33.includes('原因と対処を案内すると、この電話を終われます'), '§33 検査2: 原因絞り込み後の終話確認が対処案内を次手にしない');
+assert(narrowedGuide33.includes('「伝える」→「原因と対処を伝える」') && narrowedGuide33.includes('原因と対処を案内すると、この電話を終われます'), '§33 検査2: 原因絞り込み後の終話確認が対処案内を次手にしない');
 assert([notNarrowedGuide33,narrowedGuide33].every(html => html.includes('このまま切ると、お客様から再入電になります')), '§33 検査3: 未解決切断で再入電になる説明が欠けている');
 assert(functionSource('unresolvedHangupGuide').includes('hotCauses(t).size === 1'), '§33 検査4: 終話ガイドが真因ではなく現在の絞り込み状態で分岐しない');
 assert(functionSource('renderCloseFlow').includes('has-block-reason') && functionSource('renderCloseFlow').includes('remedy-block-reason') && page.includes('.opt:disabled.has-block-reason') && page.includes('.remedy-block-reason'), '§33 検査5: 前提不足の対処と理由が通常説明とは違う見た目にならない');
@@ -1757,7 +1758,7 @@ assert(doTest36.includes('TYPES[t.s.type].solvedReply') && doTest36.includes('t.
 const solvedReplies36 = typeNames.map(type => TYPES[type].solvedReply);
 assert(solvedReplies36.every(Boolean) && new Set(solvedReplies36).size === typeNames.length && solvedReplies36.every(reply => /つなが|復旧/.test(reply)),'§36 検査3: 復旧発話が4タイプ分書き分けられていない');
 const resolvedGuide36 = unresolvedGuide33({hot:new Set(['sim']),symptomResolved:true});
-assert(resolvedGuide36.includes('症状は復旧しました') && resolvedGuide36.includes('「伝える」→「対処を伝える」') && resolvedGuide36.includes('原因をご説明すると、この電話を終われます'),'§36 検査4: 復旧済み未案内の終話確認に第三の次手が出ない');
+assert(resolvedGuide36.includes('症状は復旧しました') && resolvedGuide36.includes('「伝える」→「原因を伝える」') && resolvedGuide36.includes('原因をご説明すると、この電話を終われます'),'§36 検査4: 復旧済み未案内の終話確認に第三の次手が出ない');
 const simClean36 = REMEDIES.sim.find(remedy => remedy.id === 'r_sim_clean');
 assert.equal(simClean36.label,'接点の一時的な接触不良だったことをご説明し、そのままご利用いただく','§36 検査5: r_sim_cleanが手順記録のままで原因説明になっていない');
 const explanationRemedies36 = ['r_topup','r_slow_ok','r_disconnect','r_vpn_plan','r_throttle_talk','r_forget_guide','r_vpn_off','r_move_guide','r_charge_guide'].map(id => Object.values(REMEDIES).flat().find(remedy => remedy.id === id));
@@ -2087,5 +2088,22 @@ assert(redialNoticesWhenDrawn46 && redialNoticesWhenDrawn46.some(event => event.
 // 編集用の3素材と配布用 index.html は、build.js と同じ規則で完全一致する。
 const expectedIndex = builtIndexSource(__dirname);
 assert.equal(fs.readFileSync(__dirname + '/index.html', 'utf8'), expectedIndex, 'index.html が編集用素材から再生成されていない');
+
+// §48: 終話を「原因と対処」の一手にまとめ、診断の根拠表示と混同しない。
+assert(!/\bTONES\b/.test(dataSource) && !/toneOk|toneId|toneLabel|data-tone|tone-row/.test(gameLogicSource + viewSource + eventSource), '§48-1 検査1: 終話の伝え方選択または採点が残っている');
+assert(functionSource('doClose').startsWith('function doClose(causeId, remedyId){') && eventSource.includes('[data-close-confirm]'), '§48-1 検査2: 終話確定が原因・対処の二引数またはクリック経路になっていない');
+const unresolvedTell48 = renderTellOptions35({s:{deviceInHand:true}, symptomResolved:false, asked:new Set(), callDirection:'inbound'});
+const resolvedTell48 = renderTellOptions35({s:{deviceInHand:true}, symptomResolved:true, asked:new Set(), callDirection:'inbound'});
+assert(unresolvedTell48.includes('原因と対処を伝える') && unresolvedTell48.includes('原因を見立てて、対処をご案内します。') && !unresolvedTell48.includes('【噛み砕いて】'), '§48-2 検査1: 未復旧時の伝える入口が原因と対処の案内になっていない');
+assert(resolvedTell48.includes('原因を伝える') && resolvedTell48.includes('復旧した原因をご説明します。'), '§48-2 検査2: 復旧後の伝える入口が原因説明になっていない');
+assert(functionSource('commandPrompt').includes('どの対処が効いたかを選んでください'), '§48-2 検査3: 復旧後の対処選択見出しがない');
+const closeFlow48 = functionSource('renderCloseFlow');
+assert(!/ruledOut\(|hotCauses\(|isHot|\bhot\b|\bused\b|●|手がかりが指しています|噛み合いません/.test(closeFlow48), '§48-3 検査1: 原因選択に診断ボード用の強調・除外表示が残っている');
+assert(functionSource('renderBoard').includes('isHot') && functionSource('renderBoard').includes("(out ? '×' : isHot ? '●' : '·')"), '§48-3 検査2: 診断ボードから根拠の強調・除外表示まで消えている');
+assert.equal(correctExpected.pendingResult.csat, 4.6, '§48-5 検査1: 本人確認未完了の終話に記録不足0.4点が反映されない');
+const exemptClose48 = runCloseContract(true, true, true);
+assert.equal(exemptClose48.pendingResult.csat, 5.0, '§48-5 検査2: 高ストレスで本人確認できなかった終話が減点免除されない');
+assert(functionSource('finishSuccessfulClose').includes('!t.identified && !t.identityStressSeen') && functionSource('changeStress').includes('if (t.stress >= 50) t.identityStressSeen = true'), '§48-5 検査2: 高ストレス時の本人確認減点免除が共通ストレス経路にない');
+assert(functionSource('renderDebrief').includes('記録不足として評価を下げました') && functionSource('renderDebrief').includes('減点は免除しました'), '§48-5 検査3: 終話レポートに記録不足の減点・免除の説明がない');
 
 console.log('UI契約・素材同期・SIM清掃仕様: 問題なし');

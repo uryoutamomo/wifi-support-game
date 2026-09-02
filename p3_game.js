@@ -607,6 +607,8 @@ function changeStress(t, delta, expectedOutcome = rollLuck()){
   if (!expectedOutcome) delta = 0;
   t.stress = clamp(t.stress + delta, 0, 100);
   t.maxStress = Math.max(t.maxStress, t.stress);
+  // 本人確認の質問と同じ境界で、記録不足の減点免除を残す。
+  if (t.stress >= 50) t.identityStressSeen = true;
   if (previousStress <= 80 && t.stress > 80) playStressWarning();
   if (t.stress >= 100 && t.state === 'open' && !t.pendingResult){
     endAngryCall(t, 'stress');
@@ -754,6 +756,7 @@ function requireIdentification(t){
 
 function identityQuestionStress(t, qid, normalBase){
   if (!['q_name','q_contract'].includes(qid) || t.stress < 50) return addStress(t, normalBase);
+  t.identityStressSeen = true;
   const delta = IDENTITY_CALMING_EFFECTS[t.s.type];
   if (delta === 0) return changeStress(t, 0, true);
   const expectedOutcome = rollLuck();
@@ -1376,8 +1379,6 @@ function confirmShipment(){
 
 /* ---------- クローズ判定 ---------- */
 
-function toneLabel(id){ const x = TONES.find(t => t.id === id); return x ? x.name : id; }
-
 function queueUnverifiableRedial(t){
   t.redialCount++;
   t.state = 'waiting';
@@ -1393,7 +1394,7 @@ function queueUnverifiableRedial(t){
   enterOffice();
 }
 
-function finishSuccessfulClose(t, remedy, causeId, remedyId, toneId, causeMatched){
+function finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched){
   const s = t.s;
   if (remedy.cost) state.cost += remedy.cost;
   if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
@@ -1407,9 +1408,8 @@ function finishSuccessfulClose(t, remedy, causeId, remedyId, toneId, causeMatche
   else if ((s.partial || []).includes(remedyId)){ base = 3.5; grade = 'partial'; }
   else { base = 2.2; grade = 'poor'; }
 
-  const wantTone = TYPES[s.type].tone;
-  const toneOk = (toneId === wantTone);
-  if (!toneOk) base -= 1.0;
+  const identityRecordMissing = !t.identified && !t.identityStressSeen;
+  if (identityRecordMissing) base -= IDENTITY_RECORD_PENALTY;
   base -= t.damage;
   base -= t.misdiagnoses * 1.2;
   base -= Math.min(0.6, t.wasted * 0.1);
@@ -1422,11 +1422,11 @@ function finishSuccessfulClose(t, remedy, causeId, remedyId, toneId, causeMatche
   if (t.shipment && t.s.deliveryAddress && !t.deliveryAddressConfirmed) base -= 1.0;
 
   const csat = clamp(Math.round(base * 10) / 10, 1.0, 5.0);
-  const result = { kind:'closed', csat, grade, toneOk, remedyId, causeId, toneId,
+  const result = { kind:'closed', csat, grade, remedyId, causeId, identityRecordMissing,
     causeMatched, firstCallResolved:grade === 'best' && t.callbackCount === 0 && t.misdiagnoses === 0, label:gradeLabel(grade) };
   const resolutionReply = remedy.reportsRestored
     ? '原因まで分かって安心しました。回線を戻していただき、ありがとうございました。'
-    : causeMatched ? closingLine(s, grade, toneOk) : 'あ、繋がりました。これで使えそうです。';
+    : causeMatched ? closingLine(s, grade) : 'あ、繋がりました。これで使えそうです。';
   pushCustomerLine(t, resolutionReply, { plain:true });
   pushFlowLines(t, [{ who:'me', text:resolutionOperatorClosing(grade, causeMatched) }]);
   pushCustomerLine(t, farewellLine(s, grade), { plain:true });
@@ -1436,7 +1436,7 @@ function finishSuccessfulClose(t, remedy, causeId, remedyId, toneId, causeMatche
   render();
 }
 
-function doClose(causeId, remedyId, toneId){
+function doClose(causeId, remedyId){
   const t = state.focus;
   const s = t.s;
   const remedy = (REMEDIES[causeId] || []).find(r => r.id === remedyId);
@@ -1444,7 +1444,7 @@ function doClose(causeId, remedyId, toneId){
   const blocked = remedyBlockReason(t, remedy);
   if (blocked){ render(); return; }
 
-  t.transcript.push({ who:'me', text:'【' + toneLabel(toneId) + '】' + remedy.label });
+  t.transcript.push({ who:'me', text:remedy.label });
   if (!spendOnCall(t, 2, 0)) return;
 
   const causeMatched = causeId === s.trueCause;
@@ -1504,7 +1504,7 @@ function doClose(causeId, remedyId, toneId){
     return;
   }
 
-  finishSuccessfulClose(t, remedy, causeId, remedyId, toneId, causeMatched);
+  finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched);
 }
 
 function resolutionOperatorClosing(grade, causeMatched){
@@ -1535,14 +1535,8 @@ function gradeLabel(g){
   return g === 'best' ? '解決' : (g === 'partial' ? '暫定対応' : '不適切な対処');
 }
 
-function closingLine(s, grade, toneOk){
+function closingLine(s, grade){
   if (grade === 'best'){
-    if (!toneOk){
-      const t = TYPES[s.type].tone;
-      if (t === 'warm')      return s.type === 'anxious' ? '戻った…よかった。でも説明が難しくて、途中で本当に怖かったです。' : '直りました。でも次は、押す所を一つずつ教えてくださいね。';
-      if (t === 'technical') return '復旧は確認しました。ただ、説明の粒度は次回見直してください。';
-      return '直った。ありがとう。でも説明は半分でよかった。急ぎます。';
-    }
     return {
       anxious:'繋がった…！ よかった、もう駄目かと思いました…。最後までいてくださって、本当にありがとうございます。',
       novice:'まあ、直りました！ 私にもできたんですね。ゆっくり一つずつ、本当にありがとうございました。',

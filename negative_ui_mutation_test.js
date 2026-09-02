@@ -23,9 +23,51 @@ const boardPane = `  <section class="pane board">
 const mutations = [
   {
     name:'§46-3 解決したのに結果を確定させない', file:'p3_game.js',
-    from:'  finishSuccessfulClose(t, remedy, causeId, remedyId, toneId, causeMatched);',
+    from:'  finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched);',
     to:'',
     expected:'裏目の誤診が解決扱いにならない',
+  },
+  {
+    name:'§48-5 本人確認なしでも減点しない', file:'p3_game.js',
+    from:'  if (identityRecordMissing) base -= IDENTITY_RECORD_PENALTY;',
+    to:'',
+    expected:'運なしの同一操作列でCSATが決定論的な結果に戻らない（本人確認なしの記録不足0.4を含む）',
+  },
+  {
+    name:'§48-5 高ストレスでも減点を免除しない', file:'p3_game.js',
+    from:'  const identityRecordMissing = !t.identified && !t.identityStressSeen;',
+    to:'  const identityRecordMissing = !t.identified;',
+    expected:'§48-5 検査2: 高ストレスで本人確認できなかった終話が減点免除されない',
+  },
+  {
+    name:'§48-5 免除の境目を苛立ち50%から70%へずらす', file:'p3_game.js',
+    from:'  if (t.stress >= 50) t.identityStressSeen = true;',
+    to:'  if (t.stress >= 70) t.identityStressSeen = true;',
+    expected:'§48-5 検査2: 高ストレス時の本人確認減点免除が共通ストレス経路にない',
+  },
+  {
+    name:'§48-3 原因の選択画面へ誘導を戻す', file:'p4_view.js',
+    from:`        '<span class="opt-label">' + esc(c.label) + '<span class="opt-sub">' + c.tier + '</span></span>' +`,
+    to:`        '<span class="opt-label">● ' + esc(c.label) + '<span class="opt-sub">' + c.tier + ' ／ 手がかりが指しています</span></span>' +`,
+    expected:'§48-3 検査1: 原因選択に診断ボード用の強調・除外表示が残っている',
+  },
+  {
+    name:'§48-3 診断ボードからも根拠の印を消す', file:'p4_view.js',
+    from:`      '<span class="tick">' + (out ? '×' : isHot ? '●' : '·') + '</span>' +`,
+    to:`      '<span class="tick">·</span>' +`,
+    expected:'§48-3 検査2: 診断ボードから根拠の強調・除外表示まで消えている',
+  },
+  {
+    name:'§48-2 復旧後の対処選択見出しを未復旧と同じに戻す', file:'p4_view.js',
+    from:`'どの対処が効いたかを選んでください'`,
+    to:`'対処を選んでください'`,
+    expected:'§48-2 検査3: 復旧後の対処選択見出しがない',
+  },
+  {
+    name:'§48-1 終話に伝え方の第三引数を戻す', file:'p3_game.js',
+    from:'function doClose(causeId, remedyId){',
+    to:'function doClose(causeId, remedyId, toneId){',
+    expected:'§48-1 検査1: 終話の伝え方選択または採点が残っている',
   },
   {
     name:'§46-4 通話を離れてもオフィス画面へ移らない', file:'p3_game.js',
@@ -559,7 +601,7 @@ const mutations = [
   {
     name:'旧挙動の正解CSATを変える', file:'p3_game.js',
     from:"else if (remedyId === bestId){ base = 5.0; grade = 'best'; }", to:"else if (remedyId === bestId){ base = 4.9; grade = 'best'; }",
-    expected:'運なしの同一操作列でCSATが決定論的な旧結果に戻らない',
+    expected:'運なしの同一操作列でCSATが決定論的な結果に戻らない（本人確認なしの記録不足0.4を含む）',
   },
   {
     name:'誤診復旧の振り返り補正を外す', file:'p4_view.js',
@@ -568,7 +610,7 @@ const mutations = [
   },
   {
     name:'対処ラベルを終話表現へ戻す', file:'p4_view.js',
-    from:'<span class="opt-label">対処を伝える<span class="opt-sub">', to:'<span class="opt-label">対応を決めて終える<span class="opt-sub">',
+    from:"(t.symptomResolved ? '原因を伝える' : '原因と対処を伝える')", to:"(t.symptomResolved ? '原因を伝える' : '対応を決めて終える')",
     expected:'「伝える」のID・項目名・注意書きが完全一致しない',
   },
   {
@@ -1670,7 +1712,7 @@ const mutations = [
   },
   {
     name:'絞り込み後終話から対処を伝える次手を消す', file:'p4_view.js',
-    from:'まだ対処をお伝えしていません。「伝える」→「対処を伝える」で原因と対処を案内すると、この電話を終われます。',
+    from:'まだ対処をお伝えしていません。「伝える」→「原因と対処を伝える」で原因と対処を案内すると、この電話を終われます。',
     to:'まだ対処をお伝えしていません。対応を続けてください。',
     expected:'§33 検査2: 原因絞り込み後の終話確認が対処案内を次手にしない',
   },
@@ -1855,7 +1897,7 @@ const mutations = [
   },
   {
     name:'復旧済み終話ガイドを通常の絞り込み案内へ戻す', file:'p4_view.js',
-    from:"const next = t.symptomResolved\n    ? '症状は復旧しました。「伝える」→「対処を伝える」で原因をご説明すると、この電話を終われます。'\n    : causeNarrowed",
+    from:"const next = t.symptomResolved\n    ? '症状は復旧しました。「伝える」→「原因を伝える」で原因をご説明すると、この電話を終われます。'\n    : causeNarrowed",
     to:'const next = causeNarrowed',
     expected:'§36 検査4: 復旧済み未案内の終話確認に第三の次手が出ない',
   },

@@ -342,11 +342,6 @@ const COMPLAINT_EMAIL_TEMPLATES = Object.freeze({
   hurried:Object.freeze({ lines:Object.freeze(['「{symptom}」と急ぎで伝えたのに、結論が出ないまま大切な予定に間に合いませんでした。', '前置きではなく必要な対応をすぐ示すべきです。失った時間をどう考えているのか回答してください。']) }),
 });
 
-const TONES = [
-  { id:'technical', name:'技術的に', sub:'用語をそのまま使い、手順を番号で正確に伝える' },
-  { id:'warm',      name:'噛み砕いて', sub:'専門用語を避け、一つずつ確認しながら伝える' },
-  { id:'brief',     name:'手短に',   sub:'前置きを省き、やることだけを結論から伝える' },
-];
 
 /* ---------- 質問プール ---------- */
 
@@ -398,6 +393,7 @@ const SOOTHES = [
 const SOOTHE_EFFECTS = { anxious:{s_wait:-12,s_apology:-22,s_recap:-18}, novice:{s_wait:-12,s_apology:-15,s_recap:-25}, hurried:{s_wait:-18,s_apology:-5,s_recap:-10}, expert:{s_wait:-8,s_apology:3,s_recap:-25} };
 const SMALLTALK_EFFECTS = Object.freeze({ anxious:-10, novice:-12, hurried:14, expert:6 });
 const IDENTITY_CALMING_EFFECTS = Object.freeze({ anxious:-10, novice:-8, hurried:-4, expert:0 });
+const IDENTITY_RECORD_PENALTY = 0.4;
 
 const APOLOGIES = Object.freeze([
   Object.freeze({ id:'a_brief', label:'ご不便をおかけして申し訳ございません', minutes:1, kind:'brief' }),

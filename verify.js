@@ -4,9 +4,9 @@
 const fs = require('fs');
 const path = process.argv[2] || require('path').join(__dirname, 'p2_data.js');
 const src = fs.readFileSync(path, 'utf8') +
-  '\nreturn {CAUSES,TYPES,TONES,QUESTIONS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS};';
+  '\nreturn {CAUSES,TYPES,QUESTIONS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS};';
 const D = new Function(src)();
-const {CAUSES, TYPES, TONES, QUESTIONS, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS} = D;
+const {CAUSES, TYPES, QUESTIONS, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS} = D;
 
 const causeIds = new Set(CAUSES.map(c => c.id));
 const qIds = new Set(QUESTIONS.map(q => q.id));

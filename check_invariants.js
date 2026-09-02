@@ -709,7 +709,7 @@ if (MORNING_STAFF.some(staff => Object.keys(staff).some(key => /player|highlight
 
 // §33: 未解決終話は現在の絞り込み状態に応じた次の一手と再入電を示す。
 const hangupGuide33 = sourceOf('unresolvedHangupGuide');
-if (!hangupGuide33.includes('hotCauses(t).size === 1') || !hangupGuide33.includes('「聞く」「調べる」で手がかりを集める') || !hangupGuide33.includes('「伝える」→「対処を伝える」') || !hangupGuide33.includes('お客様から再入電になります')) bad('§33 未解決終話の次手分岐・再入電説明が揃わない');
+if (!hangupGuide33.includes('hotCauses(t).size === 1') || !hangupGuide33.includes('「聞く」「調べる」で手がかりを集める') || !hangupGuide33.includes('「伝える」→「原因と対処を伝える」') || !hangupGuide33.includes('お客様から再入電になります')) bad('§33 未解決終話の次手分岐・再入電説明が揃わない');
 if (!sourceOf('renderCloseFlow').includes('remedy-block-reason') || !pageSource.includes('.opt:disabled.has-block-reason') || !pageSource.includes('.remedy-block-reason')) bad('§33 前提不足の理由が通常説明と違う見た目にならない');
 if (!sourceOf('remedyBlockReason').includes('先に「伝える」→「やってみてもらう」を ')) bad('§33 前提不足の従来理由文が変わっている');
 
