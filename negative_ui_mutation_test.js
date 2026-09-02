@@ -22,6 +22,12 @@ const boardPane = `  <section class="pane board">
   </section>`;
 const mutations = [
   {
+    name:'§45 客から切られたら折り返しの約束を捨てる', file:'p3_game.js',
+    from:'  if (t.callbackPromised){\n    t.transcript.push({ who:\'note\', text:\'お客様から切られましたが、折り返しのお約束は残っています。\' });\n    finishPromisedCallback(t, false);\n    return false;\n  }\n',
+    to:'',
+    expected:'§45 検査8: 客から切られると折り返しの約束が失効する',
+  },
+  {
     name:'§45 折り返しの申し出でその場で切る', file:'p3_game.js',
     from:'  t.callbackPromised = kind;', to:"  t.callbackPromised = kind;\n  t.state = 'callback';\n  state.focus = null;",
     expected:'§45 検査1: 折り返しの申し出がその場で通話を終わらせる',

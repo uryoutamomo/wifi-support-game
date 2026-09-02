@@ -607,6 +607,12 @@ function endAngryCall(t, reason){
       ? 'お客様は強い苦情を述べて通話を終えました。'
       : 'お客様は一方的に通話を切りました。',
   });
+  // §45: 折り返しを約束していたなら、怒って切られても約束は生きている。折り返さないほうが業務として悪い。
+  if (t.callbackPromised){
+    t.transcript.push({ who:'note', text:'お客様から切られましたが、折り返しのお約束は残っています。' });
+    finishPromisedCallback(t, false);
+    return false;
+  }
   t.pendingResult = {
     kind,
     reason,
@@ -1212,7 +1218,7 @@ function startHotelCallback(kind = 'immediate'){
 }
 
 /* §45: 約束したうえで電話を切ったときの終話。滞在先を持たないまま切れば、折り返せない。 */
-function finishPromisedCallback(t){
+function finishPromisedCallback(t, charge = true){
   if (!t || !t.callbackPromised) return;
   const kind = t.callbackPromised;
   t.callbackPromised = null;
@@ -1226,7 +1232,7 @@ function finishPromisedCallback(t){
   t.callbackReason = 'general';
   t.callbackKind = kind;
   t.callbackStage = null;
-  if (!spendOnCall(t, 1, 0)) return;
+  if (charge && !spendOnCall(t, 1, 0)) return;
   t.callbackDue = state.clock + (kind === 'scheduled' ? CALLBACK_SCHEDULED_MINUTES : 0);
   t.state = 'callback';
   state.focus = null;

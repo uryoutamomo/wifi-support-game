@@ -1935,6 +1935,26 @@ assert(!noStay39.blind && noStay39.callbackPromised === 'immediate','§45 検査
 finishHotel45(noStay39);
 assert(noStay39.blind && noStay39.state === 'open' && noStay39.callbackCount === 0,'§40 滞在先未確認の折り返しが、折り返せなかった扱いにならない');
 
+// §45 検査8: 約束したあとに客から切られても、折り返しの約束は生きている。
+const angrySource45 = functionSource('endAngryCall');
+assert(angrySource45.includes('if (t.callbackPromised)') && angrySource45.includes('finishPromisedCallback(t, false)'),'§45 検査8: 客から切られると折り返しの約束が失効する');
+assert(angrySource45.indexOf('if (t.callbackPromised)') < angrySource45.indexOf('t.pendingResult = {'),'§45 検査8: 約束の確認が終話処理より後にある');
+// 文字列ではなく、endAngryCall を実際に走らせて確かめる。
+const angryModule45 = new Function('ANGRY_END_LINES','CALL_FLOW_LINES','angryOutcomeKind','pushFlowLines','finishPromisedCallback','defaultUi','render','state',
+  functionSource('endAngryCall') + '\nreturn endAngryCall;')(
+  ANGRY_END_LINES, CALL_FLOW_LINES, () => 'complaint',
+  (ticket, lines) => ticket.transcript.push(...lines),
+  (ticket, charge) => { ticket.finished = { charge }; ticket.state = 'callback'; ticket.callbackPromised = null; },
+  () => ({tab:'command'}), () => {}, {ui:{tab:'command'}}
+);
+const angryPromised45 = { s:{type:'hurried'}, transcript:[], callbackPromised:'immediate', state:'open' };
+angryModule45(angryPromised45, 'stress');
+assert(angryPromised45.finished && angryPromised45.finished.charge === false,'§45 検査8: 客から切られたとき、折り返しの終話へ渡していない（時間の計上も含めて）');
+assert(!angryPromised45.pendingResult && angryPromised45.state === 'callback','§45 検査8: 約束があるのにクレーム終話で閉じている');
+const angryPlain45 = { s:{type:'hurried'}, transcript:[], callbackPromised:null, state:'open' };
+angryModule45(angryPlain45, 'stress');
+assert(angryPlain45.pendingResult && angryPlain45.pendingResult.kind === 'complaint' && !angryPlain45.finished,'§45 検査8: 約束がない場合の既存の終話が変わっている');
+
 // §45 検査7: 切る前の案内に、何が足りていないかが出る。
 const guide45 = functionSource('unresolvedHangupGuide');
 const guideFn45 = new Function('CALL_FLOW_LINES','hotCauses',guide45 + '\nreturn unresolvedHangupGuide;')(CALL_FLOW_LINES,() => new Set());
