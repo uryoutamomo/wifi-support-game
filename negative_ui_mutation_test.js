@@ -22,6 +22,28 @@ const boardPane = `  <section class="pane board">
   </section>`;
 const mutations = [
   {
+    name:'§45 折り返しの申し出でその場で切る', file:'p3_game.js',
+    from:'  t.callbackPromised = kind;', to:"  t.callbackPromised = kind;\n  t.state = 'callback';\n  state.focus = null;",
+    expected:'§45 検査1: 折り返しの申し出がその場で通話を終わらせる',
+  },
+  {
+    name:'§45 約束したあとも「伝える」に折り返しを残す', file:'p4_view.js',
+    from:"return t.callDirection !== 'outbound' && !t.callbackPromised;", to:"return t.callDirection !== 'outbound';",
+    expected:'§45 約束したあとも「伝える」に折り返しが残る',
+  },
+  {
+    name:'§45 戻る時間の質問を約束前から出す', file:'p4_view.js',
+    from:'.filter(q => q && (!q.needsDevice || t.s.deviceInHand) && (!q.needsCallbackPromise || t.callbackPromised));',
+    to:'.filter(q => q && (!q.needsDevice || t.s.deviceInHand));',
+    expected:'§45 戻る時間の質問が約束前から出る',
+  },
+  {
+    name:'§45 切る前に滞在先未確認を知らせない', file:'p4_view.js',
+    from:'    if (!t.asked.has(\'q_stay\') || !t.stayAddress) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoAddress);',
+    to:'    if (false) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoAddress);',
+    expected:'§45 検査7: 滞在先未確認のまま切る案内が出ない',
+  },
+  {
     name:'§41 本人確認前に顧客レコードを開く', file:'p4_view.js',
     from:'  const identified = identificationReady(t);', to:'  const identified = t.nameKnown;',
     expected:'§41-11 本人確認前または未照会欄が伏せられない',
@@ -103,8 +125,8 @@ const mutations = [
   {
     // デスク端末画面も同じ call-head を使うので、通話ヘッダ側だけを狙う。
     name:'ヘッダへ氏名を戻す', file:'p4_view.js',
-    from:'const cost = (t.callSegmentMinutes || 0) * CALL_RATE_PER_MIN;\n  return \'<div class="call-head">\' +',
-    to:'const cost = (t.callSegmentMinutes || 0) * CALL_RATE_PER_MIN;\n  return \'<div class="call-head"><span class="cname">\' + esc(t.s.name) + \'</span>\' +',
+    from:'\'<span class="call-time">通話 \' + String(t.callSegmentMinutes',
+    to:'\'<span class="cname">\' + esc(t.s.name) + \'</span><span class="call-time">通話 \' + String(t.callSegmentMinutes',
     expected:'通話ヘッダにログへ移す情報が残っている: t.s.name',
   },
   {
@@ -2007,6 +2029,27 @@ const mutations = [
     expected:'§38 検査6-12: 土地の制約がgeo_blockとprovisionの2つだけではない',
   },
 ];
+
+/* 変異の的が現行ソースに当たるかを、走らせる前にまとめて確かめる。
+   0箇所なら止める。複数箇所は「意図しないほうを壊している」恐れがあるので一覧に出す。
+   2026-09-02、狙いが複数に当たって別の場所を壊し、検査が緑のままになる事故が3度あった。 */
+(function auditMutationTargets(){
+  const cache = {};
+  const readOnce = file => cache[file] || (cache[file] = fs.readFileSync(path.join(__dirname, file), 'utf8'));
+  const missing = [];
+  const ambiguous = [];
+  mutations.forEach((mutation, index) => {
+    if (!mutation || !mutation.file || typeof mutation.from !== 'string') return;
+    const hits = readOnce(mutation.file).split(mutation.from).length - 1;
+    if (hits === 0) missing.push('[' + (index + 1) + '] ' + mutation.name + ' (' + mutation.file + ')');
+    else if (hits > 1) ambiguous.push('[' + (index + 1) + '] ' + mutation.name + ' (' + mutation.file + ' に ' + hits + ' 箇所)');
+  });
+  if (ambiguous.length){
+    console.log('注意: 的が複数箇所に当たる変異 ' + ambiguous.length + ' 件（最初の1箇所だけが置換されます）');
+    ambiguous.forEach(line => console.log('  ' + line));
+  }
+  assert.equal(missing.length, 0, '変異の的が現行ソースに当たりません:\n  ' + missing.join('\n  '));
+})();
 
 for (const mutation of mutations){
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'wifi-support-negative-'));

@@ -93,7 +93,7 @@ if (JSON.stringify(REDIAL_OPENINGS) !== JSON.stringify({
 if (REDIAL_STRESS !== 25) bad('途中切断の基本ストレスが+25ではない');
 
 const EXPECTED_QUESTION_GROUPS = [
-  { id:'customer', no:'1', label:'顧客のこと', questionIds:['q_name','q_contract','q_stay','q_stay_length','q_replacement'] },
+  { id:'customer', no:'1', label:'顧客のこと', questionIds:['q_name','q_contract','q_stay','q_stay_length','q_replacement','q_return'] },
   { id:'local', no:'2', label:'現地のこと', questionIds:['q_destination','q_where','q_moved'] },
   { id:'device', no:'3', label:'本体のこと', questionIds:['q_lamp','q_battery','q_ssid'] },
   { id:'symptom', no:'4', label:'症状のこと', questionIds:['q_other_device','q_when','q_count','q_what_fails'] },
@@ -784,7 +784,16 @@ if (!sourceOf('renderCallHeader').includes("outbound ? '当社負担' : 'お客�
 // §40: 折り返しは「伝える」の中の一手。滞在先を聞かずに切ることもでき、その場合は折り返せず客から掛かってくる。
 if (!sourceOf('renderTellOptions').includes('data-hotel-callback') || sourceOf('renderCommandMenu').includes('data-hotel-callback')) bad('§40 ホテルへの折り返しが「伝える」の中にない');
 const blindCallback40 = sourceOf('blindCallbackRedial');
-if (!sourceOf('startHotelCallback').includes("!t.asked.has('q_stay')") || !sourceOf('startHotelCallback').includes('blindCallbackRedial(t)')) bad('§40 滞在先未確認の折り返しを取り違えずに分けていない');
+if (!sourceOf('finishPromisedCallback').includes("!t.asked.has('q_stay')") || !sourceOf('finishPromisedCallback').includes('blindCallbackRedial(t)')) bad('§40 滞在先未確認の折り返しを取り違えずに分けていない');
+// §45: 折り返しは「約束」と「切る」に分かれた。約束した時点では通話を終わらせない。
+const promise45 = sourceOf('startHotelCallback');
+const finish45 = sourceOf('finishPromisedCallback');
+if (!promise45.includes('t.callbackPromised = kind') || promise45.includes("t.state = 'callback'") || promise45.includes('state.focus = null')) bad('§45 折り返しの申し出がその場で通話を終わらせている');
+if (!finish45.includes("t.state = 'callback'") || !finish45.includes('state.focus = null')) bad('§45 「電話を切る」で折り返し待ちへ入らない');
+if (!sourceOf('hotelCallbackOffered').includes('!t.callbackPromised')) bad('§45 約束したあとも「伝える」に折り返しが残る');
+if (!sourceOf('renderCallHeader').includes('callbackPromise.headScheduled') || !sourceOf('renderCallHeader').includes('callbackPromise.headImmediate')) bad('§45 約束したことが通話ヘッダに出ない');
+if (!sourceOf('renderAskOptions').includes('!q.needsCallbackPromise || t.callbackPromised')) bad('§45 戻る時間の質問が約束前から出る');
+if (!sourceOf('unresolvedHangupGuide').includes('callbackPromise.guideNoAddress')) bad('§45 切る前に滞在先未確認であることを知らせない');
 if (!blindCallback40.includes('CALL_FLOW_LINES.callback.blameOpenings[t.s.type]') || !blindCallback40.includes("t.state = 'waiting'") || !blindCallback40.includes('BLIND_CALLBACK_STRESS') || !blindCallback40.includes('BLIND_CALLBACK_CSAT_PENALTY')) bad('§40 折り返せなかった客が非難つきで掛け直してこない');
 if (Object.keys(CALL_FLOW_LINES.callback.blameOpenings).length !== 4 || new Set(Object.values(CALL_FLOW_LINES.callback.blameOpenings)).size !== 4) bad('§40 折り返しなしを責める発話が4タイプ分ない');
 if (BLIND_CALLBACK_STRESS <= REDIAL_STRESS) bad('§40 連絡先なしの切断が、ただの切断より軽い');
@@ -795,10 +804,10 @@ if (!sourceOf('renderFrontDeskOptions').includes('t.s.nameEn') || !sourceOf('han
 if (!sourceOf('renderFrontDeskOptions').includes("const roomChoice = room") || sourceOf('renderFrontDeskOptions').includes("replace('{room}', room || '—')")) bad('§39 部屋番号不明時にroom選択肢またはダッシュが出る');
 if (!sourceOf('isLateLocalTime').includes('ticketLocalMinute(t)') || !sourceOf('ticketLocalMinute').includes('t.s.localOffset') || !sourceOf('resumeCallback').includes('CALL_FLOW_LINES.frontDesk.lateQuestion')) bad('§39 土地のlocalOffsetによる深夜判定または難色発話がない');
 if (!sourceOf('handleFrontDeskChoice').includes("const direct = choice === 'callback'") || !sourceOf('handleFrontDeskChoice').includes("t.callbackStage = 'connected'") || sourceOf('handleFrontDeskChoice').includes("t.callbackStage = 'blocked'")) bad('§39 折り返し説明の円滑接続または他選択肢の非詰みを守らない');
-if (sourceOf('startHotelCallback').includes('l_carrier') || !sourceOf('startHotelCallback').includes("t.callbackReason = 'general'")) bad('§39 一般折り返しがl_carrier専用のまま');
+if (sourceOf('finishPromisedCallback').includes('l_carrier') || !sourceOf('finishPromisedCallback').includes("t.callbackReason = 'general'")) bad('§39 一般折り返しがl_carrier専用のまま');
 
 // §41: 二種類の折り返し、社内レコード、配送先の再確認。実プレイ用の不変条件。
-const callback41 = sourceOf('startHotelCallback');
+const callback41 = sourceOf('startHotelCallback') + sourceOf('finishPromisedCallback');
 const tell41 = sourceOf('renderTellOptions');
 const desk41 = sourceOf('doDeskLookup');
 const front41 = sourceOf('handleFrontDeskChoice') + sourceOf('applyCallbackWaitStress') + sourceOf('callbackLookupAllowance');

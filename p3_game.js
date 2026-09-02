@@ -338,7 +338,7 @@ function newTicket(s){
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, inboundMinutes:0, outboundMinutes:0, callSegmentMinutes:0, callDirection:'inbound', holdMinutes:0,
     callChargeConcerned:false,
     callbackCount:0, callbackDue:null, callbackLate:false, callbackKind:null, callbackDestination:null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
-    callbackReason:null, callbackStage:null, frontDeskAttempts:0,
+    callbackReason:null, callbackStage:null, callbackPromised:null, returnTimeKnown:false, frontDeskAttempts:0,
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
@@ -991,6 +991,7 @@ function doAsk(qid){
     if (!spendOnCall(t, 1, 0)) return;
     state.ui = defaultUi(); render(); return;
   }
+  if (qid === 'q_return') t.returnTimeKnown = true;
   if (previous > 0){
     pushCustomerLine(t, repeatedQuestionReply(t));
     t.wasted++;
@@ -1195,14 +1196,27 @@ function startCarrierCallback(destination){
   enterOffice();
 }
 
+/* §45: 折り返しの申し出。ここでは切らない。折り返し先を確認してから「電話を切る」で終話する。 */
 function startHotelCallback(kind = 'immediate'){
   const t = state.focus;
-  if (!t || t.pendingResult || t.pendingInterruption || t.callbackStage === 'front_desk') return;
+  if (!t || t.pendingResult || t.pendingInterruption || t.callbackStage === 'front_desk' || t.callbackPromised) return;
   pushFlowLines(t, [
-    { who:'me', text:kind === 'scheduled' ? '1時間ほどお時間をいただいて、確認のうえ掛け直します。' : 'すぐにこちらから掛け直します。' },
-    { who:'cust', text:CALL_FLOW_LINES.callback.consent },
+    { who:'me', text:kind === 'scheduled' ? CALL_FLOW_LINES.callbackPromise.scheduled : CALL_FLOW_LINES.callbackPromise.immediate },
+    { who:'cust', text:CALL_FLOW_LINES.callbackPromise.consent },
   ]);
-  // 滞在先を聞かずに切ると、折り返す先がない。客が自分から掛け直してきて責める。
+  t.callbackPromised = kind;
+  t.transcript.push({ who:'note', text:CALL_FLOW_LINES.callbackPromise.note });
+  if (!spendOnCall(t, 1, 0)) return;
+  state.ui = defaultUi();
+  render();
+}
+
+/* §45: 約束したうえで電話を切ったときの終話。滞在先を持たないまま切れば、折り返せない。 */
+function finishPromisedCallback(t){
+  if (!t || !t.callbackPromised) return;
+  const kind = t.callbackPromised;
+  t.callbackPromised = null;
+  // 滞在先を聞かずに切ると、折り返す先がない。客が自分から掛け直してきて責める（§40-4）。
   if (!t.asked.has('q_stay') || !t.stayAddress){ blindCallbackRedial(t); return; }
   t.transcript.push({ who:'note', text:'お客様の国際通話料を止め、ホテルへ折り返す約束を記録しました。' });
   t.callbackCount++;

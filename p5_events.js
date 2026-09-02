@@ -55,7 +55,13 @@ function handleCallNavigation(d){
     else { state.ui = defaultUi('hangup_confirm'); render(); }
     return true;
   }
-  if (d.hangupConfirm){ interruptCall(state.focus); return true; }
+  if (d.hangupConfirm){
+    // §45: 折り返しを約束していれば、未解決終話ではなく折り返し待ちへ入る。
+    const t = state.focus;
+    if (t && t.callbackPromised) finishPromisedCallback(t);
+    else interruptCall(t);
+    return true;
+  }
   if (d.hangupCancel){ state.ui = defaultUi(); render(); return true; }
   if (d.greet){ greetCurrentCustomer(); return true; }
   if (d.command){

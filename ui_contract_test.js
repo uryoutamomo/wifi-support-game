@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,IDENTITY_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
-const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, IDENTITY_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,IDENTITY_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
+const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, IDENTITY_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -228,9 +228,17 @@ assert(sootheSource.indexOf('pushCustomerLine(t, result.reply)') < sootheSource.
 assert(sootheSource.includes('state.ui = defaultUi(); render();'), 'なだめたあとコマンドメニューへ戻らない');
 
 const askOptionsSource = functionSource('renderAskOptions');
+// §45: 戻る時間の質問は、折り返しを約束したあとにだけ出す。
+const askOptions45 = new Function('QUESTIONS','esc','renderSmalltalkChoices',askOptionsSource + '\nreturn renderAskOptions;')(
+  QUESTIONS,text => String(text),() => ''
+);
+const customerGroup45 = QUESTION_GROUPS.find(group => group.id === 'customer');
+const askTicket45 = promised => ({ s:{deviceInHand:true,contractId:{minutes:2}}, asked:new Set(), askCounts:new Map(), callbackPromised:promised });
+assert(!askOptions45(askTicket45(null), customerGroup45).includes('data-ask="q_return"'),'§45 戻る時間の質問が約束前から出る');
+assert(askOptions45(askTicket45('immediate'), customerGroup45).includes('data-ask="q_return"'),'§45 約束したあとも戻る時間を聞けない');
 const askGroupsSource = functionSource('renderAskGroups');
 assert(askGroupsSource.includes('QUESTION_GROUPS.filter') && askGroupsSource.includes('groups.map'), '「聞く」が利用可能な4区分を表示しない');
-assert(askGroupsSource.includes('data-ask-group=') && askGroupsSource.includes('availableIds.every'), '質問区分の選択または完了時disabledがない');
+assert(askGroupsSource.includes('data-ask-group=') && askGroupsSource.includes('.every(id => t.asked.has(id))'), '質問区分の選択または完了時disabledがない');
 assert(!/残り|questionIds\.length/.test(askGroupsSource), '質問区分に件数を表示している');
 assert(askOptionsSource.includes('group.questionIds.map') && !askOptionsSource.includes('QUESTIONS.map'), '「聞く」で区分を挟まず15問を直接表示する');
 assert(!askOptionsSource.includes("t.asked.has(q.id) ? 'disabled'"), '確認済みの質問が再質問できない');
@@ -1889,13 +1897,57 @@ Object.keys(TYPES).forEach(type => {
 assert(hotelCallbackSub({asked:new Set(),stayAddress:null,callChargeConcerned:true}) === '滞在先はまだ伺っていません。','§40 滞在先未確認の折り返しに注意書きが出ない');
 assert(hotelCallbackSub({asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',callChargeConcerned:true}).includes('国際通話料'),'§40 通話料を気にしている客への折り返し案内が出ない');
 assert(hotelCallbackOffered({callDirection:'inbound'}) && !hotelCallbackOffered({callDirection:'outbound'}),'§40 折り返し中の通話にも折り返しが出る');
+assert(!hotelCallbackOffered({callDirection:'inbound',callbackPromised:'immediate'}),'§45 約束したあとも「伝える」に折り返しが残る');
 const startState39 = {clock:100,turn:7,focus:null,ui:{tab:'command'}};
-const startHotel39 = new Function('CALL_FLOW_LINES','state','pushFlowLines','spendOnCall','defaultUi','playDisconnectSound','enterOffice','render','blindCallbackRedial',functionSource('startHotelCallback') + '\nreturn startHotelCallback;')(
-  CALL_FLOW_LINES,startState39,(ticket,lines) => ticket.transcript.push(...lines),() => true,() => ({tab:'command'}),() => {},() => {},() => {},ticket => { ticket.blind = true; }
+const startHotel39 = new Function('CALL_FLOW_LINES','state','spendOnCall','pushFlowLines','defaultUi','render',functionSource('startHotelCallback') + '\nreturn startHotelCallback;')(
+  CALL_FLOW_LINES,startState39,() => true,(ticket,lines) => ticket.transcript.push(...lines),() => ({tab:'command'}),() => {}
 );
-const noStay39 = {asked:new Set(),stayAddress:null,transcript:[],callbackCount:0,state:'open'};
-startState39.focus = noStay39; startHotel39();
+const finishHotel45 = new Function('CALL_FLOW_LINES','state','spendOnCall','defaultUi','playDisconnectSound','enterOffice','blindCallbackRedial','CALLBACK_SCHEDULED_MINUTES',functionSource('finishPromisedCallback') + '\nreturn finishPromisedCallback;')(
+  CALL_FLOW_LINES,startState39,() => true,() => ({tab:'command'}),() => {},() => {},ticket => { ticket.blind = true; },CALLBACK_SCHEDULED_MINUTES
+);
+
+// §45 検査1: 折り返しを申し出ても、その場では通話が終わらない。
+const promised45 = {asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',transcript:[],callbackCount:0,state:'open',callbackPromised:null};
+startState39.focus = promised45; startHotel39('immediate');
+assert(promised45.callbackPromised === 'immediate' && promised45.state === 'open' && startState39.focus === promised45,'§45 検査1: 折り返しの申し出がその場で通話を終わらせる');
+assert(promised45.callbackCount === 0,'§45 検査1: 申し出だけで折り返し回数が増える');
+
+// §45 検査3: 二重に約束できない。
+startHotel45Twice = promised45.transcript.length;
+startHotel39('scheduled');
+assert(promised45.callbackPromised === 'immediate' && promised45.transcript.length === startHotel45Twice,'§45 検査3: 約束したあともう一度折り返しを申し出られる');
+
+// §45 検査5: 「電話を切る」で折り返し待ちへ入る。
+finishHotel45(promised45);
+assert(promised45.state === 'callback' && promised45.callbackCount === 1 && promised45.callbackPromised === null && startState39.focus === null,'§45 検査5: 切っても折り返し待ちへ入らない');
+assert(promised45.callbackDue === startState39.clock,'§45 検査5: いますぐの折り返し時刻が現在時刻でない');
+
+// §45 検査2: 1時間後を選ぶと、折り返し時刻が60分後になる。
+const scheduled45 = {asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',transcript:[],callbackCount:0,state:'open',callbackPromised:null};
+startState39.focus = scheduled45; startHotel39('scheduled');
+finishHotel45(scheduled45);
+assert(scheduled45.callbackDue === startState39.clock + CALLBACK_SCHEDULED_MINUTES,'§45 検査2: 1時間後の折り返し時刻が60分後でない');
+
+// §40/§45 検査6: 滞在先を聞かずに切ると、折り返せなかった扱いになる（既存の経路を使う）。
+const noStay39 = {asked:new Set(),stayAddress:null,transcript:[],callbackCount:0,state:'open',callbackPromised:null};
+startState39.focus = noStay39; startHotel39('immediate');
+assert(!noStay39.blind && noStay39.callbackPromised === 'immediate','§45 検査6: 滞在先未確認でも申し出の時点では失敗にしない');
+finishHotel45(noStay39);
 assert(noStay39.blind && noStay39.state === 'open' && noStay39.callbackCount === 0,'§40 滞在先未確認の折り返しが、折り返せなかった扱いにならない');
+
+// §45 検査7: 切る前の案内に、何が足りていないかが出る。
+const guide45 = functionSource('unresolvedHangupGuide');
+const guideFn45 = new Function('CALL_FLOW_LINES','hotCauses',guide45 + '\nreturn unresolvedHangupGuide;')(CALL_FLOW_LINES,() => new Set());
+assert(guideFn45({callbackPromised:'immediate',asked:new Set(),stayAddress:null}).includes(CALL_FLOW_LINES.callbackPromise.guideNoAddress),'§45 検査7: 滞在先未確認のまま切る案内が出ない');
+assert(guideFn45({callbackPromised:'immediate',asked:new Set(['q_stay']),stayAddress:'ホテル',returnTimeKnown:false}).includes(CALL_FLOW_LINES.callbackPromise.guideNoReturn),'§45 検査7: 戻る時間が未確認であることを知らせない');
+assert(guideFn45({callbackPromised:'immediate',asked:new Set(['q_stay']),stayAddress:'ホテル',returnTimeKnown:true}).includes(CALL_FLOW_LINES.callbackPromise.guideReady),'§45 検査7: 折り返し先が揃っていることを知らせない');
+
+// §45 検査9/10: 戻る時間の質問は、約束したあとにだけ出る。聞かなくても折り返しは成立する。
+const returnQ45 = QUESTIONS.find(q => q.id === 'q_return');
+assert(returnQ45 && returnQ45.needsCallbackPromise === true,'§45 検査9: q_return が約束後限定になっていない');
+assert(SCENARIOS.every(scenario => (scenario.replies || {}).q_return && (scenario.replies.q_return.text || '').length > 0),'§45 検査9: q_return の答えがない案件がある');
+assert(new Set(SCENARIOS.map(scenario => scenario.replies.q_return.text)).size === SCENARIOS.length,'§45 検査9: q_return の答えが案件どうしで重複している');
+assert(!functionSource('finishPromisedCallback').includes('returnTimeKnown'),'§45 検査10: 戻る時間を聞かないと折り返せない');
 // 折り返せなかった客は、責めながら自分で掛け直してくる。
 const blindRedial39 = new Function('CALL_FLOW_LINES','state','BLIND_CALLBACK_STRESS','BLIND_CALLBACK_CSAT_PENALTY','spendOnCall','addStress','defaultUi','playDisconnectSound','recordOfficeEvent','customerLabel','enterOffice','render',functionSource('blindCallbackRedial') + '\nreturn blindCallbackRedial;')(
   CALL_FLOW_LINES,startState39,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,() => true,() => true,() => ({tab:'command'}),() => {},() => {},() => 'お客様',() => {},() => {}
@@ -1905,8 +1957,8 @@ startState39.focus = blind39; blindRedial39(blind39);
 assert(blind39.state === 'waiting' && blind39.arrivedTurn === 7 && blind39.redialCount === 1,'§40 折り返せなかった案件が待ち行列へ戻らない');
 assert(blind39.redialOpening === CALL_FLOW_LINES.callback.blameOpenings.hurried && blind39.callbackPenalty === BLIND_CALLBACK_CSAT_PENALTY,'§40 再入電の非難とCSATの重みが付いていない');
 assert(blind39.transcript.some(line => line.who === 'note' && line.text === CALL_FLOW_LINES.callback.noAddressNote),'§40 折り返せない理由が記録に残らない');
-const readyStay39 = {asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',transcript:[],callbackCount:0,state:'open'};
-startState39.focus = readyStay39; startHotel39();
+const readyStay39 = {asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',transcript:[],callbackCount:0,state:'open',callbackPromised:null};
+startState39.focus = readyStay39; startHotel39('immediate'); finishHotel45(readyStay39);
 assert(readyStay39.state === 'callback' && readyStay39.callbackReason === 'general' && readyStay39.callbackDue === 100 && startState39.focus === null,'§39 検査14: l_carrier以外から一般折り返しを開始できない');
 
 const resume39 = functionSource('resumeCallback');
@@ -1944,7 +1996,7 @@ assert(directFront39.callbackStage === 'connected' && directFront39.spent === 1 
   const ticket = makeFrontTicket39(); frontState39.focus = ticket; frontModule39(choice);
   assert(ticket.callbackStage === 'connected' && ticket.spent === 2 && ticket.lines.some(line => line.who === 'cust'),'§39 検査12: 別の英語選択肢で客室へつながらず詰む');
 });
-assert(functionSource('startHotelCallback').includes("t.callbackReason = 'general'") && !functionSource('startHotelCallback').includes('l_carrier'),'§39 検査14: 一般折り返しがl_carrier専用のまま');
+assert(functionSource('finishPromisedCallback').includes("t.callbackReason = 'general'") && !functionSource('finishPromisedCallback').includes('l_carrier'),'§39 検査14: 一般折り返しがl_carrier専用のまま');
 const progression39 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
 assert.equal(progression39.status,0,'§39 検査15: progression_testが通らない\n' + (progression39.stdout || '') + (progression39.stderr || ''));
 

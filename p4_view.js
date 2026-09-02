@@ -498,10 +498,16 @@ function renderCallHeader(t){
   const outbound = t.callDirection === 'outbound';
   const payer = outbound ? '当社負担' : 'お客様負担';
   const cost = (t.callSegmentMinutes || 0) * CALL_RATE_PER_MIN;
+  const promised = t.callbackPromised
+    ? '<span class="call-promise">' + (t.callbackPromised === 'scheduled'
+        ? CALL_FLOW_LINES.callbackPromise.headScheduled
+        : CALL_FLOW_LINES.callbackPromise.headImmediate) + '</span>'
+    : '';
   return '<div class="call-head">' +
       '<span class="call-ticket"><b>チケット</b> ' + esc(t.s.id) + '</span>' +
       '<span class="call-time">通話 ' + String(t.callSegmentMinutes || 0).padStart(2,'0') + '分</span>' +
       '<span class="call-cost">' + payer + ' ¥' + cost.toLocaleString('ja-JP') + '</span>' +
+      promised +
     '</div>';
 }
 
@@ -627,6 +633,15 @@ function renderHangupButton(note, label = '電話を切る'){
 }
 
 function unresolvedHangupGuide(t){
+  if (t.callbackPromised){
+    const lines = [];
+    if (!t.asked.has('q_stay') || !t.stayAddress) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoAddress);
+    else {
+      lines.push(CALL_FLOW_LINES.callbackPromise.guideReady);
+      if (!t.returnTimeKnown) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoReturn);
+    }
+    return '<b>' + lines[0] + '</b>' + (lines[1] ? '<p>' + lines[1] + '</p>' : '');
+  }
   const causeNarrowed = hotCauses(t).size === 1;
   const next = t.symptomResolved
     ? '症状は復旧しました。「伝える」→「対処を伝える」で原因をご説明すると、この電話を終われます。'
@@ -661,7 +676,7 @@ function renderCommandMenu(t, actionClass){
 
 /* 折り返しはこちらから掛け直す行為なので、折り返し中の通話には出さない。 */
 function hotelCallbackOffered(t){
-  return t.callDirection !== 'outbound';
+  return t.callDirection !== 'outbound' && !t.callbackPromised;
 }
 
 function hotelCallbackSub(t){
@@ -695,13 +710,17 @@ function renderAskGroups(t){
       const question = QUESTIONS.find(item => item.id === id);
       return question && (!question.needsDevice || t.s.deviceInHand);
     });
-    const complete = availableIds.every(id => t.asked.has(id));
+    const complete = availableIds.filter(id => {
+      const q = QUESTIONS.find(item => item.id === id);
+      return q && (!q.needsCallbackPromise || t.callbackPromised);
+    }).every(id => t.asked.has(id));
     return '<button class="command-choice ask-group-choice" data-ask-group="' + group.id + '" ' + (complete ? 'disabled' : '') + '><span class="command-copy"><b>' + esc(group.label) + '</b></span></button>';
   }).join('') + '</div>';
 }
 
 function renderAskOptions(t, group){
-  const questions = group.questionIds.map(id => QUESTIONS.find(q => q.id === id)).filter(q => q && (!q.needsDevice || t.s.deviceInHand));
+  const questions = group.questionIds.map(id => QUESTIONS.find(q => q.id === id))
+    .filter(q => q && (!q.needsDevice || t.s.deviceInHand) && (!q.needsCallbackPromise || t.callbackPromised));
   return '<div class="opts">' + questions.map(q =>
     '<button class="opt" data-ask="' + q.id + '"><span class="opt-label">' + esc(q.label) + ((t.askCounts.get(q.id) || 0) ? '<span class="opt-sub">確認済み ' + t.askCounts.get(q.id) + '回</span>' : '') + '</span><span class="cost">' + (q.id === 'q_contract' && !t.asked.has(q.id) ? t.s.contractId.minutes : 1) + '分</span></button>'
   ).join('') + (group.id === 'customer' ? renderSmalltalkChoices(t, 'ask') : '') + '</div><p class="hint-bar">同じ質問もできますが、時間を使い、回答済みならお客様のストレスが大きく増えます。</p>';

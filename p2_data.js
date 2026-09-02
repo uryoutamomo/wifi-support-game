@@ -228,6 +228,18 @@ const CALL_FLOW_LINES = Object.freeze({
     failure:'言われたとおりにしましたが、やっぱり直りません。',
     apology:'申し訳ございません。もう一度、確認させてください。',
   }),
+  /* §45: 折り返しは「約束」と「切る」に分かれる。約束しただけでは通話は終わらない。 */
+  callbackPromise:Object.freeze({
+    immediate:'すぐにこちらから掛け直します。いまの通話はいったん切らせてください。',
+    scheduled:'1時間ほどお時間をいただいて、確認のうえ掛け直します。',
+    consent:'分かりました。では、お待ちしています。',
+    note:'折り返しをお約束しました。切る前に、折り返し先とお戻りの時間を確認できます。',
+    headImmediate:'折り返し約束済み（すぐに）',
+    headScheduled:'折り返し約束済み（1時間後）',
+    guideReady:'折り返し先は確認できています。「電話を切る」で、こちらから掛け直します。',
+    guideNoAddress:'滞在先をまだ伺っていません。このまま切ると、折り返す先がありません。',
+    guideNoReturn:'お戻りの時間を伺っていません。フロントで確認の手間が増えます。',
+  }),
   callback:Object.freeze({
     normal:'お待たせしました。先ほどの件でお電話しました。',
     late:'お約束の時刻を過ぎてしまい、申し訳ございません。先ほどの件です。',
@@ -366,10 +378,13 @@ const QUESTIONS = [
     miss:'日程ですか。すぐには確認できません。' },
   { id:'q_replacement', label:'代替機の配送をご希望ですか',
     miss:'代替機ですか。配送条件を先に教えてください。' },
+  /* §45: 折り返しを約束したあとにだけ出る。約束前は意味がないので表示しない。 */
+  { id:'q_return', label:'何時ごろお部屋にお戻りになりますか', needsCallbackPromise:true,
+    miss:'戻る時間ですか。はっきりとは決めていません。' },
 ];
 
 const QUESTION_GROUPS = Object.freeze([
-  Object.freeze({ id:'customer', no:'1', label:'顧客のこと', questionIds:Object.freeze(['q_name','q_contract','q_stay','q_stay_length','q_replacement']) }),
+  Object.freeze({ id:'customer', no:'1', label:'顧客のこと', questionIds:Object.freeze(['q_name','q_contract','q_stay','q_stay_length','q_replacement','q_return']) }),
   Object.freeze({ id:'local', no:'2', label:'現地のこと', questionIds:Object.freeze(['q_destination','q_where','q_moved']) }),
   Object.freeze({ id:'device', no:'3', label:'本体のこと', questionIds:Object.freeze(['q_lamp','q_battery','q_ssid']) }),
   Object.freeze({ id:'symptom', no:'4', label:'症状のこと', questionIds:Object.freeze(['q_other_device','q_when','q_count','q_what_fails']) }),
@@ -548,6 +563,7 @@ const SCENARIOS = [
   panel:{ bars:3, carrier:'{carrier}', sim:'ok', throttle:true, clients:2, maxClients:5, battery:62, ssid:'Globaldesk-2210' },
   trueCause:'fup', best:'r_topup', partial:['r_slow_ok'],
   replies:{
+    q_return:{ text:'もう部屋にいます。夫と一緒に、ここで待っていますので…。' },
     q_other_device:{ text:'夫のスマホも同じです。二人とも遅くて…。端末まで二つとも壊れたんでしょうか？',
       fact:{ text:'同行者の端末も同様に遅い。端末固有ではない', out:['device_side','device_net'] } },
     q_lamp:{ text:'画面…アンテナは3本です。下に「節」みたいな印が…。これ、悪い表示ですか？',
@@ -581,6 +597,7 @@ const SCENARIOS = [
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:3, maxClients:5, battery:71, ssid:'Globaldesk-4471' },
   trueCause:'device_side', best:'r_forget_guide', partial:['r_use_other'],
   replies:{
+    q_return:{ text:'もう部屋におります。明日の朝が早いので、今夜はここにおりますよ。' },
     q_other_device:{ text:'ツアー同行のお二人は繋がっています。同じ機械なのに私だけで…。やっぱり私の押し方ですか？',
       fact:{ text:'同一ルーターで他端末は正常。本人の端末だけ不通', hot:['device_side','device_net'], out:['carrier','sim','hardware','coverage','fup','provision'] } },
     q_lamp:{ text:'四角い画面に棒が4本…数字は3です。これで合っていますか？ 見る所、違いませんか？',
@@ -619,6 +636,7 @@ const SCENARIOS = [
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:5, maxClients:5, battery:55, ssid:'Globaldesk-8802' },
   trueCause:'devices', best:'r_disconnect', partial:['r_second_unit'], shipNeed:'normal',
   replies:{
+    q_return:{ text:'いまバス待ち。部屋に戻るのは30分くらい先だ。' },
     q_other_device:{ text:'私と妻は使えてます。子どもの分だけ駄目。次の質問は？',
       fact:{ text:'既存の接続端末は正常。新しい端末だけが入れない', hot:['devices','device_side'], out:['carrier','sim','hardware','coverage','provision'] } },
     q_lamp:{ text:'はい、画面出した。棒4本、数字は5。バスはあと7分。',
@@ -659,6 +677,7 @@ const SCENARIOS = [
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:2, maxClients:5, battery:80, ssid:'Globaldesk-1174' },
   trueCause:'geo_block', best:'r_vpn_plan', partial:['r_explain_block'],
   replies:{
+    q_return:{ text:'20分ほどで部屋へ戻ります。それ以降ならいつでも構いません。' },
     q_what_fails:{ text:'全断ではありません。現地系サイトは正常です。落ちるのは海外系サービスと、社内の暗号化ゲートウェイです。',
       fact:{ text:'一部のサービスのみ不通。現地系サービスは正常', hot:['geo_block'], out:['fup','carrier','sim','devices','power','location'] } },
     q_other_device:{ text:'ノートPCとスマホで再現します。端末固有要因はこちらで除外済みです。',
@@ -689,6 +708,7 @@ const SCENARIOS = [
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:45, ssid:'Globaldesk-6390' },
   trueCause:'carrier', best:'r_outage_explain', bestNoOutage:'r_escalate_line', partial:['r_escalate_line'],
   replies:{
+    q_return:{ text:'部屋にいます。眠れそうにないので、ずっと起きています…。' },
     q_other_device:{ text:'同僚も同じです。二人とも繋がりません。会社全体に迷惑をかけたらどうしよう…。',
       fact:{ text:'複数端末で同時に不通', out:['device_side','device_net'] } },
     q_lamp:{ text:'アンテナ0本、「圏外」です。さっきまで4本だったのに…。急に全部消えました。',
@@ -729,6 +749,7 @@ const SCENARIOS = [
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:38, ssid:'Globaldesk-6512' },
   trueCause:'carrier', best:'r_outage_explain', bestNoOutage:'r_escalate_line', partial:['r_escalate_line'],
   replies:{
+    q_return:{ text:'いまロビー。10分で上がる。それからにしてくれ。' },
     q_lamp:{ text:'圏外。アンテナ0。回線名も消えた。',
       fact:{ text:'圏外表示。キャリア名も表示されない', hot:['carrier','sim','coverage'], out:['fup','devices','geo_block','heavy'] } },
     q_where:{ text:'{city}市内。歩いて移動中。ずっと圏外。',
@@ -760,6 +781,7 @@ const SCENARIOS = [
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:3, maxClients:5, battery:66, ssid:'Globaldesk-3028' },
   trueCause:'coverage', best:'r_coverage_replacement', partial:['r_coverage_refund'], shipNeed:'next', wantsReplacement:true,
   replies:{
+    q_return:{ text:'いま部屋です。夜のうちは動きませんので、いつでも。' },
     q_other_device:{ text:'3台で同一症状です。ルーター自体が圏外なので、端末要因は除外できますよね。',
       fact:{ text:'複数端末で同時に不通。ルーター自体が圏外', out:['device_side','device_net'] } },
     q_where:{ text:'{city}近郊の山寄りの村です。現地端末は正常なので、単純な無電波地域ではありません。',
@@ -803,6 +825,7 @@ const SCENARIOS = [
   panel:{ bars:null, carrier:null, sim:'none', throttle:false, clients:0, maxClients:5, battery:80, ssid:'Globaldesk-7745' },
   trueCause:'sim', best:'r_sim_clean', partial:['r_escalate_swap'],
   replies:{
+    q_return:{ text:'部屋におります。今日はもう出かけません。' },
     q_lamp:{ text:'「No SIM」と、小さい×です。英語をそのまま読めばいいですか？',
       fact:{ text:'本体が SIM を認識していない（No SIM表示）', hot:['sim'], out:['fup','devices','geo_block','carrier','heavy','device_side','device_net'] } },
     q_when:{ text:'今日着いて受け取り、箱から出して、電源を押しただけです。それでも押し方が悪かったでしょうか。',
@@ -848,6 +871,7 @@ const SCENARIOS = [
   trueCause:'logistics', best:'r_transfer_logi', partial:['r_come_tomorrow'], shipNeed:'fast',
   techPenalty:true,
   replies:{
+    q_return:{ text:'これから市内へ向かう。部屋に入るのは30分後くらいだ。' },
     q_when:{ text:'予約時刻を過ぎて到着したら無人でした。担当者も不在です。タクシーを待たせてます。',
       fact:{ text:'予約時刻を過ぎ、カウンターは臨時閉鎖。担当者も不在', hot:['logistics'] } },
     q_stay:{ text:'{city}市内のホテルへ向かいます。名称は予約票にあります。そこへ配送できますか。' },
@@ -870,6 +894,7 @@ const SCENARIOS = [
   panel:{ bars:null, carrier:null, sim:'none', throttle:false, clients:0, maxClients:5, battery:76, ssid:'Globaldesk-9031' },
   trueCause:'hardware', best:'r_hardware_swap', partial:['r_hardware_no_swap'], shipNeed:'next', wantsReplacement:true,
   replies:{
+    q_return:{ text:'部屋にいます。心配で眠れないので、何時でも大丈夫です…。' },
     q_lamp:{ text:'「No SIM」と小さな×です。アンテナも回線名も消えて…。完全に壊れたんでしょうか？',
       fact:{ text:'稼働中だった本体が突然SIMを認識しなくなった', hot:['sim','hardware'], out:['fup','devices','geo_block','carrier','coverage','heavy','device_side','device_net'] } },
     q_when:{ text:'3日間は普通でした。会議後に突然です。落としても濡らしてもいません。本当に何もしていないんです…。',
@@ -912,6 +937,7 @@ const SCENARIOS = [
   panel:{ bars:1, carrier:'{carrier}', sim:'ok', throttle:false, clients:2, maxClients:5, battery:68, ssid:'Globaldesk-6154' },
   trueCause:'location', best:'r_move_guide', partial:['r_window_stationary'],
   replies:{
+    q_return:{ text:'会議が終われば部屋に戻る。あと20分くらいか。' },
     q_other_device:{ text:'スマホもPCも駄目。ルーターのアンテナは1本。切り分けを急いでいます。',
       fact:{ text:'複数端末で同じ。本体の受信電波が弱い', hot:['location'], out:['device_side','device_net','hardware'] } },
     q_lamp:{ text:'回線名あり、アンテナ1本、ときどき圏外。SIM認識あり。次。',
@@ -942,6 +968,7 @@ const SCENARIOS = [
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:73, ssid:'Globaldesk-4826' },
   trueCause:'provision', best:'r_carrier_reopened_explain', partial:[],
   replies:{
+    q_return:{ text:'部屋におります。もう休むところでしたけれど、構いませんよ。' },
     q_when:{ text:'時計を見たら、ちょうど日付が変わったあたりです。23時台は使えていて、0時を過ぎた直後から急に圏外になりました。',
       fact:{ text:'現地の日付が変わる境目までは正常で、その直後に回線だけが停止した', hot:['provision'], out:['fup','devices','geo_block','heavy','device_side','device_net','location','power','coverage','sim','hardware','logistics'] } },
     q_lamp:{ text:'「圏外」と出ています。SIMがないという表示はありません。回線名だけが消えています。',
@@ -983,6 +1010,7 @@ const SCENARIOS = [
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:82, ssid:'Globaldesk-3418' },
   trueCause:'logistics', best:'r_logistics_replacement', partial:['r_logistics_refund'], shipNeed:'next', wantsReplacement:true,
   replies:{
+    q_return:{ text:'部屋にいます。初日から外にも出られなくて…ずっとここです。' },
     q_other_device:{ text:'スマートフォンもパソコンも同じです。Wi-Fiの名前にはつながりますが、インターネットは使えません。',
       fact:{ text:'複数端末が本体には接続できるが、回線通信だけができない', out:['device_side','device_net','devices'] } },
     q_lamp:{ text:'画面には「圏外」と出ています。アンテナの棒が、ずっと0本のままで…。',
@@ -1027,6 +1055,7 @@ const SCENARIOS = [
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:true, clients:1, maxClients:5, battery:58, ssid:'Globaldesk-3390' },
   trueCause:'fup', best:'r_topup', partial:['r_slow_ok'],
   replies:{
+    q_return:{ text:'もう部屋。朝まではここにいる。' },
     q_when:{ text:'昼過ぎからです。午前は普通に見られました。急に落ちた感じです。',
       fact:{ text:'午前は正常で、昼過ぎから急に低速化した', hot:['fup'] } },
     q_lamp:{ text:'棒は4本立っています。その下に小さい亀みたいな印が出ています。これ何ですか。',

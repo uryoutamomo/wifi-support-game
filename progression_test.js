@@ -73,12 +73,12 @@ assert(carrierFinishSource.includes('t.carrierLookupStarted = false') && !carrie
 assert(functionSource('remedyBlockReason').includes('remedy.needsCarrierRestored && !t.carrierRestored'), 'S12が現地キャリアの再開通前に最適対処で閉じられる');
 
 // §39: 一般のホテル折り返しでも、英語選択肢の違いで進行不能にならない。
-assert(functionSource('startHotelCallback').includes("t.callbackReason = 'general'") && functionSource('startHotelCallback').includes("t.state = 'callback'"), 'l_carrier以外のホテル折り返しを開始できない');
+assert(functionSource('startHotelCallback').includes('t.callbackPromised = kind') && functionSource('finishPromisedCallback').includes("t.callbackReason = 'general'") && functionSource('finishPromisedCallback').includes("t.state = 'callback'"), 'l_carrier以外のホテル折り返しを開始できない');
 assert(functionSource('resumeCallback').includes("t.callbackStage = 'front_desk'") && functionSource('resumeCallback').includes("who:'front'"), '折り返しがFront Deskから始まらない');
 const frontChoiceSource = functionSource('handleFrontDeskChoice');
 assert(frontChoiceSource.includes("['guest','room','callback'].includes(choice)") && frontChoiceSource.includes("t.callbackStage = 'connected'") && !frontChoiceSource.includes("t.callbackStage = 'blocked'"), 'Front Deskの英語選択肢に詰み経路がある');
 // §40: 滞在先を聞かずに折り返しても詰まない。折り返せないまま客が掛け直してきて、対応を続けられる。
-assert(functionSource('startHotelCallback').includes("!t.asked.has('q_stay')") && functionSource('startHotelCallback').includes('blindCallbackRedial(t)'), '滞在先未確認の折り返しを別扱いにしていない');
+assert(functionSource('finishPromisedCallback').includes("!t.asked.has('q_stay')") && functionSource('finishPromisedCallback').includes('blindCallbackRedial(t)'), '滞在先未確認の折り返しを別扱いにしていない');
 const blindRedialSource = functionSource('blindCallbackRedial');
 assert(blindRedialSource.includes("t.state = 'waiting'") && blindRedialSource.includes('t.arrivedTurn = state.turn') && blindRedialSource.includes('enterOffice()'), '折り返せなかった案件が待ち行列へ戻らず進行不能になる');
 assert(blindRedialSource.includes('t.redialOpening = CALL_FLOW_LINES.callback.blameOpenings[t.s.type]'), '折り返せなかった客が理由を言わずに掛け直してくる');
