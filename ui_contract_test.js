@@ -301,6 +301,10 @@ assert(askGroupsSource.includes('command-choice ask-group-choice'), '質問区�
 const askGroupCssBlocks = [...page.matchAll(/\.opts\.ask-groups\{([^}]*)\}/g)].map(match => match[1]);
 assert.equal(askGroupCssBlocks.length, 2, '質問区分CSSが通常・スマホ用の2ブロックではない');
 assert(askGroupCssBlocks.every(block => /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/.test(block)), '質問区分CSSの全ブロックが2列グリッドではない');
+// §42-3: command-no を持たない質問区分は、親の番号用24px列を本文に使ってはならない。
+const askGroupChoiceCss42 = [...page.matchAll(/\.ask-group-choice\{([^}]*)\}/g)].map(match => match[1]);
+assert(askGroupChoiceCss42.some(block => /grid-template-columns\s*:\s*minmax\(0,1fr\)/.test(block)), '§42-3 番号なしcommand-choiceが番号用の列指定を上書きしない');
+assert(askGroupChoiceCss42.every(block => !/grid-template-columns\s*:\s*24px/.test(block)), '§42-3 番号なし質問区分の本文が24px列へ押し込まれる');
 
 const worldSource = functionSource('renderWorldStrip');
 assert(worldSource.includes('state.tickets.filter(t => t.destinationKnown)'), '渡航先未判明の待ちチケットが世界地図に現れる');
@@ -378,6 +382,7 @@ assert(!smalltalkDisclosurePattern.test(smalltalkChoicesSource), '雑談の描�
 assert(!smalltalkChoicesSource.includes('disabled') && !smalltalkChoicesSource.includes('smalltalkCounts'), '使用済み雑談話題が無効化または表示で識別される');
 assert(smalltalkChoicesSource.includes("data-smalltalk-mode=\"' + mode + '\""), '雑談のask/tell入口がdata属性で区別されない');
 assert(!askGroupsSource.includes('group.no') && !askGroupsSource.includes('command-no'), '「聞く」の区分ボタンに番号が残っている');
+assert(askGroupsSource.includes('ask-group-choice'), '§42-3 番号なし質問区分の描画と1列CSSの対応がない');
 
 // §9: 90/10の運、反応と対処だけの揺れ、登場順シャッフル、旧挙動への復帰。
 assert.equal(LUCK_RATE, 0.9, '運の本来どおり率が0.9ではない');

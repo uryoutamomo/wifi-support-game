@@ -348,6 +348,12 @@ const mutations = [
     expected:'「聞く」の区分ボタンに番号が残っている',
   },
   {
+    name:'質問区分の本文を番号用24px列へ戻す', file:'p1_head.html',
+    from:'.ask-group-choice{ min-height:101px; grid-template-columns:minmax(0,1fr); }',
+    to:'.ask-group-choice{ min-height:101px; }',
+    expected:'§42-3 番号なしcommand-choiceが番号用の列指定を上書きしない',
+  },
+  {
     name:'雑談のクリック監視を外す', file:'p5_events.js',
     from:',[data-smalltalk]', to:'',
     expected:'雑談ボタンがクリック監視セレクタに含まれない',
