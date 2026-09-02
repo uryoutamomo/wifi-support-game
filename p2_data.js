@@ -111,7 +111,7 @@ const CAREER_STAGES = Object.freeze({
   lead:Object.freeze({ label:'リーダー', next:null, condition:'最上位。降格はありません' }),
 });
 const CAREER_BADGES = Object.freeze([
-  Object.freeze({ id:'quiet_night', label:'静かな夜', condition:'全案件で苛立ちが一度も70%を超えない' }),
+  Object.freeze({ id:'quiet_night', label:'静かな夜', condition:'全案件で満足度が一度も30%を下回らない' }),
   Object.freeze({ id:'no_redial', label:'一度でつながる', condition:'再入電0件・放棄呼0件' }),
   Object.freeze({ id:'frugal', label:'倹約家', condition:'返金と配送をどちらも使わない' }),
   Object.freeze({ id:'all_first', label:'一発解決', condition:'全案件を解決（再入電があってもよい）' }),

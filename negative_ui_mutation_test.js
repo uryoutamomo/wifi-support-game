@@ -22,6 +22,24 @@ const boardPane = `  <section class="pane board">
   </section>`;
 const mutations = [
   {
+    name:'§48-6 満足度をストレスのまま表示する', file:'p4_view.js',
+    from:'  return Math.round(100 - stress);',
+    to:'  return Math.round(stress);',
+    expected:'§48-6 検査1: 満足度が 100 からストレスを引いた値になっていない',
+  },
+  {
+    name:'§48-6 メーターの見出しを苛立ちへ戻す', file:'p4_view.js',
+    from:`'<div class="stress-panel-head"><span>顧客の満足度</span><b>' + satisfaction + '%</b>`,
+    to:`'<div class="stress-panel-head"><span>顧客の苛立ち</span><b>' + satisfaction + '%</b>`,
+    expected:'§48-6 検査2: メーターの見出しが満足度になっていない',
+  },
+  {
+    name:'§48-6 メーターの長さをストレスへ戻す', file:'p4_view.js',
+    from:`'<i class="stress-track"><b class="stress-fill" style="width:' + satisfaction + '%"></b></i></section>';`,
+    to:`'<i class="stress-track"><b class="stress-fill" style="width:' + t.stress + '%"></b></i></section>';`,
+    expected:'§48-6 検査4: メーターの長さが満足度に比例していない',
+  },
+  {
     name:'§46-3 解決したのに結果を確定させない', file:'p3_game.js',
     from:'  finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched);',
     to:'',

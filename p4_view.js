@@ -473,7 +473,7 @@ function renderDeskLookupOptions(t, list){
     '</span><span class="cost">' + DESK_LOOKUP_MINUTES + '分</span></button>'
   ).join('');
   return '<div class="opts">' + back + items + '</div>' +
-    '<p class="hint-bar">通話中ではないので、お客様の苛立ちは増えません。ただし時間は進むため、折り返しが約束より遅れることがあります。</p>';
+    '<p class="hint-bar">通話中ではないので、お客様の満足度は下がりません。ただし時間は進むため、折り返しが約束より遅れることがあります。</p>';
 }
 
 function renderCall(){
@@ -518,16 +518,24 @@ function stressDisplayStage(value){
   return { label:'限界', className:'limit' };
 }
 
+/* §48-6: 画面には満足度として出す。内部の stress は「上がるほど悪い」のまま据え置き、
+   ここで 100 から引いて反転するだけにする。なだめ・お詫び・雑談の効果表がすべて
+   stress の符号で組まれているので、内部まで裏返すと全部の符号が逆になる。 */
+function satisfactionFromStress(stress){
+  return Math.round(100 - stress);
+}
+
 function renderStressPanel(t){
   if (!customerHasSpoken(t)){
-    return '<section class="stress-panel unknown" aria-label="顧客の苛立ちはまだ分かりません">' +
-      '<div class="stress-panel-head"><span>顧客の苛立ち</span><b>—</b><strong>まだ不明</strong></div>' +
+    return '<section class="stress-panel unknown" aria-label="顧客の満足度はまだ分かりません">' +
+      '<div class="stress-panel-head"><span>顧客の満足度</span><b>—</b><strong>まだ不明</strong></div>' +
       '<i class="stress-track"><b class="stress-fill" style="width:0%"></b></i></section>';
   }
   const stage = stressDisplayStage(t.stress);
-  return '<section class="stress-panel ' + stage.className + (t.stress > 80 ? ' alert' : '') + '" aria-label="顧客の苛立ち ' + Math.round(t.stress) + 'パーセント ' + stage.label + '">' +
-    '<div class="stress-panel-head"><span>顧客の苛立ち</span><b>' + Math.round(t.stress) + '%</b><strong>' + stage.label + '</strong></div>' +
-    '<i class="stress-track"><b class="stress-fill" style="width:' + t.stress + '%"></b></i></section>';
+  const satisfaction = satisfactionFromStress(t.stress);
+  return '<section class="stress-panel ' + stage.className + (t.stress > 80 ? ' alert' : '') + '" aria-label="顧客の満足度 ' + satisfaction + 'パーセント ' + stage.label + '">' +
+    '<div class="stress-panel-head"><span>顧客の満足度</span><b>' + satisfaction + '%</b><strong>' + stage.label + '</strong></div>' +
+    '<i class="stress-track"><b class="stress-fill" style="width:' + satisfaction + '%"></b></i></section>';
 }
 
 function recentTranscriptLines(t){
@@ -1647,8 +1655,8 @@ function renderDebrief(){
     const cls = r.csat >= 4 ? 'win' : r.csat >= 2.5 ? 'mid' : 'bad';
     let judge;
     if (r.kind === 'abandoned') judge = '呼び出しに応答できず、放棄呼になりました。';
-    else if (r.kind === 'complaint') judge = r.reason === 'misdiagnosis' ? '見立てが二度外れ、お客様が強い苦情を述べて終話しました。' : 'お客様の苛立ちが限界に達し、強い苦情を述べて終話しました。';
-    else if (r.kind === 'hangup') judge = r.reason === 'misdiagnosis' ? '見立てが二度外れ、お客様が一方的に通話を切りました。' : 'お客様の苛立ちが限界に達し、一方的に通話を切りました。';
+    else if (r.kind === 'complaint') judge = r.reason === 'misdiagnosis' ? '見立てが二度外れ、お客様が強い苦情を述べて終話しました。' : 'お客様のお怒りが限界に達し、強い苦情を述べて終話しました。';
+    else if (r.kind === 'hangup') judge = r.reason === 'misdiagnosis' ? '見立てが二度外れ、お客様が一方的に通話を切りました。' : 'お客様のお怒りが限界に達し、一方的に通話を切りました。';
     else if (r.causeMatched === false) judge = '選んだ対応のあと通信は復旧し、一次解決になりました。';
     else if (r.grade === 'best') judge = '原因も対処も最適でした。';
     else if (r.grade === 'partial') judge = '原因は当たっていましたが、対処は次善どまりでした。';
@@ -1664,7 +1672,7 @@ function renderDebrief(){
       esc(judge) + '<br>' + (r.identityRecordMissing
         ? '本人確認を完了できなかったため、記録不足として評価を下げました。<br>'
         : t.identityStressSeen
-          ? '苛立ちが高く本人確認を求められなかったため、記録不足の減点は免除しました。<br>'
+          ? '満足度が大きく下がっており本人確認を求められなかったため、記録不足の減点は免除しました。<br>'
           : '') + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
   }).join('');
 

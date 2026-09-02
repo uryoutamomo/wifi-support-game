@@ -167,8 +167,8 @@ assert(!lookupSource.includes('t.identified') && !lookupSource.includes('identif
 const changeStressSource = functionSource('changeStress');
 assert(changeStressSource.includes("endAngryCall(t, 'stress')"), 'ストレス100が怒り終話の共通経路を通らない');
 const debriefSource = functionSource('renderDebrief');
-assert(debriefSource.includes('お客様の苛立ちが限界に達し、強い苦情を述べて終話しました。'), 'ストレス由来のクレーム振り返り文がない');
-assert(debriefSource.includes('お客様の苛立ちが限界に達し、一方的に通話を切りました。'), 'ストレス由来の切断振り返り文がない');
+assert(debriefSource.includes('お客様のお怒りが限界に達し、強い苦情を述べて終話しました。'), 'ストレス由来のクレーム振り返り文がない');
+assert(debriefSource.includes('お客様のお怒りが限界に達し、一方的に通話を切りました。'), 'ストレス由来の切断振り返り文がない');
 assert(functionSource('advanceConversationFlow').includes("endAngryCall(t, reason)"), '誤診2回目が怒り終話の共通経路を通らない');
 assert(debriefSource.includes("r.reason === 'misdiagnosis'"), '振り返りが誤診由来の怒り終話を区別していない');
 
@@ -1347,7 +1347,7 @@ assert(interruptSource.includes('t.pendingInterruption = true') && finishInterru
 
 // §24-5 検査10: 8バッジの緩和条件と表示文言を一致させる。
 assert.deepEqual(CAREER_BADGES.map(badge => [badge.id,badge.condition]), [
-  ['quiet_night','全案件で苛立ちが一度も70%を超えない'],
+  ['quiet_night','全案件で満足度が一度も30%を下回らない'],
   ['no_redial','再入電0件・放棄呼0件'],
   ['frugal','返金と配送をどちらも使わない'],
   ['all_first','全案件を解決（再入電があってもよい）'],
@@ -2047,6 +2047,22 @@ assert.equal(progression39.status,0,'§39 検査15: progression_testが通らな
 // §41: 氏名だけでは顧客レコードを開かず、既存の本人特定契約を守る。
 const customerRecord41 = functionSource('renderCustomerRecord') + functionSource('recordValue');
 assert(customerRecord41.includes('const identified = identificationReady(t);') && customerRecord41.includes('―― 未照会'), '§41-11 本人確認前または未照会欄が伏せられない');
+
+/* §48-6: 画面は満足度で出す。内部の stress は「上がるほど悪い」のまま据え置き、
+   表示だけ反転する。内部まで裏返すと、なだめ・お詫び・雑談の効果表の符号が
+   すべて逆になるため。 */
+const satisfaction48 = new Function(functionSource('satisfactionFromStress') + '\nreturn satisfactionFromStress;')();
+assert.equal(satisfaction48(5), 95, '§48-6 検査1: 満足度が 100 からストレスを引いた値になっていない');
+assert.equal(satisfaction48(70), 30, '§48-6 検査1: 満足度が 100 からストレスを引いた値になっていない');
+const panel48 = new Function('customerHasSpoken','stressDisplayStage','satisfactionFromStress',
+  functionSource('renderStressPanel') + '\nreturn renderStressPanel;')(
+  () => true, () => ({ label:'怒り', className:'angry' }), stress => Math.round(100 - stress)
+);
+const panelHtml48 = panel48({ stress:70 });
+assert(panelHtml48.includes('顧客の満足度') && !panelHtml48.includes('顧客の苛立ち'),'§48-6 検査2: メーターの見出しが満足度になっていない');
+assert(panelHtml48.includes('>30%<'),'§48-6 検査3: メーターの数値が満足度になっていない');
+assert(panelHtml48.includes('width:30%'),'§48-6 検査4: メーターの長さが満足度に比例していない');
+assert(/stress\s*[+\-*/]|t\.stress\s*=/.test(functionSource('satisfactionFromStress')) === false && functionSource('satisfactionFromStress').includes('100 - stress'),'§48-6 検査5: 反転が表示以外の場所で行われている');
 
 /* §46-4: 通話を離れてオフィスへ戻る共通処理。3つの折り返し経路すべてがこれに乗ったので、
    ここが1つでも欠けると全経路が同時に壊れる。呼び出し側の検査は「これを呼んでいるか」
