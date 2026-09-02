@@ -27,7 +27,7 @@ assert(idleSource.includes('nextInboundDelta(state.tickets, state.turn)'), '次�
 assert(functionSource('enterOffice').includes('advanceIdleOffice()'), 'オフィスへ戻る際に次の着信を起こしていない');
 assert(functionSource('activateDueInbound').includes('t.arrivedTurn <= state.turn'), '到着済み着信の判定がない');
 
-const closeSource = functionSource('doClose');
+const closeSource = functionSource('doClose') + functionSource('finishSuccessfulClose');
 assert(closeSource.includes('t.pendingResult = result'), '解決後に終話待ち状態へ入らない');
 assert(!closeSource.includes('closeTicket(t, result)'), '解決判定だけで電話が切れ、別れの言葉を確認できない');
 assert(functionSource('finishResolvedCall').includes('closeTicket(t, result)'), '「電話を切る」で解決済み案件を閉じられない');
@@ -80,7 +80,7 @@ assert(frontChoiceSource.includes("['guest','room','callback'].includes(choice)"
 // §40: 滞在先を聞かずに折り返しても詰まない。折り返せないまま客が掛け直してきて、対応を続けられる。
 assert(functionSource('finishPromisedCallback').includes("!t.asked.has('q_stay')") && functionSource('finishPromisedCallback').includes('blindCallbackRedial(t)'), '滞在先未確認の折り返しを別扱いにしていない');
 const blindRedialSource = functionSource('blindCallbackRedial');
-assert(blindRedialSource.includes("t.state = 'waiting'") && blindRedialSource.includes('t.arrivedTurn = state.turn') && blindRedialSource.includes('enterOffice()'), '折り返せなかった案件が待ち行列へ戻らず進行不能になる');
+assert(blindRedialSource.includes("t.state = 'waiting'") && blindRedialSource.includes('t.arrivedTurn = state.turn') && blindRedialSource.includes('leaveCallForOffice()'), '折り返せなかった案件が待ち行列へ戻らず進行不能になる');
 assert(blindRedialSource.includes('t.redialOpening = CALL_FLOW_LINES.callback.blameOpenings[t.s.type]'), '折り返せなかった客が理由を言わずに掛け直してくる');
 
 // §27-3 検査8: 調べる・ログを開けない状態でも、「聞く」で本人特定して全案件の正解ルートへ進める。

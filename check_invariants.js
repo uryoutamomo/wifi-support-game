@@ -640,7 +640,7 @@ if (!sourceOf('resetGame').includes('prepareDailyScenarios(SCENARIOS, state.rand
 const actions21 = sourceOf('renderActions');
 const refund21 = sourceOf('doRefund');
 const angry21 = sourceOf('endAngryCall');
-const close21 = sourceOf('doClose');
+const close21 = sourceOf('doClose') + sourceOf('finishSuccessfulClose');
 // 1. 5経路はすべてpendingResultで待ち、顧客発話中はボタンを出さない。
 if (!actions21.includes('if (pendingTypedLine(t))') || !refund21.includes('t.pendingResult = {') || !angry21.includes('t.pendingResult = {') || !close21.includes('t.pendingResult = result') || refund21.includes('closeTicket(') || angry21.includes('closeTicket(') || close21.includes('closeTicket(t, result)')) bad('5経路のいずれかが顧客最終発話より先に終話する');
 // 2. 経路別ボタン。
@@ -791,7 +791,7 @@ if (!sourceOf('finishPromisedCallback').includes("!t.asked.has('q_stay')") || !s
 const promise45 = sourceOf('startHotelCallback');
 const finish45 = sourceOf('finishPromisedCallback');
 if (!promise45.includes('t.callbackPromised = kind') || promise45.includes("t.state = 'callback'") || promise45.includes('state.focus = null')) bad('§45 折り返しの申し出がその場で通話を終わらせている');
-if (!finish45.includes("t.state = 'callback'") || !finish45.includes('state.focus = null')) bad('§45 「電話を切る」で折り返し待ちへ入らない');
+if (!finish45.includes("t.state = 'callback'") || !finish45.includes('leaveCallForOffice()')) bad('§45 「電話を切る」で折り返し待ちへ入らない');
 if (!sourceOf('hotelCallbackOffered').includes('!t.callbackPromised')) bad('§45 約束したあとも「伝える」に折り返しが残る');
 if (!sourceOf('renderCallHeader').includes('callbackPromise.headScheduled') || !sourceOf('renderCallHeader').includes('callbackPromise.headImmediate')) bad('§45 約束したことが通話ヘッダに出ない');
 if (!sourceOf('renderAskOptions').includes('!q.needsCallbackPromise || t.callbackPromised')) bad('§45 戻る時間の質問が約束前から出る');
@@ -864,7 +864,7 @@ const moving411 = SCENARIOS.filter(s => s.deliveryAddress);
 if (moving411.length !== 1 || !['r_coverage_replacement','r_hardware_swap','r_logistics_replacement'].includes(moving411[0].best)) bad('§41-38 代替機発送の正解案件に移動する客が1件いない');
 const deliveryAddressGate411 = "qid === 'q_stay' && t.s.deliveryAddress";
 if (!sourceOf('doAsk').includes(deliveryAddressGate411) || !sourceOf('doAsk').includes('t.stayAddress = t.s.deliveryAddress') || !sourceOf('replacementAddressConfirmation').includes(deliveryAddressGate411)) bad('§41-39 移動先の台詞と配送先更新が再質問条件で揃わない');
-const close411 = sourceOf('doClose');
+const close411 = sourceOf('doClose') + sourceOf('finishSuccessfulClose');
 if (!close411.includes('t.s.deliveryAddress && !t.deliveryAddressConfirmed') || !close411.includes('base -= 1.0')) bad('§41-40 配送先取り違えが満足度だけへ影響しない');
 const tripExpected411 = {S1:[3,5],S10:[4,10],S13:[1,8]};
 if (Object.entries(tripExpected411).some(([id,values]) => { const s=SCENARIOS.find(x=>x.id===id); return !s || s.tripDay !== values[0] || s.tripDays !== values[1]; })) bad('§41-41 渡航日数の検査が導出値だけを見ている');

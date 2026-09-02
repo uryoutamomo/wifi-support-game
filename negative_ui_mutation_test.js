@@ -22,6 +22,36 @@ const boardPane = `  <section class="pane board">
   </section>`;
 const mutations = [
   {
+    name:'§46-3 解決したのに結果を確定させない', file:'p3_game.js',
+    from:'  finishSuccessfulClose(t, remedy, causeId, remedyId, toneId, causeMatched);',
+    to:'',
+    expected:'裏目の誤診が解決扱いにならない',
+  },
+  {
+    name:'§46-4 通話を離れてもオフィス画面へ移らない', file:'p3_game.js',
+    from:"function leaveCallForOffice(){\n  state.focus = null;\n  state.ui = defaultUi();\n  playDisconnectSound();\n  enterOffice();\n}",
+    to:"function leaveCallForOffice(){\n  state.focus = null;\n  state.ui = defaultUi();\n  playDisconnectSound();\n}",
+    expected:'§46-4 検査5: 通話を離れてもオフィス画面へ移らない',
+  },
+  {
+    name:'§46-4 通話を離れても対応中の案件を解除しない', file:'p3_game.js',
+    from:"function leaveCallForOffice(){\n  state.focus = null;\n",
+    to:"function leaveCallForOffice(){\n",
+    expected:'§46-4 検査2: 通話を離れても対応中の案件が解除されない',
+  },
+  {
+    name:'§46-4 通話を離れても切断音を鳴らさない', file:'p3_game.js',
+    from:"  state.ui = defaultUi();\n  playDisconnectSound();\n  enterOffice();\n}",
+    to:"  state.ui = defaultUi();\n  enterOffice();\n}",
+    expected:'§46-4 検査4: 通話を離れても切断音が鳴らない',
+  },
+  {
+    name:'§46-4 再着信の知らせを画面を描いたあとに記録する', file:'p3_game.js',
+    from:"  recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');\n  leaveCallForOffice();",
+    to:"  leaveCallForOffice();\n  recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');",
+    expected:'§46-4 検査1: オフィス画面を描く時点で再着信の知らせが記録されていない',
+  },
+  {
     name:'§47 性別を案件に固定へ戻す', file:'p3_game.js',
     from:"    const wanted = random() < 0.5 ? 'female' : 'male';",
     to:"    const wanted = scenario.gender;",
@@ -775,8 +805,8 @@ const mutations = [
   },
   {
     name:'折り返し開始時に別の待ち電話を閉じる', file:'p3_game.js',
-    from:"  t.callbackDue = state.clock + lookup.minutes;\n  t.state = 'callback';\n  state.focus = null;",
-    to:"  t.callbackDue = state.clock + lookup.minutes;\n  t.state = 'callback';\n  state.tickets.filter(ticket => ticket !== t && ticket.state === 'waiting').forEach(ticket => { ticket.state = 'closed'; });\n  state.focus = null;",
+    from:"  t.callbackDue = state.clock + lookup.minutes;\n  t.state = 'callback';\n  leaveCallForOffice();",
+    to:"  t.callbackDue = state.clock + lookup.minutes;\n  t.state = 'callback';\n  state.tickets.filter(ticket => ticket !== t && ticket.state === 'waiting').forEach(ticket => { ticket.state = 'closed'; });\n  leaveCallForOffice();",
     expected:'§25 折り返し中にほかの電話を取れない',
   },
   {

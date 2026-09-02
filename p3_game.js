@@ -1199,6 +1199,13 @@ function doTest(tid){
   render();
 }
 
+function leaveCallForOffice(){
+  state.focus = null;
+  state.ui = defaultUi();
+  playDisconnectSound();
+  enterOffice();
+}
+
 function startCarrierCallback(destination){
   const t = state.focus;
   const lookup = LOOKUPS.find(item => item.id === 'l_carrier');
@@ -1221,10 +1228,7 @@ function startCarrierCallback(destination){
   if (!spendOnCall(t, 1, 0)) return;
   t.callbackDue = state.clock + lookup.minutes;
   t.state = 'callback';
-  state.focus = null;
-  state.ui = defaultUi();
-  playDisconnectSound();
-  enterOffice();
+  leaveCallForOffice();
 }
 
 /* §45: 折り返しの申し出。ここでは切らない。折り返し先を確認してから「電話を切る」で終話する。 */
@@ -1260,10 +1264,7 @@ function finishPromisedCallback(t, charge = true){
   if (charge && !spendOnCall(t, 1, 0)) return;
   t.callbackDue = state.clock + (kind === 'scheduled' ? CALLBACK_SCHEDULED_MINUTES : 0);
   t.state = 'callback';
-  state.focus = null;
-  state.ui = defaultUi();
-  playDisconnectSound();
-  enterOffice();
+  leaveCallForOffice();
 }
 
 /* 折り返しを約束しながら滞在先を持たずに切った場合。折り返せないので、客から掛かってくる。 */
@@ -1279,11 +1280,10 @@ function blindCallbackRedial(t){
   t.redialOpening = CALL_FLOW_LINES.callback.blameOpenings[t.s.type];
   t.redialSpoken = false;
   t.redialGreeting = true;
-  state.focus = null;
-  state.ui = defaultUi();
-  playDisconnectSound();
+  /* 再着信の知らせは、オフィス画面を描く前に記録する。あとに置くと描画に間に合わず、
+     次に画面が描き直されるまで「特記事項なし」のままになる。 */
   recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');
-  enterOffice();
+  leaveCallForOffice();
 }
 
 /* ---------- TGX 国際配送 ---------- */
@@ -1393,6 +1393,49 @@ function queueUnverifiableRedial(t){
   enterOffice();
 }
 
+function finishSuccessfulClose(t, remedy, causeId, remedyId, toneId, causeMatched){
+  const s = t.s;
+  if (remedy.cost) state.cost += remedy.cost;
+  if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
+
+  let bestId = s.best;
+  if (s.bestNoOutage && !state.outageKnown) bestId = s.bestNoOutage;
+
+  let base, grade;
+  if (!causeMatched){ base = 5.0; grade = 'best'; }
+  else if (remedyId === bestId){ base = 5.0; grade = 'best'; }
+  else if ((s.partial || []).includes(remedyId)){ base = 3.5; grade = 'partial'; }
+  else { base = 2.2; grade = 'poor'; }
+
+  const wantTone = TYPES[s.type].tone;
+  const toneOk = (toneId === wantTone);
+  if (!toneOk) base -= 1.0;
+  base -= t.damage;
+  base -= t.misdiagnoses * 1.2;
+  base -= Math.min(0.6, t.wasted * 0.1);
+  base -= patiencePenalty(t.patience);
+  base -= holdPenalty(t.holdMinutes);
+  base -= stressPenalty(t.stress);
+  if (t.callbackCount > 0) base -= t.callbackLate ? 1.5 : 0.2;
+  base -= t.callbackPenalty || 0;
+  if (t.shipment && t.shipment.remedyId === remedyId && t.shipment.tooSlow) base -= 1.0;
+  if (t.shipment && t.s.deliveryAddress && !t.deliveryAddressConfirmed) base -= 1.0;
+
+  const csat = clamp(Math.round(base * 10) / 10, 1.0, 5.0);
+  const result = { kind:'closed', csat, grade, toneOk, remedyId, causeId, toneId,
+    causeMatched, firstCallResolved:grade === 'best' && t.callbackCount === 0 && t.misdiagnoses === 0, label:gradeLabel(grade) };
+  const resolutionReply = remedy.reportsRestored
+    ? '原因まで分かって安心しました。回線を戻していただき、ありがとうございました。'
+    : causeMatched ? closingLine(s, grade, toneOk) : 'あ、繋がりました。これで使えそうです。';
+  pushCustomerLine(t, resolutionReply, { plain:true });
+  pushFlowLines(t, [{ who:'me', text:resolutionOperatorClosing(grade, causeMatched) }]);
+  pushCustomerLine(t, farewellLine(s, grade), { plain:true });
+  t.pendingResult = result;
+  t.transcript.push({ who:'note', text:'対応結果が確定しました。電話を切って終話してください。' });
+  state.ui = defaultUi();
+  render();
+}
+
 function doClose(causeId, remedyId, toneId){
   const t = state.focus;
   const s = t.s;
@@ -1461,50 +1504,7 @@ function doClose(causeId, remedyId, toneId){
     return;
   }
 
-  // ---- 解決する ----
-  if (remedy.cost) state.cost += remedy.cost;
-  if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
-
-  let bestId = s.best;
-  if (s.bestNoOutage && !state.outageKnown) bestId = s.bestNoOutage;
-
-  let base, grade;
-  if (!causeMatched){ base = 5.0; grade = 'best'; }
-  else if (remedyId === bestId){ base = 5.0; grade = 'best'; }
-  else if ((s.partial || []).includes(remedyId)){ base = 3.5; grade = 'partial'; }
-  else { base = 2.2; grade = 'poor'; }
-
-  const wantTone = TYPES[s.type].tone;
-  const toneOk = (toneId === wantTone);
-  if (!toneOk) base -= 1.0;
-
-  base -= t.damage;
-  base -= t.misdiagnoses * 1.2;
-  base -= Math.min(0.6, t.wasted * 0.1);
-  base -= patiencePenalty(t.patience);
-  base -= holdPenalty(t.holdMinutes);
-  base -= stressPenalty(t.stress);
-  if (t.callbackCount > 0) base -= t.callbackLate ? 1.5 : 0.2;
-  base -= t.callbackPenalty || 0;
-  if (t.shipment && t.shipment.remedyId === remedyId && t.shipment.tooSlow) base -= 1.0;
-  if (t.shipment && t.s.deliveryAddress && !t.deliveryAddressConfirmed) base -= 1.0;
-
-  const csat = clamp(Math.round(base * 10) / 10, 1.0, 5.0);
-
-  const result = { kind:'closed', csat, grade, toneOk, remedyId, causeId, toneId,
-    causeMatched, firstCallResolved:grade === 'best' && t.callbackCount === 0 && t.misdiagnoses === 0, label:gradeLabel(grade) };
-  const resolutionReply = remedy.reportsRestored
-    ? '原因まで分かって安心しました。回線を戻していただき、ありがとうございました。'
-    : causeMatched
-      ? closingLine(s, grade, toneOk)
-    : 'あ、繋がりました。これで使えそうです。';
-  pushCustomerLine(t, resolutionReply, { plain:true });
-  pushFlowLines(t, [{ who:'me', text:resolutionOperatorClosing(grade, causeMatched) }]);
-  pushCustomerLine(t, farewellLine(s, grade), { plain:true });
-  t.pendingResult = result;
-  t.transcript.push({ who:'note', text:'対応結果が確定しました。電話を切って終話してください。' });
-  state.ui = defaultUi();
-  render();
+  finishSuccessfulClose(t, remedy, causeId, remedyId, toneId, causeMatched);
 }
 
 function resolutionOperatorClosing(grade, causeMatched){

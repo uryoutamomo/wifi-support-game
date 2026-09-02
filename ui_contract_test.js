@@ -178,7 +178,7 @@ assert(customerLineSource.includes("who:'cust'"), 'ストレス前置きの顧�
 assert(!customerLineSource.includes("who:'sys'") && !customerLineSource.includes("who:'note'"), 'sys/note にストレス前置きを付けている');
 assert.equal((game.match(/stressLeadIn\(/g) || []).length, 2, 'ストレス前置きが顧客発話以外にも適用されている');
 assert(openingDeliverySource.includes("pushCustomerLine(t, t.s.rushedReply, { plain:true })"), 'rushedReply にストレス前置きが付く');
-const closeCustomerReplySource = functionSource('doClose');
+const closeCustomerReplySource = functionSource('doClose') + functionSource('finishSuccessfulClose');
 assert(closeCustomerReplySource.includes('closingLine(s, grade, toneOk)') && closeCustomerReplySource.includes('pushCustomerLine(t, resolutionReply, { plain:true })'), 'closingLine にストレス前置きが付く');
 
 assert.equal(functionSource('queueCard'), '', '廃止した着信一覧の queueCard が残っている');
@@ -471,7 +471,7 @@ function runCloseContract(causeMatched, expectedOutcome){
     defaultUi:() => ({}), closingLine:() => '解決しました', farewellLine:() => 'ありがとうございました',
     resolutionOperatorClosing:() => '失礼いたします', CALL_FLOW_LINES,
   };
-  const run = new Function(...Object.keys(deps), functionSource('doClose') + '\nreturn doClose;')(...Object.values(deps));
+  const run = new Function(...Object.keys(deps), functionSource('finishSuccessfulClose') + '\n' + functionSource('doClose') + '\nreturn doClose;')(...Object.values(deps));
   run(causeMatched ? 'right' : 'wrong', causeMatched ? 'r_right' : 'r_wrong', 'brief');
   ticket.totalCost = closeState.cost;
   return ticket;
@@ -799,7 +799,7 @@ assert.deepEqual(REDIAL_OPENINGS, {
   direct:'いま切りましたね。理由を短く説明してください。',
 }, '再着信第一声が確定本文と違う');
 assert.equal(REDIAL_STRESS, 25, '途中切断の基本ストレスが+25ではない');
-const closeSource = functionSource('doClose');
+const closeSource = functionSource('doClose') + functionSource('finishSuccessfulClose');
 assert(closeSource.includes('pushCustomerLine(t, farewellLine(s, grade), { plain:true })'), '別れの言葉にストレス前置きが混ざる');
 assert(closeSource.includes('t.pendingResult = result') && !closeSource.includes('closeTicket(t, result)'), '解決判定と同時に電話が切れてしまう');
 const pendingBranch = actionsSource.slice(actionsSource.indexOf('if (t.pendingResult)'), actionsSource.indexOf("if (state.ui.tab === 'hangup_confirm')"));
@@ -1375,8 +1375,8 @@ assert(startCarrierSource25.includes("state.ui.tab !== 'lookup'") && startCarrie
 const carrierState25 = {clock:100,focus:null,ui:{tab:'command'},tickets:[]};
 const carrierTicket25 = {s:SCENARIOS.find(scenario => scenario.id === 'S12'),asked:new Set(['q_stay']),lookedUp:new Set(),carrierLookupStarted:false,callbackCount:0,transcript:[]};
 carrierState25.focus = carrierTicket25; carrierState25.tickets = [carrierTicket25,{state:'waiting',id:'other'}];
-const startCarrier25 = new Function('LOOKUPS','CALL_FLOW_LINES','state','pushFlowLines','spendOnCall','defaultUi','playDisconnectSound','enterOffice','render', startCarrierSource25 + '\nreturn startCarrierCallback;')(
-  LOOKUPS,CALL_FLOW_LINES,carrierState25,(ticket,lines) => ticket.transcript.push(...lines),() => true,tab => ({tab:tab || 'command'}),() => {},() => {},() => {}
+const startCarrier25 = new Function('LOOKUPS','CALL_FLOW_LINES','state','pushFlowLines','spendOnCall','leaveCallForOffice','render', startCarrierSource25 + '\nreturn startCarrierCallback;')(
+  LOOKUPS,CALL_FLOW_LINES,carrierState25,(ticket,lines) => ticket.transcript.push(...lines),() => true,() => { carrierState25.focus = null; carrierState25.ui = {tab:'command'}; },() => {}
 );
 startCarrier25('hotel');
 assert.equal(carrierTicket25.state, undefined, '§25 l_carrier選択前に折り返しを開始できる');
@@ -1768,7 +1768,7 @@ assert.deepEqual([
   [REMEDIES.device_side.find(remedy => remedy.id === 'r_forget_guide').id,REMEDIES.device_side.find(remedy => remedy.id === 'r_forget_guide').kind],
   [REMEDIES.devices.find(remedy => remedy.id === 'r_disconnect').id,REMEDIES.devices.find(remedy => remedy.id === 'r_disconnect').kind],
 ],[['r_sim_clean','resolve','t_simout',2],['r_move_guide','resolve','t_move'],['r_forget_guide','resolve'],['r_disconnect','resolve']],'§36 検査7: resolve対処のID・kind・needsTestが文言修正に紛れて変わっている');
-assert(!functionSource('doApologize').includes('pendingResult') && !functionSource('doApologize').includes('closeTicket') && functionSource('doClose').includes('t.pendingResult = result'),'§36 検査8: 謝罪だけで終話でき、原因案内が不要になっている');
+assert(!functionSource('doApologize').includes('pendingResult') && !functionSource('doApologize').includes('closeTicket') && functionSource('finishSuccessfulClose').includes('t.pendingResult = result'),'§36 検査8: 謝罪だけで終話でき、原因案内が不要になっている');
 const progression36 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
 assert.equal(progression36.status,0,'§36 検査9: progression_testが通らない\n' + (progression36.stdout || '') + (progression36.stderr || ''));
 assert(!/who:'note', text:'[^']*(?:症状が解消|原因を確定して案内|次の手を選)/.test(game),'§36 note監査: 次の手に必要な情報が非表示noteへ残っている');
@@ -1778,7 +1778,7 @@ const s12Carrier37 = SCENARIOS.find(scenario => scenario.id === 'S12');
 const carrierRequest37 = LOOKUPS.find(lookup => lookup.id === 'l_carrier');
 const carrierRemedy37 = REMEDIES.provision.find(remedy => remedy.id === 'r_carrier_reopened_explain');
 assert(carrierRequest37.label === '現地キャリアへ回線の再開通を依頼する' && /再開通を依頼/.test(CALL_FLOW_LINES.carrier.promise) && !/状態を問い合わせ/.test(carrierRequest37.label),'§37 検査1: l_carrierが「照会」ではなく「再開通の依頼」として扱われない');
-assert(startCarrierSource25.includes('t.callbackDue = state.clock + lookup.minutes') && startCarrierSource25.includes("t.state = 'callback'") && startCarrierSource25.includes('state.focus = null'),'§37 検査2: 折り返しを約束して通話を切る従来フローがない');
+assert(startCarrierSource25.includes('t.callbackDue = state.clock + lookup.minutes') && startCarrierSource25.includes("t.state = 'callback'") && startCarrierSource25.includes('leaveCallForOffice()'),'§37 検査2: 折り返しを約束して通話を切る従来フローがない');
 const carrierProbabilityRaw37 = new Function('CARRIER_REPLY_RATE',functionSource('carrierReplyProbability') + '\nreturn carrierReplyProbability;')(CARRIER_REPLY_RATE);
 const carrierProbability37 = () => carrierProbabilityRaw37(GAME_FLAGS);
 assert.equal(CARRIER_REPLY_RATE,0.8,'§37 検査3: キャリア完了連絡の既定確率が80%ではない');
@@ -1925,8 +1925,8 @@ const startState39 = {clock:100,turn:7,focus:null,ui:{tab:'command'}};
 const startHotel39 = new Function('CALL_FLOW_LINES','state','spendOnCall','pushFlowLines','defaultUi','render',functionSource('startHotelCallback') + '\nreturn startHotelCallback;')(
   CALL_FLOW_LINES,startState39,() => true,(ticket,lines) => ticket.transcript.push(...lines),() => ({tab:'command'}),() => {}
 );
-const finishHotel45 = new Function('CALL_FLOW_LINES','state','spendOnCall','defaultUi','playDisconnectSound','enterOffice','blindCallbackRedial','CALLBACK_SCHEDULED_MINUTES',functionSource('finishPromisedCallback') + '\nreturn finishPromisedCallback;')(
-  CALL_FLOW_LINES,startState39,() => true,() => ({tab:'command'}),() => {},() => {},ticket => { ticket.blind = true; },CALLBACK_SCHEDULED_MINUTES
+const finishHotel45 = new Function('CALL_FLOW_LINES','state','spendOnCall','leaveCallForOffice','blindCallbackRedial','CALLBACK_SCHEDULED_MINUTES',functionSource('finishPromisedCallback') + '\nreturn finishPromisedCallback;')(
+  CALL_FLOW_LINES,startState39,() => true,() => { startState39.focus = null; startState39.ui = {tab:'command'}; },ticket => { ticket.blind = true; },CALLBACK_SCHEDULED_MINUTES
 );
 
 // §45 検査1: 折り返しを申し出ても、その場では通話が終わらない。
@@ -1992,8 +1992,8 @@ assert(SCENARIOS.every(scenario => (scenario.replies || {}).q_return && (scenari
 assert(new Set(SCENARIOS.map(scenario => scenario.replies.q_return.text)).size === SCENARIOS.length,'§45 検査9: q_return の答えが案件どうしで重複している');
 assert(!functionSource('finishPromisedCallback').includes('returnTimeKnown'),'§45 検査10: 戻る時間を聞かないと折り返せない');
 // 折り返せなかった客は、責めながら自分で掛け直してくる。
-const blindRedial39 = new Function('CALL_FLOW_LINES','state','BLIND_CALLBACK_STRESS','BLIND_CALLBACK_CSAT_PENALTY','spendOnCall','addStress','defaultUi','playDisconnectSound','recordOfficeEvent','customerLabel','enterOffice','render',functionSource('blindCallbackRedial') + '\nreturn blindCallbackRedial;')(
-  CALL_FLOW_LINES,startState39,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,() => true,() => true,() => ({tab:'command'}),() => {},() => {},() => 'お客様',() => {},() => {}
+const blindRedial39 = new Function('CALL_FLOW_LINES','state','BLIND_CALLBACK_STRESS','BLIND_CALLBACK_CSAT_PENALTY','spendOnCall','addStress','leaveCallForOffice','recordOfficeEvent','customerLabel','render',functionSource('blindCallbackRedial') + '\nreturn blindCallbackRedial;')(
+  CALL_FLOW_LINES,startState39,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,() => true,() => true,() => { startState39.focus = null; startState39.ui = {tab:'command'}; },() => {},() => 'お客様',() => {}
 );
 const blind39 = {s:{type:'hurried'},asked:new Set(),stayAddress:null,transcript:[],redialCount:0,state:'open'};
 startState39.focus = blind39; blindRedial39(blind39);
@@ -2046,6 +2046,43 @@ assert.equal(progression39.status,0,'§39 検査15: progression_testが通らな
 // §41: 氏名だけでは顧客レコードを開かず、既存の本人特定契約を守る。
 const customerRecord41 = functionSource('renderCustomerRecord') + functionSource('recordValue');
 assert(customerRecord41.includes('const identified = identificationReady(t);') && customerRecord41.includes('―― 未照会'), '§41-11 本人確認前または未照会欄が伏せられない');
+
+/* §46-4: 通話を離れてオフィスへ戻る共通処理。3つの折り返し経路すべてがこれに乗ったので、
+   ここが1つでも欠けると全経路が同時に壊れる。呼び出し側の検査は「これを呼んでいるか」
+   しか見ないため、中身はここで実際に走らせて確かめる。 */
+const leaveState46 = { focus:{ id:'S5' }, ui:{ tab:'ask' } };
+const leaveSteps46 = [];
+const leaveCall46 = new Function('state','defaultUi','playDisconnectSound','enterOffice',
+  functionSource('leaveCallForOffice') + '\nreturn leaveCallForOffice;')(
+  leaveState46,
+  () => ({ tab:'command' }),
+  () => { leaveSteps46.push('sound'); },
+  () => { leaveSteps46.push('office'); }
+);
+leaveCall46();
+assert(leaveState46.focus === null,'§46-4 検査2: 通話を離れても対応中の案件が解除されない');
+assert(leaveState46.ui.tab === 'command','§46-4 検査3: 通話を離れても画面の状態が初期化されない');
+assert(leaveSteps46.includes('sound'),'§46-4 検査4: 通話を離れても切断音が鳴らない');
+assert(leaveSteps46.includes('office'),'§46-4 検査5: 通話を離れてもオフィス画面へ移らない');
+
+/* §46-4: 折り返せずに客から掛け直されたとき、再着信の知らせはオフィス画面を描く前に
+   記録しなければならない。あとに置くと state には入るのに画面へ出ず、次に何かが
+   描き直すまで「特記事項なし」のままになる。実際に走らせて、画面を描く瞬間に
+   知らせが載っているかを見る。 */
+const redialState46 = { officeEvents:[], turn:3 };
+let redialNoticesWhenDrawn46 = null;
+const blindRedial46 = new Function(
+  'state','CALL_FLOW_LINES','BLIND_CALLBACK_CSAT_PENALTY','BLIND_CALLBACK_STRESS',
+  'spendOnCall','addStress','render','customerLabel','recordOfficeEvent','leaveCallForOffice',
+  functionSource('blindCallbackRedial') + '\nreturn blindCallbackRedial;'
+)(
+  redialState46, CALL_FLOW_LINES, BLIND_CALLBACK_CSAT_PENALTY, BLIND_CALLBACK_STRESS,
+  () => true, () => true, () => {}, () => 'お客様（S5）',
+  (kind, text) => { redialState46.officeEvents.push({ kind, text }); },
+  () => { redialNoticesWhenDrawn46 = redialState46.officeEvents.slice(); }
+);
+blindRedial46({ transcript:[], s:{ id:'S5', type:'anxious' }, redialCount:0, callbackPenalty:0 });
+assert(redialNoticesWhenDrawn46 && redialNoticesWhenDrawn46.some(event => event.kind === 'redial' && /再着信/.test(event.text)),'§46-4 検査1: オフィス画面を描く時点で再着信の知らせが記録されていない');
 
 // 編集用の3素材と配布用 index.html は、build.js と同じ規則で完全一致する。
 const expectedIndex = builtIndexSource(__dirname);
