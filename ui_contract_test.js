@@ -2060,7 +2060,15 @@ assert(customerRecord41.includes('const identified = identificationReady(t);') &
    会話が画面の外へ出たまま戻らなかった。ペインそのものは消さない（§42 の3ペイン）。 */
 assert(/body\.call-view \.world-strip\{[^}]*height:\s*0/.test(page),'§48-7 検査4: 通話中に世界時計の帯が畳まれない');
 assert(/body\.call-view \.pane\.call-summary > \.summary-figure/.test(page) && /body\.call-view \.pane\.call-summary > \.hint-bar/.test(page),'§48-7 検査5: 通話中に待機状況の中身が畳まれない');
-assert(/body\.call-view \.call \.opts\{[^}]*max-height/.test(page) && /body\.call-view \.call \.opts\{[^}]*overflow-y:\s*auto/.test(page),'§48-7 検査6: 選択肢が枠内でスクロールせず、ページごと伸びる');
+assert(/body\.call-view [^{]*\.opts\{[^}]*max-height/.test(page) && /body\.call-view [^{]*\.opts\{[^}]*overflow-y:\s*auto/.test(page),'§48-7 検査6: 選択肢が枠内でスクロールせず、ページごと伸びる');
+/* §48-7: CSSのセレクタが、実際に描かれる入れ子と噛み合っているかまで見る。
+   セレクタだけ書いても構造と合っていなければ何も起きない。実装中に一度
+   `.command-box .opts` と書いて外し、ブラウザで測るまで検査は素通りした。 */
+assert(page.includes('<div class="call" id="call">'),'§48-7 検査7: 通話画面のコンテナが .call でない');
+assert(functionSource('renderCloseFlow').includes('<div class="opts">') && functionSource('renderTellOptions').includes('<div class="opts">'),'§48-7 検査8: 選択肢が .opts で包まれていない');
+const optsSelector48 = (page.match(/body\.call-view ([^{]+)\{[^}]*max-height:\s*\d+vh/) || [])[1] || '';
+assert(/^\.call\s+\.opts$/.test(optsSelector48.trim()),'§48-7 検査9: 選択肢の高さを抑えるCSSが、実際の入れ子（.call の中の .opts）を対象にしていない: ' + optsSelector48.trim());
+assert(CAUSES.length >= 10,'§48-7 検査10: 原因の件数が、枠に収める必要のある規模でなくなっている');
 
 /* §48-6: 画面は満足度で出す。内部の stress は「上がるほど悪い」のまま据え置き、
    表示だけ反転する。内部まで裏返すと、なだめ・お詫び・雑談の効果表の符号が

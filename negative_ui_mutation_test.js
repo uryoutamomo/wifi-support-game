@@ -34,6 +34,12 @@ const mutations = [
     expected:'§48-7 検査5: 通話中に待機状況の中身が畳まれない',
   },
   {
+    name:'§48-7 選択肢の枠を実在しない入れ子へ向ける', file:'p1_head.html',
+    from:'body.call-view .call .opts{ max-height: 42vh; overflow-y: auto; }',
+    to:'body.call-view .command-box .opts{ max-height: 42vh; overflow-y: auto; }',
+    expected:'§48-7 検査9: 選択肢の高さを抑えるCSSが、実際の入れ子（.call の中の .opts）を対象にしていない: .command-box .opts',
+  },
+  {
     name:'§48-7 選択肢を枠に収めずページごと伸ばす', file:'p1_head.html',
     from:'body.call-view .call .opts{ max-height: 42vh; overflow-y: auto; }',
     to:'body.call-view .call .opts{ overflow-y: auto; }',
