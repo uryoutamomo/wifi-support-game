@@ -27,6 +27,12 @@ const mutations = [
     expected:'§41-11 本人確認前または未照会欄が伏せられない',
   },
   {
+    name:'§43 確かめられない対処をその場の失敗へ戻す', file:'p3_game.js',
+    from:'if (!remedy.verifiable && (causeMatched || t.misdiagnoses < 2)){',
+    to:'if (false && !remedy.verifiable && (causeMatched || t.misdiagnoses < 2)){',
+    expected:'§43-6 検査3: 確かめられない対処の失敗を後日の再入電へ分けない',
+  },
+  {
     name:'上部の通話・待機・診断タブを復活させる', file:'p1_head.html',
     from:'<div class="console">\n\n  <section class="pane desk">',
     to:'<div class="console">\n\n  <nav class="mobile-pane-nav">通話／待機／診断</nav>\n\n  <section class="pane desk">',

@@ -1333,6 +1333,21 @@ function confirmShipment(){
 
 function toneLabel(id){ const x = TONES.find(t => t.id === id); return x ? x.name : id; }
 
+function queueUnverifiableRedial(t){
+  t.redialCount++;
+  t.state = 'waiting';
+  t.arrivedTurn = state.turn;
+  t.greeted = false;
+  t.redialOpening = CALL_FLOW_LINES.unverifiable.redial[t.s.type];
+  t.redialSpoken = false;
+  t.redialGreeting = true;
+  state.focus = null;
+  state.ui = defaultUi();
+  playDisconnectSound();
+  recordOfficeEvent('redial', customerLabel(t, true) + 'から再入電しています。');
+  enterOffice();
+}
+
 function doClose(causeId, remedyId, toneId){
   const t = state.focus;
   const s = t.s;
@@ -1350,6 +1365,15 @@ function doClose(causeId, remedyId, toneId){
   // 見立て違いのやり直し時間は選択内容で決まり、抽選結果では揺らさない。
   if (!causeMatched) advance(2);
 
+  if (!causeMatched && s.contradicts && s.contradicts[causeId]){
+    pushCustomerLine(t, s.contradicts[causeId]);
+    if (!addStress(t, 12)){ render(); return; }
+    t.state = 'open';
+    state.ui = defaultUi();
+    render();
+    return;
+  }
+
   // ---- 対処後も解決しない ----
   if (!treatmentWorked){
     if (!causeMatched){
@@ -1357,6 +1381,18 @@ function doClose(causeId, remedyId, toneId){
     }
     if (remedy.cost) state.cost += remedy.cost;
     if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
+
+    // 手配・説明・返金は客が通話中に成否を確かめられない。いったん納得して終え、
+    // 後で未復旧を責めて掛け直す（既存の再入電状態を使う）。
+    if (!remedy.verifiable && (causeMatched || t.misdiagnoses < 2)){
+      pushFlowLines(t, [
+        { who:'cust', text:CALL_FLOW_LINES.unverifiable.closing[s.type] },
+        { who:'me', text:'承知しました。引き継ぎ結果が分かり次第、対応いたします。失礼いたします。' },
+      ]);
+      t.transcript.push({ who:'note', text:'客が結果待ちで終話し、未復旧のため後から再入電する予定です。' });
+      queueUnverifiableRedial(t);
+      return;
+    }
 
     if (!causeMatched && t.misdiagnoses >= 2){
       pushFlowLines(t, [
@@ -1366,7 +1402,10 @@ function doClose(causeId, remedyId, toneId){
       t.pendingConversation = { kind:'second_misdiagnosis', reason:'misdiagnosis' };
       state.ui = defaultUi();
     } else {
-      pushCustomerLine(t, causeMatched ? '試してみましたが、変わりません…。まだ繋がらないです。' : '言われたとおりにしましたが、やっぱり直りません。まだ繋がらないんですけど。');
+      const noSignal = s.panel && (s.panel.bars === 0 || s.panel.sim === 'none');
+      pushCustomerLine(t, noSignal
+        ? CALL_FLOW_LINES.unverifiable.noSignal[s.type]
+        : (causeMatched ? '試してみましたが、変わりません…。まだ繋がらないです。' : '言われたとおりにしましたが、やっぱり直りません。まだ繋がらないんですけど。'));
       if (!causeMatched) t.transcript.push({ who:'note', text:'原因の見立てが外れていました。もう一度切り分けをやり直せます。' });
       if (!addStress(t, 30)){ render(); return; }
       t.patience -= 20;

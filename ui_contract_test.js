@@ -384,6 +384,25 @@ assert(smalltalkChoicesSource.includes("data-smalltalk-mode=\"' + mode + '\""), 
 assert(!askGroupsSource.includes('group.no') && !askGroupsSource.includes('command-no'), '「聞く」の区分ボタンに番号が残っている');
 assert(askGroupsSource.includes('ask-group-choice'), '§42-3 番号なし質問区分の描画と1列CSSの対応がない');
 
+// §43: 客が通話中に確かめられない手配・説明を「試したのに直らない」とは言わせない。
+const remedies43 = Object.values(REMEDIES).flat();
+assert(remedies43.every(remedy => typeof remedy.verifiable === 'boolean'), '§43-6 検査1: 全対処にverifiableがない');
+['r_escalate_line','r_outage_explain','r_coverage_replacement','r_coverage_refund','r_hardware_swap','r_logistics_replacement','r_logistics_refund'].forEach(id => {
+  const remedy = remedies43.find(item => item.id === id);
+  assert(remedy && remedy.verifiable === false, '§43-6 検査2: 手配・返金・説明系がverifiable:falseではない: ' + id);
+});
+const close43 = functionSource('doClose');
+const redial43 = functionSource('queueUnverifiableRedial');
+assert(!close43.includes('運が悪かった'), '抽選結果が画面・ログ・transcriptに漏れる');
+assert(/if \(!remedy\.verifiable && \(causeMatched \|\| t\.misdiagnoses < 2\)\)/.test(close43), '§43-6 検査3: 確かめられない対処の失敗を後日の再入電へ分けない');
+assert(close43.includes('CALL_FLOW_LINES.unverifiable.closing[s.type]') && close43.includes('queueUnverifiableRedial(t)'), '§43-6 検査4: 結果待ちの終話と再入電がない');
+assert(redial43.includes('t.redialCount++') && redial43.includes('t.redialOpening') && redial43.includes('t.redialGreeting = true'), '§43-6 検査5: 再入電が既存のredial状態を使わない');
+assert(close43.includes('t.misdiagnoses >= 2'), '§43-6 検査7: 2回目誤診の上長引き取りが消えている');
+assert(close43.includes("s.panel.bars === 0 || s.panel.sim === 'none'") && close43.includes('CALL_FLOW_LINES.unverifiable.noSignal[s.type]'), '§43-6 検査8: 圏外の客に復旧可否を判断させる');
+const s3_43 = SCENARIOS.find(s => s.id === 'S3');
+assert(s3_43.contradicts && s3_43.contradicts.carrier && !/devices|接続台数|真因/.test(s3_43.contradicts.carrier), '§43-6 検査9/10: S3の食い違い指摘がない、または真因を漏らす');
+assert(close43.includes('s.contradicts[causeId]') && close43.includes("t.state = 'open'"), '§43-6 検査11: 食い違い指摘のあと切り分けを続けられない');
+
 // §9: 90/10の運、反応と対処だけの揺れ、登場順シャッフル、旧挙動への復帰。
 assert.equal(LUCK_RATE, 0.9, '運の本来どおり率が0.9ではない');
 assert.deepEqual(GAME_FLAGS, { luckRate:0.9, shuffleArrival:true, shuffleIdentity:true, dailyTickets:null, careerStage:null, unlockedBadges:null, solvedScenarios:null, soundEnabled:true, soundVolume:0.55 }, '運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う');
@@ -414,8 +433,8 @@ function runCloseContract(causeMatched, expectedOutcome){
   const deps = {
     state:closeState,
     REMEDIES:{
-      right:[{id:'r_right', label:'正しい対処', cost:100, kind:'guide'}],
-      wrong:[{id:'r_wrong', label:'誤った対処', cost:200, kind:'guide'}],
+      right:[{id:'r_right', label:'正しい対処', cost:100, kind:'guide', verifiable:true}],
+      wrong:[{id:'r_wrong', label:'誤った対処', cost:200, kind:'guide', verifiable:true}],
     },
     TYPES:{ hurried:{tone:'brief'} },
     remedyBlockReason:() => '', toneLabel:id => id,

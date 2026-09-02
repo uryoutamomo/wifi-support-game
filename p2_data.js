@@ -296,6 +296,26 @@ const CALL_FLOW_LINES = Object.freeze({
   recordStart:'少し記録を確認させてください。',
   interrupt:'申し訳ございません、一度お切りします。',
   redialGreeting:'先ほどは通話が切れてしまい、申し訳ございません。',
+  unverifiable:Object.freeze({
+    closing:Object.freeze({
+      anxious:'分かりました…。では、ご連絡を待っています。どうか早く戻りますように。',
+      novice:'分かりました。では、そのご連絡を待っていますね。',
+      expert:'承知しました。引き継ぎ結果と対応予定を記録してください。',
+      hurried:'分かった。結果が出たらすぐ連絡して。',
+    }),
+    redial:Object.freeze({
+      anxious:'待っていたのに、まだ使えません…。どうしてそのままなんですか？',
+      novice:'連絡を待っていたのに、まだ使えないままです。どうしたらいいですか？',
+      expert:'引き継ぎ後も事象は継続しています。対応状況と次の手を説明してください。',
+      hurried:'待ったのにまだ使えない。引き継ぎ先は何をしてる？',
+    }),
+    noSignal:Object.freeze({
+      anxious:'画面は…まだ圏外のままです。これは直ったんでしょうか？',
+      novice:'画面がまだ圏外のままです。これで大丈夫なんでしょうか？',
+      expert:'表示は依然として圏外です。復旧の成否はどのように確認すべきですか。',
+      hurried:'まだ圏外表示です。これ、復旧したの？',
+    }),
+  }),
   resolved:Object.freeze({
     best:'復旧をご確認いただき、ありがとうございます。',
     partial:'ご不便を残しますが、この方法でお願いいたします。',
@@ -502,6 +522,14 @@ const REMEDIES = {
   ],
 };
 
+// 対処の種類ではなく、客が通話中に通信の戻りを確かめられるかで分ける。
+const VERIFIABLE_REMEDY_IDS = new Set([
+  'r_topup','r_disconnect','r_vpn_plan','r_throttle_talk','r_forget_guide','r_use_other',
+  'r_vpn_off','r_move_guide','r_window_stationary','r_charge_guide','r_sim_clean','r_reboot_again',
+  'r_carrier_reopened_explain',
+]);
+Object.values(REMEDIES).flat().forEach(remedy => { remedy.verifiable = VERIFIABLE_REMEDY_IDS.has(remedy.id); });
+
 /* ---------- シナリオ ---------- */
 
 const SCENARIOS = [
@@ -583,6 +611,7 @@ const SCENARIOS = [
 {
   id:'S3', arrive:11, name:'大久保 健', nameEn:'Ken Okubo', age:44, type:'hurried', abandonAfter:22, callbackTo:'mobile', stayDays:2,
   deviceInHand:true,
+  contradicts:{ carrier:'ほかの端末は使えてるんですが。回線の話ですか？' },
   rushedReply:'はい。挨拶は分かった。続き、早く。', contractId:{ minutes:1, text:'メールにあります。GDW-529017。はい、次。' },
   country:'ハワイ', city:'ホノルル', cityEn:'HONOLULU', localOffset:-19, carrierName:'T-Mobile US', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'急いでます。一台だけ繋がりません。ほかは使えます。あと10分で移動しないといけません。何を見ればいいですか。',
