@@ -22,6 +22,36 @@ const boardPane = `  <section class="pane board">
   </section>`;
 const mutations = [
   {
+    name:'§47 性別を案件に固定へ戻す', file:'p3_game.js',
+    from:"    const wanted = random() < 0.5 ? 'female' : 'male';",
+    to:"    const wanted = scenario.gender;",
+    expected:'§47 検査3: 性別が乱数で決まらない、または引いた性別と名前の性別が食い違う',
+  },
+  {
+    name:'§47 名前の年齢帯を無視して引く', file:'p3_game.js',
+    from:'      entry.ageBand[0] <= range[1] && range[0] <= entry.ageBand[1]);',
+    to:'      true);',
+    expected:'§47 検査1: 年齢が案件の幅と名前の年齢帯の重なりに収まらない',
+  },
+  {
+    name:'§47 年齢を重なりの外から引く', file:'p3_game.js',
+    from:'age:low + Math.floor(random() * (high - low + 1))',
+    to:'age:low - 1',
+    expected:'§47 検査1: 年齢が案件の幅と名前の年齢帯の重なりに収まらない',
+  },
+  {
+    name:'§47 同じシフトで同じ名前を許す', file:'p3_game.js',
+    from:'    usedNames.add(entry.name);',
+    to:'',
+    expected:'§38 検査1: 名前・ローマ字が候補から切り離され、シフトごとに割り当てられない',
+  },
+  {
+    name:'§47 配偶者の呼び方を「夫」固定に戻す', file:'p3_game.js',
+    from:"    spouse:identity.gender === 'female' ? '夫' : '妻',",
+    to:"    spouse:'夫',",
+    expected:'§47 検査5: 男性客に「妻」が入らない',
+  },
+  {
     name:'§45 客から切られたら折り返しの約束を捨てる', file:'p3_game.js',
     from:'  if (t.callbackPromised){\n    t.transcript.push({ who:\'note\', text:\'お客様から切られましたが、折り返しのお約束は残っています。\' });\n    finishPromisedCallback(t, false);\n    return false;\n  }\n',
     to:'',
@@ -677,8 +707,8 @@ const mutations = [
   },
   {
     name:'将来復帰用callbackToを1件消す', file:'p2_data.js',
-    from:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel',",
-    to:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:null,",
+    from:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, ageRange:[24,36], type:'anxious', abandonAfter:32, callbackTo:'hotel',",
+    to:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, ageRange:[24,36], type:'anxious', abandonAfter:32, callbackTo:null,",
     expected:'§24/§25 案件データのcallbackToが揃っていない',
   },
   {
@@ -1466,7 +1496,7 @@ const mutations = [
   },
   {
     name:'S13の顧客タイプをexpertへ変える', file:'p2_data.js',
-    from:"id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, type:'anxious'", to:"id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, type:'expert'",
+    from:"id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, ageRange:[25,42], type:'anxious'", to:"id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, ageRange:[25,42], type:'expert'",
     expected:'§30 検査10: anxiousの自己責任型第一声になっていない',
   },
   {
@@ -1667,7 +1697,7 @@ const mutations = [
   },
   {
     name:'S7を短期滞在へ戻す', file:'p2_data.js',
-    from:"id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, type:'expert', abandonAfter:38, callbackTo:'hotel', stayDays:6,\n  deviceInHand:true", to:"id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, type:'expert', abandonAfter:38, callbackTo:'hotel', stayDays:2,\n  deviceInHand:true",
+    from:"id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, ageRange:[25,40], type:'expert', abandonAfter:38, callbackTo:'hotel', stayDays:6,\n  deviceInHand:true", to:"id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, ageRange:[25,40], type:'expert', abandonAfter:38, callbackTo:'hotel', stayDays:2,\n  deviceInHand:true",
     expected:'§32 検査9: progression_testが通らない',
   },
   {
@@ -1713,7 +1743,7 @@ const mutations = [
   },
   {
     name:'S1からdeviceInHandフラグを消す', file:'p2_data.js',
-    from:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel', stayDays:2,\n  deviceInHand:true,\n  contractId:{ minutes:2, text:'予約番号", to:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel', stayDays:2,\n  contractId:{ minutes:2, text:'予約番号",
+    from:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, ageRange:[24,36], type:'anxious', abandonAfter:32, callbackTo:'hotel', stayDays:2,\n  deviceInHand:true,\n  contractId:{ minutes:2, text:'予約番号", to:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, ageRange:[24,36], type:'anxious', abandonAfter:32, callbackTo:'hotel', stayDays:2,\n  contractId:{ minutes:2, text:'予約番号",
     expected:'§35 検査1: deviceInHandの明示フラグではなくdevice表示文字列で判定している',
   },
   {
@@ -1857,9 +1887,9 @@ const mutations = [
   },
   {
     name:'人物シャッフルを常に無効にする', file:'p3_game.js',
-    from:'const identities = flags.shuffleIdentity ? shuffleScenarios(IDENTITY_POOL, random) : scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age,gender:scenario.gender}));',
+    from:'const identities = flags.shuffleIdentity ? drawScenarioIdentities(scenarios, random) : scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age,gender:scenario.gender}));',
     to:'const identities = scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age,gender:scenario.gender}));',
-    expected:'§38 検査1: 名前・ローマ字・年齢が案件から切り離され、シフトごとに割り当てられない',
+    expected:'§38 検査1: 名前・ローマ字が候補から切り離され、シフトごとに割り当てられない',
   },
   {
     name:'geo_blockを中国以外にも割り当てる', file:'p3_game.js',
@@ -1912,7 +1942,7 @@ const mutations = [
   {
     name:'shuffleIdentity falseでも人物をシャッフルする', file:'p3_game.js',
     from:': scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age,gender:scenario.gender}));',
-    to:': shuffleScenarios(IDENTITY_POOL, random);',
+    to:': shuffleScenarios(NAME_POOL, random);',
     expected:'§38 検査9: shuffleIdentity falseで案件データどおりの割り当てに戻らない',
   },
   {

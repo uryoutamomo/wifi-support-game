@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,IDENTITY_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
-const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, IDENTITY_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
+const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -1808,16 +1808,38 @@ assert.equal(progression37.status,0,'§37 検査10: 完了連絡なしを含む�
 
 // §38-6: 名前・年齢と土地bundleを、症状の土地制約を守ってシフトごとに割り当てる。
 const identityModule38 = new Function(
-  'SHIFT_START','PLACE_POOL','PLACE_CONSTRAINTS','IDENTITY_POOL','shuffleScenarios',
+  'SHIFT_START','PLACE_POOL','PLACE_CONSTRAINTS','NAME_POOL','shuffleScenarios',
   [
     functionSource('scenarioLocalMinute'),functionSource('placeAllowedForScenario'),functionSource('scenarioNeedsSharedRegion'),functionSource('assignScenarioPlaces'),
-    functionSource('replaceScenarioTemplates'),functionSource('scenarioWithIdentityAndPlace'),functionSource('assignScenarioIdentities'),
-  ].join('\n') + '\nreturn {scenarioLocalMinute,placeAllowedForScenario,assignScenarioPlaces,replaceScenarioTemplates,scenarioWithIdentityAndPlace,assignScenarioIdentities};'
-)(22 * 60,PLACE_POOL,PLACE_CONSTRAINTS,IDENTITY_POOL,shuffleScenarios);
+    functionSource('replaceScenarioTemplates'),functionSource('scenarioWithIdentityAndPlace'),functionSource('drawScenarioIdentities'),functionSource('assignScenarioIdentities'),
+  ].join('\n') + '\nreturn {scenarioLocalMinute,placeAllowedForScenario,assignScenarioPlaces,replaceScenarioTemplates,scenarioWithIdentityAndPlace,drawScenarioIdentities,assignScenarioIdentities};'
+)(22 * 60,PLACE_POOL,PLACE_CONSTRAINTS,NAME_POOL,shuffleScenarios);
 const identitySelection38 = ['S4','S5','S6','S12','S13'].map((id,index) => Object.assign({},SCENARIOS.find(scenario => scenario.id === id),{arrive:[0,5,11,18,25][index]}));
 const assigned38 = identityModule38.assignScenarioIdentities(identitySelection38,() => .37,{shuffleIdentity:true});
 const byId38 = id => assigned38.find(scenario => scenario.id === id);
-assert(assigned38.every(scenario => IDENTITY_POOL.some(identity => identity.name === scenario.name && identity.nameEn === scenario.nameEn && identity.age === scenario.age)) && IDENTITY_POOL.every(identity => /^[A-Za-z]+(?: [A-Za-z]+)+$/.test(identity.nameEn)) && new Set(assigned38.map(scenario => scenario.name)).size === assigned38.length && new Set(assigned38.map(scenario => scenario.nameEn)).size === assigned38.length && assigned38.some(scenario => scenario.name !== SCENARIOS.find(raw => raw.id === scenario.id).name),'§38 検査1: 名前・ローマ字・年齢が案件から切り離され、シフトごとに割り当てられない');
+assert(assigned38.every(scenario => NAME_POOL.some(entry => entry.name === scenario.name && entry.nameEn === scenario.nameEn && entry.gender === scenario.gender)) && NAME_POOL.every(entry => /^[A-Za-z]+(?: [A-Za-z]+)+$/.test(entry.nameEn)) && new Set(assigned38.map(scenario => scenario.name)).size === assigned38.length && new Set(assigned38.map(scenario => scenario.nameEn)).size === assigned38.length && assigned38.some(scenario => scenario.name !== SCENARIOS.find(raw => raw.id === scenario.id).name),'§38 検査1: 名前・ローマ字が候補から切り離され、シフトごとに割り当てられない');
+// §47: 年齢は案件の幅と名前の年齢帯の重なりから引く。71歳の「結衣」も24歳の「和子」も出さない。
+assert(assigned38.every(scenario => {
+  const raw = SCENARIOS.find(item => item.id === scenario.id);
+  const entry = NAME_POOL.find(item => item.name === scenario.name);
+  return Number.isInteger(scenario.age) && scenario.age >= Math.max(raw.ageRange[0],entry.ageBand[0]) && scenario.age <= Math.min(raw.ageRange[1],entry.ageBand[1]);
+}),'§47 検査1: 年齢が案件の幅と名前の年齢帯の重なりに収まらない');
+// §47: 別の引き方をすれば、顔ぶれが変わる。並べ替えではなく候補から引いていることの確認。
+const drawnA47 = identityModule38.assignScenarioIdentities(identitySelection38,() => .37,{shuffleIdentity:true}).map(scenario => scenario.name).join(',');
+const drawnB47 = identityModule38.assignScenarioIdentities(identitySelection38,() => .77,{shuffleIdentity:true}).map(scenario => scenario.name).join(',');
+assert(drawnA47 !== drawnB47,'§47 検査2: 引き方を変えても同じ顔ぶれが出る');
+// §47: 引いた性別と、名前の性別が食い違わない。
+const male47 = identityModule38.assignScenarioIdentities(identitySelection38,() => .77,{shuffleIdentity:true});
+assert(male47.every(scenario => NAME_POOL.find(entry => entry.name === scenario.name).gender === scenario.gender) && male47.every(scenario => scenario.gender === 'male') && assigned38.every(scenario => scenario.gender === 'female'),'§47 検査3: 性別が乱数で決まらない、または引いた性別と名前の性別が食い違う');
+// §47: 配偶者の呼び方が性別どおりに入り、未置換のまま画面へ出ない。
+const spouseFemale47 = JSON.stringify(assigned38.find(scenario => scenario.id === 'S13') || assigned38[0]);
+const s1Female47 = identityModule38.assignScenarioIdentities([Object.assign({},SCENARIOS.find(s => s.id === 'S1'),{arrive:0})],() => .37,{shuffleIdentity:true})[0];
+const s1Male47 = identityModule38.assignScenarioIdentities([Object.assign({},SCENARIOS.find(s => s.id === 'S1'),{arrive:0})],() => .77,{shuffleIdentity:true})[0];
+assert(s1Female47.gender === 'female' && JSON.stringify(s1Female47).includes('夫と一緒だと思ったら') && !JSON.stringify(s1Female47).includes('妻と一緒だと思ったら'),'§47 検査4: 女性客に「夫」が入らない');
+assert(s1Male47.gender === 'male' && JSON.stringify(s1Male47).includes('妻と一緒だと思ったら') && !JSON.stringify(s1Male47).includes('夫と一緒だと思ったら'),'§47 検査5: 男性客に「妻」が入らない');
+assert(!JSON.stringify([s1Female47,s1Male47,...assigned38]).includes('{spouse}') && !spouseFemale47.includes('{spouse}'),'§47 検査6: {spouse} が置換されないまま残る');
+/* shuffleIdentity:false で案件どおりに戻ることは §38 検査9 が見ている。
+   §47 で性別も引くようになったので、性別の確認はそちらへ足した。 */
 assert(assigned38.every(scenario => PLACE_POOL.some(place => place.country === scenario.country && place.city === scenario.city && place.cityEn === scenario.cityEn && place.localOffset === scenario.localOffset && place.carrier === scenario.carrierName)),'§38 検査2: 国・都市・cityEn・localOffset・キャリアが1組で割り当てられない');
 const scenarioStrings38 = scenario => {
   const strings = [];
@@ -1860,7 +1882,7 @@ assert(!SCENARIOS.some(scenario => Object.prototype.hasOwnProperty.call(scenario
 assert(!SCENARIOS.filter(scenario => scenario.id !== 'S12').flatMap(scenarioStrings38).some(text => /現地(?:はいま|時刻は).*\d|日付が変わった瞬間/.test(text)),'§38 検査7: S12以外に土地と矛盾する固定の現地時刻・昼夜表現が残っている');
 assert(new Set(assigned38.map(scenario => scenario.name)).size === assigned38.length && new Set(assigned38.map(scenario => scenario.placeSourceScenarioId)).size === assigned38.length && new Set(PLACE_POOL.map(place => place.city)).size === PLACE_POOL.length,'§38 検査8: 同じ名前または同じ土地が一晩に二度出る');
 const unshuffled38 = identityModule38.assignScenarioIdentities(SCENARIOS,() => .37,{shuffleIdentity:false});
-assert(unshuffled38.every((scenario,index) => scenario.name === SCENARIOS[index].name && scenario.nameEn === SCENARIOS[index].nameEn && scenario.age === SCENARIOS[index].age && scenario.city === SCENARIOS[index].city && scenario.country === SCENARIOS[index].country && scenario.localOffset === SCENARIOS[index].localOffset),'§38 検査9: shuffleIdentity falseで案件データどおりの割り当てに戻らない');
+assert(unshuffled38.every((scenario,index) => scenario.name === SCENARIOS[index].name && scenario.nameEn === SCENARIOS[index].nameEn && scenario.age === SCENARIOS[index].age && scenario.gender === SCENARIOS[index].gender && scenario.city === SCENARIOS[index].city && scenario.country === SCENARIOS[index].country && scenario.localOffset === SCENARIOS[index].localOffset),'§38 検査9: shuffleIdentity falseで案件データどおりの割り当てに戻らない');
 assert(assigned38.every(scenario => {
   const raw = SCENARIOS.find(item => item.id === scenario.id);
   return scenario.type === raw.type && scenario.trueCause === raw.trueCause && scenario.best === raw.best && JSON.stringify(scenario.partial || []) === JSON.stringify(raw.partial || []);

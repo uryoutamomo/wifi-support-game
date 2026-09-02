@@ -140,7 +140,7 @@ function assignScenarioPlaces(scenarios, random){
 }
 
 function replaceScenarioTemplates(value, replacements){
-  if (typeof value === 'string') return value.replace(/\{(city|country|carrier|region|wrongCountry)\}/g, (_, key) => replacements[key]);
+  if (typeof value === 'string') return value.replace(/\{(city|country|carrier|region|wrongCountry|spouse)\}/g, (_, key) => replacements[key]);
   if (Array.isArray(value)) return value.map(item => replaceScenarioTemplates(item, replacements));
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(Object.entries(value).map(([key,item]) => [key,replaceScenarioTemplates(item,replacements)]));
@@ -153,6 +153,8 @@ function scenarioWithIdentityAndPlace(scenario, identity, place, wrongCountry){
     carrier:place.carrier,
     region:place.regionName,
     wrongCountry,
+    /* §47: 配偶者の呼び方は客の性別で決まる。女性客なら「夫」、男性客なら「妻」。 */
+    spouse:identity.gender === 'female' ? '夫' : '妻',
   };
   const assigned = replaceScenarioTemplates(scenario, replacements);
   return Object.assign(assigned, identity, {
@@ -168,8 +170,31 @@ function scenarioWithIdentityAndPlace(scenario, identity, place, wrongCountry){
   });
 }
 
+/* §47: 名前は14案件の並べ替えではなく、性別つきの候補48名から引く。
+   性別を先に決め、その性別の候補のうち案件の年齢の幅と重なるものだけを対象にする。
+   年齢は「案件の幅」と「名前の幅」が重なった範囲から引くので、71歳の「結衣」も
+   24歳の「和子」も出ない。同じシフトで同じ名前は二度出ない。 */
+function drawScenarioIdentities(scenarios, random){
+  const usedNames = new Set();
+  return scenarios.map(scenario => {
+    const range = scenario.ageRange;
+    const candidatesFor = want => NAME_POOL.filter(entry =>
+      entry.gender === want && !usedNames.has(entry.name) &&
+      entry.ageBand[0] <= range[1] && range[0] <= entry.ageBand[1]);
+    const wanted = random() < 0.5 ? 'female' : 'male';
+    /* その性別の候補が尽きたら、もう一方の性別から引く。台詞は {spouse} で追随する。 */
+    const candidates = candidatesFor(wanted).length ? candidatesFor(wanted) : candidatesFor(wanted === 'female' ? 'male' : 'female');
+    if (!candidates.length) throw new Error('名前の候補がありません: ' + scenario.id);
+    const entry = candidates[Math.floor(random() * candidates.length)];
+    usedNames.add(entry.name);
+    const low = Math.max(range[0], entry.ageBand[0]);
+    const high = Math.min(range[1], entry.ageBand[1]);
+    return { name:entry.name, nameEn:entry.nameEn, age:low + Math.floor(random() * (high - low + 1)), gender:entry.gender };
+  });
+}
+
 function assignScenarioIdentities(scenarios, random, flags = GAME_FLAGS){
-  const identities = flags.shuffleIdentity ? shuffleScenarios(IDENTITY_POOL, random) : scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age,gender:scenario.gender}));
+  const identities = flags.shuffleIdentity ? drawScenarioIdentities(scenarios, random) : scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age,gender:scenario.gender}));
   const assignedPlaces = flags.shuffleIdentity ? assignScenarioPlaces(scenarios, random) : new Map(scenarios.map(scenario => {
     const place = PLACE_POOL.find(item => item.sourceScenarioId === scenario.id);
     return [scenario.id, place];

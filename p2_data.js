@@ -551,26 +551,26 @@ const SCENARIOS = [
 
 /* === 1. バンコク：容量超過。導入。社内照会で確定できる === */
 {
-  id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel', stayDays:2,
+  id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, ageRange:[24,36], type:'anxious', abandonAfter:32, callbackTo:'hotel', stayDays:2,
   deviceInHand:true,
   contractId:{ minutes:2, text:'予約番号…はい、探します。手が震えて…すみません。ありました。GDW-410882、これで合っていますか？' },
   country:'タイ', city:'バンコク', cityEn:'BANGKOK', localOffset:-2, carrierName:'AIS', device:'GD-500', plan:'{country} ／ 500MBプラン',
   opening:'あの…地図が全然開かないんです。昨日まで使えたのに、今日だけ急に遅くて…。どうしたらいいでしょうか。',
   smalltalk:[
-    { id:'st_s1_trip', reveal:'q_when', askLabel:'{city}では、どちらを回られるご予定ですか？', tellLabel:'新婚旅行、おめでとうございます', goodReply:'ありがとうございます…。夫と一緒だと思ったら、少し息ができました。', badReply:'ありがとうございます。でも地図がないと、ホテルにも戻れなくなりそうで…。' },
+    { id:'st_s1_trip', reveal:'q_when', askLabel:'{city}では、どちらを回られるご予定ですか？', tellLabel:'新婚旅行、おめでとうございます', goodReply:'ありがとうございます…。{spouse}と一緒だと思ったら、少し息ができました。', badReply:'ありがとうございます。でも地図がないと、ホテルにも戻れなくなりそうで…。' },
     { id:'st_s1_movie', reveal:'q_when', askLabel:'昨夜は、どのような映画をご覧になったんですか？', tellLabel:'お二人で映画を楽しまれたんですね', goodReply:'はい…つい見入ってしまって。思い出したら、少し落ち着きました。', badReply:'映画の話をしたら、私が使いすぎたせいって決まるんでしょうか…？' },
   ],
   panel:{ bars:3, carrier:'{carrier}', sim:'ok', throttle:true, clients:2, maxClients:5, battery:62, ssid:'Globaldesk-2210' },
   trueCause:'fup', best:'r_topup', partial:['r_slow_ok'],
   replies:{
-    q_return:{ text:'もう部屋にいます。夫と一緒に、ここで待っていますので…。' },
-    q_other_device:{ text:'夫のスマホも同じです。二人とも遅くて…。端末まで二つとも壊れたんでしょうか？',
+    q_return:{ text:'もう部屋にいます。{spouse}と一緒に、ここで待っていますので…。' },
+    q_other_device:{ text:'{spouse}のスマホも同じです。二人とも遅くて…。端末まで二つとも壊れたんでしょうか？',
       fact:{ text:'同行者の端末も同様に遅い。端末固有ではない', out:['device_side','device_net'] } },
     q_lamp:{ text:'画面…アンテナは3本です。下に「節」みたいな印が…。これ、悪い表示ですか？',
       fact:{ text:'アンテナ3本。本体に速度制限アイコンが表示されている', hot:['fup'], out:['sim','carrier','coverage'] } },
-    q_when:{ text:'今朝からです。新婚旅行で、昨夜、夫と映画を1本見て…。私が見たせいですよね？ すみません…。',
+    q_when:{ text:'今朝からです。新婚旅行で、昨夜、{spouse}と映画を1本見て…。私が見たせいですよね？ すみません…。',
       fact:{ text:'前夜に動画を長時間視聴。翌朝から低速化', hot:['fup'] } },
-    q_count:{ text:'2台だけです。私と夫のスマホだけ。本当にそれだけです。',
+    q_count:{ text:'2台だけです。私と{spouse}のスマホだけ。本当にそれだけです。',
       fact:{ text:'接続は2台のみ', out:['devices'] } },
     q_what_fails:{ text:'全部です。ずっとくるくる回って…。何も開かなくなるんじゃないかって。',
       fact:{ text:'特定サービスではなく全体が低速', out:['geo_block'] } },
@@ -588,7 +588,7 @@ const SCENARIOS = [
 
 /* === 2. ロンドン：一台だけ繋がらない。端末側の保存情報 === */
 {
-  id:'S2', arrive:5, name:'田辺 幸子', nameEn:'Sachiko Tanabe', age:71, type:'novice', abandonAfter:30, callbackTo:'mobile', stayDays:3,
+  id:'S2', arrive:5, name:'田辺 幸子', nameEn:'Sachiko Tanabe', age:71, ageRange:[62,78], type:'novice', abandonAfter:30, callbackTo:'mobile', stayDays:3,
   deviceInHand:true,
   contractId:{ minutes:4, text:'番号…どの紙でしょう。すみません、老眼鏡も見つからなくて…。これですか？ GDW-336104。違っていたら、ごめんなさいね。' },
   country:'イギリス', city:'ロンドン', cityEn:'LONDON', localOffset:-8, carrierName:'Vodafone UK', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -626,7 +626,7 @@ const SCENARIOS = [
 
 /* === 3. ホノルル：同時接続台数の上限超過。FUPと紛らわしい === */
 {
-  id:'S3', arrive:11, name:'大久保 健', nameEn:'Ken Okubo', age:44, type:'hurried', abandonAfter:22, callbackTo:'mobile', stayDays:2,
+  id:'S3', arrive:11, name:'大久保 健', nameEn:'Ken Okubo', age:44, ageRange:[36,52], type:'hurried', abandonAfter:22, callbackTo:'mobile', stayDays:2,
   deviceInHand:true,
   contradicts:{ carrier:'ほかの端末は使えてるんですが。回線の話ですか？' },
   rushedReply:'はい。挨拶は分かった。続き、早く。', contractId:{ minutes:1, text:'メールにあります。GDW-529017。はい、次。' },
@@ -637,11 +637,11 @@ const SCENARIOS = [
   trueCause:'devices', best:'r_disconnect', partial:['r_second_unit'], shipNeed:'normal',
   replies:{
     q_return:{ text:'いまバス待ち。部屋に戻るのは30分くらい先だ。' },
-    q_other_device:{ text:'私と妻は使えてます。子どもの分だけ駄目。次の質問は？',
+    q_other_device:{ text:'私と{spouse}は使えてます。子どもの分だけ駄目。次の質問は？',
       fact:{ text:'既存の接続端末は正常。新しい端末だけが入れない', hot:['devices','device_side'], out:['carrier','sim','hardware','coverage','provision'] } },
     q_lamp:{ text:'はい、画面出した。棒4本、数字は5。バスはあと7分。',
       fact:{ text:'電波は正常。接続台数の表示が5台', hot:['devices'], out:['sim','carrier','coverage','power','location'] } },
-    q_count:{ text:'私、妻、子ども二人、ゲーム機、妻の予備端末。6台か7台。結論は？',
+    q_count:{ text:'私、{spouse}、子ども二人、ゲーム機、{spouse}の予備端末。6台か7台。結論は？',
       fact:{ text:'接続を試みている端末が6〜7台ある', hot:['devices'] } },
     q_when:{ text:'ホテルを出るとき、娘のタブレットを追加した瞬間から。',
       fact:{ text:'新しい端末を追加した時点で発生', hot:['devices'] } },
@@ -668,7 +668,7 @@ const SCENARIOS = [
 
 /* === 4. 上海：渡航先の通信規制。技術に明るい客 === */
 {
-  id:'S4', arrive:18, name:'森 達彦', nameEn:'Tatsuhiko Mori', age:39, type:'expert', abandonAfter:35, callbackTo:'hotel', stayDays:4,
+  id:'S4', arrive:18, name:'森 達彦', nameEn:'Tatsuhiko Mori', age:39, ageRange:[30,50], type:'expert', abandonAfter:35, callbackTo:'hotel', stayDays:4,
   deviceInHand:true,
   contractId:{ minutes:1, text:'GDW-118350です。控えてあります。' },
   country:'中国本土', city:'上海', cityEn:'SHANGHAI', localOffset:-1, carrierName:'China Unicom', device:'GD-500', plan:'{country} ／ 1GBプラン',
@@ -699,7 +699,7 @@ const SCENARIOS = [
 
 /* === 5. ニューヨーク①：広域障害。この時点ではまだ見えない === */
 {
-  id:'S5', arrive:25, name:'小林 亜衣', nameEn:'Ai Kobayashi', age:33, type:'anxious', abandonAfter:28, callbackTo:'hotel', stayDays:2,
+  id:'S5', arrive:25, name:'小林 亜衣', nameEn:'Ai Kobayashi', age:33, ageRange:[26,44], type:'anxious', abandonAfter:28, callbackTo:'hotel', stayDays:2,
   deviceInHand:true,
   contractId:{ minutes:2, text:'はい…会社の手配です。えっと、GDW-673925。間違っていませんよね？' },
   country:'アメリカ', city:'ニューヨーク', cityEn:'NEW YORK', localOffset:-13, carrierName:'T-Mobile US', regionGroup:'us_northeast', regionName:'米国北東部', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -740,7 +740,7 @@ const SCENARIOS = [
 
 /* === 6. ニューヨーク②：ここで相関が見える。山場 === */
 {
-  id:'S6', arrive:31, name:'渡辺 圭吾', nameEn:'Keigo Watanabe', age:52, type:'hurried', abandonAfter:20, callbackTo:'mobile', stayDays:3,
+  id:'S6', arrive:31, name:'渡辺 圭吾', nameEn:'Keigo Watanabe', age:52, ageRange:[42,60], type:'hurried', abandonAfter:20, callbackTo:'mobile', stayDays:3,
   deviceInHand:true,
   rushedReply:'分かってます。前置きは終わり。進めて。', contractId:{ minutes:1, text:'毎月使うので控えてます。GDW-206441。次。' },
   country:'アメリカ', city:'ボストン', cityEn:'BOSTON', localOffset:-13, carrierName:'T-Mobile US', regionGroup:'us_northeast', regionName:'米国北東部', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -772,7 +772,7 @@ const SCENARIOS = [
 
 /* === 7. バルセロナ郊外：対象エリア外。上級 === */
 {
-  id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, type:'expert', abandonAfter:38, callbackTo:'hotel', stayDays:6,
+  id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, ageRange:[25,40], type:'expert', abandonAfter:38, callbackTo:'hotel', stayDays:6,
   deviceInHand:true,
   contractId:{ minutes:1, text:'GDW-887302。画面に出しています。照合してください。' },
   country:'スペイン', city:'バルセロナ', cityEn:'BARCELONA', localOffset:-7, carrierName:'Orange ES', device:'GD-200', plan:'{country} ／ 1GBプラン',
@@ -816,7 +816,7 @@ const SCENARIOS = [
 
 /* === 8. ドバイ：SIM未認識。清掃と挿し直しで復旧 === */
 {
-  id:'S8', arrive:44, name:'藤川 みどり', nameEn:'Midori Fujikawa', age:58, type:'novice', abandonAfter:26, callbackTo:'hotel', stayDays:2,
+  id:'S8', arrive:44, name:'藤川 みどり', nameEn:'Midori Fujikawa', age:58, ageRange:[50,68], type:'novice', abandonAfter:26, callbackTo:'hotel', stayDays:2,
   deviceInHand:true,
   contractId:{ minutes:3, text:'番号…箱の紙ですか？ すみません、見方が…。あ、GDW-745168。これでしょうか？' },
   country:'UAE', city:'ドバイ', cityEn:'DUBAI', localOffset:-5, carrierName:'Etisalat', device:'GD-500', plan:'{country} ／ 1GBプラン',
@@ -861,7 +861,7 @@ const SCENARIOS = [
 
 /* === 9. ハノイ：技術ではない。物流案件 === */
 {
-  id:'S9', arrive:50, name:'石橋 玲', nameEn:'Rei Ishibashi', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile', stayDays:2,
+  id:'S9', arrive:50, name:'石橋 玲', nameEn:'Rei Ishibashi', age:35, ageRange:[28,46], type:'hurried', abandonAfter:16, callbackTo:'mobile', stayDays:2,
   deviceInHand:false,
   rushedReply:'はい。で、結論は？', contractId:{ minutes:1, text:'GDW-091774。番号は最初からあります。次。' },
   country:'ベトナム', city:'ハノイ', cityEn:'HANOI', localOffset:-2, carrierName:'Viettel', device:'（未受取）', plan:'{country} ／ 500MBプラン',
@@ -885,7 +885,7 @@ const SCENARIOS = [
 
 /* === 10. パリ：SIM清掃を2回試しても戻らない機器故障。長期滞在なら交換 === */
 {
-  id:'S10', arrive:56, name:'佐伯 奈緒', nameEn:'Nao Saeki', age:41, type:'anxious', abandonAfter:30, callbackTo:'hotel', stayDays:6,
+  id:'S10', arrive:56, name:'佐伯 奈緒', nameEn:'Nao Saeki', age:41, ageRange:[33,52], type:'anxious', abandonAfter:30, callbackTo:'hotel', stayDays:6,
   deviceInHand:true,
   contractId:{ minutes:2, text:'予約番号はGDW-814263です。あと6日もあるのに…。すみません、ちゃんと控えていてよかった…。' },
   country:'フランス', city:'パリ', cityEn:'PARIS', localOffset:-8, carrierName:'Orange FR', device:'GD-500', plan:'{country} ／ 1GBプラン',
@@ -928,7 +928,7 @@ const SCENARIOS = [
 
 /* === 11. ローマ：地下の会議室だけ電波が弱い。場所移動で即復旧 === */
 {
-  id:'S11', arrive:62, name:'川上 亮', nameEn:'Ryo Kawakami', age:36, type:'hurried', abandonAfter:20, callbackTo:'mobile', stayDays:2,
+  id:'S11', arrive:62, name:'川上 亮', nameEn:'Ryo Kawakami', age:36, ageRange:[28,48], type:'hurried', abandonAfter:20, callbackTo:'mobile', stayDays:2,
   deviceInHand:true,
   rushedReply:'はい。場所なら動く。指示を。', contractId:{ minutes:1, text:'GDW-562940。はい、次。' },
   country:'イタリア', city:'ローマ', cityEn:'ROME', localOffset:-8, carrierName:'TIM', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -959,7 +959,7 @@ const SCENARIOS = [
 
 /* === 12. シドニー：日付境界で回線停止。契約終了日の登録不備 === */
 {
-  id:'S12', arrive:68, name:'吉田 和子', nameEn:'Kazuko Yoshida', age:64, type:'novice', abandonAfter:28, callbackTo:'hotel', stayDays:3,
+  id:'S12', arrive:68, name:'吉田 和子', nameEn:'Kazuko Yoshida', age:64, ageRange:[56,72], type:'novice', abandonAfter:28, callbackTo:'hotel', stayDays:3,
   deviceInHand:true,
   contractId:{ minutes:3, text:'予約番号ですね…。箱の裏に、GDW-348621とあります。これで合っていますか？' },
   country:'オーストラリア', city:'シドニー', cityEn:'SYDNEY', localOffset:1, carrierName:'Telstra', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -1001,7 +1001,7 @@ const SCENARIOS = [
 
 /* === 13. リスボン：申込国と異なるSIMを貸し出した手配ミス === */
 {
-  id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, type:'anxious', abandonAfter:30, callbackTo:'hotel', stayDays:7,
+  id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, ageRange:[25,42], type:'anxious', abandonAfter:30, callbackTo:'hotel', stayDays:7,
   deviceInHand:true,
   contractId:{ minutes:2, text:'予約番号はGDW-630519です。受け取ったときの紙にありました。私の扱い方が悪かったのでしょうか…。' },
   country:'ポルトガル', city:'リスボン', cityEn:'LISBON', localOffset:-8, carrierName:'MEO', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -1046,7 +1046,7 @@ const SCENARIOS = [
    S1と真因は同じだが、あちらが「自分のせいだ」と怯える客なのに対し、
    こちらは「無制限だと思っていた」と食ってかかる客。同じ答えでも通し方が変わる。 */
 {
-  id:'S14', arrive:80, name:'原口 大地', nameEn:'Daichi Haraguchi', age:24, type:'hurried', abandonAfter:24, callbackTo:'mobile', stayDays:2,
+  id:'S14', arrive:80, name:'原口 大地', nameEn:'Daichi Haraguchi', age:24, ageRange:[21,32], type:'hurried', abandonAfter:24, callbackTo:'mobile', stayDays:2,
   deviceInHand:true,
   rushedReply:'はい。挨拶はいいです。原因を。', contractId:{ minutes:1, text:'GDW-771403。控えてあります。次。' },
   country:'台湾', city:'台北', cityEn:'TAIPEI', localOffset:-1, carrierName:'Chunghwa Telecom', device:'GD-500', plan:'{country} ／ 1GBプラン',
@@ -1102,13 +1102,60 @@ SCENARIOS.forEach((scenario, index) => {
   Object.assign(scenario, meta);
 });
 
-/* 名前・年齢・性別と土地は、シフト開始時に案件本体から切り離して割り当てる。 */
-const IDENTITY_POOL = Object.freeze(SCENARIOS.map(scenario => Object.freeze({
-  name:scenario.name,
-  nameEn:scenario.nameEn,
-  age:scenario.age,
-  gender:scenario.gender,
-})));
+/* 名前・年齢・性別と土地は、シフト開始時に案件本体から切り離して割り当てる。
+   §47: 名前は14案件の切り出しをやめ、性別つきの候補48名から引く。ageBand は名前が
+   自然に見える年齢の幅で、案件の ageRange と重なる名前だけが候補になる。
+   （71歳の「結衣」や24歳の「和子」を出さないため。） */
+const NAME_POOL = Object.freeze([
+  Object.freeze({ name:'三宅 千夏',   nameEn:'Chika Miyake',       gender:'female', ageBand:[21,40] }),
+  Object.freeze({ name:'田辺 幸子',   nameEn:'Sachiko Tanabe',     gender:'female', ageBand:[55,80] }),
+  Object.freeze({ name:'小林 亜衣',   nameEn:'Ai Kobayashi',       gender:'female', ageBand:[21,40] }),
+  Object.freeze({ name:'藤川 みどり', nameEn:'Midori Fujikawa',    gender:'female', ageBand:[45,70] }),
+  Object.freeze({ name:'佐伯 奈緒',   nameEn:'Nao Saeki',          gender:'female', ageBand:[24,48] }),
+  Object.freeze({ name:'吉田 和子',   nameEn:'Kazuko Yoshida',     gender:'female', ageBand:[55,80] }),
+  Object.freeze({ name:'秋山 美咲',   nameEn:'Misaki Akiyama',     gender:'female', ageBand:[21,40] }),
+  Object.freeze({ name:'石橋 玲',     nameEn:'Rei Ishibashi',      gender:'female', ageBand:[24,45] }),
+  Object.freeze({ name:'岡田 真理',   nameEn:'Mari Okada',         gender:'female', ageBand:[28,52] }),
+  Object.freeze({ name:'西村 遥',     nameEn:'Haruka Nishimura',   gender:'female', ageBand:[21,38] }),
+  Object.freeze({ name:'小野 詩織',   nameEn:'Shiori Ono',         gender:'female', ageBand:[21,40] }),
+  Object.freeze({ name:'長谷川 佳奈', nameEn:'Kana Hasegawa',      gender:'female', ageBand:[22,42] }),
+  Object.freeze({ name:'内藤 沙織',   nameEn:'Saori Naito',        gender:'female', ageBand:[26,48] }),
+  Object.freeze({ name:'木下 陽子',   nameEn:'Yoko Kinoshita',     gender:'female', ageBand:[40,65] }),
+  Object.freeze({ name:'平井 里美',   nameEn:'Satomi Hirai',       gender:'female', ageBand:[30,55] }),
+  Object.freeze({ name:'宮本 結衣',   nameEn:'Yui Miyamoto',       gender:'female', ageBand:[20,35] }),
+  Object.freeze({ name:'坂口 恵美',   nameEn:'Emi Sakaguchi',      gender:'female', ageBand:[28,50] }),
+  Object.freeze({ name:'上田 智子',   nameEn:'Tomoko Ueda',        gender:'female', ageBand:[35,60] }),
+  Object.freeze({ name:'中川 由紀',   nameEn:'Yuki Nakagawa',      gender:'female', ageBand:[26,50] }),
+  Object.freeze({ name:'松原 かおり', nameEn:'Kaori Matsubara',    gender:'female', ageBand:[30,55] }),
+  Object.freeze({ name:'荒木 千鶴',   nameEn:'Chizuru Araki',      gender:'female', ageBand:[45,72] }),
+  Object.freeze({ name:'谷口 麻衣',   nameEn:'Mai Taniguchi',      gender:'female', ageBand:[21,40] }),
+  Object.freeze({ name:'服部 久美',   nameEn:'Kumi Hattori',       gender:'female', ageBand:[40,65] }),
+  Object.freeze({ name:'大槻 綾',     nameEn:'Aya Otsuki',         gender:'female', ageBand:[22,42] }),
+  Object.freeze({ name:'大久保 健',   nameEn:'Ken Okubo',          gender:'male',   ageBand:[30,58] }),
+  Object.freeze({ name:'森 達彦',     nameEn:'Tatsuhiko Mori',     gender:'male',   ageBand:[35,62] }),
+  Object.freeze({ name:'渡辺 圭吾',   nameEn:'Keigo Watanabe',     gender:'male',   ageBand:[26,50] }),
+  Object.freeze({ name:'中西 悠真',   nameEn:'Yuma Nakanishi',     gender:'male',   ageBand:[20,36] }),
+  Object.freeze({ name:'川上 亮',     nameEn:'Ryo Kawakami',       gender:'male',   ageBand:[22,44] }),
+  Object.freeze({ name:'原口 大地',   nameEn:'Daichi Haraguchi',   gender:'male',   ageBand:[20,36] }),
+  Object.freeze({ name:'青木 慎一',   nameEn:'Shinichi Aoki',      gender:'male',   ageBand:[38,66] }),
+  Object.freeze({ name:'岩田 浩二',   nameEn:'Koji Iwata',         gender:'male',   ageBand:[40,68] }),
+  Object.freeze({ name:'篠原 拓也',   nameEn:'Takuya Shinohara',   gender:'male',   ageBand:[24,45] }),
+  Object.freeze({ name:'堀内 誠',     nameEn:'Makoto Horiuchi',    gender:'male',   ageBand:[30,58] }),
+  Object.freeze({ name:'村田 隆',     nameEn:'Takashi Murata',     gender:'male',   ageBand:[42,70] }),
+  Object.freeze({ name:'相沢 康平',   nameEn:'Kohei Aizawa',       gender:'male',   ageBand:[26,48] }),
+  Object.freeze({ name:'福井 直樹',   nameEn:'Naoki Fukui',        gender:'male',   ageBand:[28,52] }),
+  Object.freeze({ name:'樋口 正和',   nameEn:'Masakazu Higuchi',   gender:'male',   ageBand:[40,68] }),
+  Object.freeze({ name:'三浦 亮太',   nameEn:'Ryota Miura',        gender:'male',   ageBand:[21,40] }),
+  Object.freeze({ name:'本間 英治',   nameEn:'Eiji Homma',         gender:'male',   ageBand:[38,64] }),
+  Object.freeze({ name:'柳沢 俊介',   nameEn:'Shunsuke Yanagisawa',gender:'male',   ageBand:[24,46] }),
+  Object.freeze({ name:'沢田 一馬',   nameEn:'Kazuma Sawada',      gender:'male',   ageBand:[22,42] }),
+  Object.freeze({ name:'神谷 悠',     nameEn:'Yu Kamiya',          gender:'male',   ageBand:[20,38] }),
+  Object.freeze({ name:'増田 和樹',   nameEn:'Kazuki Masuda',      gender:'male',   ageBand:[24,46] }),
+  Object.freeze({ name:'河野 宗一郎', nameEn:'Soichiro Kono',      gender:'male',   ageBand:[45,72] }),
+  Object.freeze({ name:'都築 陽介',   nameEn:'Yosuke Tsuzuki',     gender:'male',   ageBand:[22,42] }),
+  Object.freeze({ name:'高梨 修',     nameEn:'Osamu Takanashi',    gender:'male',   ageBand:[40,68] }),
+  Object.freeze({ name:'白石 大介',   nameEn:'Daisuke Shiraishi',  gender:'male',   ageBand:[28,52] }),
+]);
 
 /* キャリア名と地域も土地に従属する。sourceScenarioId は shuffleIdentity:false の復元に使う。 */
 const PLACE_POOL = Object.freeze(SCENARIOS.map(scenario => Object.freeze({

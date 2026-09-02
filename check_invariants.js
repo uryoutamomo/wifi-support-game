@@ -2,9 +2,9 @@
 const fs = require('fs');
 const { readGameSource, functionSource: extractFunctionSource } = require('./test_helpers');
 const src = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,IDENTITY_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
+  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
 const D = new Function(src)();
-const { CAUSES, TYPES, SCENARIOS, IDENTITY_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = D;
+const { CAUSES, TYPES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = D;
 
 const EXPECTED_SLOGANS = [
   '凡事徹底',
@@ -754,18 +754,20 @@ if (!remedy37 || s12_37.best !== remedy37.id || !remedy37.needsCarrierRestored |
 if (!sourceOf('finishCarrierLookup').includes("t.carrierReplyStatus === 'arrived'") || !sourceOf('finishCarrierLookup').includes('t.carrierRestored = true') || !sourceOf('remedyBlockReason').includes('remedy.needsCarrierRestored')) bad('§37 未完了のまま復旧説明を選べる');
 
 // §38: 人物と土地だけを日ごとに入れ替え、土地依存の症状制約とbundleを保つ。
-const identities38 = new Set(IDENTITY_POOL.map(identity => identity.name + ':' + identity.nameEn + ':' + identity.age));
+const names47 = new Set(NAME_POOL.map(entry => entry.name));
+const namesEn47 = new Set(NAME_POOL.map(entry => entry.nameEn));
 const cities38 = new Set(PLACE_POOL.map(place => place.city));
-if (IDENTITY_POOL.length !== SCENARIOS.length || identities38.size !== SCENARIOS.length || IDENTITY_POOL.some(identity => !/^[A-Za-z]+(?: [A-Za-z]+)+$/.test(identity.nameEn))) bad('§38 名前・ローマ字・年齢プールに欠落、重複、または非ローマ字がある');
+if (NAME_POOL.length < SCENARIOS.length * 2 || names47.size !== NAME_POOL.length || namesEn47.size !== NAME_POOL.length || NAME_POOL.some(entry => !/^[A-Za-z]+(?: [A-Za-z]+)+$/.test(entry.nameEn))) bad('§47 名前プールに重複・非ローマ字があるか、案件数の2倍の候補がない');
+if (NAME_POOL.some(entry => !Array.isArray(entry.ageBand) || entry.ageBand.length !== 2 || !Number.isInteger(entry.ageBand[0]) || !Number.isInteger(entry.ageBand[1]) || entry.ageBand[0] > entry.ageBand[1])) bad('§47 名前の年齢帯が2つの整数の組になっていない');
 if (PLACE_POOL.length !== SCENARIOS.length || cities38.size !== SCENARIOS.length || PLACE_POOL.some(place => !place.country || !place.cityEn || !Number.isFinite(place.localOffset) || !place.carrier)) bad('§38 土地bundleに欠落または都市重複がある');
 if (JSON.stringify(PLACE_CONSTRAINTS) !== JSON.stringify({geo_block:'china_only',provision:'deep_night'})) bad('§38 検査6-12: 土地制約がgeo_blockとprovisionの2つだけではない');
 const assign38 = sourceOf('assignScenarioIdentities');
 const allowed38 = sourceOf('placeAllowedForScenario');
 const places38 = sourceOf('assignScenarioPlaces');
-if (!GAME_FLAGS.shuffleIdentity || !assign38.includes('flags.shuffleIdentity ? shuffleScenarios(IDENTITY_POOL, random)') || !assign38.includes('item.country !== place.country')) bad('§38 人物・土地シャッフルまたは別国SIMの差し込みがない');
+if (!GAME_FLAGS.shuffleIdentity || !assign38.includes('flags.shuffleIdentity ? drawScenarioIdentities(scenarios, random)') || !assign38.includes('item.country !== place.country')) bad('§38 人物・土地シャッフルまたは別国SIMの差し込みがない');
 if (!allowed38.includes("place.cityEn === 'SHANGHAI'") || !allowed38.includes('minute >= 22 * 60 || minute < 4 * 60')) bad('§38 中国限定または深夜限定の土地制約がない');
 if (!sourceOf('scenarioNeedsSharedRegion').includes("['carrier'].includes(scenario.trueCause)") || !places38.includes('place.regionGroup !== sharedCarrierRegion[1].regionGroup') || !places38.includes('used.has(place.sourceScenarioId)')) bad('§38 キャリア同地域または一晩の土地重複防止がない');
-if (!sourceOf('replaceScenarioTemplates').includes('city|country|carrier|region|wrongCountry')) bad('§38 土地bundleの差し込み対象が不足している');
+if (!sourceOf('replaceScenarioTemplates').includes('city|country|carrier|region|wrongCountry|spouse')) bad('§38 土地bundleの差し込み対象が不足している');
 if (/20時|22時|22:35/.test(SCENARIOS.find(scenario => scenario.id === 'S9').opening + SCENARIOS.find(scenario => scenario.id === 'S9').replies.q_when.text)) bad('§38 S9に固定時刻が残っている');
 if (/B20|1800MHz|2100MHz/.test(SCENARIOS.find(scenario => scenario.id === 'S7').lookups.l_area.text)) bad('§38 S7に特定キャリア依存の周波数名が残っている');
 const strings38 = scenario => JSON.stringify(scenario);
@@ -830,7 +832,22 @@ if (!ask41.includes('repeatedQuestionReply(t)')) bad('§41-18 通常の再質問
 if (!hint41.includes('t.s.stayHint') || !src.includes('SCENARIO_RECORD_META') || !src.includes('出張') || !src.includes('旅行')) bad('§41-19/20 長短滞在のほのめかしがない');
 if (!sourceOf('doAsk').includes("qid === 'q_stay_length') t.stayDaysKnown = true")) bad('§41-21 滞在日数確定の条件が変わった');
 if (SCENARIOS.some(s => !['female','male'].includes(s.gender) || !Number.isInteger(s.tripDays) || !Number.isInteger(s.tripDay) || !Number.isInteger(s.stayDays) || s.stayDays !== s.tripDays - s.tripDay)) bad('§41-22 全件の顧客レコード日数・性別が揃わない');
-if (IDENTITY_POOL.some(identity => !['female','male'].includes(identity.gender)) || !sourceOf('assignScenarioIdentities').includes('gender:scenario.gender')) bad('§41-23 性別が人物bundleでシャッフルされない');
+const draw47 = sourceOf('drawScenarioIdentities');
+if (NAME_POOL.some(entry => !['female','male'].includes(entry.gender)) || !sourceOf('assignScenarioIdentities').includes('gender:scenario.gender')) bad('§41-23 性別が人物bundleでシャッフルされない');
+// §47: 性別は案件に固定せず引く。名前は引いた性別の候補から選び、年齢は案件と名前の幅の重なりから引く。
+if (NAME_POOL.filter(entry => entry.gender === 'female').length < SCENARIOS.length || NAME_POOL.filter(entry => entry.gender === 'male').length < SCENARIOS.length) bad('§47 男女いずれかの候補が案件数に足りない');
+if (!draw47.includes("random() < 0.5 ? 'female' : 'male'") || !draw47.includes('gender:entry.gender')) bad('§47 性別が候補から引かれない、または引いた名前の性別と食い違う');
+if (!draw47.includes('entry.ageBand[0] <= range[1] && range[0] <= entry.ageBand[1]')) bad('§47 名前の年齢帯と案件の年齢の幅が突き合わされていない');
+if (!draw47.includes('usedNames.add(entry.name)') || !draw47.includes('!usedNames.has(entry.name)')) bad('§47 同じシフトで同じ名前が二度出るのを防いでいない');
+if (SCENARIOS.some(s => !Array.isArray(s.ageRange) || s.ageRange.length !== 2 || !Number.isInteger(s.ageRange[0]) || !Number.isInteger(s.ageRange[1]) || s.ageRange[0] > s.ageRange[1])) bad('§47 案件の年齢の幅が2つの整数の組になっていない');
+if (SCENARIOS.some(s => s.age < s.ageRange[0] || s.age > s.ageRange[1])) bad('§47 案件本体の年齢が自分の年齢の幅の外にある');
+// §47: 案件ごとに、男女どちらでも名前の候補が残ること（片方の性別で詰まない）。
+if (SCENARIOS.some(s => ['female','male'].some(want => NAME_POOL.filter(entry => entry.gender === want && entry.ageBand[0] <= s.ageRange[1] && s.ageRange[0] <= entry.ageBand[1]).length < 3))) bad('§47 男女どちらかで名前の候補が3人未満の案件がある');
+// §47: 性別で変わる語は {spouse} に寄せ、生の「夫」「妻」を台詞に残さない。
+const spouseText47 = JSON.stringify(SCENARIOS).replace(/大丈夫/g, '');
+if (/[^{]夫|妻/.test(spouseText47.replace(/\{spouse\}/g, ''))) bad('§47 台詞に生の「夫」または「妻」が残っている');
+if (!JSON.stringify(SCENARIOS.find(s => s.id === 'S1')).includes('{spouse}') || !JSON.stringify(SCENARIOS.find(s => s.id === 'S3')).includes('{spouse}')) bad('§47 S1・S3 の配偶者の呼び方が {spouse} になっていない');
+if (!sourceOf('scenarioWithIdentityAndPlace').includes("spouse:identity.gender === 'female' ? '夫' : '妻'")) bad('§47 配偶者の呼び方が客の性別から決まらない');
 const hints411 = SCENARIOS.map(s => s.stayHint || '');
 if (new Set(hints411).size !== SCENARIOS.length) bad('§41-26 滞在のほのめかしが案件ごとに固有でない');
 if (SCENARIOS.some(s => /明日(?:には|は).*移動/.test(s.stayHint || '') && s.stayDays > 1)) bad('§41-27 滞在のほのめかしと残り泊数が矛盾する');
