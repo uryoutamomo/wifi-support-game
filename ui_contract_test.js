@@ -1902,8 +1902,15 @@ assert.equal(callCost39({inboundMinutes:8,outboundMinutes:3}),540,'§39 検査2:
 const totalCost39 = new Function('state','callCost',functionSource('totalCost') + '\nreturn totalCost;')({cost:100,tickets:[{outboundMinutes:3},{outboundMinutes:0}]},callCost39);
 assert.equal(totalCost39(),640,'§39 検査1/2: totalCostが入電と折り返しの負担を分離しない');
 
-const renderHeader39 = new Function('esc','CALL_RATE_PER_MIN',functionSource('renderCallHeader') + '\nreturn renderCallHeader;')(value => String(value),180);
+/* §48-7 で待ち件数が加わったので、state を渡して動かす。 */
+const headerState39 = { tickets:[{state:'waiting'},{state:'waiting'},{state:'callback'}] };
+const renderHeader39 = new Function('esc','CALL_RATE_PER_MIN','state',functionSource('renderCallHeader') + '\nreturn renderCallHeader;')(value => String(value),180,headerState39);
 assert(/通話 08分[\s\S]*お客様負担 ¥1,440/.test(renderHeader39({s:{id:'S1'},callDirection:'inbound',callSegmentMinutes:8})) && /通話 03分[\s\S]*当社負担 ¥540/.test(renderHeader39({s:{id:'S1'},callDirection:'outbound',callSegmentMinutes:3})),'§39 検査3: 通話ヘッダに時間・負担者・費用が揃わない');
+/* §48-7: 保留の累計と、他に待たせている件数を通話中に見せる。
+   保留はこれまで業務報告でしか見えず、待たせている自覚が通話中に持てなかった。 */
+assert(/うち保留 4分/.test(renderHeader39({s:{id:'S1'},callDirection:'inbound',callSegmentMinutes:8,holdMinutes:4})),'§48-7 検査1: 通話中に保留の累計が出ない');
+assert(!/うち保留/.test(renderHeader39({s:{id:'S1'},callDirection:'inbound',callSegmentMinutes:8,holdMinutes:0})),'§48-7 検査2: 保留していないのに保留の表示が出る');
+assert(/待ち 2件/.test(renderHeader39({s:{id:'S1'},callDirection:'inbound',callSegmentMinutes:8})),'§48-7 検査3: 通話中に他の待ち件数が出ない');
 
 assert.deepEqual(Object.keys(CALL_FLOW_LINES.callChargeConcern).sort(),['anxious','expert','hurried','novice'],'§39 検査4: 通話料を気にする発話が4タイプ分ない');
 assert.equal(new Set(Object.values(CALL_FLOW_LINES.callChargeConcern)).size,4,'§39 検査4: 通話料を気にする発話がタイプ別に書き分けられていない');
@@ -2047,6 +2054,13 @@ assert.equal(progression39.status,0,'§39 検査15: progression_testが通らな
 // §41: 氏名だけでは顧客レコードを開かず、既存の本人特定契約を守る。
 const customerRecord41 = functionSource('renderCustomerRecord') + functionSource('recordValue');
 assert(customerRecord41.includes('const identified = identificationReady(t);') && customerRecord41.includes('―― 未照会'), '§41-11 本人確認前または未照会欄が伏せられない');
+
+/* §48-7: 通話中の画面を、対応に要る5つ（時計・会話・コマンド・電話の状態・業務システム）
+   へ絞る。実測では通話画面がビューポート4個分あり、選択肢を開くと5.3個分まで伸びて、
+   会話が画面の外へ出たまま戻らなかった。ペインそのものは消さない（§42 の3ペイン）。 */
+assert(/body\.call-view \.world-strip\{[^}]*height:\s*0/.test(page),'§48-7 検査4: 通話中に世界時計の帯が畳まれない');
+assert(/body\.call-view \.pane\.call-summary > \.summary-figure/.test(page) && /body\.call-view \.pane\.call-summary > \.hint-bar/.test(page),'§48-7 検査5: 通話中に待機状況の中身が畳まれない');
+assert(/body\.call-view \.call \.opts\{[^}]*max-height/.test(page) && /body\.call-view \.call \.opts\{[^}]*overflow-y:\s*auto/.test(page),'§48-7 検査6: 選択肢が枠内でスクロールせず、ページごと伸びる');
 
 /* §48-6: 画面は満足度で出す。内部の stress は「上がるほど悪い」のまま据え置き、
    表示だけ反転する。内部まで裏返すと、なだめ・お詫び・雑談の効果表の符号が

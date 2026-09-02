@@ -503,10 +503,19 @@ function renderCallHeader(t){
         ? CALL_FLOW_LINES.callbackPromise.headScheduled
         : CALL_FLOW_LINES.callbackPromise.headImmediate) + '</span>'
     : '';
+  /* §48-7: 電話の状態を1か所へ集める。保留の累計はこれまで業務報告でしか見えず、
+     通話中に「どれだけ待たせているか」が分からなかった。待ち件数は、他の客を
+     待たせている自覚のために要る。
+     現地時刻はここへ置かない。§41 で氏名・都市・機種・プランとともにログへ移した
+     もので、ヘッダを軽く保つ判断のほうが先にある。 */
+  const held = t.holdMinutes ? '<span class="call-hold">うち保留 ' + t.holdMinutes + '分</span>' : '';
+  const waiting = state.tickets.filter(ticket => ticket.state === 'waiting').length;
   return '<div class="call-head">' +
       '<span class="call-ticket"><b>チケット</b> ' + esc(t.s.id) + '</span>' +
       '<span class="call-time">通話 ' + String(t.callSegmentMinutes || 0).padStart(2,'0') + '分</span>' +
+      held +
       '<span class="call-cost">' + payer + ' ¥' + cost.toLocaleString('ja-JP') + '</span>' +
+      '<span class="call-waiting">待ち ' + waiting + '件</span>' +
       promised +
     '</div>';
 }

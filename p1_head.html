@@ -270,6 +270,20 @@ body.sheet-open .office-scene{ display: none; }
 body.office-view .console{ display: none; }
 body.call-view .office-scene{ display: none; }
 body.call-view .console{ animation: call-in .22s ease both; }
+
+/* §48-7: 通話中は、対応に要る5つ（時計・会話・コマンド・電話の状態・業務システム）
+   だけを残す。世界時計の帯は電話を取る前に時差の全体像を見るもので、通話中は
+   会話とコマンドを画面の外へ押し出すだけになる。待機状況も同じ理由で畳み、
+   要点の待ち件数は電話の状態とペイン見出しへ出す。
+   ペインそのものは消さない（3ペインの並びは §42 の判断どおり保つ）。 */
+body.call-view .world-strip{ height: 0; border-top: 0; }
+/* §48-7: 選択肢が増えるとページ自体が伸び、会話が画面の外へ押し出されて戻らない
+   （原因の一覧は14件あり、それだけで画面1.5個分になる）。選択肢の側をスクロール
+   させて、会話とコマンドが同じ画面に残るようにする。 */
+body.call-view .call .opts{ max-height: 42vh; overflow-y: auto; }
+body.call-view .pane.call-summary > .summary-figure,
+body.call-view .pane.call-summary > .hint-bar{ display: none; }
+body.call-view .pane.call-summary > .pane-head{ border-bottom: 0; }
 @keyframes office-in{ from{ opacity:0; transform:scale(1.025); } to{ opacity:1; transform:none; } }
 @keyframes call-in{ from{ opacity:0; transform:scale(.975); } to{ opacity:1; transform:none; } }
 
@@ -436,6 +450,14 @@ body.sheet-open .console{ display: none; }
   color: var(--signal);
   font-variant-numeric: tabular-nums;
 }
+/* §48-7: 電話の状態にまとめた項目。保留だけは待たせている自覚が要るので目立たせる。 */
+.call-hold,.call-waiting{
+  font-family: var(--mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.call-hold{ color: var(--warn); font-weight: 700; }
 .hold-state{
   font-family: var(--display);
   font-size: 11px;

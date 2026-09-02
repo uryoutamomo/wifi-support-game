@@ -22,6 +22,42 @@ const boardPane = `  <section class="pane board">
   </section>`;
 const mutations = [
   {
+    name:'§48-7 通話中も世界時計の帯を出す', file:'p1_head.html',
+    from:'body.call-view .world-strip{ height: 0; border-top: 0; }',
+    to:'body.call-view .world-strip{ border-top: 0; }',
+    expected:'§48-7 検査4: 通話中に世界時計の帯が畳まれない',
+  },
+  {
+    name:'§48-7 通話中も待機状況の中身を出す', file:'p1_head.html',
+    from:'body.call-view .pane.call-summary > .summary-figure,\nbody.call-view .pane.call-summary > .hint-bar{ display: none; }',
+    to:'body.call-view .pane.call-summary > .hint-bar{ display: none; }',
+    expected:'§48-7 検査5: 通話中に待機状況の中身が畳まれない',
+  },
+  {
+    name:'§48-7 選択肢を枠に収めずページごと伸ばす', file:'p1_head.html',
+    from:'body.call-view .call .opts{ max-height: 42vh; overflow-y: auto; }',
+    to:'body.call-view .call .opts{ overflow-y: auto; }',
+    expected:'§48-7 検査6: 選択肢が枠内でスクロールせず、ページごと伸びる',
+  },
+  {
+    name:'§48-7 通話中に保留の累計を出さない', file:'p4_view.js',
+    from:`  const held = t.holdMinutes ? '<span class="call-hold">うち保留 ' + t.holdMinutes + '分</span>' : '';`,
+    to:`  const held = '';`,
+    expected:'§48-7 検査1: 通話中に保留の累計が出ない',
+  },
+  {
+    name:'§48-7 保留していなくても保留の行を出す', file:'p4_view.js',
+    from:`  const held = t.holdMinutes ? '<span class="call-hold">うち保留 ' + t.holdMinutes + '分</span>' : '';`,
+    to:`  const held = '<span class="call-hold">うち保留 ' + (t.holdMinutes || 0) + '分</span>';`,
+    expected:'§48-7 検査2: 保留していないのに保留の表示が出る',
+  },
+  {
+    name:'§48-7 通話中に待ち件数を出さない', file:'p4_view.js',
+    from:`      '<span class="call-waiting">待ち ' + waiting + '件</span>' +`,
+    to:'',
+    expected:'§48-7 検査3: 通話中に他の待ち件数が出ない',
+  },
+  {
     name:'§48-6 満足度をストレスのまま表示する', file:'p4_view.js',
     from:'  return Math.round(100 - stress);',
     to:'  return Math.round(stress);',
