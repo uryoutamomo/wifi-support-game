@@ -266,8 +266,17 @@ const recentFixture = { transcript:[
   {who:'sys', text:'社内照会'}, {who:'cust', text:'最新の客'}, {who:'note', text:'最新メモ'},
 ] };
 assert.deepEqual(recentTranscriptLines(recentFixture).map(line => line.text), ['直前の自分','最新の客'], '直近表示が「最新の顧客発話＋直前の自分」の最大2行ではない');
-assert(recentTranscriptLines(recentFixture).length <= 2, '直近表示が3行以上ある');
+assert(recentTranscriptLines(recentFixture).length <= 4, '§44 直近表示が4行を超える');
+assert(recentSource.includes('.slice(-4)'), '§44 直近表示が4行を超える');
 assert(recentTranscriptLines(recentFixture).every(line => line.who !== 'note'), '直近表示にメモが混ざる');
+const consecutiveCustomer44 = { transcript:[
+  {who:'me',text:'直前の自分'}, {who:'cust',text:'症状の訴え'}, {who:'cust',text:'滞在のほのめかし'},
+] };
+assert.deepEqual(recentTranscriptLines(consecutiveCustomer44).map(line => line.text), ['直前の自分','症状の訴え','滞在のほのめかし'], '§44 連続する顧客発話の1行目が通話画面から落ちる');
+const frontThenCustomer44 = { transcript:[
+  {who:'me',text:'おつなぎします'}, {who:'front',text:'客室へつなぎます'}, {who:'cust',text:'お待たせしました'},
+] };
+assert.deepEqual(recentTranscriptLines(frontThenCustomer44).map(line => line.text), ['おつなぎします','客室へつなぎます','お待たせしました'], '§44 Front Desk経由の連続発話が落ちる');
 const lookupRecentFixture = { transcript:[
   {who:'cust',text:'直前の客',typed:true},
   {who:'sys',text:'照会結果',typed:true,lookupTitle:'契約照会'},

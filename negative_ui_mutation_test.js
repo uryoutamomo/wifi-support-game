@@ -33,6 +33,12 @@ const mutations = [
     expected:'§43-6 検査3: 確かめられない対処の失敗を後日の再入電へ分けない',
   },
   {
+    name:'§44 連続する顧客発話を最後の1行だけへ戻す', file:'p4_view.js',
+    from:"return (player ? [player] : []).concat(spoken.slice(runStart, customerIndex + 1)).slice(-4);",
+    to:'return player ? [player, customer] : [customer];',
+    expected:'§44 直近表示が4行を超える',
+  },
+  {
     name:'上部の通話・待機・診断タブを復活させる', file:'p1_head.html',
     from:'<div class="console">\n\n  <section class="pane desk">',
     to:'<div class="console">\n\n  <nav class="mobile-pane-nav">通話／待機／診断</nav>\n\n  <section class="pane desk">',
@@ -89,10 +95,10 @@ const mutations = [
     expected:'苛立ちメーターがsticky固定されていない',
   },
   {
-    name:'直近会話を3行へ戻す', file:'p4_view.js',
-    from:'return player ? [player, customer] : [customer];',
-    to:'return t.transcript.slice(Math.max(0, end - 3), end);',
-    expected:'直近表示が「最新の顧客発話＋直前の自分」の最大2行ではない',
+    name:'直近会話を5行へ増やす', file:'p4_view.js',
+    from:'.slice(-4);',
+    to:'.slice(-5);',
+    expected:'§44 直近表示が4行を超える',
   },
   {
     // デスク端末画面も同じ call-head を使うので、通話ヘッダ側だけを狙う。

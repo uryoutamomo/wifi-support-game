@@ -521,7 +521,7 @@ if (!/\.stress-panel\{[^}]*position:sticky/.test(pageSource)) bad('苛立ちメ�
 const recentStart = gameSource.indexOf('function recentTranscriptLines(');
 const recentEnd = gameSource.indexOf('\n\nfunction renderTranscript', recentStart);
 const recentSource = recentStart < 0 || recentEnd < 0 ? '' : gameSource.slice(recentStart, recentEnd);
-if (!recentSource.includes("line.who === 'cust' || line.who === 'front' || line.who === 'me'") || !recentSource.includes('return player ? [player, customer] : [customer]')) bad('直近会話が顧客またはFront Deskの最新発話と直前の自分の最大2行ではない');
+if (!recentSource.includes("line.who === 'cust' || line.who === 'front' || line.who === 'me'") || !recentSource.includes('spoken.slice(runStart, customerIndex + 1)).slice(-4)')) bad('§44 直近会話が連続する顧客・Front Desk発話を最大4行で残さない');
 const headerStart = gameSource.indexOf('function renderCallHeader(');
 const headerEnd = gameSource.indexOf('\n\nfunction stressDisplayStage', headerStart);
 const headerSource = headerStart < 0 || headerEnd < 0 ? '' : gameSource.slice(headerStart, headerEnd);

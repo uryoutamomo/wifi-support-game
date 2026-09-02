@@ -550,8 +550,10 @@ function recentTranscriptLines(t){
   }
   if (customerIndex < 0) return spoken.slice(-1);
   const customer = spoken[customerIndex];
-  const player = spoken.slice(0, customerIndex).reverse().find(line => line.who === 'me');
-  return player ? [player, customer] : [customer];
+  let runStart = customerIndex;
+  while (runStart > 0 && (spoken[runStart - 1].who === 'cust' || spoken[runStart - 1].who === 'front')) runStart--;
+  const player = spoken.slice(0, runStart).reverse().find(line => line.who === 'me');
+  return (player ? [player] : []).concat(spoken.slice(runStart, customerIndex + 1)).slice(-4);
 }
 
 function renderTranscript(t, full){
