@@ -64,7 +64,7 @@ const mutations = [
     name:'§44 連続する顧客発話を最後の1行だけへ戻す', file:'p4_view.js',
     from:"return (player ? [player] : []).concat(spoken.slice(runStart, customerIndex + 1)).slice(-4);",
     to:'return player ? [player, customer] : [customer];',
-    expected:'§44 直近表示が4行を超える',
+    expected:'§44 連続する顧客発話の1行目が通話画面から落ちる',
   },
   {
     name:'上部の通話・待機・診断タブを復活させる', file:'p1_head.html',
@@ -108,7 +108,8 @@ const mutations = [
   },
   {
     name:'公開QRの余白確保を外す', file:'p4_view.js',
-    from:'size + quietZone * 2', to:'size', all:true,
+    from:'canvas.width = (size + quietZone * 2) * moduleSize;\n  canvas.height = (size + quietZone * 2) * moduleSize;',
+    to:'canvas.width = size * moduleSize;\n  canvas.height = size * moduleSize;',
     expected:'公開ページQRの4モジュール余白が描画寸法に含まれない',
   },
   {
@@ -143,14 +144,14 @@ const mutations = [
   },
   {
     name:'ログへ真因を出す', file:'p4_view.js',
-    from:'return \'<div class="log-view">',
-    to:'return \'<div class="log-view" data-correct=\' + esc(t.s.trueCause) + \'>',
+    from:'  return \'<div class="log-view">\' + base + (includeLog ? renderRecordLog(t) : \'\') + \'</div><footer>RECORD ／ VERIFIED</footer></section></div>\';',
+    to:'  return \'<div class="log-view" data-correct=\' + esc(t.s.trueCause) + \">\' + base + (includeLog ? renderRecordLog(t) : \'\') + \'</div><footer>RECORD ／ VERIFIED</footer></section></div>\';',
     expected:'ログが真因または正解対処を参照している: trueCause',
   },
   {
     name:'質問区分を1列へ戻す', file:'p1_head.html',
-    from:'grid-template-columns:repeat(2,minmax(0,1fr));',
-    to:'grid-template-columns:1fr;', all:true,
+    from:'.opts.ask-groups{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr));',
+    to:'.opts.ask-groups{ display:grid; grid-template-columns:1fr;',
     expected:'質問区分CSSの全ブロックが2列グリッドではない',
   },
   {
@@ -266,8 +267,8 @@ const mutations = [
   },
   {
     // 途中切断と、折り返せずに掛け直された場合の2か所で同じ記録を残している。
-    name:'再着信をオフィス記録から外す', file:'p3_game.js', all:true,
-    from:"recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');", to:"void customerLabel(t, true);",
+    name:'再着信をオフィス記録から外す', file:'p3_game.js',
+    from:"function finishInterruptedCall(t){\n  if (!t || !t.pendingInterruption) return;\n  t.pendingInterruption = false;\n  t.redialCount++;\n  t.state = 'waiting';\n  t.arrivedTurn = state.turn;\n  t.greeted = false;\n  t.redialOpening = redialOpening(t);\n  t.redialSpoken = false;\n  t.redialGreeting = true;\n  state.focus = null;\n  state.ui = defaultUi();\n  playDisconnectSound();\n  recordOfficeEvent('redial', customerLabel(t, true) + 'から再着信しています。');", to:"function finishInterruptedCall(t){\n  if (!t || !t.pendingInterruption) return;\n  t.pendingInterruption = false;\n  t.redialCount++;\n  t.state = 'waiting';\n  t.arrivedTurn = state.turn;\n  t.greeted = false;\n  t.redialOpening = redialOpening(t);\n  t.redialSpoken = false;\n  t.redialGreeting = true;\n  state.focus = null;\n  state.ui = defaultUi();\n  playDisconnectSound();\n  void customerLabel(t, true);",
     expected:'再着信の情報が状態表示・会話メモ・無効理由へ移っていない',
   },
   {
@@ -337,7 +338,7 @@ const mutations = [
   },
   {
     name:'1案件から雑談話題を外す', file:'p2_data.js',
-    from:'  smalltalk:[', to:'  smalltalk_missing:[',
+    from:'  opening:\'あの…地図が全然開かないんです。昨日まで使えたのに、今日だけ急に遅くて…。どうしたらいいでしょうか。\',\n  smalltalk:[', to:'  opening:\'あの…地図が全然開かないんです。昨日まで使えたのに、今日だけ急に遅くて…。どうしたらいいでしょうか。\',\n  smalltalk_missing:[',
     expected:'雑談話題のrevealが実際に到達できる質問へ接続されていない',
   },
   {
@@ -368,7 +369,7 @@ const mutations = [
   },
   {
     name:'雑談の時間を2分へ変える', file:'p3_game.js',
-    from:'if (!spendOnCall(t, 1, 0)) return;', to:'if (!spendOnCall(t, 2, 0)) return;',
+    from:'  if (!applyReactionStress(t, result)) return;\n  if (!spendOnCall(t, 1, 0)) return;\n  state.ui = defaultUi();\n  render();\n}\n\nfunction sootheResult', to:'  if (!applyReactionStress(t, result)) return;\n  if (!spendOnCall(t, 2, 0)) return;\n  state.ui = defaultUi();\n  render();\n}\n\nfunction sootheResult',
     expected:'雑談の両入口が共通の1分消費を通らない',
   },
   {
@@ -676,8 +677,8 @@ const mutations = [
   },
   {
     name:'将来復帰用callbackToを1件消す', file:'p2_data.js',
-    from:"callbackTo:'hotel',",
-    to:"callbackTo:null,",
+    from:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel',",
+    to:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:null,",
     expected:'§24/§25 案件データのcallbackToが揃っていない',
   },
   {
@@ -744,8 +745,8 @@ const mutations = [
   },
   {
     name:'折り返し開始時に別の待ち電話を閉じる', file:'p3_game.js',
-    from:"  t.state = 'callback';\n  state.focus = null;",
-    to:"  t.state = 'callback';\n  state.tickets.filter(ticket => ticket !== t && ticket.state === 'waiting').forEach(ticket => { ticket.state = 'closed'; });\n  state.focus = null;",
+    from:"  t.callbackDue = state.clock + lookup.minutes;\n  t.state = 'callback';\n  state.focus = null;",
+    to:"  t.callbackDue = state.clock + lookup.minutes;\n  t.state = 'callback';\n  state.tickets.filter(ticket => ticket !== t && ticket.state === 'waiting').forEach(ticket => { ticket.state = 'closed'; });\n  state.focus = null;",
     expected:'§25 折り返し中にほかの電話を取れない',
   },
   {
@@ -1247,7 +1248,7 @@ const mutations = [
   },
   {
     name:'表の後に裏エンディングへ続けない', file:'p4_view.js',
-    from:"if (next === 'secret'){ showSecretEnding(false); return; }", to:"if (next === 'secret'){ resetGame(); showBriefing(); return; }",
+    from:"function continueAfterCareerEnding(){\n  const next = pendingCareerEndingType();\n  if (next === 'career'){ showCareerEnding(false); return; }\n  if (next === 'secret'){ showSecretEnding(false); return; }", to:"function continueAfterCareerEnding(){\n  const next = pendingCareerEndingType();\n  if (next === 'career'){ showCareerEnding(false); return; }\n  if (next === 'secret'){ resetGame(); showBriefing(); return; }",
     expected:'§28 表の後に裏エンディングへ続かない',
   },
   {
@@ -1319,7 +1320,7 @@ const mutations = [
   },
   {
     name:'社長の表示を役職以外へ変える', file:'p4_view.js',
-    from:'<section class="ending-speech"><b>社長</b>', to:'<section class="ending-speech"><b>代表取締役</b>',
+    from:"'<section class=\"ending-speech\"><b>社長</b><p>' + esc(PRESIDENT_ENDING_LINE) + '</p></section>' +", to:"'<section class=\"ending-speech\"><b>代表取締役</b><p>' + esc(PRESIDENT_ENDING_LINE) + '</p></section>' +",
     expected:'社長表示または匿名化契約が崩れている',
   },
   {
@@ -1640,7 +1641,7 @@ const mutations = [
   },
   {
     name:'S7最適対処から滞在期間確認を消す', file:'p2_data.js',
-    from:'手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する', to:'手配の誤りをお詫びし、滞在先へ代替機を発送する',
+    from:"{ id:'r_coverage_replacement', label:'手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する'", to:"{ id:'r_coverage_replacement', label:'手配の誤りをお詫びし、滞在先へ代替機を発送する'",
     expected:'§34 検査1: S7最適対処が謝罪・滞在確認・代替機発送ではない',
   },
   {
@@ -1650,8 +1651,8 @@ const mutations = [
   },
   {
     name:'S7両対処の会社非明示を弱める', file:'p2_data.js',
-    from:'手配の誤りをお詫びし', to:'ご不便をお詫びし', all:true,
-    expected:'§30 検査5: 最適対処が謝罪と代替機発送を明記しない',
+    from:"{ id:'r_coverage_refund', label:'手配の誤りをお詫びし、返金する'", to:"{ id:'r_coverage_refund', label:'ご不便をお詫びし、返金する'",
+    expected:'§34 検査2: S7次善対処が謝罪・返金ではない',
   },
   {
     name:'廃止したr_city_onlyを別選択肢として戻す', file:'p2_data.js',
@@ -1666,7 +1667,7 @@ const mutations = [
   },
   {
     name:'S7を短期滞在へ戻す', file:'p2_data.js',
-    from:"callbackTo:'hotel', stayDays:6,\n  deviceInHand:true", to:"callbackTo:'hotel', stayDays:2,\n  deviceInHand:true",
+    from:"id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, type:'expert', abandonAfter:38, callbackTo:'hotel', stayDays:6,\n  deviceInHand:true", to:"id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, type:'expert', abandonAfter:38, callbackTo:'hotel', stayDays:2,\n  deviceInHand:true",
     expected:'§32 検査9: progression_testが通らない',
   },
   {
@@ -1712,7 +1713,7 @@ const mutations = [
   },
   {
     name:'S1からdeviceInHandフラグを消す', file:'p2_data.js',
-    from:"  deviceInHand:true,\n  contractId:{ minutes:2, text:'予約番号", to:"  contractId:{ minutes:2, text:'予約番号",
+    from:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel', stayDays:2,\n  deviceInHand:true,\n  contractId:{ minutes:2, text:'予約番号", to:"id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel', stayDays:2,\n  contractId:{ minutes:2, text:'予約番号",
     expected:'§35 検査1: deviceInHandの明示フラグではなくdevice表示文字列で判定している',
   },
   {
@@ -2050,11 +2051,8 @@ const mutations = [
     if (hits === 0) missing.push('[' + (index + 1) + '] ' + mutation.name + ' (' + mutation.file + ')');
     else if (hits > 1) ambiguous.push('[' + (index + 1) + '] ' + mutation.name + ' (' + mutation.file + ' に ' + hits + ' 箇所)');
   });
-  if (ambiguous.length){
-    console.log('注意: 的が複数箇所に当たる変異 ' + ambiguous.length + ' 件（最初の1箇所だけが置換されます）');
-    ambiguous.forEach(line => console.log('  ' + line));
-  }
   assert.equal(missing.length, 0, '変異の的が現行ソースに当たりません:\n  ' + missing.join('\n  '));
+  assert.equal(ambiguous.length, 0, '変異の的が複数箇所に当たります:\n  ' + ambiguous.join('\n  '));
 })();
 
 for (const mutation of mutations){

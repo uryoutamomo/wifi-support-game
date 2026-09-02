@@ -267,7 +267,6 @@ assert(callSource.indexOf('renderStressPanel(t)') < callSource.indexOf('renderAc
 assert(callSource.includes('renderTranscript(t, false)'), '通話画面の既定表示が直近履歴ではない');
 assert(!functionSource('renderCallHeader').includes('stress-panel'), '苛立ちメーターがヘッダの隅に戻っている');
 const recentSource = functionSource('recentTranscriptLines');
-assert(recentSource.includes('pendingTypedLine(t)'), '直近表示から文字送り対象が外れる');
 const recentTranscriptLines = new Function('pendingTypedLine', recentSource + '\nreturn recentTranscriptLines;')(() => null);
 const recentFixture = { transcript:[
   {who:'cust', text:'古い客'}, {who:'note', text:'内部メモ'}, {who:'me', text:'直前の自分'},
@@ -275,7 +274,6 @@ const recentFixture = { transcript:[
 ] };
 assert.deepEqual(recentTranscriptLines(recentFixture).map(line => line.text), ['直前の自分','最新の客'], '直近表示が「最新の顧客発話＋直前の自分」の最大2行ではない');
 assert(recentTranscriptLines(recentFixture).length <= 4, '§44 直近表示が4行を超える');
-assert(recentSource.includes('.slice(-4)'), '§44 直近表示が4行を超える');
 assert(recentTranscriptLines(recentFixture).every(line => line.who !== 'note'), '直近表示にメモが混ざる');
 const consecutiveCustomer44 = { transcript:[
   {who:'me',text:'直前の自分'}, {who:'cust',text:'症状の訴え'}, {who:'cust',text:'滞在のほのめかし'},
@@ -285,6 +283,9 @@ const frontThenCustomer44 = { transcript:[
   {who:'me',text:'おつなぎします'}, {who:'front',text:'客室へつなぎます'}, {who:'cust',text:'お待たせしました'},
 ] };
 assert.deepEqual(recentTranscriptLines(frontThenCustomer44).map(line => line.text), ['おつなぎします','客室へつなぎます','お待たせしました'], '§44 Front Desk経由の連続発話が落ちる');
+// 実挙動を先に確かめる。以下は、同じ契約を守る実装上の補助チェック。
+assert(recentSource.includes('pendingTypedLine(t)'), '直近表示から文字送り対象が外れる');
+assert(recentSource.includes('.slice(-4)'), '§44 直近表示が4行を超える');
 const lookupRecentFixture = { transcript:[
   {who:'cust',text:'直前の客',typed:true},
   {who:'sys',text:'照会結果',typed:true,lookupTitle:'契約照会'},
