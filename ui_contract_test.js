@@ -85,13 +85,15 @@ assert(customerSpeaksBeforeGreeting({s:{type:'hurried'}}), 'hurriedが名乗る�
 const pickupSource = functionSource('pickup');
 const greetCustomerSource = functionSource('greetCurrentCustomer');
 const openingDeliverySource = functionSource('deliverCustomerOpening');
+const stayHintSource = functionSource('deliverStayHint');
 assert(pickupSource.includes('deliverCustomerOpening(t, true)') && greetCustomerSource.includes('deliverCustomerOpening(t, false)'), '通話開始と名乗り後の第一声が共通処理を使わない');
 assert(openingDeliverySource.includes('customerSpeaksBeforeGreeting(t)'), '第一声の共通処理が顧客タイプ判定を使わない');
 const openingLines = [];
-const deliverCustomerOpening = new Function('customerSpeaksBeforeGreeting','pushCustomerLine','DESTINATION_IN_OPENING', openingDeliverySource + '\nreturn deliverCustomerOpening;')(
+const deliverStayHint = new Function('pushCustomerLine', stayHintSource + '\nreturn deliverStayHint;')(() => {});
+const deliverCustomerOpening = new Function('customerSpeaksBeforeGreeting','pushCustomerLine','DESTINATION_IN_OPENING','deliverStayHint', openingDeliverySource + '\nreturn deliverCustomerOpening;')(
   ticket => ticket.s.type === 'hurried',
   (ticket, line, options) => openingLines.push({line,plain:Boolean(options && options.plain)}),
-  new Set(['S9','S11'])
+  new Set(['S9','S11']), deliverStayHint
 );
 const normalOpening = {s:{id:'S1',type:'anxious',opening:'通常第一声',rushedReply:'急ぎ返答'},destinationKnown:false,redialOpening:null,redialSpoken:false};
 deliverCustomerOpening(normalOpening, true);
@@ -206,7 +208,7 @@ assert.equal(customerLabel(unknownCustomer, true), 'お客様（S5）', '未特�
 assert.equal(customerLabel(knownCustomer), '小林 亜衣', '本人特定後も氏名が表示されない');
 const officeSource = functionSource('renderOffice');
 assert(officeSource.includes("sort((a,b) => a.arrivedTurn - b.arrivedTurn)"), '着信を到着順に並べていない');
-assert(officeSource.includes("$('office-answer-status').textContent = '待ち ' + waiting.length + '件'"), '電話を取るボタンに待ち件数を表示していない');
+assert(officeSource.includes("$('office-answer-status').textContent = waiting.length") && officeSource.includes('最短あと'), '電話を取るボタンに待ち件数と切断までの時間を表示していない');
 const officeActionSource = functionSource('handleOfficeAction');
 const firstTicketSource = functionSource('firstTicketIn');
 assert(firstTicketSource.includes('.sort((a, b) => a[orderKey] - b[orderKey])'), '待機案件を指定された時刻順に選べない');
@@ -285,9 +287,9 @@ const stageSource = functionSource('stressDisplayStage').replace(/\s+/g, ' ');
 assert(/value <= 50.*?平静.*?value <= 70.*?苛立ち.*?value <= 90.*?怒り.*?限界/.test(stageSource), '苛立ちメーターの境界・ラベルが仕様と違う');
 assert(page.includes('.stress-panel.alert') && page.includes('@keyframes stress-alert'), '苛立ちメーターの点滅CSSがない');
 assert(/\.stress-panel\{[^}]*position:sticky/.test(page), '苛立ちメーターがsticky固定されていない');
-const recordSource = functionSource('renderRecord');
+const recordSource = functionSource('renderRecord') + functionSource('renderCustomerRecord') + functionSource('renderRecordLog');
 const logHeadings = [...recordSource.matchAll(/<h3>([^<]+)<\/h3>/g)].map(match => match[1]);
-assert.deepEqual(logHeadings, ['お客様','ここまでの状況','次にできること','会話の全履歴'], 'ログの4見出しが完全一致しない');
+assert.deepEqual(logHeadings, ['顧客情報','ログの手がかり','次にできること','会話の全履歴'], 'ログの見出しが完全一致しない');
 assert(recordSource.includes('renderRecordTranscript(t)'), 'ログで全履歴を表示しない');
 assert(recordSource.includes('remainingCauseCandidates(t)') && recordSource.includes('nextActionGuide(t)'), 'ログに残る候補または次の一手がない');
 ['trueCause','REMEDIES','scenarioRoute','bestRemedy','correctRemedy'].forEach(secret => assert(!recordSource.includes(secret), 'ログが真因または正解対処を参照している: ' + secret));
@@ -320,7 +322,8 @@ assert.deepEqual(tellEntries, [
   { id:'close', label:'対処を伝える', note:'原因を見立てて、対処をご案内します。' },
   { id:'try', label:'やってみてもらう', note:'機器や端末で試していただくことを選びます。' },
   { id:'refund', label:'返金をご案内する', note:'' },
-  { id:'hotel-callback', label:'ホテルへ折り返す', note:'滞在先はまだ伺っていません。' },
+  { id:'hotel-callback', label:'いますぐ折り返す', note:'すぐにこちらから掛け直します' },
+  { id:'hotel-callback', label:'1時間後に折り返す', note:'確認のうえ掛け直します。滞在先はまだ伺っていません。' },
   { id:'soothe', label:'気持ちを落ち着ける', note:'' },
   { id:'apologize', label:'お詫びする', note:'' },
   { id:'smalltalk', label:'一言かける', note:'' },
@@ -1487,9 +1490,9 @@ assert(deniedLookup27.state.ui.tab === 'identity_denied' && deniedLookup27.rende
 assert(functionSource('handleCallNavigation').includes("d.command === 'lookup') openLookup()"), '§27 「調べる」の入口が共通本人確認処理を通らない');
 
 // §27-3 検査11〜13: 通話記録も同じシステム画面を使い、全話者・本文・vizを記録行として保つ。
-const recordSource27 = functionSource('renderRecord');
+const recordSource27 = functionSource('renderRecord') + functionSource('renderCustomerRecord') + functionSource('renderRecordLog');
 const recordTranscriptSource27 = functionSource('renderRecordTranscript');
-assert(recordSource27.includes('system-screen record-system-screen') && recordSource27.includes('<b>通話記録</b>') && page.includes('.record-system-screen'), '§27 通話記録が枠・タイトル行を持つシステム画面ではない');
+assert(recordSource27.includes('system-screen record-system-screen') && recordSource27.includes('<b>顧客レコード</b>') && page.includes('.record-system-screen'), '§27 通話記録が枠・タイトル行を持つシステム画面ではない');
 assert(page.includes('.system-screen{') && page.includes('.record-system-entry') && page.includes('font: 11px/1.6 var(--mono)'), '§27 通話記録が照会画面と共通配色・等幅フォントになっていない');
 assert(page.includes('.system-screen .record-system-block h3,.system-screen .log-customer span,.system-screen .log-candidates span{ color:#A8E4DF; }') && page.includes('.system-screen .log-customer b,.system-screen .log-candidates b{ color:#78B8B3; }'), '§27 ライト画面で通話記録の見出し・項目が暗く読めない');
 const renderRecordTranscript27 = new Function('renderLookupSystemScreen','renderLookupViz','esc', recordTranscriptSource27 + '\nreturn renderRecordTranscript;')(renderScreen26,renderViz26,esc26);
@@ -1682,10 +1685,10 @@ const renderTestOptions35 = new Function('simCleaningRecommended','TESTS','RISKY
 assert(!renderTellOptions35(tellTicket35({s:s9Device35,refundProposalRejected:false})).includes('data-tell="try"') && !renderTestOptions35({s:s9Device35,testCounts:new Map()}).includes('data-test='),'§35 検査4: 機器未所持のS9に機器操作が出る');
 const tellNumbers35 = html => [...html.matchAll(/class="command-no">(\d+)<\/span>/g)].map(match => Number(match[1]));
 [
-  { ticket:tellTicket35({s:s9Device35,refundProposalRejected:false}), expected:[1,2,3,4,5,6] },
-  { ticket:tellTicket35({s:s9Device35,refundProposalRejected:true}), expected:[1,2,3,4,5] },
-  { ticket:tellTicket35({s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:false}), expected:[1,2,3,4,5,6,7] },
-  { ticket:tellTicket35({s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:true}), expected:[1,2,3,4,5,6] },
+  { ticket:tellTicket35({s:s9Device35,refundProposalRejected:false}), expected:[1,2,3,4,5,6,7] },
+  { ticket:tellTicket35({s:s9Device35,refundProposalRejected:true}), expected:[1,2,3,4,5,6] },
+  { ticket:tellTicket35({s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:false}), expected:[1,2,3,4,5,6,7,8] },
+  { ticket:tellTicket35({s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:true}), expected:[1,2,3,4,5,6,7] },
   // §40: 折り返し中の通話では折り返しの行が消え、番号が詰まる。
   { ticket:tellTicket35({s:s9Device35,refundProposalRejected:true,callDirection:'outbound'}), expected:[1,2,3,4] },
 ].forEach(({ticket,expected}) => assert.deepEqual(tellNumbers35(renderTellOptions35(ticket)),expected,'§35 追加検査: 「伝える」の表示項目が1からの連番ではない'));
@@ -1896,10 +1899,10 @@ assert(lateLocal39.isLateLocalTime({s:{localOffset:9}}) && !localModule39({clock
 assert(resume39.includes('isLateLocalTime(t)') && resume39.includes('CALL_FLOW_LINES.frontDesk.lateQuestion'),'§39 検査10: 深夜のFront Deskが難色を示さない');
 
 const frontState39 = {clock:22*60,focus:null,ui:{tab:'command'}};
-const frontModule39 = new Function('state','CALL_FLOW_LINES','spendOnCall','pushFlowLines','finishCarrierLookup','defaultUi','render',[
+const frontModule39 = new Function('state','CALL_FLOW_LINES','spendOnCall','pushFlowLines','applyCallbackWaitStress','finishCarrierLookup','defaultUi','render',[
   functionSource('ticketLocalMinute'),functionSource('isLateLocalTime'),functionSource('hotelRoom'),functionSource('callbackCustomerReply'),functionSource('handleFrontDeskChoice'),
 ].join('\n') + '\nreturn handleFrontDeskChoice;')(
-  frontState39,CALL_FLOW_LINES,(ticket,minutes) => { ticket.spent = minutes; return true; },(ticket,lines) => ticket.lines = lines,() => true,() => ({tab:'command'}),() => {}
+  frontState39,CALL_FLOW_LINES,(ticket,minutes) => { ticket.spent = minutes; return true; },(ticket,lines) => ticket.lines = lines,() => {},() => true,() => ({tab:'command'}),() => {}
 );
 const makeFrontTicket39 = () => ({callbackStage:'front_desk',callbackReason:'general',nameKnown:true,stayAddress:'ホテル、512号室',s:{name:'試験 顧客',nameEn:'Test Customer',type:'novice',localOffset:9,lookups:{}},transcript:[],frontDeskAttempts:0});
 const directFront39 = makeFrontTicket39(); frontState39.focus = directFront39; frontModule39('callback');
@@ -1911,6 +1914,10 @@ assert(directFront39.callbackStage === 'connected' && directFront39.spent === 1 
 assert(functionSource('startHotelCallback').includes("t.callbackReason = 'general'") && !functionSource('startHotelCallback').includes('l_carrier'),'§39 検査14: 一般折り返しがl_carrier専用のまま');
 const progression39 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
 assert.equal(progression39.status,0,'§39 検査15: progression_testが通らない\n' + (progression39.stdout || '') + (progression39.stderr || ''));
+
+// §41: 氏名だけでは顧客レコードを開かず、既存の本人特定契約を守る。
+const customerRecord41 = functionSource('renderCustomerRecord') + functionSource('recordValue');
+assert(customerRecord41.includes('const identified = identificationReady(t);') && customerRecord41.includes('―― 未照会'), '§41-11 本人確認前または未照会欄が伏せられない');
 
 // 編集用の3素材と配布用 index.html は、build.js と同じ規則で完全一致する。
 const expectedIndex = builtIndexSource(__dirname);

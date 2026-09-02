@@ -8,6 +8,18 @@ const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
 const DESK_LOOKUP_MINUTES = 2;  // 折り返し待ちのあいだ、デスク端末で1件調べるのにかかる時間
+/* §41: 通しプレイで調整できる、折り返しの約束と待機の基準。 */
+const CALLBACK_SCHEDULED_MINUTES = 60;
+const CALLBACK_IMMEDIATE_LOOKUP_ALLOWANCE = 1;
+const CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE = 2;
+const CALLBACK_OVER_LOOKUP_STRESS = 10;
+const CALLBACK_IDLE_STRESS = 8;
+const CALLBACK_WAIT_REPLIES = Object.freeze({
+  anxious:'ずっと待っていました…。何か進んだのでしょうか？',
+  novice:'すみません、いつ戻るのか分からなくて不安でした。',
+  expert:'約束した時間を超えています。照会の進捗を説明してください。',
+  hurried:'いつまで待たせるんですか。結論を。',
+});
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
   shuffleArrival: true,
@@ -496,7 +508,7 @@ const SCENARIOS = [
 
 /* === 1. バンコク：容量超過。導入。社内照会で確定できる === */
 {
-  id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel',
+  id:'S1', arrive:0, name:'三宅 千夏', nameEn:'Chika Miyake', age:27, type:'anxious', abandonAfter:32, callbackTo:'hotel', stayDays:2,
   deviceInHand:true,
   contractId:{ minutes:2, text:'予約番号…はい、探します。手が震えて…すみません。ありました。GDW-410882、これで合っていますか？' },
   country:'タイ', city:'バンコク', cityEn:'BANGKOK', localOffset:-2, carrierName:'AIS', device:'GD-500', plan:'{country} ／ 500MBプラン',
@@ -532,7 +544,7 @@ const SCENARIOS = [
 
 /* === 2. ロンドン：一台だけ繋がらない。端末側の保存情報 === */
 {
-  id:'S2', arrive:5, name:'田辺 幸子', nameEn:'Sachiko Tanabe', age:71, type:'novice', abandonAfter:30, callbackTo:'mobile',
+  id:'S2', arrive:5, name:'田辺 幸子', nameEn:'Sachiko Tanabe', age:71, type:'novice', abandonAfter:30, callbackTo:'mobile', stayDays:3,
   deviceInHand:true,
   contractId:{ minutes:4, text:'番号…どの紙でしょう。すみません、老眼鏡も見つからなくて…。これですか？ GDW-336104。違っていたら、ごめんなさいね。' },
   country:'イギリス', city:'ロンドン', cityEn:'LONDON', localOffset:-8, carrierName:'Vodafone UK', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -569,7 +581,7 @@ const SCENARIOS = [
 
 /* === 3. ホノルル：同時接続台数の上限超過。FUPと紛らわしい === */
 {
-  id:'S3', arrive:11, name:'大久保 健', nameEn:'Ken Okubo', age:44, type:'hurried', abandonAfter:22, callbackTo:'mobile',
+  id:'S3', arrive:11, name:'大久保 健', nameEn:'Ken Okubo', age:44, type:'hurried', abandonAfter:22, callbackTo:'mobile', stayDays:2,
   deviceInHand:true,
   rushedReply:'はい。挨拶は分かった。続き、早く。', contractId:{ minutes:1, text:'メールにあります。GDW-529017。はい、次。' },
   country:'ハワイ', city:'ホノルル', cityEn:'HONOLULU', localOffset:-19, carrierName:'T-Mobile US', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -609,7 +621,7 @@ const SCENARIOS = [
 
 /* === 4. 上海：渡航先の通信規制。技術に明るい客 === */
 {
-  id:'S4', arrive:18, name:'森 達彦', nameEn:'Tatsuhiko Mori', age:39, type:'expert', abandonAfter:35, callbackTo:'hotel',
+  id:'S4', arrive:18, name:'森 達彦', nameEn:'Tatsuhiko Mori', age:39, type:'expert', abandonAfter:35, callbackTo:'hotel', stayDays:4,
   deviceInHand:true,
   contractId:{ minutes:1, text:'GDW-118350です。控えてあります。' },
   country:'中国本土', city:'上海', cityEn:'SHANGHAI', localOffset:-1, carrierName:'China Unicom', device:'GD-500', plan:'{country} ／ 1GBプラン',
@@ -639,7 +651,7 @@ const SCENARIOS = [
 
 /* === 5. ニューヨーク①：広域障害。この時点ではまだ見えない === */
 {
-  id:'S5', arrive:25, name:'小林 亜衣', nameEn:'Ai Kobayashi', age:33, type:'anxious', abandonAfter:28, callbackTo:'hotel',
+  id:'S5', arrive:25, name:'小林 亜衣', nameEn:'Ai Kobayashi', age:33, type:'anxious', abandonAfter:28, callbackTo:'hotel', stayDays:2,
   deviceInHand:true,
   contractId:{ minutes:2, text:'はい…会社の手配です。えっと、GDW-673925。間違っていませんよね？' },
   country:'アメリカ', city:'ニューヨーク', cityEn:'NEW YORK', localOffset:-13, carrierName:'T-Mobile US', regionGroup:'us_northeast', regionName:'米国北東部', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -679,7 +691,7 @@ const SCENARIOS = [
 
 /* === 6. ニューヨーク②：ここで相関が見える。山場 === */
 {
-  id:'S6', arrive:31, name:'渡辺 圭吾', nameEn:'Keigo Watanabe', age:52, type:'hurried', abandonAfter:20, callbackTo:'mobile',
+  id:'S6', arrive:31, name:'渡辺 圭吾', nameEn:'Keigo Watanabe', age:52, type:'hurried', abandonAfter:20, callbackTo:'mobile', stayDays:3,
   deviceInHand:true,
   rushedReply:'分かってます。前置きは終わり。進めて。', contractId:{ minutes:1, text:'毎月使うので控えてます。GDW-206441。次。' },
   country:'アメリカ', city:'ボストン', cityEn:'BOSTON', localOffset:-13, carrierName:'T-Mobile US', regionGroup:'us_northeast', regionName:'米国北東部', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -710,14 +722,14 @@ const SCENARIOS = [
 
 /* === 7. バルセロナ郊外：対象エリア外。上級 === */
 {
-  id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, type:'expert', abandonAfter:38, callbackTo:'hotel',
+  id:'S7', arrive:38, name:'中西 悠真', nameEn:'Yuma Nakanishi', age:29, type:'expert', abandonAfter:38, callbackTo:'hotel', stayDays:6,
   deviceInHand:true,
   contractId:{ minutes:1, text:'GDW-887302。画面に出しています。照合してください。' },
   country:'スペイン', city:'バルセロナ', cityEn:'BARCELONA', localOffset:-7, carrierName:'Orange ES', device:'GD-200', plan:'{country} ／ 1GBプラン',
   opening:'市街地では正常でしたが、郊外へ移動後は完全に圏外です。3台とも同じなので端末要因は除外済み。地域差か対応周波数を確認していただけますか。',
   smalltalk:[{ id:'st_s7_village', reveal:'q_where', askLabel:'その村へは、どのような目的で来られたんですか？', tellLabel:'{city}近郊の村、素敵なところでしょうね', goodReply:'静かで景色のよい場所です。ありがとうございます。では確認を。', badReply:'観光情報は障害条件ではありません。地域と機種の適合を確認してください。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:3, maxClients:5, battery:66, ssid:'Globaldesk-3028' },
-  trueCause:'coverage', best:'r_coverage_replacement', partial:['r_coverage_refund'], shipNeed:'next', stayDays:6, wantsReplacement:true,
+  trueCause:'coverage', best:'r_coverage_replacement', partial:['r_coverage_refund'], shipNeed:'next', wantsReplacement:true,
   replies:{
     q_other_device:{ text:'3台で同一症状です。ルーター自体が圏外なので、端末要因は除外できますよね。',
       fact:{ text:'複数端末で同時に不通。ルーター自体が圏外', out:['device_side','device_net'] } },
@@ -753,7 +765,7 @@ const SCENARIOS = [
 
 /* === 8. ドバイ：SIM未認識。清掃と挿し直しで復旧 === */
 {
-  id:'S8', arrive:44, name:'藤川 みどり', nameEn:'Midori Fujikawa', age:58, type:'novice', abandonAfter:26, callbackTo:'hotel',
+  id:'S8', arrive:44, name:'藤川 みどり', nameEn:'Midori Fujikawa', age:58, type:'novice', abandonAfter:26, callbackTo:'hotel', stayDays:2,
   deviceInHand:true,
   contractId:{ minutes:3, text:'番号…箱の紙ですか？ すみません、見方が…。あ、GDW-745168。これでしょうか？' },
   country:'UAE', city:'ドバイ', cityEn:'DUBAI', localOffset:-5, carrierName:'Etisalat', device:'GD-500', plan:'{country} ／ 1GBプラン',
@@ -797,7 +809,7 @@ const SCENARIOS = [
 
 /* === 9. ハノイ：技術ではない。物流案件 === */
 {
-  id:'S9', arrive:50, name:'石橋 玲', nameEn:'Rei Ishibashi', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',
+  id:'S9', arrive:50, name:'石橋 玲', nameEn:'Rei Ishibashi', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile', stayDays:2,
   deviceInHand:false,
   rushedReply:'はい。で、結論は？', contractId:{ minutes:1, text:'GDW-091774。番号は最初からあります。次。' },
   country:'ベトナム', city:'ハノイ', cityEn:'HANOI', localOffset:-2, carrierName:'Viettel', device:'（未受取）', plan:'{country} ／ 500MBプラン',
@@ -820,14 +832,14 @@ const SCENARIOS = [
 
 /* === 10. パリ：SIM清掃を2回試しても戻らない機器故障。長期滞在なら交換 === */
 {
-  id:'S10', arrive:56, name:'佐伯 奈緒', nameEn:'Nao Saeki', age:41, type:'anxious', abandonAfter:30, callbackTo:'hotel',
+  id:'S10', arrive:56, name:'佐伯 奈緒', nameEn:'Nao Saeki', age:41, type:'anxious', abandonAfter:30, callbackTo:'hotel', stayDays:6,
   deviceInHand:true,
   contractId:{ minutes:2, text:'予約番号はGDW-814263です。あと6日もあるのに…。すみません、ちゃんと控えていてよかった…。' },
   country:'フランス', city:'パリ', cityEn:'PARIS', localOffset:-8, carrierName:'Orange FR', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'3日使えたのに、突然「No SIM」になって…。再起動しても戻りません。このまま全部の予定が駄目になったらと思うと…すみません、助けてください。',
   smalltalk:[{ id:'st_s10_stay', reveal:'q_stay_length', askLabel:'{city}には、あと6日ほどお仕事で滞在されるんですね？', tellLabel:'長いご滞在でのお仕事、お疲れさまです', goodReply:'ありがとうございます…。まだ一人じゃないと思えて、少し落ち着きました。', badReply:'ありがとうございます。でも残り6日、全部使えないままだったらどうしよう…。' }],
   panel:{ bars:null, carrier:null, sim:'none', throttle:false, clients:0, maxClients:5, battery:76, ssid:'Globaldesk-9031' },
-  trueCause:'hardware', best:'r_hardware_swap', partial:['r_hardware_no_swap'], shipNeed:'next', stayDays:6, wantsReplacement:true,
+  trueCause:'hardware', best:'r_hardware_swap', partial:['r_hardware_no_swap'], shipNeed:'next', wantsReplacement:true,
   replies:{
     q_lamp:{ text:'「No SIM」と小さな×です。アンテナも回線名も消えて…。完全に壊れたんでしょうか？',
       fact:{ text:'稼働中だった本体が突然SIMを認識しなくなった', hot:['sim','hardware'], out:['fup','devices','geo_block','carrier','coverage','heavy','device_side','device_net'] } },
@@ -862,7 +874,7 @@ const SCENARIOS = [
 
 /* === 11. ローマ：地下の会議室だけ電波が弱い。場所移動で即復旧 === */
 {
-  id:'S11', arrive:62, name:'川上 亮', nameEn:'Ryo Kawakami', age:36, type:'hurried', abandonAfter:20, callbackTo:'mobile',
+  id:'S11', arrive:62, name:'川上 亮', nameEn:'Ryo Kawakami', age:36, type:'hurried', abandonAfter:20, callbackTo:'mobile', stayDays:2,
   deviceInHand:true,
   rushedReply:'はい。場所なら動く。指示を。', contractId:{ minutes:1, text:'GDW-562940。はい、次。' },
   country:'イタリア', city:'ローマ', cityEn:'ROME', localOffset:-8, carrierName:'TIM', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -892,7 +904,7 @@ const SCENARIOS = [
 
 /* === 12. シドニー：日付境界で回線停止。契約終了日の登録不備 === */
 {
-  id:'S12', arrive:68, name:'吉田 和子', nameEn:'Kazuko Yoshida', age:64, type:'novice', abandonAfter:28, callbackTo:'hotel',
+  id:'S12', arrive:68, name:'吉田 和子', nameEn:'Kazuko Yoshida', age:64, type:'novice', abandonAfter:28, callbackTo:'hotel', stayDays:3,
   deviceInHand:true,
   contractId:{ minutes:3, text:'予約番号ですね…。箱の裏に、GDW-348621とあります。これで合っていますか？' },
   country:'オーストラリア', city:'シドニー', cityEn:'SYDNEY', localOffset:1, carrierName:'Telstra', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -933,14 +945,14 @@ const SCENARIOS = [
 
 /* === 13. リスボン：申込国と異なるSIMを貸し出した手配ミス === */
 {
-  id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, type:'anxious', abandonAfter:30, callbackTo:'hotel',
+  id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, type:'anxious', abandonAfter:30, callbackTo:'hotel', stayDays:7,
   deviceInHand:true,
   contractId:{ minutes:2, text:'予約番号はGDW-630519です。受け取ったときの紙にありました。私の扱い方が悪かったのでしょうか…。' },
   country:'ポルトガル', city:'リスボン', cityEn:'LISBON', localOffset:-8, carrierName:'MEO', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'あの…受け取ってから一度もつながらず、ずっと圏外なんです。私が最初の設定を何か間違えたのでしょうか。',
   smalltalk:[{ id:'st_s13_stay', reveal:'q_stay_length', askLabel:'こちらのホテルには、あと7日ほどご滞在の予定ですか？', tellLabel:'長いご滞在の初日からつながらず、ご不安でしたよね', goodReply:'はい、あと7泊ずっと同じホテルです。そう言っていただけると、少し安心します…。', badReply:'はい、あと7泊です。でも初日から使えないのは、やはり私のせいでしょうか…。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:82, ssid:'Globaldesk-3418' },
-  trueCause:'logistics', best:'r_logistics_replacement', partial:['r_logistics_refund'], shipNeed:'next', stayDays:7, wantsReplacement:true,
+  trueCause:'logistics', best:'r_logistics_replacement', partial:['r_logistics_refund'], shipNeed:'next', wantsReplacement:true,
   replies:{
     q_other_device:{ text:'スマートフォンもパソコンも同じです。Wi-Fiの名前にはつながりますが、インターネットは使えません。',
       fact:{ text:'複数端末が本体には接続できるが、回線通信だけができない', out:['device_side','device_net','devices'] } },
@@ -977,7 +989,7 @@ const SCENARIOS = [
    S1と真因は同じだが、あちらが「自分のせいだ」と怯える客なのに対し、
    こちらは「無制限だと思っていた」と食ってかかる客。同じ答えでも通し方が変わる。 */
 {
-  id:'S14', arrive:80, name:'原口 大地', nameEn:'Daichi Haraguchi', age:24, type:'hurried', abandonAfter:24, callbackTo:'mobile',
+  id:'S14', arrive:80, name:'原口 大地', nameEn:'Daichi Haraguchi', age:24, type:'hurried', abandonAfter:24, callbackTo:'mobile', stayDays:2,
   deviceInHand:true,
   rushedReply:'はい。挨拶はいいです。原因を。', contractId:{ minutes:1, text:'GDW-771403。控えてあります。次。' },
   country:'台湾', city:'台北', cityEn:'TAIPEI', localOffset:-1, carrierName:'Chunghwa Telecom', device:'GD-500', plan:'{country} ／ 1GBプラン',
@@ -1010,11 +1022,34 @@ const SCENARIOS = [
 
 ];
 
-/* 名前・年齢と土地は、シフト開始時に案件本体から切り離して割り当てる。 */
+/* §41: 顧客レコード用の人物・渡航情報。滞在日数は案件の筋に従う。 */
+const SCENARIO_RECORD_META = Object.freeze([
+  {gender:'female',tripDay:3,tripDays:5,stayHint:'新婚旅行の途中なので、二人の予定が止まると困ります。'},
+  {gender:'male',tripDay:2,tripDays:5,stayHint:'旅行の途中で、家族との予定もまだ残っています。'},
+  {gender:'female',tripDay:2,tripDays:4,stayHint:'明日は次の街へ移る予定で、今夜中に確認したいです。'},
+  {gender:'male',tripDay:2,tripDays:6,stayHint:'出張先での会議が続くので、通信が要ります。'},
+  {gender:'female',tripDay:2,tripDays:4,stayHint:'帰国前の仕事の連絡が残っていて、すぐ確認したいです。'},
+  {gender:'male',tripDay:2,tripDays:5,stayHint:'こちらでの滞在中に資料を仕上げる必要があります。'},
+  {gender:'male',tripDay:3,tripDays:9,stayHint:'郊外での仕事が今週いっぱい続く予定です。'},
+  {gender:'female',tripDay:1,tripDays:3,stayHint:'短い旅行なので、今夜の予定に間に合わせたいです。'},
+  {gender:'female',tripDay:1,tripDays:3,stayHint:'今夜は市内に泊まり、明日は次の予定へ向かいます。'},
+  {gender:'female',tripDay:4,tripDays:10,stayHint:'出張はまだ続くので、このまま使えないと本当に困ります。'},
+  {gender:'male',tripDay:2,tripDays:4,stayHint:'会議は明日までで、地下でも連絡を取りたいです。'},
+  {gender:'female',tripDay:2,tripDays:5,stayHint:'旅行の序盤なので、帰国前に連絡が取れないと困ります。'},
+  {gender:'female',tripDay:1,tripDays:8,stayHint:'長い滞在の初日から、ずっと不安なんです。',deliveryAddress:'次のホテル、214号室'},
+  {gender:'male',tripDay:2,tripDays:4,stayHint:'明日の移動までに、必要な連絡を済ませたいです。'},
+]);
+SCENARIOS.forEach((scenario, index) => {
+  const meta = SCENARIO_RECORD_META[index];
+  Object.assign(scenario, meta);
+});
+
+/* 名前・年齢・性別と土地は、シフト開始時に案件本体から切り離して割り当てる。 */
 const IDENTITY_POOL = Object.freeze(SCENARIOS.map(scenario => Object.freeze({
   name:scenario.name,
   nameEn:scenario.nameEn,
   age:scenario.age,
+  gender:scenario.gender,
 })));
 
 /* キャリア名と地域も土地に従属する。sourceScenarioId は shuffleIdentity:false の復元に使う。 */

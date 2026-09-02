@@ -45,7 +45,7 @@ function handleDeskAction(d){
 
 function handleCallNavigation(d){
   if (d.callbackDestination){ startCarrierCallback(d.callbackDestination); return true; }
-  if (d.hotelCallback){ startHotelCallback(); return true; }
+  if (d.hotelCallback){ startHotelCallback(d.hotelCallback); return true; }
   if (d.frontDesk){ handleFrontDeskChoice(d.frontDesk); return true; }
   if (d.hangup){
     const t = state.focus;

@@ -381,7 +381,9 @@ function renderOffice(){
   $('office-sv').classList.toggle('busy', state.escLeft === 0);
   $('office-sv-status').textContent = state.escLeft ? 'ESC枠 ' + state.escLeft + ' / ' + ESCALATIONS : '別件対応中';
   $('office-ship-status').textContent = '手配 ' + shipments + '件 ／ 費用 ¥' + state.tickets.reduce((n,t) => n + (t.shipment ? t.shipment.fee : 0), 0).toLocaleString('ja-JP');
-  $('office-tray-status').textContent = callbacks.length ? '折り返し待ち ' + callbacks.length + '件 ／ 最短 ' + fmtClock(callbacks[0].callbackDue) : '折り返し待ち 0件';
+  const callbackRemaining = callbacks.length ? Math.max(0, callbacks[0].callbackDue - state.clock) : 0;
+  const queueCutoff = waiting.length ? Math.ceil(Math.min(...waiting.map(ticket => ticket.patience / 100 * ticket.s.abandonAfter))) : null;
+  $('office-tray-status').textContent = callbacks.length ? '折り返し待ち ' + callbacks.length + '件 ／ ' + callbacks[0].s.id + 'まであと ' + callbackRemaining + '分' : '折り返し待ち 0件';
   const officeNotices = [];
   if (state.outageKnown) officeNotices.push(esc(state.outageRegion) + '：提携キャリアの広域障害<br>復旧見込み 未定');
   state.officeEvents.slice(-3).forEach(event => officeNotices.push(esc(event.text)));
@@ -389,7 +391,7 @@ function renderOffice(){
     ? officeNotices.map(text => '<div class="notice">' + text + '</div>').join('')
     : '<div class="blank">特記事項なし</div>';
   $('office-answer').disabled = !waiting.length;
-  $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
+  $('office-answer-status').textContent = waiting.length ? '待ち ' + waiting.length + '件 ／ 最短あと ' + queueCutoff + '分で切断' : '待ち 0件';
   $('office-callback').disabled = !readyCallbacks.length;
   $('office-callback-status').textContent = callbacks.length
     ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '照会中 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
@@ -431,7 +433,9 @@ function renderDesk(){
   const head = '<div class="command-panel-head"><button class="command-back" data-desk="close">← オフィスへ戻る</button>' +
     '<div><span>DESK TERMINAL ／ 折り返し待ちの調査</span><b>' +
     (t ? esc(customerLabel(t, true)) + ' の社内照会' : 'どの案件を調べますか？') + '</b></div></div>';
-  const body = t ? renderDeskLookupOptions(t, list) : renderDeskTicketChoice(list);
+  const body = t ? (state.desk.recordTicketId === t.s.id
+    ? renderCustomerRecord(t, false) + renderDeskLookupOptions(t, list)
+    : renderDeskLookupOptions(t, list)) : renderDeskTicketChoice(list);
   $('call').innerHTML = renderDeskHeader(t || list[0]) +
     '<div class="transcript recent" id="transcript">' + renderTranscript(t || list[0], false) + '</div>' +
     '<div class="actions">' + head + body + '</div>';
@@ -602,6 +606,7 @@ function renderActions(t){
     apologize: () => renderApologyOptions(t),
     smalltalk: () => renderSmalltalkOptions(t, 'tell'),
     record: () => renderRecord(t),
+    system_record: () => renderCustomerRecord(t, false),
     identity_denied: () => renderIdentityDenied(),
     close: () => renderCloseFlow(t),
   };
@@ -709,9 +714,10 @@ function renderTellOptions(t){
     t.refundProposalRejected
       ? null
       : { attrs:'data-refund="refund"', body:'<span class="opt-label">返金をご案内する</span><span class="cost">¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + '</span>' },
-    hotelCallbackOffered(t)
-      ? { attrs:'data-hotel-callback="1"', body:'<span class="opt-label">ホテルへ折り返す<span class="opt-sub">' + esc(hotelCallbackSub(t)) + '</span></span>' }
-      : null,
+    ...(hotelCallbackOffered(t) ? [
+      { attrs:'data-hotel-callback="immediate"', body:'<span class="opt-label">いますぐ折り返す<span class="opt-sub">すぐにこちらから掛け直します</span></span>' },
+      { attrs:'data-hotel-callback="scheduled"', body:'<span class="opt-label">1時間後に折り返す<span class="opt-sub">確認のうえ掛け直します。' + esc(hotelCallbackSub(t)) + '</span></span>' },
+    ] : []),
     { attrs:'data-tell="soothe"', body:'<span class="opt-label">気持ちを落ち着ける</span>' },
     { attrs:'data-tell="apologize"', body:'<span class="opt-label">お詫びする</span>' },
     { attrs:'data-tell="smalltalk"', body:'<span class="opt-label">一言かける</span>' },
@@ -793,7 +799,29 @@ function renderApologyOptions(t){
     return '<button class="opt" data-apology="' + apology.id + '"><span class="opt-label">' + esc(apology.label) + '<span class="opt-sub">' + sub + (count ? ' ／ 実施済み ' + count + '回' : '') + '</span></span><span class="cost">' + apology.minutes + '分</span></button>';
   }).join('') + '</div>';
 }
-function renderRecord(t){
+function recordValue(ready, value){ return ready ? esc(value) : '―― 未照会'; }
+function lookupRecordValue(t, id, fallback){
+  const lookup = LOOKUPS.find(item => item.id === id);
+  return t.lookedUp.has(id) ? esc(fallback || ((t.s.lookups || {})[id] || {}).text || (lookup && lookup.defaultResult) || '照会結果なし') : '―― 未照会';
+}
+function renderCustomerRecord(t, includeLog){
+  const identified = identificationReady(t);
+  const gender = t.s.gender === 'female' ? '女性' : '男性';
+  const base = '<section class="system-screen record-system-screen"><header><span>GLOBALDESK OPS</span><b>顧客レコード</b><em>社内システム</em></header><div class="record-system-body">' +
+    '<section class="record-system-block"><h3>顧客情報</h3><div class="log-customer">' +
+      '<p><b>お名前</b><span>' + recordValue(identified, t.s.name + ' ／ ' + gender + ' ／ ' + t.s.age + '歳') + '</span></p>' +
+      '<p><b>渡航期間</b><span>' + recordValue(identified, t.s.tripDays + '日間（本日 ' + t.s.tripDay + '日目 ／ 残り ' + t.s.stayDays + '泊）') + '</span></p>' +
+      '<p><b>渡航先国</b><span>' + recordValue(identified, t.s.country) + '</span></p>' +
+      '<p><b>契約プラン</b><span>' + recordValue(identified, t.s.plan) + '</span></p>' +
+      '<p><b>利用データ量</b><span>' + lookupRecordValue(t, 'l_plan') + '</span></p>' +
+      '<p><b>貸出・配送</b><span>' + lookupRecordValue(t, 'l_ship') + '</span></p>' +
+      '<p><b>エリア・機種</b><span>' + lookupRecordValue(t, 'l_area') + '</span></p>' +
+      '<p><b>セッション履歴</b><span>' + lookupRecordValue(t, 'l_session') + '</span></p>' +
+      '<p><b>障害情報</b><span>' + lookupRecordValue(t, 'l_outage') + '</span></p>' +
+    '</div></section>';
+  return '<div class="log-view">' + base + (includeLog ? renderRecordLog(t) : '') + '</div><footer>RECORD ／ VERIFIED</footer></section></div>';
+}
+function renderRecordLog(t){
   const ty = TYPES[t.s.type];
   const facts = t.facts.length
     ? '<ul>' + t.facts.map(fact => '<li>' + esc(fact.text) + '</li>').join('') + '</ul>'
@@ -802,18 +830,12 @@ function renderRecord(t){
   const candidateText = remaining.length
     ? remaining.map(cause => esc(cause.label)).join(' ／ ')
     : '候補なし';
-  return '<div class="log-view"><p class="hint-bar">1分かけてログを確認しています。お客様は通話口で待っています。</p>' +
-    '<section class="system-screen record-system-screen"><header><span>GLOBALDESK OPS</span><b>通話記録</b><em>社内システム</em></header><div class="record-system-body">' +
-    '<section class="record-system-block"><h3>お客様</h3><div class="log-customer">' +
-      '<p><b>お名前</b><span>' + esc(t.nameKnown ? t.s.name : '未特定') + '</span></p>' +
-      '<p><b>渡航先・現地時刻</b><span>' + (t.destinationKnown ? esc(t.s.city) + ' ／ ' + localClock(t) : '未確認') + '</span></p>' +
-      '<p><b>機種・プラン</b><span>' + (t.identified ? esc(t.s.device) + ' ／ ' + esc(t.s.plan) : '本人特定後に確認できます') + '</span></p>' +
-      '<p><b>タイプ・対応メモ</b><span>' + esc(ty.label) + ' ／ ' + esc(ty.note) + '</span></p>' +
-    '</div></section>' +
-    '<section class="record-system-block"><h3>ここまでの状況</h3>' + facts + '<p class="log-candidates"><b>残っている原因の候補</b><span>' + candidateText + '</span></p></section>' +
+  return '<section class="record-system-block"><h3>ログの手がかり</h3>' + facts + '<p class="log-candidates"><b>残っている原因の候補</b><span>' + candidateText + '</span></p></section>' +
     '<section class="record-system-block"><h3>次にできること</h3><p>' + esc(nextActionGuide(t)) + '</p></section>' +
-    '<section class="record-system-block"><h3>会話の全履歴</h3><div class="record-system-transcript">' + renderRecordTranscript(t) + '</div></section>' +
-    '</div><footer>RECORD ／ VERIFIED</footer></section></div>';
+    '<section class="record-system-block"><h3>会話の全履歴</h3><div class="record-system-transcript">' + renderRecordTranscript(t) + '</div></section>';
+}
+function renderRecord(t){
+  return '<p class="hint-bar">1分かけてログを確認しています。お客様は通話口で待っています。</p>' + renderCustomerRecord(t, true);
 }
 
 function renderIdentityDenied(){
@@ -970,30 +992,25 @@ function renderLookupSystemScreen(line){
 
 function renderDevicePanel(t){
   const p = t.s.panel;
-  const label = '<div class="device-label"><span>ROUTER DISPLAY</span><span>' + esc(t.identified ? t.s.device : '機種未特定') + '</span></div>';
+  const label = '<div class="device-label"><span>聞き取りメモ</span><span>' + esc(t.identified ? t.s.device : '機種未特定') + '</span></div>';
 
   if (!p){
     return '<div class="device-card">' + label +
-      '<div class="lcd missing"><span class="lcd-placeholder"><b>端末未受取</b>本体の画面は確認できません</span></div></div>';
+      '<div class="lcd missing"><span class="lcd-placeholder"><b>端末未受取</b>本体の表示は確認できません</span></div></div>';
   }
   if (!t.asked.has('q_lamp')){
     return '<div class="device-card">' + label +
-      '<div class="lcd obscured"><span class="lcd-placeholder"><b>本体の画面は未確認</b>「聞く」で表示を確認してください</span></div></div>';
+      '<div class="lcd obscured"><span class="lcd-placeholder"><b>本体の表示は未確認</b>「聞く」で表示を確認してください</span></div></div>';
   }
 
-  const bars = [1,2,3,4].map(n => '<i class="' + (p.bars !== null && n <= p.bars ? 'on' : '') + '"></i>').join('');
-  const reception = p.sim === 'none'
-    ? '<span class="lcd-sim-none">× No SIM</span>'
-    : p.bars === 0 ? '<span class="lcd-offline">圏外</span>' : '<span>SIM OK</span>';
-  const throttle = p.throttle ? '<span class="lcd-throttle">SLOW</span>' : '<span>DATA</span>';
-
-  return '<div class="device-card">' + label + '<div class="lcd">' +
-    '<div class="lcd-top"><span class="signal-bars" aria-label="アンテナ' + (p.bars === null ? 'なし' : p.bars + '本') + '">' + bars + '</span>' +
-      '<span class="lcd-carrier">' + esc(p.carrier || '---') + '</span>' + reception + '</div>' +
-    '<div class="lcd-status">' + throttle + '<span class="lcd-clients">LINK ' + p.clients + ' / ' + p.maxClients + '</span>' +
-      '<span class="lcd-battery-wrap"><span class="lcd-battery"><i style="width:' + clamp(p.battery, 0, 100) + '%"></i></span>' + p.battery + '%</span></div>' +
-    '<div class="lcd-bottom"><span>SSID</span><span class="lcd-ssid">' + esc(p.ssid) + '</span></div>' +
-    '</div></div>';
+  const status = p.sim === 'none' ? 'No SIM' : p.bars === 0 ? '圏外 ／ SIM 認識あり' : 'SIM 認識あり';
+  return '<div class="device-card listening-note">' + label + '<dl>' +
+    '<div><dt>アンテナ</dt><dd>' + (p.bars === null ? '表示なし' : p.bars + '本') + '</dd></div>' +
+    '<div><dt>表示</dt><dd>' + status + (p.throttle ? ' ／ 速度制限アイコンあり' : '') + '</dd></div>' +
+    '<div><dt>事業者</dt><dd>' + esc(p.carrier || '表示なし') + '</dd></div>' +
+    '<div><dt>接続台数</dt><dd>' + p.clients + ' / ' + p.maxClients + '</dd></div>' +
+    '<div><dt>電池残量</dt><dd>' + p.battery + '%</dd></div>' +
+    '<div><dt>SSID</dt><dd>' + esc(p.ssid) + '</dd></div></dl></div>';
 }
 
 function renderBoard(){

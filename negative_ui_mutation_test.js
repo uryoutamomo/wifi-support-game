@@ -22,6 +22,11 @@ const boardPane = `  <section class="pane board">
   </section>`;
 const mutations = [
   {
+    name:'§41 本人確認前に顧客レコードを開く', file:'p4_view.js',
+    from:'  const identified = identificationReady(t);', to:'  const identified = t.nameKnown;',
+    expected:'§41-11 本人確認前または未照会欄が伏せられない',
+  },
+  {
     name:'上部の通話・待機・診断タブを復活させる', file:'p1_head.html',
     from:'<div class="console">\n\n  <section class="pane desk">',
     to:'<div class="console">\n\n  <nav class="mobile-pane-nav">通話／待機／診断</nav>\n\n  <section class="pane desk">',
@@ -94,7 +99,7 @@ const mutations = [
     name:'ログから次の一手を消す', file:'p4_view.js',
     from:'<section class="record-system-block"><h3>次にできること</h3>',
     to:'<section class="record-system-block"><h3>案内なし</h3>',
-    expected:'ログの4見出しが完全一致しない',
+    expected:'ログの見出しが完全一致しない',
   },
   {
     name:'ログへ真因を出す', file:'p4_view.js',
@@ -123,7 +128,7 @@ const mutations = [
   {
     name:'ログ見出しへ接尾辞を足す', file:'p4_view.js',
     from:'<h3>次にできること</h3>', to:'<h3>次にできること_x</h3>',
-    expected:'ログの4見出しが完全一致しない',
+    expected:'ログの見出しが完全一致しない',
   },
   {
     name:'ストレス終話を上長引き取りへ戻す', file:'p3_game.js',
@@ -185,7 +190,7 @@ const mutations = [
   },
   {
     name:'折り返しをコマンド直下の別枠へ戻す', file:'p4_view.js',
-    from:"    hotelCallbackOffered(t)\n      ? { attrs:'data-hotel-callback=\"1\"', body:'<span class=\"opt-label\">ホテルへ折り返す<span class=\"opt-sub\">' + esc(hotelCallbackSub(t)) + '</span></span>' }\n      : null,\n",
+    from:"    ...(hotelCallbackOffered(t) ? [\n      { attrs:'data-hotel-callback=\"immediate\"', body:'<span class=\"opt-label\">いますぐ折り返す<span class=\"opt-sub\">すぐにこちらから掛け直します</span></span>' },\n      { attrs:'data-hotel-callback=\"scheduled\"', body:'<span class=\"opt-label\">1時間後に折り返す<span class=\"opt-sub\">確認のうえ掛け直します。' + esc(hotelCallbackSub(t)) + '</span></span>' },\n    ] : []),\n",
     to:'',
     expected:'「伝える」のID・項目名・注意書きが完全一致しない',
   },
@@ -1615,7 +1620,7 @@ const mutations = [
   },
   {
     name:'S7を短期滞在へ戻す', file:'p2_data.js',
-    from:"shipNeed:'next', stayDays:6, wantsReplacement:true", to:"shipNeed:'next', stayDays:2, wantsReplacement:true",
+    from:"callbackTo:'hotel', stayDays:6,\n  deviceInHand:true", to:"callbackTo:'hotel', stayDays:2,\n  deviceInHand:true",
     expected:'§32 検査9: progression_testが通らない',
   },
   {
@@ -1666,8 +1671,8 @@ const mutations = [
   },
   {
     name:'S9を機器所持済みにする', file:'p2_data.js',
-    from:"id:'S9', arrive:50, name:'石橋 玲', nameEn:'Rei Ishibashi', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',\n  deviceInHand:false",
-    to:"id:'S9', arrive:50, name:'石橋 玲', nameEn:'Rei Ishibashi', age:35, type:'hurried', abandonAfter:16, callbackTo:'mobile',\n  deviceInHand:true",
+    from:'  deviceInHand:false,',
+    to:'  deviceInHand:true,',
     expected:'§35 検査2: S9がdeviceInHand falseではない',
   },
   {
@@ -1805,8 +1810,8 @@ const mutations = [
   },
   {
     name:'人物シャッフルを常に無効にする', file:'p3_game.js',
-    from:'const identities = flags.shuffleIdentity ? shuffleScenarios(IDENTITY_POOL, random) : scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age}));',
-    to:'const identities = scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age}));',
+    from:'const identities = flags.shuffleIdentity ? shuffleScenarios(IDENTITY_POOL, random) : scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age,gender:scenario.gender}));',
+    to:'const identities = scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age,gender:scenario.gender}));',
     expected:'§38 検査1: 名前・ローマ字・年齢が案件から切り離され、シフトごとに割り当てられない',
   },
   {
@@ -1859,7 +1864,7 @@ const mutations = [
   },
   {
     name:'shuffleIdentity falseでも人物をシャッフルする', file:'p3_game.js',
-    from:': scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age}));',
+    from:': scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age,gender:scenario.gender}));',
     to:': shuffleScenarios(IDENTITY_POOL, random);',
     expected:'§38 検査9: shuffleIdentity falseで案件データどおりの割り当てに戻らない',
   },

@@ -169,7 +169,7 @@ function scenarioWithIdentityAndPlace(scenario, identity, place, wrongCountry){
 }
 
 function assignScenarioIdentities(scenarios, random, flags = GAME_FLAGS){
-  const identities = flags.shuffleIdentity ? shuffleScenarios(IDENTITY_POOL, random) : scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age}));
+  const identities = flags.shuffleIdentity ? shuffleScenarios(IDENTITY_POOL, random) : scenarios.map(scenario => ({name:scenario.name,nameEn:scenario.nameEn,age:scenario.age,gender:scenario.gender}));
   const assignedPlaces = flags.shuffleIdentity ? assignScenarioPlaces(scenarios, random) : new Map(scenarios.map(scenario => {
     const place = PLACE_POOL.find(item => item.sourceScenarioId === scenario.id);
     return [scenario.id, place];
@@ -337,10 +337,10 @@ function newTicket(s){
     stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, inboundMinutes:0, outboundMinutes:0, callSegmentMinutes:0, callDirection:'inbound', holdMinutes:0,
     callChargeConcerned:false,
-    callbackCount:0, callbackDue:null, callbackLate:false, callbackDestination:null, callbackPenalty:0, carrierLookupStarted:false,
+    callbackCount:0, callbackDue:null, callbackLate:false, callbackKind:null, callbackDestination:null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
     callbackReason:null, callbackStage:null, frontDeskAttempts:0,
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
-    stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, shipment:null, apologies:new Map(),
+    stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
     complaintEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
   };
@@ -525,10 +525,26 @@ function handleFrontDeskChoice(choice){
     { who:'front', text:frontReply },
     { who:'cust', text:callbackCustomerReply(t) },
   ]);
+  applyCallbackWaitStress(t);
   t.callbackStage = 'connected';
   finishCarrierLookup(t);
   state.ui = defaultUi();
   render();
+}
+
+function callbackLookupAllowance(t){
+  return t.callbackKind === 'scheduled' ? CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE : CALLBACK_IMMEDIATE_LOOKUP_ALLOWANCE;
+}
+function applyCallbackWaitStress(t){
+  if (t.callbackWaitStressApplied) return;
+  const over = Math.max(0, (t.callbackLookupCount || 0) - callbackLookupAllowance(t));
+  const idle = t.callbackKind === 'scheduled' && !t.callbackLookupCount;
+  const delta = over * CALLBACK_OVER_LOOKUP_STRESS + (idle ? CALLBACK_IDLE_STRESS : 0);
+  if (delta){
+    pushCustomerLine(t, CALLBACK_WAIT_REPLIES[t.s.type], { plain:true });
+    addStress(t, delta);
+  }
+  t.callbackWaitStressApplied = true;
 }
 
 function callbackOperatorLine(t){
@@ -673,6 +689,7 @@ function deliverCustomerOpening(t, beforeGreeting){
   if (beforeGreeting){
     if (customerSpeaksBeforeGreeting(t)){
       pushCustomerLine(t, t.s.opening);
+      deliverStayHint(t);
       t.destinationKnown = DESTINATION_IN_OPENING.has(t.s.id);
     }
     return;
@@ -683,7 +700,14 @@ function deliverCustomerOpening(t, beforeGreeting){
     return;
   }
   pushCustomerLine(t, t.s.opening);
+  deliverStayHint(t);
   t.destinationKnown = DESTINATION_IN_OPENING.has(t.s.id);
+}
+
+function deliverStayHint(t){
+  if (t.stayHintDelivered || !t.s.stayHint) return;
+  pushCustomerLine(t, t.s.stayHint, { plain:true });
+  t.stayHintDelivered = true;
 }
 
 function identificationReady(t){
@@ -837,13 +861,14 @@ function deskTicket(){
 function openDeskLookup(){
   const list = deskTickets();
   if (!list.length || state.focus) return;
-  state.desk = { ticketId:list.length === 1 ? list[0].s.id : null };
+  state.desk = { ticketId:list.length === 1 ? list[0].s.id : null, recordTicketId:null };
   enterDesk();
 }
 
 function selectDeskTicket(id){
   if (!state.desk) return;
   state.desk.ticketId = (id === '__back') ? null : id;
+  state.desk.recordTicketId = null;
   renderDesk();
 }
 
@@ -858,6 +883,7 @@ function doDeskLookup(lid){
   const l = LOOKUPS.find(x => x.id === lid);
   if (!l || l.external || t.lookedUp.has(lid) || !identificationReady(t)) return;
   t.lookedUp.add(lid);
+  t.callbackLookupCount = (t.callbackLookupCount || 0) + 1;
   const r = (t.s.lookups || {})[lid];
   if (r){
     t.transcript.push(lookupSystemLine(l, r));
@@ -871,6 +897,7 @@ function doDeskLookup(lid){
   advance(DESK_LOOKUP_MINUTES);
   // 時間を進めた結果、折り返しの相手が待ちきれずに切っていることがある。
   if (t.state !== 'callback'){ closeDeskLookup(); return; }
+  state.desk.recordTicketId = t.s.id;
   renderDesk();
 }
 
@@ -935,6 +962,18 @@ function doRefund(){
   render();
 }
 
+function replacementAddressConfirmation(t, qid){
+  if (qid === 'q_stay' && t.s.deliveryAddress){
+    return { anxious:'到着する頃には次のホテルへ移っています。そちらの214号室へお願いします…。', novice:'届く頃は別のホテルへ移っています。次のホテル214号室で受け取れます。', expert:'到着時点の滞在先は次のホテル214号室です。配送先を更新してください。', hurried:'届く頃は次のホテル214号室。そっちへ送って。' }[t.s.type];
+  }
+  return {
+    anxious:{ q_stay:'届く頃も同じホテルにいます。部屋番号も確認しておきます…。', q_stay_length:'あと' + t.s.stayDays + '泊あります。明日なら、まだ十分使えますよね…？' },
+    novice:{ q_stay:'届く頃も同じホテルです。フロントにも伝えておきます。', q_stay_length:'あと' + t.s.stayDays + '泊あります。明日届くなら受け取れます。' },
+    expert:{ q_stay:'到着時点も同じホテルです。客室宛で手配してください。', q_stay_length:'残り' + t.s.stayDays + '泊です。翌日便なら利用期間は足ります。' },
+    hurried:{ q_stay:'届く頃も同じホテル。部屋まで頼む。', q_stay_length:'あと' + t.s.stayDays + '泊。明日なら間に合う。' },
+  }[t.s.type][qid];
+}
+
 function doAsk(qid){
   const t = state.focus;
   const q = QUESTIONS.find(x => x.id === qid);
@@ -944,6 +983,14 @@ function doAsk(qid){
   t.questionCount++;
   t.asked.add(qid);
   t.transcript.push({ who:'me', text:q.label });
+  const replacementAddressCheck = previous > 0 && ['q_stay','q_stay_length'].includes(qid) && t.asked.has('q_stay') && t.asked.has('q_replacement') && t.s.wantsReplacement;
+  if (replacementAddressCheck){
+    if (qid === 'q_stay' && t.s.deliveryAddress){ t.stayAddress = t.s.deliveryAddress; t.deliveryAddressConfirmed = true; }
+    pushCustomerLine(t, replacementAddressConfirmation(t, qid));
+    if (qid === 'q_stay_length') t.stayDaysKnown = true;
+    if (!spendOnCall(t, 1, 0)) return;
+    state.ui = defaultUi(); render(); return;
+  }
   if (previous > 0){
     pushCustomerLine(t, repeatedQuestionReply(t));
     t.wasted++;
@@ -1053,7 +1100,7 @@ function finishLookup(t, l, minutes, hold){
     pushCustomerLine(t, r.customerReply);
     if (!addStress(t, r.stressDelta || 0, false, true)){ render(); return; }
   }
-  state.ui = defaultUi();
+  state.ui = defaultUi('system_record');
   render();
 }
 
@@ -1131,6 +1178,8 @@ function startCarrierCallback(destination){
   ]);
   t.transcript.push({ who:'note', text:'ホテルへ30分後に折り返す約束と、現地キャリアへの再開通依頼を記録しました。' });
   t.callbackCount++;
+  t.callbackLookupCount = 0;
+  t.callbackWaitStressApplied = false;
   t.callbackDestination = 'hotel';
   t.callbackReason = 'carrier';
   t.callbackStage = null;
@@ -1146,22 +1195,25 @@ function startCarrierCallback(destination){
   enterOffice();
 }
 
-function startHotelCallback(){
+function startHotelCallback(kind = 'immediate'){
   const t = state.focus;
   if (!t || t.pendingResult || t.pendingInterruption || t.callbackStage === 'front_desk') return;
   pushFlowLines(t, [
-    { who:'me', text:CALL_FLOW_LINES.callback.promise },
+    { who:'me', text:kind === 'scheduled' ? '1時間ほどお時間をいただいて、確認のうえ掛け直します。' : 'すぐにこちらから掛け直します。' },
     { who:'cust', text:CALL_FLOW_LINES.callback.consent },
   ]);
   // 滞在先を聞かずに切ると、折り返す先がない。客が自分から掛け直してきて責める。
   if (!t.asked.has('q_stay') || !t.stayAddress){ blindCallbackRedial(t); return; }
   t.transcript.push({ who:'note', text:'お客様の国際通話料を止め、ホテルへ折り返す約束を記録しました。' });
   t.callbackCount++;
+  t.callbackLookupCount = 0;
+  t.callbackWaitStressApplied = false;
   t.callbackDestination = 'hotel';
   t.callbackReason = 'general';
+  t.callbackKind = kind;
   t.callbackStage = null;
   if (!spendOnCall(t, 1, 0)) return;
-  t.callbackDue = state.clock;
+  t.callbackDue = state.clock + (kind === 'scheduled' ? CALLBACK_SCHEDULED_MINUTES : 0);
   t.state = 'callback';
   state.focus = null;
   state.ui = defaultUi();
@@ -1351,6 +1403,7 @@ function doClose(causeId, remedyId, toneId){
   if (t.callbackCount > 0) base -= t.callbackLate ? 1.5 : 0.2;
   base -= t.callbackPenalty || 0;
   if (t.shipment && t.shipment.remedyId === remedyId && t.shipment.tooSlow) base -= 1.0;
+  if (t.shipment && t.s.deliveryAddress && !t.deliveryAddressConfirmed) base -= 1.0;
 
   const csat = clamp(Math.round(base * 10) / 10, 1.0, 5.0);
 

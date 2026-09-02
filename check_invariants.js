@@ -232,7 +232,7 @@ const requireIdentification27 = sourceOf('requireIdentification');
 const openLookup27 = sourceOf('openLookup');
 const openRecord27 = sourceOf('openRecord');
 const denied27 = sourceOf('renderIdentityDenied');
-const record27 = sourceOf('renderRecord');
+const record27 = sourceOf('renderRecord') + sourceOf('renderCustomerRecord') + sourceOf('renderRecordLog');
 const recordTranscript27 = sourceOf('renderRecordTranscript');
 if (/record:\{[^}]*disabled/.test(commandMenu27)) bad('§27 ログが本人特定前に無効化されている');
 if (/lookup:\{[^}]*disabled/.test(commandMenu27) || commandMenu27.includes('disabled:!t.identified')) bad('§27 調べるが本人特定前に無効化されている');
@@ -242,7 +242,7 @@ const denyIndex27 = requireIdentification27.indexOf("defaultUi('identity_denied'
 const spendIndex27 = openRecord27.indexOf('spendOnCall(t, 1, 0)');
 if (denyIndex27 < 0 || spendIndex27 < 0 || openRecord27.indexOf('requireIdentification(t)') >= spendIndex27 || requireIdentification27.includes('spendOnCall') || openLookup27.includes('spendOnCall')) bad('§27 本人特定前の拒否で時間を消費する');
 if (!denied27.includes('system-screen record-system-screen identity-denied-screen denied') || !denied27.includes('フルネームと渡航先、または契約IDを確認してください。')) bad('§27 本人特定前の要件を共通システム画面で案内しない');
-if (!record27.includes('system-screen record-system-screen') || !record27.includes('<b>通話記録</b>') || !record27.includes('renderRecordTranscript(t)')) bad('§27 通話記録が共通システム画面で全履歴を表示しない');
+if (!record27.includes('system-screen record-system-screen') || !record27.includes('<b>顧客レコード</b>') || !record27.includes('renderRecordTranscript(t)')) bad('§27 通話記録が共通システム画面で全履歴を表示しない');
 if (!recordTranscript27.includes('t.transcript.map') || !recordTranscript27.includes("cust:'客'") || !recordTranscript27.includes("sys:'社内システム'") || !recordTranscript27.includes('line.text')) bad('§27 通話記録から従来の発言・メモ・システム応答が欠ける');
 
 // §28: 全案件解決の表エンディングと、8バッジの裏エンディングを独立して管理する。
@@ -528,11 +528,9 @@ const headerSource = headerStart < 0 || headerEnd < 0 ? '' : gameSource.slice(he
 ['t.s.name','t.s.city','localClock','t.s.device','t.s.plan','TYPES','call-guide'].forEach(leak => {
   if (headerSource.includes(leak)) bad('通話ヘッダにログへ移す情報が残っている: ' + leak);
 });
-const logStart = gameSource.indexOf('function renderRecord(');
-const logEnd = gameSource.indexOf('\n\nfunction remainingCauseCandidates', logStart);
-const logSource = logStart < 0 || logEnd < 0 ? '' : gameSource.slice(logStart, logEnd);
+const logSource = sourceOf('renderRecordLog');
 const logHeadings = [...logSource.matchAll(/<h3>([^<]+)<\/h3>/g)].map(match => match[1]);
-if (JSON.stringify(logHeadings) !== JSON.stringify(['お客様','ここまでの状況','次にできること','会話の全履歴'])) bad('ログの4見出しが完全一致しない');
+if (JSON.stringify(logHeadings) !== JSON.stringify(['ログの手がかり','次にできること','会話の全履歴'])) bad('ログの見出しが完全一致しない');
 ['trueCause','REMEDIES','scenarioRoute','bestRemedy','correctRemedy'].forEach(secret => {
   if (logSource.includes(secret)) bad('ログが真因または正解対処を参照している: ' + secret);
 });
@@ -798,6 +796,52 @@ if (!sourceOf('renderFrontDeskOptions').includes("const roomChoice = room") || s
 if (!sourceOf('isLateLocalTime').includes('ticketLocalMinute(t)') || !sourceOf('ticketLocalMinute').includes('t.s.localOffset') || !sourceOf('resumeCallback').includes('CALL_FLOW_LINES.frontDesk.lateQuestion')) bad('§39 土地のlocalOffsetによる深夜判定または難色発話がない');
 if (!sourceOf('handleFrontDeskChoice').includes("const direct = choice === 'callback'") || !sourceOf('handleFrontDeskChoice').includes("t.callbackStage = 'connected'") || sourceOf('handleFrontDeskChoice').includes("t.callbackStage = 'blocked'")) bad('§39 折り返し説明の円滑接続または他選択肢の非詰みを守らない');
 if (sourceOf('startHotelCallback').includes('l_carrier') || !sourceOf('startHotelCallback').includes("t.callbackReason = 'general'")) bad('§39 一般折り返しがl_carrier専用のまま');
+
+// §41: 二種類の折り返し、社内レコード、配送先の再確認。実プレイ用の不変条件。
+const callback41 = sourceOf('startHotelCallback');
+const tell41 = sourceOf('renderTellOptions');
+const desk41 = sourceOf('doDeskLookup');
+const front41 = sourceOf('handleFrontDeskChoice') + sourceOf('applyCallbackWaitStress') + sourceOf('callbackLookupAllowance');
+const record41 = sourceOf('renderCustomerRecord') + sourceOf('renderRecordLog') + sourceOf('renderRecord') + sourceOf('recordValue');
+const panel41 = sourceOf('renderDevicePanel');
+const ask41 = sourceOf('doAsk') + sourceOf('replacementAddressConfirmation');
+const hint41 = sourceOf('deliverStayHint');
+if (!tell41.includes('data-hotel-callback="immediate"') || !tell41.includes('data-hotel-callback="scheduled"')) bad('§41-1 折り返しの二択がない');
+if (!callback41.includes('CALLBACK_SCHEDULED_MINUTES') || !callback41.includes("kind === 'scheduled'")) bad('§41-2 1時間後の折り返し時刻がない');
+if (!callback41.includes('blindCallbackRedial(t)')) bad('§41-3 滞在先未確認でも失敗できる折り返しでない');
+if (!desk41.includes('callbackLookupCount') || !front41.includes('CALLBACK_OVER_LOOKUP_STRESS') || !front41.includes('CALLBACK_WAIT_REPLIES')) bad('§41-4/5 折り返し中の照会超過ストレスがない');
+if (!front41.includes('CALLBACK_IDLE_STRESS') || !front41.includes('CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE')) bad('§41-6/7 1時間待ちの未照会代償または上限なしがない');
+if (!sourceOf('renderOffice').includes('callbackRemaining') || !sourceOf('renderOffice').includes('queueCutoff')) bad('§41-8 待機時間と放棄までの時間が見えない');
+if (!sourceOf('finishLookup').includes("defaultUi('system_record')") || !record41.includes('顧客レコード') || record41.includes('includeLog ? renderRecordLog(t) :') === false) bad('§41-9/13 照会・ログのレコード表示が分かれていない');
+['l_plan','l_ship','l_area','l_session','l_outage'].forEach(id => { if (!record41.includes("lookupRecordValue(t, '" + id + "')")) bad('§41-10 レコード欄がない: ' + id); });
+if (!record41.includes('identificationReady(t)') || !record41.includes('―― 未照会')) bad('§41-11 本人確認前または未照会欄が伏せられない');
+if (!panel41.includes('聞き取りメモ') || panel41.includes('ROUTER DISPLAY')) bad('§41-14/15 本体表示が聞き取りメモでない');
+if (!ask41.includes('replacementAddressCheck') || !ask41.includes("['q_stay','q_stay_length']") || !ask41.includes('t.s.wantsReplacement')) bad('§41-16/17 代替機発送後の届け先確認がない');
+if (!ask41.includes('repeatedQuestionReply(t)')) bad('§41-18 通常の再質問ペナルティが消えている');
+if (!hint41.includes('t.s.stayHint') || !src.includes('SCENARIO_RECORD_META') || !src.includes('出張') || !src.includes('旅行')) bad('§41-19/20 長短滞在のほのめかしがない');
+if (!sourceOf('doAsk').includes("qid === 'q_stay_length') t.stayDaysKnown = true")) bad('§41-21 滞在日数確定の条件が変わった');
+if (SCENARIOS.some(s => !['female','male'].includes(s.gender) || !Number.isInteger(s.tripDays) || !Number.isInteger(s.tripDay) || !Number.isInteger(s.stayDays) || s.stayDays !== s.tripDays - s.tripDay)) bad('§41-22 全件の顧客レコード日数・性別が揃わない');
+if (IDENTITY_POOL.some(identity => !['female','male'].includes(identity.gender)) || !sourceOf('assignScenarioIdentities').includes('gender:scenario.gender')) bad('§41-23 性別が人物bundleでシャッフルされない');
+const hints411 = SCENARIOS.map(s => s.stayHint || '');
+if (new Set(hints411).size !== SCENARIOS.length) bad('§41-26 滞在のほのめかしが案件ごとに固有でない');
+if (SCENARIOS.some(s => /明日(?:には|は).*移動/.test(s.stayHint || '') && s.stayDays > 1)) bad('§41-27 滞在のほのめかしと残り泊数が矛盾する');
+if (hints411.some(text => /\d|[０-９]/.test(text))) bad('§41-28 滞在のほのめかしが日数を明言している');
+if (new Set(SCENARIOS.map(s => s.tripDay)).size === 1 || SCENARIOS.find(s => s.id === 'S1').tripDay < 2 || SCENARIOS.find(s => s.id === 'S10').tripDay !== 4) bad('§41-29 渡航日数が案件の発話と合わない');
+if (!callback41.includes('t.callbackLookupCount = 0') || !callback41.includes('t.callbackWaitStressApplied = false') || sourceOf('applyCallbackWaitStress').includes("callbackReason !== 'general'")) bad('§41-30/31 折り返しごとの代償リセットまたはキャリア待機の代償がない');
+if (!sourceOf('doDeskLookup').includes('state.desk.recordTicketId') || !sourceOf('renderDesk').includes('renderCustomerRecord(t, false)')) bad('§41-32 端末調査後に顧客レコードが開かない');
+if (!sourceOf('lookupRecordValue').includes('lookup.defaultResult')) bad('§41-33 既定照会結果が顧客レコードから消える');
+if (!sourceOf('newTicket').includes('callbackWaitStressApplied:false') || !sourceOf('newTicket').includes('stayHintDelivered:false')) bad('§41-34 §41の新しいticket状態が初期化されない');
+const expectedHintKinds411 = {S1:'新婚旅行',S2:'旅行',S3:'移る予定',S4:'出張',S5:'仕事',S6:'資料',S7:'仕事',S8:'旅行',S9:'泊まり',S10:'出張',S11:'会議',S12:'旅行',S13:'長い滞在',S14:'移動'};
+if (SCENARIOS.some(s => !(s.stayHint || '').includes(expectedHintKinds411[s.id]))) bad('§41-35 滞在のほのめかしが案件の他の台詞と矛盾する');
+if ((src.match(/stayDays:/g) || []).length !== SCENARIOS.length || /SCENARIO_RECORD_META[\s\S]*?stayDays:/.test(src)) bad('§41-36 滞在・顧客レコード属性が二重定義されている');
+const moving411 = SCENARIOS.filter(s => s.deliveryAddress);
+if (moving411.length !== 1 || !['r_coverage_replacement','r_hardware_swap','r_logistics_replacement'].includes(moving411[0].best)) bad('§41-38 代替機発送の正解案件に移動する客が1件いない');
+const deliveryAddressGate411 = "qid === 'q_stay' && t.s.deliveryAddress";
+if (!sourceOf('doAsk').includes(deliveryAddressGate411) || !sourceOf('doAsk').includes('t.stayAddress = t.s.deliveryAddress') || !sourceOf('replacementAddressConfirmation').includes(deliveryAddressGate411)) bad('§41-39 移動先の台詞と配送先更新が再質問条件で揃わない');
+const close411 = sourceOf('doClose');
+if (!close411.includes('t.s.deliveryAddress && !t.deliveryAddressConfirmed') || !close411.includes('base -= 1.0')) bad('§41-40 配送先取り違えが満足度だけへ影響しない');
+const tripExpected411 = {S1:[3,5],S10:[4,10],S13:[1,8]};
+if (Object.entries(tripExpected411).some(([id,values]) => { const s=SCENARIOS.find(x=>x.id===id); return !s || s.tripDay !== values[0] || s.tripDays !== values[1]; })) bad('§41-41 渡航日数の検査が導出値だけを見ている');
 
 // S2/S3 に q_lamp が入ったか
 ['S2','S3'].forEach(id => {
