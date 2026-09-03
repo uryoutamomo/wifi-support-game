@@ -2814,11 +2814,23 @@ const mutations = [
     to:'',
     expected:'§9 検査2: 既存オフィス背景と人物部品で2人の申し送りを描かない',
   },
+  {
+    name:'小画面でオフィス操作の固定を外す', file:'p1_head.html', layout:true,
+    from:'    position:fixed; z-index:45; left:0; right:0; bottom:0;',
+    to:'    position:static; z-index:45; left:0; right:0; bottom:0;',
+    expected:'オフィス4操作 の中心が初期表示の画面外',
+  },
 ];
 
-const selectedMutations = process.env.MUTATION_MATCH
+const requestedMutations = process.env.MUTATION_MATCH
   ? mutations.filter(mutation => mutation.name.includes(process.env.MUTATION_MATCH))
   : mutations;
+assert(requestedMutations.length, 'MUTATION_MATCH に一致する変異がない');
+const skippedMutations = requestedMutations.filter(mutation => mutation.layout && !process.env.WIFI_LAYOUT_CDP_PORT);
+const selectedMutations = requestedMutations.filter(mutation => !skippedMutations.includes(mutation));
+if (process.env.MUTATION_MATCH && skippedMutations.length) {
+  throw new Error('小画面レイアウト変異には WIFI_LAYOUT_CDP_PORT が必要');
+}
 
 /* 変異の的が現行ソースに当たるかを、走らせる前にまとめて確かめる。
    0箇所なら止める。複数箇所は「意図しないほうを壊している」恐れがあるので一覧に出す。
@@ -2828,7 +2840,7 @@ const selectedMutations = process.env.MUTATION_MATCH
   const readOnce = file => cache[file] || (cache[file] = fs.readFileSync(path.join(__dirname, file), 'utf8'));
   const missing = [];
   const ambiguous = [];
-  selectedMutations.forEach((mutation, index) => {
+  requestedMutations.forEach((mutation, index) => {
     if (!mutation || !mutation.file || typeof mutation.from !== 'string') return;
     const hits = readOnce(mutation.file).split(mutation.from).length - 1;
     if (hits === 0) missing.push('[' + (index + 1) + '] ' + mutation.name + ' (' + mutation.file + ')');
@@ -2849,7 +2861,8 @@ for (const mutation of selectedMutations){
     fs.writeFileSync(target, after);
     const build = spawnSync(process.execPath, ['build.js'], { cwd:temp, encoding:'utf8' });
     assert.equal(build.status, 0, mutation.name + ': mutated build failed before contract test');
-    const result = spawnSync(process.execPath, ['ui_contract_test.js'], { cwd:temp, encoding:'utf8' });
+    const testScript = mutation.layout ? 'small_viewport_layout_test.js' : 'ui_contract_test.js';
+    const result = spawnSync(process.execPath, [testScript], { cwd:temp, encoding:'utf8', env:process.env });
     const output = (result.stdout || '') + (result.stderr || '');
     assert.notEqual(result.status, 0, mutation.name + ': contract test stayed green');
     assert(output.includes(mutation.expected), mutation.name + ': wrong failure\n' + output);
@@ -2859,4 +2872,5 @@ for (const mutation of selectedMutations){
   }
 }
 
-console.log('UI negative mutations:', selectedMutations.length + '/' + selectedMutations.length, 'red');
+const skippedNote = skippedMutations.length ? ' (' + skippedMutations.length + '件は WIFI_LAYOUT_CDP_PORT 未指定のため未実行)' : '';
+console.log('UI negative mutations:', selectedMutations.length + '/' + requestedMutations.length, 'red' + skippedNote);

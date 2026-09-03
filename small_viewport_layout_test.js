@@ -1,7 +1,5 @@
 /* 実効表示高が低いスマホで、最初に必要な操作の中心が画面内にあることを測る。 */
 const assert = require('assert');
-const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const VIEWPORTS = [
   { width:430, height:745 },
@@ -12,28 +10,34 @@ const pageUrl = 'file://' + path.join(__dirname, 'index.html');
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-async function devtoolsAt(port){
-  const [pages, browser] = await Promise.all([
-    (await fetch('http://127.0.0.1:' + port + '/json/list')).json(),
-    (await fetch('http://127.0.0.1:' + port + '/json/version')).json(),
-  ]);
-  const target = pages.find(page => page.type === 'page');
-  return target ? { wsUrl:target.webSocketDebuggerUrl, browserWsUrl:browser.webSocketDebuggerUrl } : null;
+async function browserAt(port){
+  const browser = await (await fetch('http://127.0.0.1:' + port + '/json/version')).json();
+  return browser.webSocketDebuggerUrl ? { browserWsUrl:browser.webSocketDebuggerUrl } : null;
 }
 
-async function startChrome(){
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'wifi-layout-'));
+async function connectChrome(){
   const port = Number(process.env.WIFI_LAYOUT_CDP_PORT);
   assert(Number.isInteger(port) && port > 0, 'WIFI_LAYOUT_CDP_PORT がない。headless Chrome の DevTools ポートを指定して実行する');
   for (let attempt = 0; attempt < 200; attempt++){
     try {
-      const endpoints = await devtoolsAt(port);
-      if (endpoints) return { profile, ...endpoints };
+      const endpoints = await browserAt(port);
+      if (endpoints) return { port, ...endpoints };
     } catch (error){ /* 起動待ち */ }
     await pause(25);
   }
-  fs.rmSync(profile, { recursive:true, force:true });
   throw new Error('Chrome DevTools の起動を待てなかった');
+}
+
+async function createdPageAt(port, targetId){
+  for (let attempt = 0; attempt < 200; attempt++){
+    try {
+      const pages = await (await fetch('http://127.0.0.1:' + port + '/json/list')).json();
+      const target = pages.find(page => page.id === targetId && page.type === 'page');
+      if (target && target.webSocketDebuggerUrl) return target.webSocketDebuggerUrl;
+    } catch (error){ /* ターゲット登録待ち */ }
+    await pause(25);
+  }
+  throw new Error('作成した Chrome ページターゲットに接続できなかった');
 }
 
 function connect(wsUrl){
@@ -112,19 +116,23 @@ async function verifyViewport(cdp, viewport){
 }
 
 (async () => {
-  const chrome = await startChrome();
-  const cdp = connect(chrome.wsUrl);
+  const chrome = await connectChrome();
   const browserCdp = connect(chrome.browserWsUrl);
+  let cdp;
+  let targetId;
   try {
-    await cdp.ready();
     await browserCdp.ready();
+    ({ targetId } = await browserCdp.send('Target.createTarget', { url:'about:blank' }));
+    cdp = connect(await createdPageAt(chrome.port, targetId));
+    await cdp.ready();
     await cdp.send('Page.enable');
     for (const viewport of VIEWPORTS) await verifyViewport(cdp, viewport);
     console.log('Small viewport layout: 3/3 green');
   } finally {
-    cdp.close();
-    try { await browserCdp.send('Browser.close'); } catch (error){ /* 起動失敗時も一時プロファイルは消す */ }
+    if (cdp) cdp.close();
+    if (targetId) {
+      try { await browserCdp.send('Target.closeTarget', { targetId }); } catch (error){ /* 接続失敗時は外部 Chrome を閉じない */ }
+    }
     browserCdp.close();
-    fs.rmSync(chrome.profile, { recursive:true, force:true });
   }
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });
