@@ -78,24 +78,51 @@ async function evaluate(cdp, expression){
 function visibleCenters(label, rects, height){
   assert(rects.length, label + ' が描画されていない');
   rects.forEach(rect => assert(
+    rect.width > 0 && rect.height > 0,
+    label + ' が描画されていない: ' + JSON.stringify(rect)
+  ));
+  rects.forEach(rect => assert(
     rect.center >= 0 && rect.center <= height,
     label + ' の中心が初期表示の画面外: ' + JSON.stringify({ height, rect })
   ));
   rects.forEach(rect => assert(rect.hit, label + ' の中心が別要素に覆われている: ' + JSON.stringify(rect)));
 }
 
+function noTopbarOverlap(label, rects){
+  const visible = rects.filter(rect => rect.width > 0 && rect.height > 0);
+  for (let i = 0; i < visible.length; i++){
+    for (let j = i + 1; j < visible.length; j++){
+      const a = visible[i];
+      const b = visible[j];
+      const overlaps = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      assert(!overlaps, '上部バーの実描画が重なっている: ' + JSON.stringify({ label, a, b }));
+    }
+  }
+}
+
+async function assertTopbarClear(cdp, label){
+  const rects = await evaluate(cdp, `(() => {
+    const textRect = (name, selector) => { const node=document.querySelector(selector), range=document.createRange(); range.selectNodeContents(node); const r=range.getBoundingClientRect(); return { name, left:r.left, right:r.right, top:r.top, bottom:r.bottom, width:r.width, height:r.height }; };
+    const boxRect = node => { const r=node.getBoundingClientRect(); return { name:node.className, left:r.left, right:r.right, top:r.top, bottom:r.bottom, width:r.width, height:r.height }; };
+    return [textRect('logo', '.brand .mark'), textRect('clock', '.clock .t'), ...[...document.querySelectorAll('.topbar-inner > button')].map(boxRect)];
+  })()`);
+  noTopbarOverlap(label, rects);
+}
+
 async function verifyViewport(cdp, viewport){
   await cdp.send('Emulation.setDeviceMetricsOverride', { width:viewport.width, height:viewport.height, deviceScaleFactor:1, mobile:false });
   await cdp.send('Page.navigate', { url:pageUrl });
   await pause(180);
-  const start = await evaluate(cdp, `(() => { const node=document.querySelector('#btn-start'), r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { scrollY, rects:[{center:r.top+r.height/2,top:r.top,bottom:r.bottom,hit:hit === node || node.contains(hit)}] }; })()`);
+  const start = await evaluate(cdp, `(() => { const node=document.querySelector('#btn-start'), r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { scrollY, rects:[{center:r.top+r.height/2,top:r.top,bottom:r.bottom,width:r.width,height:r.height,hit:hit === node || node.contains(hit)}] }; })()`);
   assert.equal(start.scrollY, 0, 'ブリーフィングが初期表示でスクロールしている');
+  await assertTopbarClear(cdp, 'ブリーフィング');
   visibleCenters('シフトを始める', start.rects, viewport.height);
   await evaluate(cdp, 'closeSheet(); enterOffice(); null');
   await pause(80);
 
-  const office = await evaluate(cdp, `(() => ({ scrollY, rects:[...document.querySelectorAll('.office-call-action')].map(node => { const r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { text:node.textContent.trim(), center:r.top+r.height/2, top:r.top, bottom:r.bottom, hit:hit === node || node.contains(hit) }; }) }))()`);
+  const office = await evaluate(cdp, `(() => ({ scrollY, rects:[...document.querySelectorAll('.office-call-action')].map(node => { const r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { text:node.textContent.trim(), center:r.top+r.height/2, top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit) }; }) }))()`);
   assert.equal(office.scrollY, 0, 'オフィスが初期表示でスクロールしている');
+  await assertTopbarClear(cdp, 'オフィス');
   assert.equal(office.rects.length, 4, 'オフィス操作が4つではない');
   visibleCenters('オフィス4操作', office.rects, viewport.height);
 
@@ -108,8 +135,9 @@ async function verifyViewport(cdp, viewport){
     return null;
   })()`);
   await pause(80);
-  const call = await evaluate(cdp, `(() => { const rectFor = node => { const r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { text:node.textContent.trim(), center:r.top+r.height/2, top:r.top, bottom:r.bottom, hit:hit === node || node.contains(hit), hitClass:hit && hit.className }; }; const customerLines=[...document.querySelectorAll('.transcript.recent .line.cust .say')]; return { scrollY, customer:customerLines.length ? rectFor(customerLines.at(-1)) : null, commands:[...document.querySelectorAll('.command-grid .command-choice')].map(rectFor), hangup:rectFor(document.querySelector('.hangup-button')) }; })()`);
+  const call = await evaluate(cdp, `(() => { const rectFor = node => { const r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { text:node.textContent.trim(), center:r.top+r.height/2, top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit), hitClass:hit && hit.className }; }; const customerLines=[...document.querySelectorAll('.transcript.recent .line.cust .say')]; return { scrollY, customer:customerLines.length ? rectFor(customerLines.at(-1)) : null, commands:[...document.querySelectorAll('.command-grid .command-choice')].map(rectFor), hangup:rectFor(document.querySelector('.hangup-button')) }; })()`);
   assert.equal(call.scrollY, 0, '通話が初期表示でスクロールしている');
+  await assertTopbarClear(cdp, '通話');
   assert(call.customer, '直近の顧客発話が描画されていない');
   visibleCenters('直近の顧客発話', [call.customer], viewport.height);
   assert.equal(call.commands.length, 4, '通話の主コマンドが4つではない');

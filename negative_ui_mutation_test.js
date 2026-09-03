@@ -2826,6 +2826,12 @@ const mutations = [
     to:'  body.call-view .transcript.recent{\n    position:fixed; z-index:101; isolation:isolate; left:0; right:0;\n    bottom:var(--short-call-actions-height);\n    display:none;',
     expected:'直近の顧客発話が描画されていない',
   },
+  {
+    name:'小画面の上部バーを時計込み5列へ戻す', file:'p1_head.html', layout:true,
+    from:'  .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto; }\n  .topbar-inner > .clock{ display:none; }\n  .topbar-inner > .btn-sound{ grid-column:2; }\n  .topbar-inner > .btn-balance{ grid-column:3; }\n  .topbar-inner > .btn-help{ grid-column:4; }',
+    to:'  .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto auto; }\n  .topbar-inner > .clock{ display:flex; }\n  .topbar-inner > .btn-sound{ grid-column:3; }\n  .topbar-inner > .btn-balance{ grid-column:4; }\n  .topbar-inner > .btn-help{ grid-column:5; }',
+    expected:'上部バーの実描画が重なっている',
+  },
 ];
 
 const requestedMutations = process.env.MUTATION_MATCH

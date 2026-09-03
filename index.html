@@ -1360,6 +1360,13 @@ body.office-view .office-scene{ gap:14px; }
 @media (max-width:480px){
   body{ width:100%; box-shadow:none; }
   .artifact-qr-card{ display:none; }
+  /* 375px級ではロゴと3操作を優先する。時刻は下のシフト帯で読めるため、
+     ここでは時計を畳んでロゴの実文字が操作へ食い込まないようにする。 */
+  .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto; }
+  .topbar-inner > .clock{ display:none; }
+  .topbar-inner > .btn-sound{ grid-column:2; }
+  .topbar-inner > .btn-balance{ grid-column:3; }
+  .topbar-inner > .btn-help{ grid-column:4; }
 }
 </style>
 </head>
