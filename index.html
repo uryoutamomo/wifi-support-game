@@ -225,18 +225,19 @@ button:focus-visible, [tabindex]:focus-visible{
 .shift-pin.closed{ color: var(--faint); opacity: .62; }
 .shift-pin.abandoned{ color: var(--crit); opacity: 1; }
 .shift-pin.abandoned .shift-pin-dot{ background: var(--crit); border-color: var(--crit); }
+.shift-now{ will-change:left; }
 @keyframes pinpulse{
   0%,100%{ transform: scale(.85); opacity: .62; }
   50%{ transform: scale(1.2); opacity: 1; }
 }
 
 /* ============================================================
-   コンソール ― 対応デスク、診断、待機状況を縦にまとめる
+   コンソール ― 対応デスクと待機状況
    ============================================================ */
 
 .console{
   display: grid;
-  grid-template-columns: 288px minmax(0,1fr) 330px;
+  grid-template-columns: minmax(0,1fr) 330px;
   gap: 1px;
   background: var(--line-soft);
   align-items: stretch;
@@ -259,11 +260,29 @@ body.sheet-open .office-scene{ display: none; }
 body.office-view .console{ display: none; }
 body.call-view .office-scene{ display: none; }
 body.call-view .console{ animation: call-in .22s ease both; }
+.time-passage-indicator{
+  position:fixed;
+  left:50%;
+  bottom:max(18px,env(safe-area-inset-bottom));
+  z-index:80;
+  display:none;
+  transform:translateX(-50%);
+  padding:8px 13px;
+  border:1px solid var(--accent-line);
+  border-radius:999px;
+  background:var(--surface);
+  color:var(--text-2);
+  box-shadow:0 8px 28px rgba(16,42,67,.18);
+  font:700 12px/1.4 var(--mono);
+  white-space:nowrap;
+  pointer-events:none;
+}
+body.time-advancing .time-passage-indicator{ display:block; }
 
 /* §52: 通話中にも、自分の夜がどこまで来たかを判断できるようタイムシフト表を残す。
    待機状況は、会話とコマンドを画面の外へ押し出さないよう畳み、
    要点の待ち件数は電話の状態とペイン見出しへ出す。
-   ペインそのものは消さない（3ペインの並びは §42 の判断どおり保つ）。 */
+   ペインそのものは消さない。 */
 /* §48-7: 選択肢が増えるとページ自体が伸び、会話が画面の外へ押し出されて戻らない
    （原因の一覧は14件あり、それだけで画面1.5個分になる）。選択肢の側をスクロール
    させて、会話とコマンドが同じ画面に残るようにする。 */
@@ -499,8 +518,7 @@ body.sheet-open .console{ display: none; }
 .log-section p{ margin:5px 0; }
 .log-section ul{ margin:5px 0; padding-left:1.25em; }
 .log-customer p{ display:grid; grid-template-columns:minmax(7em,auto) 1fr; gap:10px; }
-.log-customer b,.log-candidates b{ color:var(--text-3); font-size:12px; }
-.log-candidates{ display:flex; flex-direction:column; gap:3px; }
+.log-customer b{ color:var(--text-3); font-size:12px; }
 
 .line{ display: flex; flex-direction: column; gap: 3px; max-width: 88%; }
 .line .who{
@@ -737,100 +755,6 @@ body.sheet-open .console{ display: none; }
   line-height: 1.6;
 }
 
-/* ---------- 右：診断ボード ---------- */
-
-.board{ overflow-y: auto; }
-
-/* ルーター液晶。顧客の説明を聞くまでは値そのものをDOMに出さない。 */
-.device-card{
-  margin-bottom: 14px;
-  padding: 9px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  box-shadow: inset 0 0 0 1px var(--line-soft);
-}
-.device-label{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-family: var(--display);
-  font-size: 11px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.listening-note dl{ margin:0; display:grid; gap:5px; font:12px/1.5 var(--mono); }
-.listening-note dl > div{ display:grid; grid-template-columns:92px 1fr; gap:8px; padding-bottom:4px; border-bottom:1px dotted var(--line); }
-.listening-note dt{ color:var(--faint); }
-.listening-note dd{ margin:0; color:var(--text); overflow-wrap:anywhere; }
-.lcd{
-  position: relative;
-  min-height: 112px;
-  padding: 9px 10px 8px;
-  overflow: hidden;
-  border: 1px solid var(--signal-deep);
-  border-radius: 3px;
-  background: var(--panel-2);
-  color: var(--signal);
-  font-family: var(--mono);
-  font-size: 11px;
-  box-shadow: inset 0 0 18px var(--ink);
-}
-.lcd.obscured,
-.lcd.missing{
-  display: grid;
-  place-items: center;
-  text-align: center;
-  color: var(--dim);
-  background: linear-gradient(135deg, var(--panel-2), var(--panel-3));
-}
-.lcd.obscured::before{
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(110deg, transparent 0 6px, var(--line-soft) 6px 10px);
-  opacity: .68;
-}
-.lcd-placeholder{ position: relative; z-index: 1; line-height: 1.7; }
-.lcd-placeholder b{ display: block; color: var(--text); font-weight: 500; }
-.lcd-top,
-.lcd-status,
-.lcd-bottom{ display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.lcd-status{ margin-top: 11px; }
-.lcd-bottom{ margin-top: 10px; padding-top: 7px; border-top: 1px solid var(--signal-deep); }
-.lcd-carrier{ font-size: 12px; font-weight: 600; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.signal-bars{ height: 17px; display: flex; align-items: flex-end; gap: 2px; flex: none; }
-.signal-bars i{ display: block; width: 3px; background: var(--line); border-radius: 1px 1px 0 0; }
-.signal-bars i:nth-child(1){ height: 5px; }
-.signal-bars i:nth-child(2){ height: 8px; }
-.signal-bars i:nth-child(3){ height: 12px; }
-.signal-bars i:nth-child(4){ height: 16px; }
-.signal-bars i.on{ background: var(--signal); }
-.lcd-offline{ color: var(--crit); font-weight: 600; }
-.lcd-sim-none{ color: var(--crit); font-size: 13px; font-weight: 600; }
-.lcd-throttle{
-  color: var(--amber);
-  border: 1px solid var(--amber-deep);
-  padding: 0 4px;
-  border-radius: 2px;
-  letter-spacing: .08em;
-}
-.lcd-clients{ color: var(--text); }
-.lcd-battery{
-  width: 30px;
-  height: 11px;
-  padding: 1px;
-  border: 1px solid var(--signal-deep);
-  border-radius: 1px;
-  flex: none;
-}
-.lcd-battery i{ display: block; height: 100%; background: var(--signal); }
-.lcd-battery-wrap{ display: flex; align-items: center; gap: 5px; }
-.lcd-ssid{ min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
-
 /* 照会結果はROUTER DISPLAYと同じ暗い機械画面として見せる */
 .line.sys.lookup-result .say{
   width: 100%;
@@ -902,10 +826,8 @@ body.sheet-open .console{ display: none; }
 .record-system-block ul{ margin: 4px 0; padding-left: 1.3em; }
 .record-system-screen .log-customer p{ display: grid; grid-template-columns: minmax(110px,.38fr) 1fr; gap: 12px; margin: 0; padding: 4px 0; border-bottom: 1px dotted var(--signal-deep); }
 .record-system-screen .log-customer p:last-child{ border-bottom: 0; }
-.record-system-screen .log-customer b,
-.record-system-screen .log-candidates b{ color: var(--dim); font-weight: 400; }
-.record-system-screen .log-customer span,
-.record-system-screen .log-candidates span{ color: var(--signal); }
+.record-system-screen .log-customer b{ color: var(--dim); font-weight: 400; }
+.record-system-screen .log-customer span{ color: var(--signal); }
 .record-system-transcript{ display: flex; flex-direction: column; gap: 0; }
 .record-system-entry{ display: grid; grid-template-columns: minmax(88px,.28fr) 1fr; gap: 12px; padding: 6px 0; border-bottom: 1px dotted var(--signal-deep); }
 .record-system-entry:last-child{ border-bottom: 0; }
@@ -933,77 +855,6 @@ body.sheet-open .console{ display: none; }
 .lookup-viz-fill.over{ background: var(--crit); }
 .lookup-viz-fill.unlimited{ background: repeating-linear-gradient(90deg, var(--signal) 0 8px, var(--signal-deep) 8px 12px); }
 .lookup-viz-note{ color: var(--dim); font-size: 11px; }
-
-.cause{
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 6px 6px 6px 8px;
-  border-left: 2px solid var(--line-soft);
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--dim);
-  transition: color .2s, border-color .2s, opacity .2s;
-}
-.cause .tick{
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--faint);
-  flex: none;
-  width: 14px;
-  text-align: center;
-  padding-top: 1px;
-}
-.cause.out{ opacity: .32; text-decoration: line-through; text-decoration-color: var(--faint); }
-.cause.hot{
-  color: var(--amber);
-  border-left-color: var(--amber);
-  background: var(--amber-glow);
-}
-.cause.hot .tick{ color: var(--amber); }
-.cause > span:nth-child(2){ flex: 1; min-width: 0; }
-.cause .tier{
-  font-family: var(--display);
-  font-size: 11px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--faint);
-  flex: none;
-  padding-top: 2px;
-  white-space: nowrap;
-}
-
-.facts{ display: flex; flex-direction: column; gap: 6px; }
-.fact{
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--text);
-  padding: 7px 9px;
-  background: var(--panel);
-  border-left: 2px solid var(--signal-deep);
-  border-radius: 2px;
-}
-.fact .src{
-  display: block;
-  font-family: var(--display);
-  font-size: 11px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--faint);
-  margin-bottom: 1px;
-}
-
-.mini-list{ display: flex; flex-direction: column; gap: 4px; }
-.mini{
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-  padding: 4px 0;
-  border-bottom: 1px dotted var(--line-soft);
-  color: var(--dim);
-}
-.mini b{ color: var(--text); font-weight: 500; font-family: var(--mono); font-size: 12px; }
 
 /* ============================================================
    オーバーレイ（ブリーフィング／シフト終了／マニュアル）
@@ -1232,6 +1083,12 @@ body.sheet-open .console{ display: none; }
 .audio-diagnostic b{ display:block; color:var(--text); font:800 16px/1.4 var(--display); }
 .audio-diagnostic p{ margin:6px 0 10px; color:var(--text-2); font-size:13px; line-height:1.6; }
 .audio-diagnostic .btn-ghost{ margin:0; }
+.handover-speaker{ margin:14px 0 16px; padding:12px 14px; border-left:3px solid var(--accent); background:var(--accent-soft); color:var(--text-2); }
+.handover-speaker b{ color:var(--accent); }
+.handover-list{ display:grid; gap:12px; margin:14px 0 22px; }
+.handover-card{ padding:14px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
+.handover-card p{ margin:0; color:var(--text-2); font-size:15px; line-height:1.75; }
+.handover-card strong{ color:var(--text); font-weight:800; }
 .promotion-banner{ margin:12px 0 18px; padding:14px; border:2px solid var(--amber); border-radius:10px; background:var(--amber-glow); color:var(--text); font:800 17px/1.4 var(--display); text-align:center; }
 .career-panel{ margin:18px 0 24px; padding:16px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
 .career-panel h2{ margin-top:0; }.career-summary{ display:flex; flex-wrap:wrap; gap:8px 14px; align-items:baseline; }.career-summary b{ font-size:20px; }.career-summary span{ color:var(--dim); font:600 12px/1.5 var(--mono); }
@@ -1281,17 +1138,15 @@ body.sheet-open .console{ display: none; }
 .line.cust .say,.opt,.tone,.waybill,.report-auto,.report-check,.score-cell{ background:var(--surface-2); }.line.me .say{ background:var(--accent-soft); border-color:var(--accent-line); }.line.me .who,.tone .tname,.shipment h3{ color:var(--accent); }
 .line{ max-width:82%; }.line .say{ position:relative; border:1px solid var(--line); border-radius:12px 12px 12px 3px; }.line.cust .say::after{ content:""; position:absolute; left:-1px; bottom:-7px; border-width:7px 8px 0 0; border-style:solid; border-color:var(--surface-2) transparent transparent transparent; }.line.me .say{ border-radius:12px 12px 3px 12px; }.line.me .say::after{ content:""; position:absolute; right:-1px; bottom:-7px; border-width:7px 0 0 8px; border-style:solid; border-color:var(--accent-soft) transparent transparent transparent; }.line.sys .say{ border:1px solid var(--signal); background:var(--signal-soft); color:var(--text-2); }.line.note .say{ border:1px solid var(--line-soft); background:var(--surface-2); }
 .line.typing .say::before{ content:""; display:inline-block; width:7px; height:12px; margin-left:2px; background:var(--accent); vertical-align:-1px; animation:type-cursor .7s steps(1,end) infinite; }.line.typing .say:empty::before{ margin-left:0; }.actions.is-typing{ opacity:.48; pointer-events:none; user-select:none; }@keyframes type-cursor{ 50%{ opacity:0; } }
-.opt{ padding:12px 13px; font-size:15px; }.opt:hover:not(:disabled),.tone:hover,.report-check:hover{ background:var(--surface-3); border-color:var(--accent-line); }.opt:focus-visible,.tone:focus-visible,.board-toggle:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.opt{ padding:12px 13px; font-size:15px; }.opt:hover:not(:disabled),.tone:hover,.report-check:hover{ background:var(--surface-3); border-color:var(--accent-line); }.opt:focus-visible,.tone:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .opts{ max-height:min(32vh,300px); }.transcript{ flex:5 1 0; min-height:125px; max-height:none; }.line .say{ font-size:15px; }.actions{ flex:4 1 0; min-height:0; overflow:auto; padding:14px; }
-.device-card{ background:var(--surface); }.lcd,.lcd.obscured,.lcd.missing,.system-screen{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.lcd.obscured::before{ background:repeating-linear-gradient(110deg,transparent 0 6px,#183746 6px 10px); }.lcd-placeholder b,.lcd-clients,.lcd-ssid,.system-screen header b,.record-system-block p,.record-system-block li,.record-system-entry > span{ color:#E4F6F4; }
+.system-screen{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.system-screen header b,.record-system-block p,.record-system-block li,.record-system-entry > span{ color:#E4F6F4; }
 .system-screen header span,.system-screen footer,.system-screen .lookup-system-row b,.system-screen .record-system-entry > b{ color:#78B8B3; }
 .system-screen header em{ color:#A8E4DF; border-color:#3F7E79; }
-.system-screen .record-system-block h3,.system-screen .log-customer span,.system-screen .log-candidates span{ color:#A8E4DF; }
-.system-screen .log-customer b,.system-screen .log-candidates b{ color:#78B8B3; }
+.system-screen .record-system-block h3,.system-screen .log-customer span{ color:#A8E4DF; }
+.system-screen .log-customer b{ color:#78B8B3; }
 .system-screen .record-denied-message b{ color:#F6C56A; }
 .system-screen .record-denied-message p{ color:#E4F6F4; }
-.board-toggle{ width:100%; display:flex; justify-content:space-between; margin:10px 0; padding:9px 10px; border:1px solid var(--line); background:var(--surface-2); color:var(--text-2); font-size:13px; font-weight:600; }.board-toggle span{ color:var(--accent); font-weight:500; }.board-excluded{ border-top:1px solid var(--line-soft); }
-.cause{ color:var(--text-2); }.cause.hot{ color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); }.cause.out{ opacity:.7; color:var(--text-3); }
 .sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover{ border-color:var(--accent-line); color:var(--accent); }
 
 @media (prefers-reduced-motion: reduce){
@@ -1395,9 +1250,7 @@ body.playing .opts{ max-height:none; overflow:visible; }
 .command-copy small{ font-size:14px; }
 .command-meta{ font-size:13px; }
 .command-back{ min-height:52px; padding:10px 12px; font-size:17px; }
-.summary-figure,.fact,.cause,.mini{ font-size:18px; }
-.fact .src,.cause .tick,.cause .tier{ font-size:13px; }
-.board-toggle{ min-height:52px; padding:11px 12px; font-size:17px; border-radius:10px; }
+.summary-figure{ font-size:18px; }
 
 .office-scene{ min-height:calc(100dvh - 170px); padding:16px 14px calc(24px + env(safe-area-inset-bottom)); }
 body.office-view .office-scene{ gap:14px; }
@@ -1451,6 +1304,8 @@ body.office-view .office-scene{ gap:14px; }
 </style>
 </head>
 <body>
+
+<div class="time-passage-indicator" id="time-passage-indicator" role="status" aria-live="polite">時間が進んでいます ／ タップで進む</div>
 
 <div class="topbar">
   <div class="topbar-inner">
@@ -1511,14 +1366,6 @@ body.office-view .office-scene{ gap:14px; }
     <div class="call" id="call"></div>
   </section>
 
-  <section class="pane board">
-    <div class="pane-head">
-      <h2 class="pane-title">診断ボード</h2>
-      <span class="count-chip mono" id="fact-count">0件</span>
-    </div>
-    <div id="board"></div>
-  </section>
-
   <section class="pane call-summary">
     <div class="pane-head">
       <h2 class="pane-title">待機状況</h2>
@@ -1545,6 +1392,9 @@ const SHIFT_END = SHIFT_START + SHIFT_DURATION; // 翌07:00 JST
 /* §52: 着信時刻は案件データではなく、この夜勤の器から引く。 */
 const LAST_INBOUND_TURN = 7 * 60; // 06:00 までに最後の着信
 const MIN_INBOUND_GAP = 20;
+const HANDOVER_ZERO_RATE = 0.6; // 引き継ぎなしの夜を最も多くする
+const HANDOVER_ONE_RATE = 0.25;
+const HANDOVER_ANSWER_RATE = 0.5;
 const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
@@ -1581,6 +1431,7 @@ const GAME_FLAGS = {
   shuffleArrival: true,
   shuffleIdentity: true,
   dailyTickets: null,
+  handoverTickets: null,
   careerStage: null,
   unlockedBadges: null,
   solvedScenarios: null,
@@ -2151,6 +2002,7 @@ const SCENARIOS = [
   contractId:{ minutes:2, text:'予約番号…はい、探します。手が震えて…すみません。ありました。GDW-410882、これで合っていますか？' },
   country:'タイ', city:'バンコク', cityEn:'BANGKOK', localOffset:-2, carrierName:'AIS', device:'GD-500', plan:'{country} ／ 500MBプラン',
   opening:'あの…地図が全然開かないんです。昨日まで使えたのに、今日だけ急に遅くて…。どうしたらいいでしょうか。',
+  handoverSymptom:'地図の読み込みが非常に遅い',
   smalltalk:[
     { id:'st_s1_trip', reveal:'q_when', askLabel:'{city}では、どちらを回られるご予定ですか？', tellLabel:'新婚旅行、おめでとうございます', goodReply:'ありがとうございます…。{spouse}と一緒だと思ったら、少し息ができました。', badReply:'ありがとうございます。でも地図がないと、ホテルにも戻れなくなりそうで…。' },
     { id:'st_s1_movie', reveal:'q_when', askLabel:'昨夜は、どのような映画をご覧になったんですか？', tellLabel:'お二人で映画を楽しまれたんですね', goodReply:'はい…つい見入ってしまって。思い出したら、少し落ち着きました。', badReply:'映画の話をしたら、私が使いすぎたせいって決まるんでしょうか…？' },
@@ -2188,6 +2040,7 @@ const SCENARIOS = [
   contractId:{ minutes:4, text:'番号…どの紙でしょう。すみません、老眼鏡も見つからなくて…。これですか？ GDW-336104。違っていたら、ごめんなさいね。' },
   country:'イギリス', city:'ロンドン', cityEn:'LONDON', localOffset:-8, carrierName:'Vodafone UK', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'も、もしもし。インターネットが繋がらなくて…。変な所を押して壊したんでしょうか。すみません、機械のことが本当に分からなくて…。',
+  handoverSymptom:'スマートフォンだけWi-Fiにつながらない',
   smalltalk:[{ id:'st_s2_tour', reveal:'q_other_device', askLabel:'ツアーでは、どちらを回られたんですか？', tellLabel:'皆様とのご旅行、素敵ですね', goodReply:'旅程では博物館へ…。皆さんと一緒だと思うと、少し心強いです。', badReply:'お気遣いまで、すみません。同行のお二人にも迷惑をかけないか心配で…。' }],
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:3, maxClients:5, battery:71, ssid:'Globaldesk-4471' },
   trueCause:'device_side', best:'r_forget_guide', partial:['r_use_other'],
@@ -2227,6 +2080,7 @@ const SCENARIOS = [
   rushedReply:'はい。挨拶は分かった。続き、早く。', contractId:{ minutes:1, text:'メールにあります。GDW-529017。はい、次。' },
   country:'ハワイ', city:'ホノルル', cityEn:'HONOLULU', localOffset:-19, carrierName:'T-Mobile US', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'急いでます。一台だけ繋がりません。ほかは使えます。あと10分で移動しないといけません。何を見ればいいですか。',
+  handoverSymptom:'複数端末のうち一台だけつながらない',
   smalltalk:[{ id:'st_s3_daughter', reveal:'q_other_device', askLabel:'お嬢様はタブレットで何をご覧になるんですか？', tellLabel:'お嬢様とのご旅行、楽しそうですね', goodReply:'家族旅行です。…はい、少し落ち着きました。次は？', badReply:'その話は後。バスが着きます。直し方を先に。' }],
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:5, maxClients:5, battery:55, ssid:'Globaldesk-8802' },
   trueCause:'devices', best:'r_disconnect', partial:['r_second_unit'], shipNeed:'normal',
@@ -2268,6 +2122,7 @@ const SCENARIOS = [
   contractId:{ minutes:1, text:'GDW-118350です。控えてあります。' },
   country:'中国本土', city:'上海', cityEn:'SHANGHAI', localOffset:-1, carrierName:'China Unicom', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'電波強度と回線速度は正常。ただ、社内システムと海外系サービスだけ到達しません。疎通は取れて、名前解決で落ちます。経路条件を疑っています。',
+  handoverSymptom:'特定の業務システムと海外サービスだけ開けない',
   smalltalk:[{ id:'st_s4_work', reveal:'q_when', askLabel:'{city}では、どのようなお仕事をされているんですか？', tellLabel:'{city}でのお仕事、お疲れさまです', goodReply:'ありがとうございます。現地チームとの技術打ち合わせです。では続けましょう。', badReply:'お気遣いは不要です。その質問が障害切り分けにどう寄与しますか。' }],
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:2, maxClients:5, battery:80, ssid:'Globaldesk-1174' },
   trueCause:'geo_block', best:'r_vpn_plan', partial:['r_explain_block'],
@@ -2299,6 +2154,7 @@ const SCENARIOS = [
   contractId:{ minutes:2, text:'はい…会社の手配です。えっと、GDW-673925。間違っていませんよね？' },
   country:'アメリカ', city:'ニューヨーク', cityEn:'NEW YORK', localOffset:-13, carrierName:'T-Mobile US', regionGroup:'us_northeast', regionName:'米国北東部', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'あの…30分前に全部切れて、再起動しても戻りません。明朝までに必要な資料が開けなくて…。失敗したらと思うと、手が震えます。どうしよう…。',
+  handoverSymptom:'突然すべて通信できなくなった',
   smalltalk:[{ id:'st_s5_visit', reveal:'q_when', askLabel:'明日は、どのようなお客様を訪問されるんですか？', tellLabel:'明日のご訪問、うまく進むといいですね', goodReply:'ありがとうございます…。大事な提案なので、その一言で少し呼吸が戻りました。', badReply:'ありがとうございます。でも、このままだと提案そのものができなくなります…。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:45, ssid:'Globaldesk-6390' },
   trueCause:'carrier', best:'r_outage_explain', bestNoOutage:'r_escalate_line', partial:['r_escalate_line'],
@@ -2340,6 +2196,7 @@ const SCENARIOS = [
   rushedReply:'分かってます。前置きは終わり。進めて。', contractId:{ minutes:1, text:'毎月使うので控えてます。GDW-206441。次。' },
   country:'アメリカ', city:'ボストン', cityEn:'BOSTON', localOffset:-13, carrierName:'T-Mobile US', regionGroup:'us_northeast', regionName:'米国北東部', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'急に圏外。再起動済み、変化なし。次の移動まで15分。交換が要るか、いま判断してください。',
+  handoverSymptom:'再起動しても圏外のまま',
   smalltalk:[{ id:'st_s6_regular', reveal:'q_when', askLabel:'毎月のご出張では、いつも{city}へ来られるんですか？', tellLabel:'いつもご利用いただき、ありがとうございます', goodReply:'毎月です。はい、少しだけ落ち着きました。判断を。', badReply:'利用歴の話は後。残り15分。交換判断を先に。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:38, ssid:'Globaldesk-6512' },
   trueCause:'carrier', best:'r_outage_explain', bestNoOutage:'r_escalate_line', partial:['r_escalate_line'],
@@ -2372,6 +2229,7 @@ const SCENARIOS = [
   contractId:{ minutes:1, text:'GDW-887302。画面に出しています。照合してください。' },
   country:'スペイン', city:'バルセロナ', cityEn:'BARCELONA', localOffset:-7, carrierName:'Orange ES', device:'GD-200', plan:'{country} ／ 1GBプラン',
   opening:'市街地では正常でしたが、郊外へ移動後は完全に圏外です。3台とも同じなので端末要因は除外済み。地域差か対応周波数を確認していただけますか。',
+  handoverSymptom:'郊外へ移動してから複数端末が圏外になる',
   smalltalk:[{ id:'st_s7_village', reveal:'q_where', askLabel:'その村へは、どのような目的で来られたんですか？', tellLabel:'{city}近郊の村、素敵なところでしょうね', goodReply:'静かで景色のよい場所です。ありがとうございます。では確認を。', badReply:'観光情報は障害条件ではありません。地域と機種の適合を確認してください。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:3, maxClients:5, battery:66, ssid:'Globaldesk-3028' },
   trueCause:'coverage', best:'r_coverage_replacement', partial:['r_coverage_refund'], shipNeed:'next', wantsReplacement:true,
@@ -2415,6 +2273,7 @@ const SCENARIOS = [
   contractId:{ minutes:3, text:'番号…箱の紙ですか？ すみません、見方が…。あ、GDW-745168。これでしょうか？' },
   country:'UAE', city:'ドバイ', cityEn:'DUBAI', localOffset:-5, carrierName:'Etisalat', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'あの、すみません。今日受け取って、電源を入れただけなのに「SIMカードがありません」と…。再起動は何度かしました。私、最初から何か間違えましたでしょうか。',
+  handoverSymptom:'受取直後から「SIMカードがありません」と表示される',
   smalltalk:[{ id:'st_s8_arrival', reveal:'q_when', askLabel:'{city}には、今日着かれたばかりですか？', tellLabel:'長いご移動、お疲れさまでした', goodReply:'はい、着いたばかりです。お気遣いまで…少し安心しました。', badReply:'ありがとうございます。でも受け取ってすぐなので、私が壊したのかと…。' }],
   panel:{ bars:null, carrier:null, sim:'none', throttle:false, clients:0, maxClients:5, battery:80, ssid:'Globaldesk-7745' },
   trueCause:'sim', best:'r_sim_clean', partial:['r_escalate_swap'],
@@ -2460,6 +2319,7 @@ const SCENARIOS = [
   rushedReply:'はい。で、結論は？', contractId:{ minutes:1, text:'GDW-091774。番号は最初からあります。次。' },
   country:'ベトナム', city:'ハノイ', cityEn:'HANOI', localOffset:-2, carrierName:'Viettel', device:'（未受取）', plan:'{country} ／ 500MBプラン',
   opening:'{city}国際空港。カウンターは無人で、機器を受け取れていません。タクシーを待たせています。市内へ出る前に、受取方法を決めてください。',
+  handoverSymptom:'空港で機器を受け取れていない',
   smalltalk:[{ id:'st_s9_city', reveal:'opening', askLabel:'市内では、まずどちらへ向かわれるんですか？', tellLabel:'{city}までのご移動、お疲れさまでした', goodReply:'市内のホテルです。ありがとう。では、受取方法を。', badReply:'行き先の話は後。タクシーが待ってる。受取方法を今。' }],
   panel:null,
   trueCause:'logistics', best:'r_transfer_logi', partial:['r_come_tomorrow'], shipNeed:'fast',
@@ -2484,6 +2344,7 @@ const SCENARIOS = [
   contractId:{ minutes:2, text:'予約番号はGDW-814263です。あと6日もあるのに…。すみません、ちゃんと控えていてよかった…。' },
   country:'フランス', city:'パリ', cityEn:'PARIS', localOffset:-8, carrierName:'Orange FR', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'3日使えたのに、突然「No SIM」になって…。再起動しても戻りません。このまま全部の予定が駄目になったらと思うと…すみません、助けてください。',
+  handoverSymptom:'使用中に突然「No SIM」と表示された',
   smalltalk:[{ id:'st_s10_stay', reveal:'q_stay_length', askLabel:'{city}には、あと6日ほどお仕事で滞在されるんですね？', tellLabel:'長いご滞在でのお仕事、お疲れさまです', goodReply:'ありがとうございます…。まだ一人じゃないと思えて、少し落ち着きました。', badReply:'ありがとうございます。でも残り6日、全部使えないままだったらどうしよう…。' }],
   panel:{ bars:null, carrier:null, sim:'none', throttle:false, clients:0, maxClients:5, battery:76, ssid:'Globaldesk-9031' },
   trueCause:'hardware', best:'r_hardware_swap', partial:['r_hardware_no_swap'], shipNeed:'next', wantsReplacement:true,
@@ -2527,6 +2388,7 @@ const SCENARIOS = [
   rushedReply:'はい。場所なら動く。指示を。', contractId:{ minutes:1, text:'GDW-562940。はい、次。' },
   country:'イタリア', city:'ローマ', cityEn:'ROME', localOffset:-8, carrierName:'TIM', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'{city}の会議場。地下へ入ったときだけ圏外。地上では使えました。場所なら動けます。切り分けを急いでいます。次の指示をください。',
+  handoverSymptom:'会議場の地下に入ると圏外になる',
   smalltalk:[{ id:'st_s11_meeting', reveal:'opening', askLabel:'この会議場では、どのような会議に参加されるんですか？', tellLabel:'会議場からのお電話、ありがとうございます', goodReply:'海外拠点との会議で使っています。ありがとう。次の確認を。', badReply:'会議内容は後。通信確認を先に。' }],
   panel:{ bars:1, carrier:'{carrier}', sim:'ok', throttle:false, clients:2, maxClients:5, battery:68, ssid:'Globaldesk-6154' },
   trueCause:'location', best:'r_move_guide', partial:['r_window_stationary'],
@@ -2558,6 +2420,7 @@ const SCENARIOS = [
   contractId:{ minutes:3, text:'予約番号ですね…。箱の裏に、GDW-348621とあります。これで合っていますか？' },
   country:'オーストラリア', city:'シドニー', cityEn:'SYDNEY', localOffset:1, carrierName:'Telstra', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'夜になって急に圏外になりました。さっきまで使えていたのに、再起動しても戻りません。私、何か設定を変えてしまったのでしょうか。',
+  handoverSymptom:'夜になって突然圏外になった',
   smalltalk:[{ id:'st_s12_night', reveal:'q_when', askLabel:'夜になってから、急に使えなくなったのですね？', tellLabel:'遅い時間に突然つながらなくなると、ご不安ですよね', goodReply:'そうなんです。日付が変わる頃までは使えていたのですが…。ゆっくり確認していただけると助かります。', badReply:'ありがとうございます。でも、夜になって急に止まった理由が分からなくて…。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:73, ssid:'Globaldesk-4826' },
   trueCause:'provision', best:'r_carrier_reopened_explain', partial:[],
@@ -2600,6 +2463,7 @@ const SCENARIOS = [
   contractId:{ minutes:2, text:'予約番号はGDW-630519です。受け取ったときの紙にありました。私の扱い方が悪かったのでしょうか…。' },
   country:'ポルトガル', city:'リスボン', cityEn:'LISBON', localOffset:-8, carrierName:'MEO', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'あの…受け取ってから一度もつながらず、ずっと圏外なんです。私が最初の設定を何か間違えたのでしょうか。',
+  handoverSymptom:'受取後、一度も通信できていない',
   smalltalk:[{ id:'st_s13_stay', reveal:'q_stay_length', askLabel:'こちらのホテルには、あと7日ほどご滞在の予定ですか？', tellLabel:'長いご滞在の初日からつながらず、ご不安でしたよね', goodReply:'はい、あと7泊ずっと同じホテルです。そう言っていただけると、少し安心します…。', badReply:'はい、あと7泊です。でも初日から使えないのは、やはり私のせいでしょうか…。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:82, ssid:'Globaldesk-3418' },
   trueCause:'logistics', best:'r_logistics_replacement', partial:['r_logistics_refund'], shipNeed:'next', wantsReplacement:true,
@@ -2645,6 +2509,7 @@ const SCENARIOS = [
   rushedReply:'はい。挨拶はいいです。原因を。', contractId:{ minutes:1, text:'GDW-771403。控えてあります。次。' },
   country:'台湾', city:'台北', cityEn:'TAIPEI', localOffset:-1, carrierName:'Chunghwa Telecom', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'昼から急に遅いです。動画は止まるし、地図もなかなか出ません。使い放題のはずでは？ 原因を短くお願いします。',
+  handoverSymptom:'動画や地図の読み込みが非常に遅い',
   smalltalk:[{ id:'st_s14_work', reveal:'q_destination', askLabel:'お仕事で{city}へいらしているんですか？', tellLabel:'移動の合間にご不便をおかけしています', goodReply:'出張です。移動中に資料を落とすので通信は要ります。で、原因は？', badReply:'その話は後で。遅い理由を先に教えてください。' }],
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:true, clients:1, maxClients:5, battery:58, ssid:'Globaldesk-3390' },
   trueCause:'fup', best:'r_topup', partial:['r_slow_ok'],
@@ -2807,7 +2672,7 @@ function hotelRoom(t){
 }
 
 function defaultUi(tab = 'command'){
-  return { tab, cause:null, remedy:null, lookup:null, askGroup:null, boardExcludedOpen:false };
+  return { tab, cause:null, remedy:null, lookup:null, askGroup:null };
 }
 
 const state = {
@@ -2831,6 +2696,7 @@ const state = {
   endingReplay: false,
   endingType: 'career',
   officeEvents: [],
+  handoverMeetingComplete: false,
   random: Math.random,
 };
 
@@ -2855,6 +2721,19 @@ function dailyTicketCount(random, flags = GAME_FLAGS){
     return flags.dailyTickets;
   }
   return 2 + Math.floor(random() * 4);
+}
+
+function handoverTicketCount(random, flags = GAME_FLAGS){
+  if (flags.handoverTickets !== null && flags.handoverTickets !== undefined){
+    if (!Number.isInteger(flags.handoverTickets) || flags.handoverTickets < 0 || flags.handoverTickets > 2){
+      throw new Error('handoverTickets は null または0〜2の整数で指定してください');
+    }
+    return flags.handoverTickets;
+  }
+  const roll = random();
+  if (roll < HANDOVER_ZERO_RATE) return 0;
+  if (roll < HANDOVER_ZERO_RATE + HANDOVER_ONE_RATE) return 1;
+  return 2;
 }
 
 function scenarioLocalMinute(scenario, place){
@@ -2987,6 +2866,32 @@ function prepareDailyScenarios(scenarios, random, flags = GAME_FLAGS){
   return assignScenarioIdentities(selected, random, flags);
 }
 
+function drawHandoverCallbackTurns(count, inboundTurns, random){
+  const candidates = [];
+  for (let minute = 30; minute <= LAST_INBOUND_TURN; minute += 30){
+    if (inboundTurns.every(turn => Math.abs(turn - minute) >= MIN_INBOUND_GAP)) candidates.push(minute);
+  }
+  const selected = shuffleScenarios(candidates, random).slice(0, count).sort((a,b) => a - b);
+  if (selected.length !== count || selected.slice(1).some((turn,index) => turn - selected[index] < MIN_INBOUND_GAP)){
+    throw new Error('引き継ぎの折り返し時刻を安全に割り当てられません');
+  }
+  return selected;
+}
+
+function prepareShiftScenarios(scenarios, random, flags = GAME_FLAGS){
+  const inboundCount = dailyTicketCount(random, flags);
+  const handoverCount = handoverTicketCount(random, flags);
+  const total = inboundCount + handoverCount;
+  const ordered = flags.shuffleArrival ? shuffleScenarios(scenarios, random) : scenarios.slice();
+  const arrivalSlots = drawInboundArrivalTurns(inboundCount, random);
+  const callbackTurns = drawHandoverCallbackTurns(handoverCount, arrivalSlots, random);
+  const timed = ordered.slice(0, total).map((scenario,index) => index < inboundCount
+    ? Object.assign({}, scenario, { workOrigin:'inbound', arrive:arrivalSlots[index] })
+    : Object.assign({}, scenario, { workOrigin:'handover', arrive:callbackTurns[index - inboundCount], handoverCallbackTurn:callbackTurns[index - inboundCount] })
+  );
+  return assignScenarioIdentities(timed, random, flags);
+}
+
 /* §52: 圧縮した乱数を並べてから最小間隔を足す。これなら最後は06:00まで、
    各着信は20分以上離れ、案件定義の arrive には依存しない。 */
 function drawInboundArrivalTurns(count, random){
@@ -3028,7 +2933,7 @@ function validCareerRecord(value){
   if (value.badges.some(id => !badgeIds.has(id)) || new Set(value.badges).size !== value.badges.length) return false;
   if (value.solvedScenarios.some(id => !scenarioIds.has(id)) || new Set(value.solvedScenarios).size !== value.solvedScenarios.length) return false;
   return value.shifts.every(shift => shift && typeof shift.endedAt === 'string' && !Number.isNaN(Date.parse(shift.endedAt)) &&
-    Number.isInteger(shift.tickets) && shift.tickets >= 2 && shift.tickets <= 5 && /^[SABCDE]$/.test(shift.grade) &&
+    Number.isInteger(shift.tickets) && shift.tickets >= 2 && shift.tickets <= 7 && /^[SABCDE]$/.test(shift.grade) &&
     shift.scores && ['csat','fcr','answer','cost','report'].every(key => Number.isFinite(shift.scores[key])) &&
     Number.isInteger(shift.complaints) && shift.complaints >= 0);
 }
@@ -3125,15 +3030,18 @@ function localClock(t){
 /* ---------- 初期化 ---------- */
 
 function newTicket(s){
+  const handover = s.workOrigin === 'handover';
+  const callbackTurn = handover ? s.handoverCallbackTurn : null;
   return {
-    s, state:'inbound', patience:100, arrivedTurn:s.arrive,
+    s, state:handover ? 'callback' : 'inbound', patience:100, arrivedTurn:handover ? callbackTurn : s.arrive,
+    workOrigin:handover ? 'handover' : 'inbound', handover, handoverAttempted:false,
     facts:[], asked:new Set(), askCounts:new Map(), questionCount:0, lookedUp:new Set(), tested:new Set(), testCounts:new Map(),
-    transcript:[], callTranscriptStart:0, greeted:false, identified:false, nameKnown:false, destinationKnown:false,
+    transcript:[], callTranscriptStart:0, greeted:handover, identified:handover, nameKnown:handover, destinationKnown:handover,
     stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, inboundMinutes:0, outboundMinutes:0, callSegmentMinutes:0, callDirection:'inbound', holdMinutes:0,
     callChargeConcerned:false,
-    callbackCount:0, callbackDue:null, callbackLate:false, callbackKind:null, callbackDestination:null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, callbackReliefApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
-    callbackReason:null, callbackStage:null, callbackPromised:null, returnTimeKnown:false, frontDeskAttempts:0,
+    callbackCount:0, callbackDue:handover ? SHIFT_START + callbackTurn : null, callbackLate:false, callbackKind:handover ? 'handover' : null, callbackDestination:handover ? 'direct' : null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, callbackReliefApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
+    callbackReason:handover ? 'handover' : null, callbackStage:handover ? 'scheduled' : null, callbackPromised:handover ? 'day_shift' : null, returnTimeKnown:handover, frontDeskAttempts:0,
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
@@ -3148,7 +3056,7 @@ function resetGame(){
   state.phase = 'briefing';
   state.turn = 0;
   state.clock = SHIFT_START;
-  state.tickets = prepareDailyScenarios(SCENARIOS, state.random).map(newTicket);
+  state.tickets = prepareShiftScenarios(SCENARIOS, state.random).map(newTicket);
   state.focus = null;
   state.escLeft = ESCALATIONS;
   state.cost = 0;
@@ -3162,6 +3070,7 @@ function resetGame(){
   state.report = null;
   state.careerUpdate = null;
   state.officeEvents = [];
+  state.handoverMeetingComplete = false;
 }
 
 function recordOfficeEvent(kind, text){
@@ -3247,11 +3156,32 @@ function abandonTicket(t, note){
   return true;
 }
 
+function unscoredOutcome(t){
+  return Boolean(t && t.result && ['unavailable','handed_off'].includes(t.result.kind));
+}
+
+function handoffActiveTicket(t){
+  if (!t || t.state !== 'open') return false;
+  t.state = 'closed';
+  t.pendingResult = null;
+  t.pendingInterruption = false;
+  t.pendingConversation = null;
+  t.result = { kind:'handed_off', csat:null, label:'日勤へ引き継ぎ', firstCallResolved:false };
+  if (!Array.isArray(t.attempts)) t.attempts = [];
+  t.attempts.push({ ...t.result, atTurn:SHIFT_DURATION, arrivedTurn:t.arrivedTurn, note:'07:00時点で通話中のため日勤担当へ引き継ぎました。' });
+  t.transcript.push({ who:'note', text:'07:00になったため、通話中の対応を日勤担当へ引き継ぎました。' });
+  recordOfficeEvent('handoff', t.s.id + '：通話中の対応を日勤担当へ引き継ぎました。');
+  return true;
+}
+
 function finishShiftAtTime(){
   if (state.phase === 'report') return;
   state.clock = SHIFT_END;
   state.turn = SHIFT_DURATION;
-  state.tickets.forEach(t => abandonTicket(t, '07:00の勤務終了で放棄呼になりました。'));
+  state.tickets.forEach(t => {
+    if (t.state === 'open') handoffActiveTicket(t);
+    else abandonTicket(t, '07:00の勤務終了で放棄呼になりました。');
+  });
   state.focus = null;
   state.desk = null;
   playShiftEndSound();
@@ -3340,6 +3270,7 @@ function greetCurrentCustomer(){
 
 function resumeCallback(t){
   if (state.focus || !t || t.state !== 'callback' || state.clock < t.callbackDue) return;
+  if (t.handover){ resumeHandoverCallback(t); return; }
   playPickupSound();
   t.callbackLate = state.clock > t.callbackDue;
   t.state = 'open';
@@ -3351,6 +3282,49 @@ function resumeCallback(t){
   state.focus = t;
   resolveCarrierRequest(t);
   t.transcript.push({ who:'front', text:CALL_FLOW_LINES.frontDesk.greeting + (isLateLocalTime(t) ? ' ' + CALL_FLOW_LINES.frontDesk.lateQuestion : '') });
+  state.ui = defaultUi();
+  enterCall();
+}
+
+function handoverCustomerAvailable(flags = GAME_FLAGS){
+  return flags.luckRate === 1 || state.random() < HANDOVER_ANSWER_RATE;
+}
+
+function finishUnavailableHandover(t){
+  t.state = 'closed';
+  t.result = { kind:'unavailable', csat:null, label:'不在（連絡実施）', firstCallResolved:false };
+  t.transcript.push({ who:'note', text:'呼び出しましたが応答はありませんでした。その夜の連絡義務は完了です。' });
+  t.attempts.push({ ...t.result, atTurn:state.turn, arrivedTurn:t.arrivedTurn });
+  playDisconnectSound();
+  recordOfficeEvent('handover', t.s.id + '：引き継ぎ案件へ一度連絡しましたが不在でした。');
+  if (state.focus === t) state.focus = null;
+  state.ui = defaultUi();
+  checkShiftEnd();
+}
+
+function resumeHandoverCallback(t){
+  if (state.focus || !t || !t.handover || t.handoverAttempted || t.state !== 'callback' || state.clock < t.callbackDue) return;
+  playPickupSound();
+  t.handoverAttempted = true;
+  t.callbackCount++;
+  t.callbackLate = state.clock > t.callbackDue;
+  t.state = 'open';
+  t.callDirection = 'outbound';
+  t.callSegmentMinutes = 0;
+  t.callbackStage = 'direct';
+  t.callTranscriptStart = t.transcript.length;
+  state.focus = t;
+  t.transcript.push({ who:'me', text:t.s.name + '様でしょうか。日勤担当から引き継いだグローバルデスクです。' });
+  const available = handoverCustomerAvailable();
+  if (!available){
+    t.dialMinutes = (t.dialMinutes || 0) + 1;
+    advance(1);
+    finishUnavailableHandover(t);
+    return;
+  }
+  if (!spendOnCall(t, 1, 0)) return;
+  pushCustomerLine(t, t.s.opening);
+  deliverStayHint(t);
   state.ui = defaultUi();
   enterCall();
 }
@@ -4574,6 +4548,8 @@ let typingLine = null;
 let endingRevealTimer = null;
 let tapGuardTimer = null;
 let endingTapGuard = false;
+let presentedClock = SHIFT_START;
+let timePassage = null;
 let officeRingTimer = null;
 let officeRingLit = false;
 let audioContext = null;
@@ -4694,6 +4670,74 @@ function playCareerEndingSound(){ withAudio((ctx, volume) => [[392,0,.2],[523,.2
 
 function typewriterOff(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
+function timePassageDuration(minutes){
+  return Math.min(2800, Math.max(25, minutes * 25));
+}
+
+function presentedGameClock(){
+  return presentedClock;
+}
+
+function renderPresentedTime(minute){
+  const rounded = Math.round(minute);
+  const topClock = $('clock');
+  const officeClock = $('office-clock');
+  if (topClock) topClock.textContent = fmtClock(rounded);
+  if (officeClock) officeClock.textContent = fmtClock(rounded);
+  renderShiftStrip(rounded);
+}
+
+function resetTimePassage(){
+  if (timePassage && timePassage.frame) cancelAnimationFrame(timePassage.frame);
+  timePassage = null;
+  presentedClock = state.clock;
+  document.body.classList.remove('time-advancing');
+}
+
+function finishTimePassage(){
+  if (!timePassage) return false;
+  if (timePassage.frame) cancelAnimationFrame(timePassage.frame);
+  const target = timePassage.to;
+  const onComplete = timePassage.onComplete;
+  timePassage = null;
+  presentedClock = target;
+  document.body.classList.remove('time-advancing');
+  renderPresentedTime(presentedClock);
+  if (onComplete) onComplete();
+  return true;
+}
+
+function startTimePassageIfNeeded(onComplete = null){
+  const target = state.clock;
+  if (target <= presentedClock) return false;
+  if (timePassage){
+    if (onComplete) timePassage.onComplete = onComplete;
+    return true;
+  }
+  const from = presentedClock;
+  const minutes = target - from;
+  timePassage = { from, to:target, startedAt:null, frame:null, onComplete };
+  document.body.classList.add('time-advancing');
+  const indicator = $('time-passage-indicator');
+  if (indicator) indicator.textContent = minutes + '分経過中 ／ タップで進む';
+  if (typewriterOff()){
+    finishTimePassage();
+    return true;
+  }
+  const duration = timePassageDuration(minutes);
+  const step = timestamp => {
+    if (!timePassage) return;
+    if (timePassage.startedAt === null) timePassage.startedAt = timestamp;
+    const progress = clamp((timestamp - timePassage.startedAt) / duration, 0, 1);
+    presentedClock = from + (target - from) * progress;
+    renderPresentedTime(presentedClock);
+    if (progress >= 1){ finishTimePassage(); return; }
+    timePassage.frame = requestAnimationFrame(step);
+  };
+  timePassage.frame = requestAnimationFrame(step);
+  return true;
+}
+
 function finishTyping(skipEndingBeat = true){
   if (!typingLine) return;
   if (state.phase === 'ending' && endingTapGuard){
@@ -4741,11 +4785,11 @@ function render(){
   if (state.phase === 'desk'){ renderDesk(); return; }
   if (state.phase !== 'call') return;
   mountShiftStrip(false);
-  $('clock').textContent = fmtClock(state.clock);
-  renderShiftStrip();
+  $('clock').textContent = fmtClock(presentedGameClock());
+  renderShiftStrip(presentedGameClock());
   renderQueue();
   renderCall();
-  renderBoard();
+  startTimePassageIfNeeded();
 }
 
 function mountShiftStrip(inOffice){
@@ -4756,7 +4800,8 @@ function mountShiftStrip(inOffice){
 
 function metrics(){
   const finished = state.tickets.filter(t => t.result);
-  const answered = finished.filter(t => t.result.kind !== 'abandoned');
+  const scored = finished.filter(t => !unscoredOutcome(t));
+  const answered = scored.filter(t => t.result.kind !== 'abandoned');
   const abandoned = state.tickets.reduce((sum, t) => sum + (Number.isInteger(t.abandonedCalls)
     ? t.abandonedCalls
     : (t.result && t.result.kind === 'abandoned' ? 1 : 0)), 0);
@@ -4766,12 +4811,12 @@ function metrics(){
   const fcr = answered.length ? fcrCount / answered.length : null;
   const answerAttempts = answered.length + abandoned;
   const answerRate = answerAttempts ? answered.length / answerAttempts : 1;
-  const handled = state.tickets.filter(t => t.callMinutes > 0);
+  const handled = state.tickets.filter(t => t.callMinutes > 0 && !unscoredOutcome(t));
   const aht = handled.length ? handled.reduce((n,t) => n + t.callMinutes, 0) / handled.length : null;
-  return { finished, answered, abandoned, csat, fcrCount, fcr, answerRate, aht };
+  return { finished, scored, answered, abandoned, unscored:finished.length - scored.length, csat, fcrCount, fcr, answerRate, aht };
 }
 
-function renderShiftStrip(){
+function renderShiftStrip(displayClock = state.clock){
   const strip = $('shift-strip');
   if (!strip) return;
 
@@ -4784,13 +4829,13 @@ function renderShiftStrip(){
         pinRecords.push({ t, arrivedTurn:attempt.arrivedTurn, cls:'abandoned', status:'放棄呼' });
       }
     });
-    if (t.arrivedTurn <= state.turn){
+    if (t.handover || t.arrivedTurn <= state.turn){
       let cls = 'closed';
       if (t.state === 'waiting') cls = 'waiting';
       else if (t.state === 'open') cls = 'active';
       else if (t.state === 'callback') cls = 'callback';
       else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
-      const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '現地キャリア照会中' : cls === 'abandoned' ? '放棄呼' : '完了';
+      const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? (t.handover ? '引き継ぎ折り返し待ち' : '現地キャリア照会中') : cls === 'abandoned' ? '放棄呼' : '完了';
       pinRecords.push({ t, arrivedTurn:t.arrivedTurn, cls, status });
     }
   });
@@ -4809,7 +4854,7 @@ function renderShiftStrip(){
   const ticks = [
     [0,'23'], [25,'01'], [50,'03'], [75,'05'], [100,'07'],
   ].map(([pos,label], index) => '<span class="shift-tick ' + (index < 3 ? 'light' : 'dark') + ' ' + (index === 0 ? 'first' : index === 4 ? 'last' : '') + '" style="left:' + pos + '%">' + label + '</span>').join('');
-  const now = clamp((state.clock - SHIFT_START) / SHIFT_DURATION * 100, 0, 100);
+  const now = clamp((displayClock - SHIFT_START) / SHIFT_DURATION * 100, 0, 100);
 
   strip.innerHTML =
     '<div class="shift-sky"></div>' +
@@ -4824,7 +4869,7 @@ function renderQueue(){
   const callbacks = state.tickets.filter(t => t.state === 'callback');
   const longest = q.length ? Math.max(0, ...q.map(t => state.turn - t.arrivedTurn)) : 0;
   $('queue-count').textContent = q.length + '件';
-  $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>現地キャリア照会中 <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
+  $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>折り返し待ち <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
   $('queue-hint').innerHTML = '終話後はオフィスで、新しい電話を取るか、照会結果が出た相手へ電話をかけます。';
 }
 
@@ -5025,10 +5070,10 @@ function renderOffice(){
   document.body.classList.add('office-view');
   document.body.classList.remove('call-view');
   mountShiftStrip(true);
-  $('clock').textContent = fmtClock(state.clock);
-  $('office-clock').textContent = fmtClock(state.clock);
+  $('clock').textContent = fmtClock(presentedGameClock());
+  $('office-clock').textContent = fmtClock(presentedGameClock());
   $('office-slogan').textContent = state.slogan;
-  renderShiftStrip();
+  renderShiftStrip(presentedGameClock());
   const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
   const callbacks = state.tickets.filter(t => t.state === 'callback').sort((a,b) => a.callbackDue - b.callbackDue);
   const readyCallbacks = callbacks.filter(t => t.callbackDue <= state.clock);
@@ -5054,10 +5099,11 @@ function renderOffice(){
   $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
   $('office-callback').disabled = !readyCallbacks.length;
   $('office-callback-status').textContent = callbacks.length
-    ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '照会中 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
+    ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '折り返し予定 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
     : '折り返し 0件';
   $('office-desk').disabled = !callbacks.length;
   $('office-desk-status').textContent = callbacks.length ? '調査可能 ' + callbacks.length + '件' : '調査可能 0件';
+  startTimePassageIfNeeded();
 }
 
 function enterOffice(){
@@ -5085,8 +5131,8 @@ function enterDesk(){
 /* 折り返し待ちの案件を、通話をつながずにデスク端末だけで調べる画面。 */
 function renderDesk(){
   mountShiftStrip(false);
-  $('clock').textContent = fmtClock(state.clock);
-  renderShiftStrip();
+  $('clock').textContent = fmtClock(presentedGameClock());
+  renderShiftStrip(presentedGameClock());
   renderQueue();
   $('line-state').textContent = '端末作業中';
   $('call').classList.remove('on-hold');
@@ -5104,7 +5150,7 @@ function renderDesk(){
     '<div class="actions">' + head + body + '</div>';
   const box = $('transcript');
   if (box) box.scrollTop = box.scrollHeight;
-  renderBoard();
+  startTimePassageIfNeeded();
 }
 
 /* 通話は切れているので、通話時間と通話料の代わりに折り返しの約束時刻を出す。 */
@@ -5523,20 +5569,16 @@ function renderCustomerRecord(t, includeLog){
       '<p><b>セッション履歴</b><span>' + lookupRecordValue(t, 'l_session') + '</span></p>' +
       '<p><b>障害情報</b><span>' + lookupRecordValue(t, 'l_outage') + '</span></p>' +
     '</div></section>';
-  return '<div class="log-view">' + base + (includeLog ? renderRecordLog(t) : '') + '</div><footer>RECORD ／ VERIFIED</footer></section></div>';
+  const handover = t.handover
+    ? '<section class="record-system-block handover-record"><h3>日勤引き継ぎ</h3><div class="log-customer">' +
+      '<p><b>誰か</b><span>' + esc(t.s.name) + '様</span></p>' +
+      '<p><b>何が</b><span>' + esc(t.s.handoverSymptom) + '</span></p>' +
+      '<p><b>いつ</b><span>' + fmtClock(t.callbackDue) + 'ごろに連絡</span></p></div></section>'
+    : '';
+  return '<div class="log-view">' + base + handover + (includeLog ? renderRecordLog(t) : '') + '</div><footer>RECORD ／ VERIFIED</footer></section></div>';
 }
 function renderRecordLog(t){
-  const ty = TYPES[t.s.type];
-  const facts = t.facts.length
-    ? '<ul>' + t.facts.map(fact => '<li>' + esc(fact.text) + '</li>').join('') + '</ul>'
-    : '<p>まだ手がかりはありません。</p>';
-  const remaining = remainingCauseCandidates(t);
-  const candidateText = remaining.length
-    ? remaining.map(cause => esc(cause.label)).join(' ／ ')
-    : '候補なし';
-  return '<section class="record-system-block"><h3>ログの手がかり</h3>' + facts + '<p class="log-candidates"><b>残っている原因の候補</b><span>' + candidateText + '</span></p></section>' +
-    '<section class="record-system-block"><h3>次にできること</h3><p>' + esc(nextActionGuide(t)) + '</p></section>' +
-    '<section class="record-system-block"><h3>会話の全履歴</h3><div class="record-system-transcript">' + renderRecordTranscript(t) + '</div></section>';
+  return '<section class="record-system-block"><h3>会話の全履歴</h3><div class="record-system-transcript">' + renderRecordTranscript(t) + '</div></section>';
 }
 function renderRecord(t){
   return '<p class="hint-bar">1分かけてログを確認しています。お客様は通話口で待っています。</p>' + renderCustomerRecord(t, true);
@@ -5558,18 +5600,6 @@ function renderRecordTranscript(t){
       : esc(line.text) + (line.viz ? renderLookupViz(line.viz) : '');
     return '<div class="record-system-entry ' + line.who + '"><b>' + who + '</b><span>' + content + '</span></div>';
   }).join('');
-}
-
-function remainingCauseCandidates(t){
-  const excluded = ruledOut(t);
-  return CAUSES.filter(cause => !excluded.has(cause.id));
-}
-
-function nextActionGuide(t){
-  const remaining = remainingCauseCandidates(t).length;
-  if (!t.facts.length) return 'まだ手がかりがありません。まず「聞く」コマンドから始めてください。';
-  if (remaining <= 2) return '候補が' + remaining + 'つまで絞れています。診断に進めます。';
-  return '手がかりをもとに候補を絞り込み中です。聞き取りか社内照会を続けてください。';
 }
 
 function commandPrompt(tab){
@@ -5636,11 +5666,6 @@ function renderShipping(t){
   return '<div class="shipment"><p class="eyebrow">TRANSGLOBE EXPRESS ／ TGX</p><h3>送り状を確認</h3><div class="waybill"><div><b>AWB No.</b><span>' + awb + '</span></div><div><b>発送元</b><span>現地デポ（' + esc(t.s.city) + '）</span></div><div><b>届け先</b><span>' + esc(t.stayAddress) + '</span></div><div><b>内容品</b><span>レンタル用モバイルWiFiルーター 1台（返送予定品）</span></div><div><b>サービス</b><span>' + esc(level.label) + ' ／ ' + esc(level.eta) + '</span></div><div><b>到着目安</b><span>現地 ' + fmtClock(eta) + '</span></div></div><button class="btn-primary shipment-confirm" data-ship-confirm="1">TGXへ手配を確定する</button></div>';
 }
 
-function ruledOut(t){
-  const s = new Set();
-  t.facts.forEach(f => (f.out || []).forEach(c => s.add(c)));
-  return s;
-}
 function hotCauses(t){
   const s = new Set();
   t.facts.forEach(f => (f.hot || []).forEach(c => s.add(c)));
@@ -5683,77 +5708,6 @@ function renderLookupSystemScreen(line){
     (line.viz ? renderLookupViz(line.viz) : '') +
     '<footer>STATUS ／ COMPLETE</footer></section>';
 }
-
-function renderDevicePanel(t){
-  const p = t.s.panel;
-  const label = '<div class="device-label"><span>聞き取りメモ</span><span>' + esc(t.identified ? t.s.device : '機種未特定') + '</span></div>';
-
-  if (!p){
-    return '<div class="device-card">' + label +
-      '<div class="lcd missing"><span class="lcd-placeholder"><b>端末未受取</b>本体の表示は確認できません</span></div></div>';
-  }
-  if (!t.asked.has('q_lamp')){
-    return '<div class="device-card">' + label +
-      '<div class="lcd obscured"><span class="lcd-placeholder"><b>本体の表示は未確認</b>「聞く」で表示を確認してください</span></div></div>';
-  }
-
-  const status = p.sim === 'none' ? 'No SIM' : p.bars === 0 ? '圏外 ／ SIM 認識あり' : 'SIM 認識あり';
-  return '<div class="device-card listening-note">' + label + '<dl>' +
-    '<div><dt>アンテナ</dt><dd>' + (p.bars === null ? '表示なし' : p.bars + '本') + '</dd></div>' +
-    '<div><dt>表示</dt><dd>' + status + (p.throttle ? ' ／ 速度制限アイコンあり' : '') + '</dd></div>' +
-    '<div><dt>事業者</dt><dd>' + esc(p.carrier || '表示なし') + '</dd></div>' +
-    '<div><dt>接続台数</dt><dd>' + p.clients + ' / ' + p.maxClients + '</dd></div>' +
-    '<div><dt>電池残量</dt><dd>' + p.battery + '%</dd></div>' +
-    '<div><dt>SSID</dt><dd>' + esc(p.ssid) + '</dd></div></dl></div>';
-}
-
-function renderBoard(){
-  const t = state.focus;
-  if (!t){
-    $('fact-count').textContent = '0件';
-    $('board').innerHTML = '<p class="empty-note">案件を開くと、ここに原因の候補と<br>集まった手がかりが並びます。</p>';
-    return;
-  }
-  const ruled = ruledOut(t);
-  const hot = hotCauses(t);
-  $('fact-count').textContent = t.facts.length + '件';
-
-  const causeRow = c => {
-    const out = ruled.has(c.id) && !hot.has(c.id);
-    const isHot = hot.has(c.id);
-    return '<div class="cause ' + (out ? 'out' : '') + ' ' + (isHot ? 'hot' : '') + '">' +
-      '<span class="tick">' + (out ? '×' : isHot ? '●' : '·') + '</span>' +
-      '<span>' + esc(c.label) + '</span>' +
-      '<span class="tier">' + c.tier + '</span></div>';
-  };
-  const remainingCauses = CAUSES.filter(c => !(ruled.has(c.id) && !hot.has(c.id)));
-  const excludedCauses = CAUSES.filter(c => ruled.has(c.id) && !hot.has(c.id));
-  const causes = remainingCauses.map(causeRow).join('');
-  const excluded = excludedCauses.length
-    ? '<button class="board-toggle" data-board-excluded="1" aria-expanded="' + !!state.ui.boardExcludedOpen + '">除外済み（' + excludedCauses.length + '件）<span>' + (state.ui.boardExcludedOpen ? '閉じる' : '開く') + '</span></button>' +
-      (state.ui.boardExcludedOpen ? '<div class="board-excluded">' + excludedCauses.map(causeRow).join('') + '</div>' : '')
-    : '';
-
-  const facts = t.facts.length
-    ? t.facts.map(f => '<div class="fact"><span class="src">' + esc(f.src) + '</span>' + esc(f.text) + '</div>').join('')
-    : '<p class="empty-note" style="padding:10px 0">まだ手がかりがありません。</p>';
-
-  $('board').innerHTML =
-    renderDevicePanel(t) +
-    '<p class="eyebrow" style="margin:0 0 6px">残っている候補 ' + remainingCauses.length + ' / ' + CAUSES.length + '</p>' +
-    causes + excluded +
-    '<p class="eyebrow" style="margin:20px 0 8px">集まった手がかり</p>' +
-    '<div class="facts">' + facts + '</div>' +
-    '<p class="eyebrow" style="margin:20px 0 8px">この案件のここまで</p>' +
-    '<div class="mini-list">' +
-      mini('通話時間', t.callMinutes + '分') +
-      mini('うち保留', t.holdMinutes + '分') +
-      mini('聞き取り', t.asked.size + '回') +
-      mini('社内照会', t.lookedUp.size + '回') +
-      mini('見立て違い', t.misdiagnoses + '回') +
-    '</div>';
-}
-function mini(k, v){ return '<div class="mini"><span>' + k + '</span><b>' + esc(v) + '</b></div>'; }
 
 /* ============================================================
    オーバーレイ
@@ -5824,10 +5778,12 @@ function initializeCareer(){
 
 function careerBriefingHtml(){
   const career = state.career || freshCareerRecord();
+  const inboundCount = state.tickets.filter(ticket => !ticket.handover).length;
+  const handoverCount = state.tickets.filter(ticket => ticket.handover).length;
   const storageNote = career.totals.days === 0
     ? '<span>勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。</span>'
     : '';
-  return '<section class="career-briefing"><b>' + (career.totals.days + 1) + '日目 ／ ' + esc(CAREER_STAGES[career.stage].label) + ' ／ 今夜 ' + state.tickets.length + '件</b>' +
+  return '<section class="career-briefing"><b>' + (career.totals.days + 1) + '日目 ／ ' + esc(CAREER_STAGES[career.stage].label) + ' ／ 入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件</b>' +
     storageNote + '</section>';
 }
 
@@ -5837,7 +5793,42 @@ function audioDiagnosticHtml(){
     '<button class="btn-ghost" data-audio-unlock="1">音をテスト／再有効化</button></section>';
 }
 
+function handoverMeetingTickets(){
+  return state.tickets.filter(ticket => ticket.handover).sort((a,b) => a.callbackDue - b.callbackDue);
+}
+
+function enterShiftAfterMeeting(){
+  if (state.handoverMeetingComplete) return;
+  state.handoverMeetingComplete = true;
+  closeSheet();
+  advance(0);
+  enterOffice();
+}
+
+function showHandoverMeeting(){
+  const tickets = handoverMeetingTickets();
+  if (!tickets.length){ enterShiftAfterMeeting(); return; }
+  const entries = tickets.map(ticket =>
+    '<article class="handover-card"><p><strong>' + esc(ticket.s.name) + '様</strong>が「' +
+      esc(ticket.s.handoverSymptom) + '」とお困りなので、<strong>' +
+      fmtClock(ticket.callbackDue) + 'ごろ</strong>に連絡してください。</p></article>'
+  ).join('');
+  $('sheet').innerHTML =
+    '<p class="eyebrow">HANDOVER MEETING ／ ' + fmtClock(SHIFT_START) + ' JST</p>' +
+    '<h1>23時の引き継ぎ</h1><p class="handover-speaker"><b>日勤担当</b>から、今夜の折り返しを引き継ぎます。</p>' +
+    '<div class="handover-list">' + entries + '</div>' +
+    '<button class="btn-primary" id="btn-finish-handover">引き継いで夜勤を始める</button>';
+  openSheet();
+  $('btn-finish-handover').onclick = enterShiftAfterMeeting;
+}
+
+function startShiftFromBriefing(){
+  if (handoverMeetingTickets().length){ showHandoverMeeting(); return; }
+  enterShiftAfterMeeting();
+}
+
 function showBriefing(){
+  resetTimePassage();
   $('sheet').innerHTML =
     '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +
     '<h1>深夜のグローバルデスク</h1>' +
@@ -5855,9 +5846,7 @@ function showBriefing(){
   $('btn-start').onclick = () => {
     initAudio();
     unlockAudioFromGesture();
-    closeSheet();
-    advance(0);
-    enterOffice();
+    startShiftFromBriefing();
   };
 }
 
@@ -6047,7 +6036,7 @@ function showBalanceConsole(){
 function reportOptions(){
   const handled = id => {
     const t = state.tickets.find(x => x.s.id === id);
-    return t && t.result && t.result.kind !== 'abandoned';
+    return t && t.result && t.result.kind !== 'abandoned' && !unscoredOutcome(t);
   };
   const shipments = state.tickets.filter(t => t.shipment);
   const byId = id => state.tickets.find(t => t.s.id === id);
@@ -6064,6 +6053,9 @@ function reportOptions(){
   if (state.outageKnown) handoff.push({ id:'outage_watch', required:true, ticketId:'S5', text:state.outageRegion + 'の障害は未復旧。朝の入電増に注意' });
   const s8 = byId('S8');
   if (s8 && s8.shipment) handoff.push({ id:'s8_delivery', required:true, ticketId:'S8', text:s8.s.city + '宛の代替機が現地' + fmtClock(s8.shipment.eta) + '到着予定。着荷確認が必要' });
+  state.tickets.filter(ticket => ticket.result && ticket.result.kind === 'handed_off').forEach(ticket => {
+    handoff.push({ id:'morning_handoff_' + ticket.s.id, required:true, ticketId:ticket.s.id, text:ticket.s.name + '様との通話中。' + ticket.s.handoverSymptom + 'の対応を日勤へ引き継ぎ' });
+  });
   return { special, handoff };
 }
 
@@ -6090,7 +6082,7 @@ function currentShiftSummary(){
 }
 
 function careerShiftContext(){
-  const tickets = state.tickets;
+  const tickets = state.tickets.filter(ticket => !unscoredOutcome(ticket));
   return {
     maxStresses:tickets.map(ticket => ticket.maxStress),
     redials:tickets.reduce((sum, ticket) => sum + ticket.redialCount, 0),
@@ -6108,7 +6100,7 @@ function recordCurrentCareerShift(summary = currentShiftSummary()){
   if (!state.career) state.career = freshCareerRecord();
   const shift = {
     endedAt:new Date().toISOString(),
-    tickets:state.tickets.length,
+    tickets:state.tickets.filter(ticket => !unscoredOutcome(ticket)).length,
     grade:summary.grade,
     scores:{
       csat:summary.avg,
@@ -6128,16 +6120,19 @@ function recordCurrentCareerShift(summary = currentShiftSummary()){
 }
 
 function renderReport(){
+  if (startTimePassageIfNeeded(() => renderReport())) return;
   const o = reportOptions();
   if (!state.report) state.report = { special:[], handoff:[] };
   const m = metrics();
+  const inboundCount = state.tickets.filter(ticket => !ticket.handover).length;
+  const handoverCount = state.tickets.filter(ticket => ticket.handover).length;
   const escaped = x => esc(x.text);
   /* 提出前は required を一切見せない。何を報告すべきかを選ぶことがこの画面の中身なので、
      正解が先に見えていると判断が消える。答え合わせは提出後の振り返りで行う */
   const checks = (items, chosen, attr) => items.map(x => '<label class="report-check"><input type="checkbox" data-' + attr + '="' + x.id + '" ' + (chosen.includes(x.id) ? 'checked' : '') + '><span>' + escaped(x) + '</span></label>').join('') || '<p class="empty-note">該当する特記事項はありません。</p>';
   $('sheet').innerHTML =
     '<p class="eyebrow">DAILY REPORT ／ ' + fmtClock(state.clock) + ' JST</p><h1>業務報告 ／ 深夜シフト</h1>' +
-    '<div class="report-auto">対応件数 ' + state.tickets.length + '件（うち放棄呼 ' + m.abandoned + '件）／ 平均通話 ' + (m.aht === null ? '—' : m.aht.toFixed(1)) + '分 ／ エスカレーション ' + state.tickets.filter(t => t.escUsed).length + '件 ／ 発生費用 ¥' + totalCost().toLocaleString('ja-JP') + '</div>' +
+    '<div class="report-auto">対応件数 ' + state.tickets.length + '件（入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件 ／ 放棄呼 ' + m.abandoned + '件 ／ 評価対象外 ' + m.unscored + '件）／ 平均通話 ' + (m.aht === null ? '—' : m.aht.toFixed(1)) + '分 ／ エスカレーション ' + state.tickets.filter(t => t.escUsed).length + '件 ／ 発生費用 ¥' + totalCost().toLocaleString('ja-JP') + '</div>' +
     '<h2>特記事項</h2><p class="hint-bar">実際に起きたことで、次の担当が知るべきものを選びます。必須と日常対応が混ざっています。</p><div class="report-list">' + checks(o.special, state.report.special, 'report-special') + '</div>' +
     '<h2>申し送り</h2><p class="hint-bar">翌シフトへの引き継ぎです。必須がある夜に「特になし」は誤りです。</p><div class="report-list">' + checks(o.handoff, state.report.handoff, 'report-handoff') + '<label class="report-check"><input type="checkbox" data-report-handoff="none" ' + (state.report.handoff.includes('none') ? 'checked' : '') + '><span>特になし<i>引き継ぎ不要</i></span></label></div>' +
     '<button class="btn-primary" id="report-submit" data-report-submit="1">業務報告を提出する</button>';
@@ -6336,6 +6331,15 @@ function renderDebrief(){
 
   const reviews = ts.map(t => {
     const r = t.result || { kind:'abandoned', csat:0, label:'未対応' };
+    const misses = reportMissForTicket(t);
+    if (unscoredOutcome(t)){
+      const judge = r.kind === 'unavailable'
+        ? '約束どおり一度連絡しましたが不在でした。連絡義務は完了しており、評価には影響しません。'
+        : '07:00時点で通話中だったため、放棄呼にせず日勤担当へ対応を引き継ぎました。';
+      return '<div class="review mid"><div class="rh"><span class="rn">' + esc(t.s.name) + '</span>' +
+        '<span class="rp">' + esc(t.s.cityEn) + '</span><span class="rs">評価対象外 ／ ' + esc(r.label) + ' ／ 通話' + t.callMinutes + '分</span></div>' +
+        '<div class="rb">' + esc(judge) + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
+    }
     const cls = r.csat >= 4 ? 'win' : r.csat >= 2.5 ? 'mid' : 'bad';
     let judge;
     if (r.kind === 'abandoned') judge = '呼び出しに応答できず、放棄呼になりました。';
@@ -6346,7 +6350,6 @@ function renderDebrief(){
     else if (r.grade === 'partial') judge = '原因は当たっていましたが、対処は次善どまりでした。';
     else judge = '原因は当たっていましたが、対処が噛み合っていませんでした。';
 
-    const misses = reportMissForTicket(t);
     const abandonmentNote = t.abandonedCalls ? '<br>応答前の放棄呼：' + t.abandonedCalls + '回（履歴に保持）' : '';
     return '<div class="review ' + cls + '">' +
       '<div class="rh"><span class="rn">' + esc(t.s.name) + '</span>' +
@@ -6420,8 +6423,9 @@ function cell(k, v, n){
    ============================================================ */
 
 document.addEventListener('click', (e) => {
+  if (timePassage){ finishTimePassage(); return; }
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-audio-unlock],[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name],[data-board-excluded]');
+  const el = e.target.closest('[data-audio-unlock],[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
   if (!el || el.disabled) return;
   const audioReady = unlockAudioFromGesture();
   if (el.dataset.audioUnlock){ audioReady.then(ready => { if (ready) playAudioTestSound(); }); return; }
@@ -6440,11 +6444,6 @@ function firstTicketIn(stateName, orderKey){
   return state.tickets
     .filter(ticket => ticket.state === stateName)
     .sort((a, b) => a[orderKey] - b[orderKey])[0];
-}
-
-function handleDisplayAction(d){
-  if (d.boardExcluded){ state.ui.boardExcludedOpen = !state.ui.boardExcludedOpen; renderBoard(); return true; }
-  return false;
 }
 
 function handleOfficeAction(d){
@@ -6533,11 +6532,12 @@ function handleResolutionAction(d){
 }
 
 function routeAction(d){
-  [handleDisplayAction, handleOfficeAction, handleDeskAction, handleCallNavigation, handleConversationAction, handleResolutionAction]
+  [handleOfficeAction, handleDeskAction, handleCallNavigation, handleConversationAction, handleResolutionAction]
     .some(handler => handler(d));
 }
 
 document.addEventListener('keydown', (e) => {
+  if (timePassage && (e.key === ' ' || e.key === 'Enter')){ e.preventDefault(); finishTimePassage(); return; }
   if (typingLine && (e.key === ' ' || e.key === 'Enter')){ e.preventDefault(); finishTyping(); }
 });
 

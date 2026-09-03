@@ -225,18 +225,19 @@ button:focus-visible, [tabindex]:focus-visible{
 .shift-pin.closed{ color: var(--faint); opacity: .62; }
 .shift-pin.abandoned{ color: var(--crit); opacity: 1; }
 .shift-pin.abandoned .shift-pin-dot{ background: var(--crit); border-color: var(--crit); }
+.shift-now{ will-change:left; }
 @keyframes pinpulse{
   0%,100%{ transform: scale(.85); opacity: .62; }
   50%{ transform: scale(1.2); opacity: 1; }
 }
 
 /* ============================================================
-   コンソール ― 対応デスク、診断、待機状況を縦にまとめる
+   コンソール ― 対応デスクと待機状況
    ============================================================ */
 
 .console{
   display: grid;
-  grid-template-columns: 288px minmax(0,1fr) 330px;
+  grid-template-columns: minmax(0,1fr) 330px;
   gap: 1px;
   background: var(--line-soft);
   align-items: stretch;
@@ -259,11 +260,29 @@ body.sheet-open .office-scene{ display: none; }
 body.office-view .console{ display: none; }
 body.call-view .office-scene{ display: none; }
 body.call-view .console{ animation: call-in .22s ease both; }
+.time-passage-indicator{
+  position:fixed;
+  left:50%;
+  bottom:max(18px,env(safe-area-inset-bottom));
+  z-index:80;
+  display:none;
+  transform:translateX(-50%);
+  padding:8px 13px;
+  border:1px solid var(--accent-line);
+  border-radius:999px;
+  background:var(--surface);
+  color:var(--text-2);
+  box-shadow:0 8px 28px rgba(16,42,67,.18);
+  font:700 12px/1.4 var(--mono);
+  white-space:nowrap;
+  pointer-events:none;
+}
+body.time-advancing .time-passage-indicator{ display:block; }
 
 /* §52: 通話中にも、自分の夜がどこまで来たかを判断できるようタイムシフト表を残す。
    待機状況は、会話とコマンドを画面の外へ押し出さないよう畳み、
    要点の待ち件数は電話の状態とペイン見出しへ出す。
-   ペインそのものは消さない（3ペインの並びは §42 の判断どおり保つ）。 */
+   ペインそのものは消さない。 */
 /* §48-7: 選択肢が増えるとページ自体が伸び、会話が画面の外へ押し出されて戻らない
    （原因の一覧は14件あり、それだけで画面1.5個分になる）。選択肢の側をスクロール
    させて、会話とコマンドが同じ画面に残るようにする。 */
@@ -499,8 +518,7 @@ body.sheet-open .console{ display: none; }
 .log-section p{ margin:5px 0; }
 .log-section ul{ margin:5px 0; padding-left:1.25em; }
 .log-customer p{ display:grid; grid-template-columns:minmax(7em,auto) 1fr; gap:10px; }
-.log-customer b,.log-candidates b{ color:var(--text-3); font-size:12px; }
-.log-candidates{ display:flex; flex-direction:column; gap:3px; }
+.log-customer b{ color:var(--text-3); font-size:12px; }
 
 .line{ display: flex; flex-direction: column; gap: 3px; max-width: 88%; }
 .line .who{
@@ -737,100 +755,6 @@ body.sheet-open .console{ display: none; }
   line-height: 1.6;
 }
 
-/* ---------- 右：診断ボード ---------- */
-
-.board{ overflow-y: auto; }
-
-/* ルーター液晶。顧客の説明を聞くまでは値そのものをDOMに出さない。 */
-.device-card{
-  margin-bottom: 14px;
-  padding: 9px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  box-shadow: inset 0 0 0 1px var(--line-soft);
-}
-.device-label{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-family: var(--display);
-  font-size: 11px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.listening-note dl{ margin:0; display:grid; gap:5px; font:12px/1.5 var(--mono); }
-.listening-note dl > div{ display:grid; grid-template-columns:92px 1fr; gap:8px; padding-bottom:4px; border-bottom:1px dotted var(--line); }
-.listening-note dt{ color:var(--faint); }
-.listening-note dd{ margin:0; color:var(--text); overflow-wrap:anywhere; }
-.lcd{
-  position: relative;
-  min-height: 112px;
-  padding: 9px 10px 8px;
-  overflow: hidden;
-  border: 1px solid var(--signal-deep);
-  border-radius: 3px;
-  background: var(--panel-2);
-  color: var(--signal);
-  font-family: var(--mono);
-  font-size: 11px;
-  box-shadow: inset 0 0 18px var(--ink);
-}
-.lcd.obscured,
-.lcd.missing{
-  display: grid;
-  place-items: center;
-  text-align: center;
-  color: var(--dim);
-  background: linear-gradient(135deg, var(--panel-2), var(--panel-3));
-}
-.lcd.obscured::before{
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(110deg, transparent 0 6px, var(--line-soft) 6px 10px);
-  opacity: .68;
-}
-.lcd-placeholder{ position: relative; z-index: 1; line-height: 1.7; }
-.lcd-placeholder b{ display: block; color: var(--text); font-weight: 500; }
-.lcd-top,
-.lcd-status,
-.lcd-bottom{ display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.lcd-status{ margin-top: 11px; }
-.lcd-bottom{ margin-top: 10px; padding-top: 7px; border-top: 1px solid var(--signal-deep); }
-.lcd-carrier{ font-size: 12px; font-weight: 600; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.signal-bars{ height: 17px; display: flex; align-items: flex-end; gap: 2px; flex: none; }
-.signal-bars i{ display: block; width: 3px; background: var(--line); border-radius: 1px 1px 0 0; }
-.signal-bars i:nth-child(1){ height: 5px; }
-.signal-bars i:nth-child(2){ height: 8px; }
-.signal-bars i:nth-child(3){ height: 12px; }
-.signal-bars i:nth-child(4){ height: 16px; }
-.signal-bars i.on{ background: var(--signal); }
-.lcd-offline{ color: var(--crit); font-weight: 600; }
-.lcd-sim-none{ color: var(--crit); font-size: 13px; font-weight: 600; }
-.lcd-throttle{
-  color: var(--amber);
-  border: 1px solid var(--amber-deep);
-  padding: 0 4px;
-  border-radius: 2px;
-  letter-spacing: .08em;
-}
-.lcd-clients{ color: var(--text); }
-.lcd-battery{
-  width: 30px;
-  height: 11px;
-  padding: 1px;
-  border: 1px solid var(--signal-deep);
-  border-radius: 1px;
-  flex: none;
-}
-.lcd-battery i{ display: block; height: 100%; background: var(--signal); }
-.lcd-battery-wrap{ display: flex; align-items: center; gap: 5px; }
-.lcd-ssid{ min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
-
 /* 照会結果はROUTER DISPLAYと同じ暗い機械画面として見せる */
 .line.sys.lookup-result .say{
   width: 100%;
@@ -902,10 +826,8 @@ body.sheet-open .console{ display: none; }
 .record-system-block ul{ margin: 4px 0; padding-left: 1.3em; }
 .record-system-screen .log-customer p{ display: grid; grid-template-columns: minmax(110px,.38fr) 1fr; gap: 12px; margin: 0; padding: 4px 0; border-bottom: 1px dotted var(--signal-deep); }
 .record-system-screen .log-customer p:last-child{ border-bottom: 0; }
-.record-system-screen .log-customer b,
-.record-system-screen .log-candidates b{ color: var(--dim); font-weight: 400; }
-.record-system-screen .log-customer span,
-.record-system-screen .log-candidates span{ color: var(--signal); }
+.record-system-screen .log-customer b{ color: var(--dim); font-weight: 400; }
+.record-system-screen .log-customer span{ color: var(--signal); }
 .record-system-transcript{ display: flex; flex-direction: column; gap: 0; }
 .record-system-entry{ display: grid; grid-template-columns: minmax(88px,.28fr) 1fr; gap: 12px; padding: 6px 0; border-bottom: 1px dotted var(--signal-deep); }
 .record-system-entry:last-child{ border-bottom: 0; }
@@ -933,77 +855,6 @@ body.sheet-open .console{ display: none; }
 .lookup-viz-fill.over{ background: var(--crit); }
 .lookup-viz-fill.unlimited{ background: repeating-linear-gradient(90deg, var(--signal) 0 8px, var(--signal-deep) 8px 12px); }
 .lookup-viz-note{ color: var(--dim); font-size: 11px; }
-
-.cause{
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 6px 6px 6px 8px;
-  border-left: 2px solid var(--line-soft);
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--dim);
-  transition: color .2s, border-color .2s, opacity .2s;
-}
-.cause .tick{
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--faint);
-  flex: none;
-  width: 14px;
-  text-align: center;
-  padding-top: 1px;
-}
-.cause.out{ opacity: .32; text-decoration: line-through; text-decoration-color: var(--faint); }
-.cause.hot{
-  color: var(--amber);
-  border-left-color: var(--amber);
-  background: var(--amber-glow);
-}
-.cause.hot .tick{ color: var(--amber); }
-.cause > span:nth-child(2){ flex: 1; min-width: 0; }
-.cause .tier{
-  font-family: var(--display);
-  font-size: 11px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--faint);
-  flex: none;
-  padding-top: 2px;
-  white-space: nowrap;
-}
-
-.facts{ display: flex; flex-direction: column; gap: 6px; }
-.fact{
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--text);
-  padding: 7px 9px;
-  background: var(--panel);
-  border-left: 2px solid var(--signal-deep);
-  border-radius: 2px;
-}
-.fact .src{
-  display: block;
-  font-family: var(--display);
-  font-size: 11px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--faint);
-  margin-bottom: 1px;
-}
-
-.mini-list{ display: flex; flex-direction: column; gap: 4px; }
-.mini{
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-  padding: 4px 0;
-  border-bottom: 1px dotted var(--line-soft);
-  color: var(--dim);
-}
-.mini b{ color: var(--text); font-weight: 500; font-family: var(--mono); font-size: 12px; }
 
 /* ============================================================
    オーバーレイ（ブリーフィング／シフト終了／マニュアル）
@@ -1232,6 +1083,12 @@ body.sheet-open .console{ display: none; }
 .audio-diagnostic b{ display:block; color:var(--text); font:800 16px/1.4 var(--display); }
 .audio-diagnostic p{ margin:6px 0 10px; color:var(--text-2); font-size:13px; line-height:1.6; }
 .audio-diagnostic .btn-ghost{ margin:0; }
+.handover-speaker{ margin:14px 0 16px; padding:12px 14px; border-left:3px solid var(--accent); background:var(--accent-soft); color:var(--text-2); }
+.handover-speaker b{ color:var(--accent); }
+.handover-list{ display:grid; gap:12px; margin:14px 0 22px; }
+.handover-card{ padding:14px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
+.handover-card p{ margin:0; color:var(--text-2); font-size:15px; line-height:1.75; }
+.handover-card strong{ color:var(--text); font-weight:800; }
 .promotion-banner{ margin:12px 0 18px; padding:14px; border:2px solid var(--amber); border-radius:10px; background:var(--amber-glow); color:var(--text); font:800 17px/1.4 var(--display); text-align:center; }
 .career-panel{ margin:18px 0 24px; padding:16px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
 .career-panel h2{ margin-top:0; }.career-summary{ display:flex; flex-wrap:wrap; gap:8px 14px; align-items:baseline; }.career-summary b{ font-size:20px; }.career-summary span{ color:var(--dim); font:600 12px/1.5 var(--mono); }
@@ -1281,17 +1138,15 @@ body.sheet-open .console{ display: none; }
 .line.cust .say,.opt,.tone,.waybill,.report-auto,.report-check,.score-cell{ background:var(--surface-2); }.line.me .say{ background:var(--accent-soft); border-color:var(--accent-line); }.line.me .who,.tone .tname,.shipment h3{ color:var(--accent); }
 .line{ max-width:82%; }.line .say{ position:relative; border:1px solid var(--line); border-radius:12px 12px 12px 3px; }.line.cust .say::after{ content:""; position:absolute; left:-1px; bottom:-7px; border-width:7px 8px 0 0; border-style:solid; border-color:var(--surface-2) transparent transparent transparent; }.line.me .say{ border-radius:12px 12px 3px 12px; }.line.me .say::after{ content:""; position:absolute; right:-1px; bottom:-7px; border-width:7px 0 0 8px; border-style:solid; border-color:var(--accent-soft) transparent transparent transparent; }.line.sys .say{ border:1px solid var(--signal); background:var(--signal-soft); color:var(--text-2); }.line.note .say{ border:1px solid var(--line-soft); background:var(--surface-2); }
 .line.typing .say::before{ content:""; display:inline-block; width:7px; height:12px; margin-left:2px; background:var(--accent); vertical-align:-1px; animation:type-cursor .7s steps(1,end) infinite; }.line.typing .say:empty::before{ margin-left:0; }.actions.is-typing{ opacity:.48; pointer-events:none; user-select:none; }@keyframes type-cursor{ 50%{ opacity:0; } }
-.opt{ padding:12px 13px; font-size:15px; }.opt:hover:not(:disabled),.tone:hover,.report-check:hover{ background:var(--surface-3); border-color:var(--accent-line); }.opt:focus-visible,.tone:focus-visible,.board-toggle:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.opt{ padding:12px 13px; font-size:15px; }.opt:hover:not(:disabled),.tone:hover,.report-check:hover{ background:var(--surface-3); border-color:var(--accent-line); }.opt:focus-visible,.tone:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .opts{ max-height:min(32vh,300px); }.transcript{ flex:5 1 0; min-height:125px; max-height:none; }.line .say{ font-size:15px; }.actions{ flex:4 1 0; min-height:0; overflow:auto; padding:14px; }
-.device-card{ background:var(--surface); }.lcd,.lcd.obscured,.lcd.missing,.system-screen{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.lcd.obscured::before{ background:repeating-linear-gradient(110deg,transparent 0 6px,#183746 6px 10px); }.lcd-placeholder b,.lcd-clients,.lcd-ssid,.system-screen header b,.record-system-block p,.record-system-block li,.record-system-entry > span{ color:#E4F6F4; }
+.system-screen{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }.system-screen header b,.record-system-block p,.record-system-block li,.record-system-entry > span{ color:#E4F6F4; }
 .system-screen header span,.system-screen footer,.system-screen .lookup-system-row b,.system-screen .record-system-entry > b{ color:#78B8B3; }
 .system-screen header em{ color:#A8E4DF; border-color:#3F7E79; }
-.system-screen .record-system-block h3,.system-screen .log-customer span,.system-screen .log-candidates span{ color:#A8E4DF; }
-.system-screen .log-customer b,.system-screen .log-candidates b{ color:#78B8B3; }
+.system-screen .record-system-block h3,.system-screen .log-customer span{ color:#A8E4DF; }
+.system-screen .log-customer b{ color:#78B8B3; }
 .system-screen .record-denied-message b{ color:#F6C56A; }
 .system-screen .record-denied-message p{ color:#E4F6F4; }
-.board-toggle{ width:100%; display:flex; justify-content:space-between; margin:10px 0; padding:9px 10px; border:1px solid var(--line); background:var(--surface-2); color:var(--text-2); font-size:13px; font-weight:600; }.board-toggle span{ color:var(--accent); font-weight:500; }.board-excluded{ border-top:1px solid var(--line-soft); }
-.cause{ color:var(--text-2); }.cause.hot{ color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); }.cause.out{ opacity:.7; color:var(--text-3); }
 .sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover{ border-color:var(--accent-line); color:var(--accent); }
 
 @media (prefers-reduced-motion: reduce){
@@ -1395,9 +1250,7 @@ body.playing .opts{ max-height:none; overflow:visible; }
 .command-copy small{ font-size:14px; }
 .command-meta{ font-size:13px; }
 .command-back{ min-height:52px; padding:10px 12px; font-size:17px; }
-.summary-figure,.fact,.cause,.mini{ font-size:18px; }
-.fact .src,.cause .tick,.cause .tier{ font-size:13px; }
-.board-toggle{ min-height:52px; padding:11px 12px; font-size:17px; border-radius:10px; }
+.summary-figure{ font-size:18px; }
 
 .office-scene{ min-height:calc(100dvh - 170px); padding:16px 14px calc(24px + env(safe-area-inset-bottom)); }
 body.office-view .office-scene{ gap:14px; }
@@ -1451,6 +1304,8 @@ body.office-view .office-scene{ gap:14px; }
 </style>
 </head>
 <body>
+
+<div class="time-passage-indicator" id="time-passage-indicator" role="status" aria-live="polite">時間が進んでいます ／ タップで進む</div>
 
 <div class="topbar">
   <div class="topbar-inner">
@@ -1509,14 +1364,6 @@ body.office-view .office-scene{ gap:14px; }
       <span class="count-chip mono" id="line-state">待機</span>
     </div>
     <div class="call" id="call"></div>
-  </section>
-
-  <section class="pane board">
-    <div class="pane-head">
-      <h2 class="pane-title">診断ボード</h2>
-      <span class="count-chip mono" id="fact-count">0件</span>
-    </div>
-    <div id="board"></div>
   </section>
 
   <section class="pane call-summary">

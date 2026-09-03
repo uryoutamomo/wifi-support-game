@@ -13,12 +13,20 @@ const deskPane = `  <section class="pane desk">
     </div>
     <div class="call" id="call"></div>
   </section>`;
-const boardPane = `  <section class="pane board">
+const retiredBoardPane = `  <section class="pane board">
     <div class="pane-head">
       <h2 class="pane-title">診断ボード</h2>
       <span class="count-chip mono" id="fact-count">0件</span>
     </div>
     <div id="board"></div>
+  </section>`;
+const callSummaryPane = `  <section class="pane call-summary">
+    <div class="pane-head">
+      <h2 class="pane-title">待機状況</h2>
+      <span class="count-chip mono" id="queue-count">0件</span>
+    </div>
+    <div class="summary-figure" id="call-summary"></div>
+    <div class="hint-bar" id="queue-hint"></div>
   </section>`;
 const mutations = [
   {
@@ -202,12 +210,6 @@ const mutations = [
     expected:'§48-3 検査1: 原因選択に診断ボード用の強調・除外表示が残っている',
   },
   {
-    name:'§48-3 診断ボードからも根拠の印を消す', file:'p4_view.js',
-    from:`      '<span class="tick">' + (out ? '×' : isHot ? '●' : '·') + '</span>' +`,
-    to:`      '<span class="tick">·</span>' +`,
-    expected:'§48-3 検査2: 診断ボードから根拠の強調・除外表示まで消えている',
-  },
-  {
     name:'§48-2 復旧後の対処選択見出しを未復旧と同じに戻す', file:'p4_view.js',
     from:`'どの対処が効いたかを選んでください'`,
     to:`'対処を選んでください'`,
@@ -325,22 +327,46 @@ const mutations = [
     expected:'上部の通話・待機・診断タブが戻っている',
   },
   {
-    name:'診断ペインをdisplay noneへ戻す', file:'p1_head.html',
+    name:'待機ペインをdisplay noneへ戻す', file:'p1_head.html',
     from:'.pane-head{ padding-bottom:10px; }',
-    to:'.pane.board{ display:none; }\n.pane-head{ padding-bottom:10px; }',
-    expected:'3ペインの一部が非表示になっている',
+    to:'.pane.call-summary{ display:none; }\n.pane-head{ padding-bottom:10px; }',
+    expected:'2ペインの一部が非表示になっている',
   },
   {
     name:'pane単独セレクタで全ペインをdisplay noneにする', file:'p1_head.html',
     from:'.pane-head{ padding-bottom:10px; }',
     to:'.pane{ display:none; }\n.pane-head{ padding-bottom:10px; }',
-    expected:'3ペインの一部が非表示になっている',
+    expected:'2ペインの一部が非表示になっている',
   },
   {
-    name:'対応デスクと診断ボードのDOM順を入れ替える', file:'p1_head.html',
-    from:deskPane + '\n\n' + boardPane,
-    to:boardPane + '\n\n' + deskPane,
-    expected:'3ペインのDOM順が対応デスク→診断ボード→待機状況ではない',
+    name:'§56 対応デスクと待機状況のDOM順を入れ替える', file:'p1_head.html',
+    from:deskPane + '\n\n' + callSummaryPane,
+    to:callSummaryPane + '\n\n' + deskPane,
+    expected:'§56 2ペインのDOM順が対応デスク→待機状況ではない',
+  },
+  {
+    name:'§56 診断ボードのDOMを復活させる', file:'p1_head.html',
+    from:deskPane + '\n\n' + callSummaryPane,
+    to:deskPane + '\n\n' + retiredBoardPane + '\n\n' + callSummaryPane,
+    expected:'§56 診断ボードのDOMが残っている',
+  },
+  {
+    name:'§56 原因候補の要約をログへ移す', file:'p4_view.js',
+    from:`  return '<section class="record-system-block"><h3>会話の全履歴</h3><div class="record-system-transcript">' + renderRecordTranscript(t) + '</div></section>';`,
+    to:`  return '<section><h3>残っている原因の候補</h3></section><section class="record-system-block"><h3>会話の全履歴</h3><div class="record-system-transcript">' + renderRecordTranscript(t) + '</div></section>';`,
+    expected:'§56 ログに顧客情報・引き継ぎ事実・全履歴以外の要約が残っている',
+  },
+  {
+    name:'§56 原因選択を内部候補で絞る', file:'p4_view.js',
+    from:`return '<div class="opts">' + CAUSES.map(c => {`,
+    to:`return '<div class="opts">' + CAUSES.filter(c => hotCauses(t).has(c.id)).map(c => {`,
+    expected:'§56 原因選択で14原因を絞り込んでいる',
+  },
+  {
+    name:'§56 内部の原因絞り込みを捨てる', file:'p4_view.js',
+    from:`  t.facts.forEach(f => (f.hot || []).forEach(c => s.add(c)));`,
+    to:`  t.facts.forEach(() => {});`,
+    expected:'§56 内部の原因絞り込み状態が失われている',
   },
   {
     name:'公開QRのURLを1文字変える', file:'p2_data.js',
@@ -389,15 +415,15 @@ const mutations = [
     expected:'通話ヘッダにログへ移す情報が残っている: t.s.name',
   },
   {
-    name:'ログから次の一手を消す', file:'p4_view.js',
-    from:'<section class="record-system-block"><h3>次にできること</h3>',
+    name:'ログから会話の全履歴を消す', file:'p4_view.js',
+    from:'<section class="record-system-block"><h3>会話の全履歴</h3>',
     to:'<section class="record-system-block"><h3>案内なし</h3>',
-    expected:'ログの見出しが完全一致しない',
+    expected:'§56 ログに顧客情報・引き継ぎ事実・全履歴以外の要約が残っている',
   },
   {
     name:'ログへ真因を出す', file:'p4_view.js',
-    from:'  return \'<div class="log-view">\' + base + (includeLog ? renderRecordLog(t) : \'\') + \'</div><footer>RECORD ／ VERIFIED</footer></section></div>\';',
-    to:'  return \'<div class="log-view" data-correct=\' + esc(t.s.trueCause) + \">\' + base + (includeLog ? renderRecordLog(t) : \'\') + \'</div><footer>RECORD ／ VERIFIED</footer></section></div>\';',
+    from:'  return \'<div class="log-view">\' + base + handover + (includeLog ? renderRecordLog(t) : \'\') + \'</div><footer>RECORD ／ VERIFIED</footer></section></div>\';',
+    to:'  return \'<div class="log-view" data-correct=\' + esc(t.s.trueCause) + \">\' + base + handover + (includeLog ? renderRecordLog(t) : \'\') + \'</div><footer>RECORD ／ VERIFIED</footer></section></div>\';',
     expected:'ログが真因または正解対処を参照している: trueCause',
   },
   {
@@ -420,8 +446,8 @@ const mutations = [
   },
   {
     name:'ログ見出しへ接尾辞を足す', file:'p4_view.js',
-    from:'<h3>次にできること</h3>', to:'<h3>次にできること_x</h3>',
-    expected:'ログの見出しが完全一致しない',
+    from:'<h3>会話の全履歴</h3>', to:'<h3>会話の全履歴_x</h3>',
+    expected:'§56 ログに顧客情報・引き継ぎ事実・全履歴以外の要約が残っている',
   },
   {
     name:'ストレス終話を上長引き取りへ戻す', file:'p3_game.js',
@@ -590,7 +616,7 @@ const mutations = [
   },
   {
     name:'1案件から雑談話題を外す', file:'p2_data.js',
-    from:'  opening:\'あの…地図が全然開かないんです。昨日まで使えたのに、今日だけ急に遅くて…。どうしたらいいでしょうか。\',\n  smalltalk:[', to:'  opening:\'あの…地図が全然開かないんです。昨日まで使えたのに、今日だけ急に遅くて…。どうしたらいいでしょうか。\',\n  smalltalk_missing:[',
+    from:'  handoverSymptom:\'地図の読み込みが非常に遅い\',\n  smalltalk:[', to:'  handoverSymptom:\'地図の読み込みが非常に遅い\',\n  smalltalk_missing:[',
     expected:'雑談話題のrevealが実際に到達できる質問へ接続されていない',
   },
   {
@@ -665,7 +691,7 @@ const mutations = [
   {
     name:'GAME_FLAGSの初期運率を変える', file:'p2_data.js',
     from:'luckRate: LUCK_RATE,', to:'luckRate: 0.8,',
-    expected:'運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う',
+    expected:'運・音・1日件数・引き継ぎ件数・キャリアの初期GAME_FLAGSが確定値と違う',
   },
   {
     name:'注入可能な乱数源を固定値へ置き換える', file:'p3_game.js',
@@ -715,7 +741,8 @@ const mutations = [
   },
   {
     name:'登場順フラグを無視する', file:'p3_game.js',
-    from:'const ordered = flags.shuffleArrival ?', to:'const ordered = false ?',
+    from:'function prepareDailyScenarios(scenarios, random, flags = GAME_FLAGS){\n  const count = dailyTicketCount(random, flags);\n  const ordered = flags.shuffleArrival ?',
+    to:'function prepareDailyScenarios(scenarios, random, flags = GAME_FLAGS){\n  const count = dailyTicketCount(random, flags);\n  const ordered = false ?',
     expected:'登場順シャッフルを元へ戻せない',
   },
   {
@@ -1143,8 +1170,8 @@ const mutations = [
   },
   {
     name:'ライト画面の通話記録項目を暗く戻す', file:'p1_head.html',
-    from:'.system-screen .log-customer b,.system-screen .log-candidates b{ color:#78B8B3; }',
-    to:'.system-screen .log-customer b,.system-screen .log-candidates b{ color:var(--dim); }',
+    from:'.system-screen .log-customer b{ color:#78B8B3; }',
+    to:'.system-screen .log-customer b{ color:var(--dim); }',
     expected:'§27 ライト画面で通話記録の見出し・項目が暗く読めない',
   },
   {
@@ -1509,9 +1536,9 @@ const mutations = [
     expected:'§29 ブリーフィングに毎夜不要な説明が残っている',
   },
   {
-    name:'ブリーフィング状態行から今夜の件数を消す', file:'p4_view.js',
-    from:"+ ' ／ 今夜 ' + state.tickets.length + '件</b>'", to:"+ '</b>'",
-    expected:'当日の実件数がブリーフィングとレポートに表示されない',
+    name:'ブリーフィング状態行から引き継ぎ件数を消す', file:'p4_view.js',
+    from:"+ '件 ／ 引き継ぎ ' + handoverCount + '件</b>'", to:"+ '件</b>'",
+    expected:'当日の入電・引き継ぎ実件数がブリーフィングとレポートに表示されない',
   },
   {
     name:'ブリーフィングの開始ボタンIDを外す', file:'p4_view.js',
@@ -1862,7 +1889,7 @@ const mutations = [
   {
     name:'終話ガイドの分岐を真因非依存と検証できない形へ変える', file:'p4_view.js',
     from:'const causeNarrowed = hotCauses(t).size === 1;', to:'const causeNarrowed = 1 === hotCauses(t).size;',
-    expected:'§33 検査4: 終話ガイドが真因ではなく現在の絞り込み状態で分岐しない',
+    expected:'§56 内部の原因絞り込み状態が失われている',
   },
   {
     name:'前提不足の理由専用クラスを外す', file:'p4_view.js',
@@ -2292,9 +2319,9 @@ const mutations = [
   },
   {
     name:'§52 時間切れの残件を放棄呼にしない', file:'p3_game.js',
-    from:"  state.tickets.forEach(t => abandonTicket(t, '07:00の勤務終了で放棄呼になりました。'));",
-    to:'  state.tickets.forEach(() => {});',
-    expected:'§52 検査3: 07:00に残った案件が放棄呼にならない',
+    from:"    else abandonTicket(t, '07:00の勤務終了で放棄呼になりました。');",
+    to:"    else { t.state = 'closed'; t.result = { kind:'handed_off' }; }",
+    expected:'§52 検査3/24: 07:00の待機案件と通話中案件を放棄呼・日勤引き継ぎへ分けない',
   },
   {
     name:'§52 案件データの固定arriveを着信に戻す', file:'p3_game.js',
@@ -2364,8 +2391,8 @@ const mutations = [
   },
   {
     name:'§52 未着信ピンを出す', file:'p4_view.js',
-    from:'    if (t.arrivedTurn <= state.turn){',
-    to:'    if (t.arrivedTurn >= state.turn){',
+    from:'    if (t.handover || t.arrivedTurn <= state.turn){',
+    to:'    if (true){',
     expected:'§52 検査15: まだ着信していない案件のピンが出る',
   },
   {
@@ -2391,6 +2418,156 @@ const mutations = [
     from:'.shift-tick.dark{ color:#102a43;',
     to:'.shift-tick.dark{ color:#5d7185;',
     expected:'§52 検査12: 夜明けの背景で目盛りのコントラストが読めない',
+  },
+  {
+    name:'§55 引き継ぎなしの夜を少数にする', file:'p2_data.js',
+    from:'const HANDOVER_ZERO_RATE = 0.6;',
+    to:'const HANDOVER_ZERO_RATE = 0.3;',
+    expected:'§55 検査1: 引き継ぎが0〜2件で、0件の夜を最も多くする抽選にならない',
+  },
+  {
+    name:'§55 引き継ぎを入電件数の内数にする', file:'p3_game.js',
+    from:'  const total = inboundCount + handoverCount;',
+    to:'  const total = inboundCount;',
+    expected:'§55 検査2: 入電2〜5件とは別に引き継ぎ0〜2件を置けない',
+  },
+  {
+    name:'§55 引き継ぎを新規入電として始める', file:'p3_game.js',
+    from:"    s, state:handover ? 'callback' : 'inbound', patience:100, arrivedTurn:handover ? callbackTurn : s.arrive,",
+    to:"    s, state:'inbound', patience:100, arrivedTurn:handover ? callbackTurn : s.arrive,",
+    expected:'§55 検査5: 引き継ぎ案件が約束時刻の直接折り返し待ちとして始まらない',
+  },
+  {
+    name:'§55 引き継ぎを現地キャリア照会中と表示する', file:'p4_view.js',
+    from:"<br>折り返し待ち <b>' + callbacks.length",
+    to:"<br>現地キャリア照会中 <b>' + callbacks.length",
+    expected:'§55 検査7: 引き継ぎの折り返し待ちを現地キャリア照会中と誤表示する',
+  },
+  {
+    name:'§55 日勤の本人確認を捨てる', file:'p3_game.js',
+    from:'greeted:handover, identified:handover, nameKnown:handover, destinationKnown:handover,',
+    to:'greeted:handover, identified:false, nameKnown:false, destinationKnown:false,',
+    expected:'§55 検査6: 日勤の本人確認を引き継げない、または原因の手がかりまで先に渡している',
+  },
+  {
+    name:'§55 引き継ぎに原因の手がかりを先に入れる', file:'p3_game.js',
+    from:'    facts:[], asked:new Set(),',
+    to:"    facts:handover ? [{hot:[s.trueCause],out:[]}] : [], asked:new Set(),",
+    expected:'§55 検査6: 日勤の本人確認を引き継げない、または原因の手がかりまで先に渡している',
+  },
+  {
+    name:'§55 引き継ぎMTGで真の原因を明かす', file:'p4_view.js',
+    from:"      esc(ticket.s.handoverSymptom) + '」とお困りなので、<strong>' +",
+    to:"      esc(ticket.s.handoverSymptom) + ' 原因:' + esc(ticket.s.trueCause) + '」とお困りなので、<strong>' +",
+    expected:'§55 検査9: 引き継ぎMTGが3点以外の原因・照会・会話を漏らす',
+  },
+  {
+    name:'§55 引き継ぎMTGへ説明用ラベルを戻す', file:'p4_view.js',
+    from:"    '<article class=\"handover-card\"><p><strong>' + esc(ticket.s.name) + '様</strong>が「' +",
+    to:"    '<article class=\"handover-card\"><p>誰か：<strong>' + esc(ticket.s.name) + '様</strong>が「' +",
+    expected:'§55 検査8: 引き継ぎMTGがラベルのない1行の申し送りになっていない',
+  },
+  {
+    name:'§55 引き継ぎMTGで顧客名を重複する', file:'p4_view.js',
+    from:"    '<article class=\"handover-card\"><p><strong>' + esc(ticket.s.name) + '様</strong>が「' +",
+    to:"    '<article class=\"handover-card\"><p><strong>' + esc(ticket.s.name) + '様</strong>について、<strong>' + esc(ticket.s.name) + '様</strong>が「' +",
+    expected:'§55 検査8: 引き継ぎMTGで顧客名が重複している',
+  },
+  {
+    name:'§55 引き継ぎ0件でも空の会議を開く', file:'p4_view.js',
+    from:'  if (handoverMeetingTickets().length){ showHandoverMeeting(); return; }',
+    to:'  if (true){ showHandoverMeeting(); return; }',
+    expected:'§55 検査10: 引き継ぎ0件の日に空の会議を見せる、または0件と知らせず夜勤へ入る',
+  },
+  {
+    name:'§55 在室率を80%にする', file:'p2_data.js',
+    from:'const HANDOVER_ANSWER_RATE = 0.5;',
+    to:'const HANDOVER_ANSWER_RATE = 0.8;',
+    expected:'§55 検査11: 在室50%またはluckRate 1で必ず在室の境界が違う',
+  },
+  {
+    name:'§55 luckRate 1でも不在にする', file:'p3_game.js',
+    from:'  return flags.luckRate === 1 || state.random() < HANDOVER_ANSWER_RATE;',
+    to:'  return state.random() < HANDOVER_ANSWER_RATE;',
+    expected:'§55 検査11: 在室50%またはluckRate 1で必ず在室の境界が違う',
+  },
+  {
+    name:'§55 引き継ぎへ何度でも発信できる', file:'p3_game.js',
+    from:'t.handover || t.handoverAttempted || t.state',
+    to:'t.handover || false || t.state',
+    expected:'§55 検査12: 引き継ぎへ一度連絡したあと再発信を拒否しない',
+  },
+  {
+    name:'§55 不在案件を評価へ入れる', file:'p4_view.js',
+    from:'  const scored = finished.filter(t => !unscoredOutcome(t));',
+    to:'  const scored = finished;',
+    expected:'§55 検査14: 不在の引き継ぎ案件がCSAT・応答率・平均通話を下げる',
+  },
+  {
+    name:'§55 朝の通話中案件を放棄呼にする', file:'p3_game.js',
+    from:"    if (t.state === 'open') handoffActiveTicket(t);",
+    to:"    if (t.state === 'open') abandonTicket(t, '07:00の勤務終了で放棄呼になりました。');",
+    expected:'§52 検査3/24: 07:00の待機案件と通話中案件を放棄呼・日勤引き継ぎへ分けない',
+  },
+  {
+    name:'§55 朝の引き継ぎを必須申し送りから外す', file:'p4_view.js',
+    from:"  state.tickets.filter(ticket => ticket.result && ticket.result.kind === 'handed_off').forEach(ticket => {",
+    to:"  state.tickets.filter(ticket => false).forEach(ticket => {",
+    expected:'§55 検査15: 07時の通話中案件が日勤への必須申し送りに残らない',
+  },
+  {
+    name:'§57 1時間の経過を0.12秒で飛ばす', file:'p4_view.js',
+    from:'  return Math.min(2800, Math.max(25, minutes * 25));',
+    to:'  return Math.min(2800, Math.max(25, minutes * 2));',
+    expected:'§57 検査1: 1時間の経過演出が1〜2秒に収まらない',
+  },
+  {
+    name:'§57 経過時間にかかわらず同じ長さで見せる', file:'p4_view.js',
+    from:'  return Math.min(2800, Math.max(25, minutes * 25));',
+    to:'  return 1500;',
+    expected:'§57 検査2: 経過時間に応じて演出時間が変わらない、または長時間待たせすぎる',
+  },
+  {
+    name:'§57 オフィス時計だけ更新しない', file:'p4_view.js',
+    from:'  if (officeClock) officeClock.textContent = fmtClock(rounded);',
+    to:'',
+    expected:'§57 検査3: 2つの時計と現在線が同じ分へ着地しない',
+  },
+  {
+    name:'§57 タイムシフト表を動かさない', file:'p4_view.js',
+    from:'  renderShiftStrip(rounded);',
+    to:'  renderShiftStrip(state.clock);',
+    expected:'§57 検査3: 時計とタイムシフト表が同じ表示時刻で動かない',
+  },
+  {
+    name:'§57 タイムシフト現在線を最終時刻へ飛ばす', file:'p4_view.js',
+    from:'  const now = clamp((displayClock - SHIFT_START) / SHIFT_DURATION * 100, 0, 100);',
+    to:'  const now = clamp((state.clock - SHIFT_START) / SHIFT_DURATION * 100, 0, 100);',
+    expected:'§57 検査4: タイムシフト表の現在線が補間中の表示時刻を使わない',
+  },
+  {
+    name:'§57 reduced-motionでもアニメーションする', file:'p4_view.js',
+    from:'  if (typewriterOff()){\n    finishTimePassage();',
+    to:'  if (false){\n    finishTimePassage();',
+    expected:'§57 検査5: prefers-reduced-motionで即着地しない',
+  },
+  {
+    name:'§57 タップで時間経過を飛ばせなくする', file:'p5_events.js',
+    from:'  if (timePassage){ finishTimePassage(); return; }\n',
+    to:'',
+    expected:'§57 検査8: タップ・キーで時間経過演出を飛ばせない',
+  },
+  {
+    name:'§57 演出中にゲーム時刻を書き換える', file:'p4_view.js',
+    from:'  const rounded = Math.round(minute);',
+    to:'  const rounded = Math.round(minute);\n  state.clock = rounded;',
+    expected:'§57 検査7: 演出の途中でゲーム時刻または判定を動かしている',
+  },
+  {
+    name:'§57 07時の着地前に業務報告へ飛ぶ', file:'p4_view.js',
+    from:'  if (startTimePassageIfNeeded(() => renderReport())) return;\n',
+    to:'',
+    expected:'§57 検査9: 07:00の着地前に業務報告へ飛ぶ',
   },
   {
     name:'§53 iPhoneで再生用AudioSessionを設定しない', file:'p4_view.js',

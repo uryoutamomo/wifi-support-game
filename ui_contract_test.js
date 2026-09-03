@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {SHIFT_START,SHIFT_DURATION,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
-const { SHIFT_START, SHIFT_DURATION, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {SHIFT_START,SHIFT_DURATION,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
+const { SHIFT_START, SHIFT_DURATION, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -34,20 +34,21 @@ assert(!game.includes('data-tab='), '廃止したタブUIが戻っている');
 assert(functionSource('renderCommandHead').includes('data-command="\' + backTarget + \'"'), 'コマンド階層の「戻る」がない');
 const generatedPage = builtIndexSource(__dirname);
 assert(!generatedPage.includes('mobile-pane-nav') && !generatedPage.includes('data-mobile-pane'), '上部の通話・待機・診断タブが戻っている');
+assert(!/<section class="pane board">|id="fact-count"|id="board"/.test(page), '§56 診断ボードのDOMが残っている');
 const paneOrder = [...page.matchAll(/<section class="pane ([^"]+)">/g)].map(match => match[1]);
-assert.deepEqual(paneOrder, ['desk','board','call-summary'], '3ペインのDOM順が対応デスク→診断ボード→待機状況ではない');
+assert.deepEqual(paneOrder, ['desk','call-summary'], '§56 2ペインのDOM順が対応デスク→待機状況ではない');
 const stackedPaneCss = (page.match(/\.pane,body\.playing \.pane\{([^}]*)\}/) || [])[1] || '';
-assert(/display\s*:\s*flex/.test(stackedPaneCss), '3ペインが同時表示になっていない');
+assert(/display\s*:\s*flex/.test(stackedPaneCss), '2ペインが同時表示になっていない');
 const hidesGamePane = [...page.matchAll(/([^{}]+)\{([^}]*)\}/g)].some(([, selectors, declarations]) =>
   /display\s*:\s*none/.test(declarations) && selectors.split(',').some(selector =>
-    /\.pane(?:\.(?:desk|board|call-summary))?$/.test(selector.trim())
+    /\.pane(?:\.(?:desk|call-summary))?$/.test(selector.trim())
   )
 );
-assert(!hidesGamePane, '3ペインの一部が非表示になっている');
-['line-state','fact-count','queue-count'].forEach(id => assert(page.includes('id="' + id + '"'), 'count-chip ' + id + ' がない'));
+assert(!hidesGamePane, '2ペインの一部が非表示になっている');
+['line-state','queue-count'].forEach(id => assert(page.includes('id="' + id + '"'), 'count-chip ' + id + ' がない'));
 assert(functionSource('renderCall').includes("$('line-state').textContent"), '通話状態のcount-chipが更新されない');
-assert(functionSource('renderBoard').includes("$('fact-count').textContent"), '診断件数のcount-chipが更新されない');
 assert(functionSource('renderQueue').includes("$('queue-count').textContent"), '待ち件数のcount-chipが更新されない');
+assert(!/function render(?:Board|DevicePanel)\(|remainingCauseCandidates|nextActionGuide|boardExcluded/.test(game), '§56 診断ボードまたは候補要約の実装が残っている');
 assert(!page.includes('id="kpis"') && !game.includes('renderKpis') && !game.includes('function kpi('), 'プレイ中ヘッダーに無効な進行ステータス行が残っている');
 
 // 公開物へ、実機確認用のローカル接続先やQRを混ぜない。
@@ -215,7 +216,7 @@ assert(firstTicketSource.includes('.sort((a, b) => a[orderKey] - b[orderKey])'),
 assert(officeActionSource.includes("firstTicketIn('waiting', 'arrivedTurn')"), '「電話を取る」が最古の着信を選んでいない');
 assert(!officeActionSource.includes('patience'), '「電話を取る」が見えない機嫌で選んでいる');
 const routeSource = functionSource('routeAction');
-['handleDisplayAction','handleOfficeAction','handleCallNavigation','handleConversationAction','handleResolutionAction'].forEach(handler => {
+['handleOfficeAction','handleDeskAction','handleCallNavigation','handleConversationAction','handleResolutionAction'].forEach(handler => {
   assert(routeSource.includes(handler), 'イベントルーターから ' + handler + ' が外れている');
 });
 const advanceSource = functionSource('advance');
@@ -307,9 +308,11 @@ assert(page.includes('.stress-panel.alert') && page.includes('@keyframes stress-
 assert(/\.stress-panel\{[^}]*position:sticky/.test(page), '苛立ちメーターがsticky固定されていない');
 const recordSource = functionSource('renderRecord') + functionSource('renderCustomerRecord') + functionSource('renderRecordLog');
 const logHeadings = [...recordSource.matchAll(/<h3>([^<]+)<\/h3>/g)].map(match => match[1]);
-assert.deepEqual(logHeadings, ['顧客情報','ログの手がかり','次にできること','会話の全履歴'], 'ログの見出しが完全一致しない');
+assert.deepEqual(logHeadings, ['顧客情報','日勤引き継ぎ','会話の全履歴'], '§56 ログに顧客情報・引き継ぎ事実・全履歴以外の要約が残っている');
 assert(recordSource.includes('renderRecordTranscript(t)'), 'ログで全履歴を表示しない');
-assert(recordSource.includes('remainingCauseCandidates(t)') && recordSource.includes('nextActionGuide(t)'), 'ログに残る候補または次の一手がない');
+assert(!/残っている原因の候補|次にできること|集まった手がかり|この案件のここまで/.test(game), '§56 診断ボードの候補数・手がかり・次の一手を別画面へ移している');
+assert(functionSource('renderCloseFlow').includes('CAUSES.map') && !functionSource('renderCloseFlow').includes('filter('), '§56 原因選択で14原因を絞り込んでいる');
+assert(functionSource('hotCauses').includes('f.hot') && functionSource('unresolvedHangupGuide').includes('hotCauses(t).size === 1'), '§56 内部の原因絞り込み状態が失われている');
 ['trueCause','REMEDIES','scenarioRoute','bestRemedy','correctRemedy'].forEach(secret => assert(!recordSource.includes(secret), 'ログが真因または正解対処を参照している: ' + secret));
 const openRecordSource = functionSource('openRecord');
 assert(openRecordSource.includes('addStress(t, 4)'), 'ログを読んでもストレス+4×係数にならない');
@@ -422,7 +425,7 @@ assert(close43.includes('s.contradicts[causeId]') && close43.includes("t.state =
 
 // §9: 90/10の運、反応と対処だけの揺れ、登場順シャッフル、旧挙動への復帰。
 assert.equal(LUCK_RATE, 0.9, '運の本来どおり率が0.9ではない');
-assert.deepEqual(GAME_FLAGS, { luckRate:0.9, shuffleArrival:true, shuffleIdentity:true, dailyTickets:null, careerStage:null, unlockedBadges:null, solvedScenarios:null, soundEnabled:true, soundVolume:0.55 }, '運・音・1日件数・キャリアの初期GAME_FLAGSが確定値と違う');
+assert.deepEqual(GAME_FLAGS, { luckRate:0.9, shuffleArrival:true, shuffleIdentity:true, dailyTickets:null, handoverTickets:null, careerStage:null, unlockedBadges:null, solvedScenarios:null, soundEnabled:true, soundVolume:0.55 }, '運・音・1日件数・引き継ぎ件数・キャリアの初期GAME_FLAGSが確定値と違う');
 const rollLuckSource = functionSource('rollLuck');
 assert(rollLuckSource.includes('state.random() < GAME_FLAGS.luckRate'), 'rollLuckが注入可能な乱数源とGAME_FLAGSを使わない');
 assert.equal((game.match(/Math\.random/g) || []).length, 1, 'Math.randomがstate.random以外でも直接使われている');
@@ -588,7 +591,7 @@ assert.deepEqual(typeNames.map(type => [type,TYPES[type].stressStart,TYPES[type]
   ['anxious',20,1.2,1.0], ['novice',5,0.9,1.0], ['hurried',15,1.6,1.3], ['expert',5,1.0,2.0],
 ], '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
 assert.equal(LUCK_RATE, 0.9, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
-assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
+assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
 
 // §19／§31: 返金は確認後に提案し、受入後の満足判定とは別に、まれな拒否を持つ。
 assert.equal(REFUND_POLICY.amount, 2400, '返金額が確定値2,400円ではない');
@@ -687,7 +690,7 @@ assert.notDeepEqual(firstOrder.map(s => s.id), secondOrder.map(s => s.id), '固�
 assert.deepEqual([...new Set(firstOrder.map(s => s.id))].sort(), SCENARIOS.map(s => s.id).sort(), 'シャッフル後に全案件の欠落・重複がある');
 assert(firstOrder.every(item => SCENARIOS.includes(item)), 'シャッフルで案件間の参照を失う複製を作っている');
 const luckResetSource = functionSource('resetGame');
-assert(luckResetSource.includes('prepareDailyScenarios(SCENARIOS, state.random).map(newTicket)'), 'resetGameが日次案件の選択と到着圧縮を通らない');
+assert(luckResetSource.includes('prepareShiftScenarios(SCENARIOS, state.random).map(newTicket)'), 'resetGameが入電・引き継ぎ案件の選択と時刻割り当てを通らない');
 assert(functionSource('prepareDailyScenarios').includes('flags.shuffleArrival') && functionSource('prepareDailyScenarios').includes(': scenarios.slice()'), '登場順シャッフルを元へ戻せない');
 assert(functionSource('prepareDailyScenarios').includes('{ arrive:arrivalSlots[index] }'), 'シャッフル後の順番へ固定到着枠を振り直していない');
 assert.deepEqual(SCENARIOS.map(s => s.arrive).sort((a,b) => a-b), [0,5,11,18,25,31,38,44,50,56,62,68,74,80], '14案件の固定到着枠が変わっている');
@@ -717,11 +720,11 @@ assert.equal(typeof balanceNodes['balance-identity'].onchange, 'function', '名�
 balanceNodes['balance-luck'].onchange({target:{checked:false}});
 balanceNodes['balance-shuffle'].onchange({target:{checked:false}});
 balanceNodes['balance-identity'].onchange({target:{checked:false}});
-assert.deepEqual(GAME_FLAGS, {luckRate:1.0,shuffleArrival:false,shuffleIdentity:false,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '調整コンソールから運なし・定義順へ切り替わらない');
+assert.deepEqual(GAME_FLAGS, {luckRate:1.0,shuffleArrival:false,shuffleIdentity:false,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '調整コンソールから運なし・定義順へ切り替わらない');
 balanceNodes['balance-luck'].onchange({target:{checked:true}});
 balanceNodes['balance-shuffle'].onchange({target:{checked:true}});
 balanceNodes['balance-identity'].onchange({target:{checked:true}});
-assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '調整コンソールから運あり・シャッフルへ戻せない');
+assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '調整コンソールから運あり・シャッフルへ戻せない');
 assert(!functionSource('renderCall').includes('GAME_FLAGS'), '運の設定がプレイ画面に表示される');
 assert(!/GAME_FLAGS\.luckRate\s*===?\s*1|GAME_FLAGS\.luckRate\s*!==?\s*1/.test(rollLuckSource), '運なし専用の特別経路がrollLuckにある');
 const noLuckRoll = makeRollLuck(() => 0.999999999, {luckRate:1.0});
@@ -761,17 +764,20 @@ const dailyFlags = count => ({dailyTickets:count,shuffleArrival:true});
 assert.deepEqual(prepareDailyScenarios(SCENARIOS, () => .9, {dailyTickets:2,shuffleArrival:false}).map(s => s.id), ['S1','S2'], '登場順OFFで日次案件を決定論的に固定できない');
 assert.throws(() => dailyTicketCount(() => 0, {dailyTickets:1}), /2〜5/, 'dailyTicketsの範囲外を拒否しない');
 assert(!functionSource('prepareDailyScenarios').includes('scenario.arrive'), '§52 検査4: 案件データの arrive を着信時刻に使っている');
-const endingState52 = { phase:'office', clock:SHIFT_END - 1, turn:SHIFT_DURATION - 1, focus:{}, desk:{}, tickets:[{state:'waiting',s:{id:'S1'}},{state:'open',s:{id:'S2'}},{state:'closed',s:{id:'S3'},result:{kind:'closed'}}] };
+const endingState52 = { phase:'office', clock:SHIFT_END - 1, turn:SHIFT_DURATION - 1, focus:{}, desk:{}, tickets:[{state:'waiting',s:{id:'S1'}},{state:'open',s:{id:'S2'},transcript:[],attempts:[],arrivedTurn:10},{state:'closed',s:{id:'S3'},result:{kind:'closed'}}] };
 const abandoned52 = [];
 const abandonTicket52 = new Function('state','playCloseJingle','recordOfficeEvent','scheduleAbandonRedial', functionSource('abandonTicket') + '\nreturn abandonTicket;')(
   endingState52, () => {}, (_, text) => abandoned52.push(text), () => false
 );
-const finishShiftAtTime52 = new Function('state','SHIFT_END','SHIFT_DURATION','abandonTicket','playShiftEndSound','renderReport', functionSource('finishShiftAtTime') + '\nreturn finishShiftAtTime;')(
-  endingState52, SHIFT_END, SHIFT_DURATION, abandonTicket52, () => {}, () => {}
+const handoffActiveTicket52 = new Function('state','SHIFT_DURATION','recordOfficeEvent', functionSource('handoffActiveTicket') + '\nreturn handoffActiveTicket;')(
+  endingState52, SHIFT_DURATION, () => {}
+);
+const finishShiftAtTime52 = new Function('state','SHIFT_END','SHIFT_DURATION','abandonTicket','handoffActiveTicket','playShiftEndSound','renderReport', functionSource('finishShiftAtTime') + '\nreturn finishShiftAtTime;')(
+  endingState52, SHIFT_END, SHIFT_DURATION, abandonTicket52, handoffActiveTicket52, () => {}, () => {}
 );
 finishShiftAtTime52();
 assert(endingState52.phase === 'report' && endingState52.clock === SHIFT_END, '§52 検査2: 07:00でシフトが終わらない');
-assert(endingState52.tickets.slice(0,2).every(ticket => ticket.result && ticket.result.kind === 'abandoned') && abandoned52.length === 2, '§52 検査3: 07:00に残った案件が放棄呼にならない');
+assert(endingState52.tickets[0].result.kind === 'abandoned' && endingState52.tickets[1].result.kind === 'handed_off' && abandoned52.length === 1, '§52 検査3/24: 07:00の待機案件と通話中案件を放棄呼・日勤引き継ぎへ分けない');
 assert(functionSource('advance').includes("t.patience -= 100 / t.s.abandonAfter") && functionSource('advance').includes("t.patience <= 0"), '§52 検査8: patienceが0で切断される仕組みが変わった');
 assert(!functionSource('renderOffice').includes('queueCutoff') && !functionSource('renderOffice').includes('切断'), '§52 検査7: オフィス画面に切断までの残り時間が出る');
 const enterOffice52State = {phase:'report'};
@@ -821,22 +827,22 @@ assert(queue21Source.includes('state.tickets.filter') && shift21Source.includes(
 
 assert(functionSource('checkShiftEnd').includes('state.clock >= SHIFT_END') && !functionSource('checkShiftEnd').includes("state.tickets.some(t => t.state !== 'closed')"), '§52 検査2: 全件終了で早くシフトが終わってしまう');
 
-const metricsForTwo = new Function('state', functionSource('metrics') + '\nreturn metrics;')({tickets:[
+const metricsForTwo = new Function('state','unscoredOutcome', functionSource('metrics') + '\nreturn metrics;')({tickets:[
   {result:{kind:'closed',csat:5,firstCallResolved:true},callMinutes:2},
   {result:{kind:'abandoned',csat:0,firstCallResolved:false},callMinutes:0},
-]});
+]}, ticket => ['unavailable','handed_off'].includes(ticket.result && ticket.result.kind));
 const twoMetrics = metricsForTwo();
 assert.deepEqual([twoMetrics.finished.length,twoMetrics.answered.length,twoMetrics.abandoned,twoMetrics.answerRate,twoMetrics.aht], [2,1,1,.5,2], 'レポート集計がその日の実件数で計算されない');
 
 const reportSheet = {innerHTML:''};
 const twoTicketState = {tickets:[{escUsed:false},{escUsed:false}],report:null,clock:22 * 60};
 const renderTwoTicketReport = new Function(
-  'state','SCENARIOS','reportOptions','metrics','$','fmtClock','esc','totalCost','openSheet',
+  'state','SCENARIOS','reportOptions','metrics','$','fmtClock','esc','totalCost','openSheet','startTimePassageIfNeeded',
   functionSource('renderReport') + '\nreturn renderReport;'
-)(twoTicketState, SCENARIOS, () => ({special:[],handoff:[]}), () => ({abandoned:0,aht:null}), () => reportSheet, () => '22:00', String, () => 0, () => {});
+)(twoTicketState, SCENARIOS, () => ({special:[],handoff:[]}), () => ({abandoned:0,unscored:0,aht:null}), () => reportSheet, () => '22:00', String, () => 0, () => {}, () => false);
 renderTwoTicketReport();
 assert(reportSheet.innerHTML.includes('対応件数 2件') && reportSheet.innerHTML.includes('該当する特記事項はありません。'), '2件の日のレポートが件数と空項目を成立させて表示しない');
-assert(functionSource('careerBriefingHtml').includes("state.tickets.length + '件</b>'") && functionSource('renderReport').includes("state.tickets.length + '件"), '当日の実件数がブリーフィングとレポートに表示されない');
+assert(functionSource('careerBriefingHtml').includes("' ／ 入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件</b>'") && functionSource('renderReport').includes("state.tickets.length + '件（入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件"), '当日の入電・引き継ぎ実件数がブリーフィングとレポートに表示されない');
 assert(Object.prototype.hasOwnProperty.call(GAME_FLAGS, 'dailyTickets') && GAME_FLAGS.dailyTickets === null, 'GAME_FLAGSから日次件数を固定できない');
 
 const baselineClosed = runCloseContract(true, true);
@@ -1561,7 +1567,7 @@ const screen26 = renderScreen26({lookupId:'l_plan',lookupTitle:'契約照会',te
 assert(screen26.includes('class="system-screen lookup-system-screen"') && screen26.includes('<header>') && screen26.includes('<b>契約照会</b>') && /\.system-screen\{[^}]*font-family: var\(--mono\)/.test(page), '§26 照会結果が枠・タイトル・等幅フォントのシステム画面にならない');
 assert(functionSource('lookupSystemLine').includes('typed:true'), '§26 照会結果が直近会話で未表示になる');
 assert((screen26.match(/lookup-system-row/g) || []).length === 2 && !screen26.includes('／ 使用量'), '§26 照会結果の項目が行ごとに分かれない');
-assert(page.includes('.lcd,.lcd.obscured,.lcd.missing,.system-screen{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }'), '§26 システム画面の配色がROUTER DISPLAYと揃っていない');
+assert(page.includes('.system-screen{ background:#10212B; color:#A8E4DF; box-shadow:inset 0 0 18px #071118; }'), '§26 システム画面の配色が指定値と揃っていない');
 assert(screen26.indexOf('lookup-viz') > screen26.indexOf('lookup-system-fields') && screen26.indexOf('lookup-viz') < screen26.indexOf('</section>'), '§26 使用量vizがシステム画面の外へ出ている');
 const externalScreen26 = renderScreen26({lookupId:'l_carrier',lookupTitle:'現地キャリア照会',external:true,text:'[現地キャリア照会] 回線契約: 有効'});
 assert(externalScreen26.includes('lookup-system-screen external') && externalScreen26.includes('外部照会'), '§26 l_carrierが外部照会として見分けられない');
@@ -1642,7 +1648,7 @@ const recordSource27 = functionSource('renderRecord') + functionSource('renderCu
 const recordTranscriptSource27 = functionSource('renderRecordTranscript');
 assert(recordSource27.includes('system-screen record-system-screen') && recordSource27.includes('<b>顧客レコード</b>') && page.includes('.record-system-screen'), '§27 通話記録が枠・タイトル行を持つシステム画面ではない');
 assert(page.includes('.system-screen{') && page.includes('.record-system-entry') && page.includes('font: 11px/1.6 var(--mono)'), '§27 通話記録が照会画面と共通配色・等幅フォントになっていない');
-assert(page.includes('.system-screen .record-system-block h3,.system-screen .log-customer span,.system-screen .log-candidates span{ color:#A8E4DF; }') && page.includes('.system-screen .log-customer b,.system-screen .log-candidates b{ color:#78B8B3; }'), '§27 ライト画面で通話記録の見出し・項目が暗く読めない');
+assert(page.includes('.system-screen .record-system-block h3,.system-screen .log-customer span{ color:#A8E4DF; }') && page.includes('.system-screen .log-customer b{ color:#78B8B3; }'), '§27 ライト画面で通話記録の見出し・項目が暗く読めない');
 const renderRecordTranscript27 = new Function('renderLookupSystemScreen','renderLookupViz','esc', recordTranscriptSource27 + '\nreturn renderRecordTranscript;')(renderScreen26,renderViz26,esc26);
 const recordHtml27 = renderRecordTranscript27({transcript:[
   {who:'cust',text:'顧客発話'}, {who:'me',text:'担当者発話'}, {who:'note',text:'対応メモ'}, {who:'sys',text:'システム応答'},
@@ -1663,11 +1669,11 @@ const careerBriefing29 = new Function('state','freshCareerRecord','esc','CAREER_
   briefingRuntime29.state,() => briefingRuntime29.state.career,value => String(value),CAREER_STAGES
 );
 const firstBriefing29 = careerBriefing29();
-assert(firstBriefing29.includes('<b>1日目 ／ 試用期間 ／ 今夜 4件</b>'), '§29 何日目・段階・今夜の件数が1行で出ない');
+assert(firstBriefing29.includes('<b>1日目 ／ 試用期間 ／ 入電 4件 ／ 引き継ぎ 0件</b>'), '§29 何日目・段階・今夜の入電・引き継ぎ件数が1行で出ない');
 assert(firstBriefing29.includes('勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。'), '§29 初回ブリーフィングに保存注記がない');
 briefingRuntime29.state.career = {totals:{days:1},stage:'probation'};
 const secondBriefing29 = careerBriefing29();
-assert(secondBriefing29.includes('<b>2日目 ／ 試用期間 ／ 今夜 4件</b>') && !secondBriefing29.includes('勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。'), '§29 保存注記が2日目以降にも出る');
+assert(secondBriefing29.includes('<b>2日目 ／ 試用期間 ／ 入電 4件 ／ 引き継ぎ 0件</b>') && !secondBriefing29.includes('勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。'), '§29 保存注記が2日目以降にも出る');
 
 // §29-5 検査3: 開始操作を残す。
 assert(briefingSource29.includes('id="btn-start">シフトを始める</button>') && briefingSource29.includes("$('btn-start').onclick"), '§29 ブリーフィングにシフト開始ボタンがない');
@@ -2266,7 +2272,7 @@ assert(resolvedTell48.includes('原因を伝える') && resolvedTell48.includes(
 assert(functionSource('commandPrompt').includes('どの対処が効いたかを選んでください'), '§48-2 検査3: 復旧後の対処選択見出しがない');
 const closeFlow48 = functionSource('renderCloseFlow');
 assert(!/ruledOut\(|hotCauses\(|isHot|\bhot\b|\bused\b|●|手がかりが指しています|噛み合いません/.test(closeFlow48), '§48-3 検査1: 原因選択に診断ボード用の強調・除外表示が残っている');
-assert(functionSource('renderBoard').includes('isHot') && functionSource('renderBoard').includes("(out ? '×' : isHot ? '●' : '·')"), '§48-3 検査2: 診断ボードから根拠の強調・除外表示まで消えている');
+assert(!functionSource('renderBoard'), '§56 廃止した診断ボードが復活している');
 assert.equal(correctExpected.pendingResult.csat, 4.6, '§48-5 検査1: 名前を伺えなかった終話に記録不足0.4点が反映されない');
 /* §51: 記録に残すのは名前。苛立ちによる免除は廃止した——解決したあとなら
    怒っていた客でも名前は答えるので、聞かなかったことの言い訳にならない。 */
@@ -2371,10 +2377,10 @@ const lateRedial53 = new Function('state','LAST_INBOUND_TURN','MIN_INBOUND_GAP',
 const tooLateTicket53 = {state:'waiting',arrivedTurn:380,stress:0,maxStress:0,abandonedCalls:0,attempts:[],redialCount:0,s:{id:'S3',type:'novice'}};
 lateRedialState53.tickets=[tooLateTicket53]; lateRedial53(tooLateTicket53,'遅い放棄');
 assert(tooLateTicket53.state === 'closed' && tooLateTicket53.redialCount === 0,'§53 検査8: 06:00より後へ放棄後の再着信を予約する');
-const recoveredMetrics53 = new Function('state',functionSource('metrics') + '\nreturn metrics;')({tickets:[
+const recoveredMetrics53 = new Function('state','unscoredOutcome',functionSource('metrics') + '\nreturn metrics;')({tickets:[
   {result:{kind:'closed',csat:4,firstCallResolved:false},abandonedCalls:1,callMinutes:5},
   {result:{kind:'closed',csat:5,firstCallResolved:true},abandonedCalls:0,callMinutes:3},
-]})();
+]}, ticket => ['unavailable','handed_off'].includes(ticket.result && ticket.result.kind))();
 assert(recoveredMetrics53.abandoned === 1 && recoveredMetrics53.answerRate === 2/3,'§53 検査8: 再着信を取った後に最初の放棄呼が応答率から消える');
 
 const stripNode53 = {parentElement:null};
@@ -2387,5 +2393,140 @@ assert((page.match(/id="shift-strip"/g)||[]).length === 1 && (page.match(/id="of
 const officeHeading53 = page.indexOf('<h1>深夜のグローバルデスク</h1>');
 assert(officeHeading53 >= 0 && page.indexOf('id="office-clock"',officeHeading53) < page.indexOf('</div>\n    <p>新しい電話',officeHeading53) && page.includes('body.office-view .topbar .clock{ display:none; }'),'§53 検査9: オフィス時計・シフト帯が見出し直下でなく、トップバー時計も重複表示される');
 assert(functionSource('renderOffice').includes('mountShiftStrip(true)') && functionSource('render').includes('mountShiftStrip(false)') && functionSource('renderDesk').includes('mountShiftStrip(false)'),'§53 検査9: 画面遷移に応じて単一シフト帯を移動しない');
+
+// §52-4 / §55: 日勤から受ける0〜2件を、23時の引き継ぎから一度の直接折り返しまで通す。
+const handoverCount55 = new Function('HANDOVER_ZERO_RATE','HANDOVER_ONE_RATE', functionSource('handoverTicketCount') + '\nreturn handoverTicketCount;')(
+  HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE
+);
+assert.deepEqual([0,.599999,.6,.849999,.85,.999999].map(value => handoverCount55(() => value, {handoverTickets:null})), [0,0,1,1,2,2], '§55 検査1: 引き継ぎが0〜2件で、0件の夜を最も多くする抽選にならない');
+assert(HANDOVER_ZERO_RATE > HANDOVER_ONE_RATE && HANDOVER_ZERO_RATE > 1 - HANDOVER_ZERO_RATE - HANDOVER_ONE_RATE, '§55 検査1: 引き継ぎなしの夜が最も多くない');
+[0,1,2].forEach(count => assert.equal(handoverCount55(() => 0, {handoverTickets:count}), count, '§55 検査1: GAME_FLAGSで引き継ぎ件数を固定できない'));
+assert.throws(() => handoverCount55(() => 0, {handoverTickets:3}), /0〜2/, '§55 検査1: 引き継ぎ3件以上を拒否しない');
+
+const drawHandoverTurns55 = new Function('LAST_INBOUND_TURN','MIN_INBOUND_GAP','shuffleScenarios', functionSource('drawHandoverCallbackTurns') + '\nreturn drawHandoverCallbackTurns;')(
+  LAST_INBOUND_TURN,MIN_INBOUND_GAP,shuffleScenarios
+);
+const prepareShiftSource55 = functionSource('prepareShiftScenarios');
+const prepareShift55 = new Function(
+  'dailyTicketCount','handoverTicketCount','shuffleScenarios','drawInboundArrivalTurns','drawHandoverCallbackTurns','assignScenarioIdentities',
+  prepareShiftSource55 + '\nreturn prepareShiftScenarios;'
+)(dailyTicketCount,handoverCount55,shuffleScenarios,drawInboundArrivalTurns,drawHandoverTurns55,scenarios => scenarios);
+const selected55 = prepareShift55(SCENARIOS, () => .37, {dailyTickets:5,handoverTickets:2,shuffleArrival:true,shuffleIdentity:false});
+const inbound55 = selected55.filter(scenario => scenario.workOrigin === 'inbound');
+const handed55 = selected55.filter(scenario => scenario.workOrigin === 'handover');
+assert(selected55.length === 7 && inbound55.length === 5 && handed55.length === 2, '§55 検査2: 入電2〜5件とは別に引き継ぎ0〜2件を置けない');
+assert(new Set(selected55.map(scenario => scenario.id)).size === selected55.length && selected55.every(scenario => SCENARIOS.some(source => source.id === scenario.id)), '§55 検査3: 引き継ぎが既存14案件から重複なく選ばれない');
+assert(handed55.every(scenario => scenario.arrive >= 0 && scenario.arrive <= LAST_INBOUND_TURN && scenario.arrive % 30 === 0), '§55 検査4: 約束時刻が夜勤内の「何時ごろ」にならない');
+assert(handed55.every(scenario => inbound55.every(ticket => Math.abs(scenario.arrive-ticket.arrive) >= MIN_INBOUND_GAP)) && handed55.slice(1).every((scenario,index) => scenario.arrive-handed55[index].arrive >= MIN_INBOUND_GAP), '§55 検査4: 引き継ぎの約束時刻が着信または別の折り返しとぶつかる');
+assert((prepareShiftSource55.match(/assignScenarioIdentities\(/g) || []).length === 1 && prepareShiftSource55.includes('assignScenarioIdentities(timed'), '§55 検査3: 入電と引き継ぎを別々に人物・土地割り当てし、同じ客が重複しうる');
+
+const newTicket55 = new Function('TYPES','SHIFT_START', functionSource('newTicket') + '\nreturn newTicket;')(TYPES,SHIFT_START);
+const handoverTicket55 = newTicket55(handed55[0]);
+assert(handoverTicket55.state === 'callback' && handoverTicket55.callbackDue === SHIFT_START + handed55[0].arrive && handoverTicket55.callbackDestination === 'direct', '§55 検査5: 引き継ぎ案件が約束時刻の直接折り返し待ちとして始まらない');
+assert(handoverTicket55.identified && handoverTicket55.nameKnown && handoverTicket55.destinationKnown && handoverTicket55.greeted && handoverTicket55.facts.length === 0, '§55 検査6: 日勤の本人確認を引き継げない、または原因の手がかりまで先に渡している');
+assert(functionSource('deskTickets').includes("t.state === 'callback'") && functionSource('renderOffice').includes("t.state === 'callback'") && functionSource('renderOffice').includes("$('office-desk').disabled = !callbacks.length"), '§55 検査7: 掛ける前にデスク端末から引き継ぎ案件を開けない');
+assert(functionSource('renderQueue').includes('折り返し待ち') && !functionSource('renderQueue').includes('現地キャリア照会中') && functionSource('renderOffice').includes('折り返し予定'), '§55 検査7: 引き継ぎの折り返し待ちを現地キャリア照会中と誤表示する');
+
+const renderRecord55 = new Function(
+  'LOOKUPS','esc','fmtClock','renderRecordLog',
+  [functionSource('identificationReady'),functionSource('recordValue'),functionSource('lookupRecordValue'),functionSource('renderCustomerRecord')].join('\n') + '\nreturn renderCustomerRecord;'
+)(LOOKUPS,value => String(value),minute => 'T' + minute,() => '');
+const recordHtml55 = renderRecord55(handoverTicket55, false);
+assert(recordHtml55.includes('日勤引き継ぎ') && recordHtml55.includes(handoverTicket55.s.name) && recordHtml55.includes(handoverTicket55.s.handoverSymptom) && recordHtml55.includes('T' + handoverTicket55.callbackDue) && !recordHtml55.includes('お名前</b><span>―― 未照会'), '§55 検査7: 折り返し前の社内システムで本人・症状・約束時刻を見られない');
+
+const meetingNodes55 = {sheet:{innerHTML:''},'btn-finish-handover':{onclick:null}};
+let meetingOpened55 = 0;
+const showMeeting55 = new Function('handoverMeetingTickets','enterShiftAfterMeeting','esc','fmtClock','$','SHIFT_START','openSheet', functionSource('showHandoverMeeting') + '\nreturn showHandoverMeeting;')(
+  () => [handoverTicket55],() => {},value => String(value),minute => 'T' + minute,id => meetingNodes55[id],SHIFT_START,() => { meetingOpened55++; }
+);
+showMeeting55();
+const meetingHtml55 = meetingNodes55.sheet.innerHTML;
+assert(meetingOpened55 === 1 && meetingHtml55.includes('23時の引き継ぎ') && meetingHtml55.includes('日勤担当') && meetingHtml55.includes(handoverTicket55.s.name) && meetingHtml55.includes(handoverTicket55.s.handoverSymptom) && meetingHtml55.includes('T' + handoverTicket55.callbackDue), '§55 検査8: 23時の日勤担当との場で誰か・何が・いつの3点を受け取れない');
+assert.equal(meetingHtml55.split(handoverTicket55.s.name).length - 1, 1, '§55 検査8: 引き継ぎMTGで顧客名が重複している');
+assert(!/<dt>|誰か|何が|いつ/.test(meetingHtml55) && meetingHtml55.includes('様</strong>が「') && meetingHtml55.includes('」とお困りなので、<strong>') && meetingHtml55.includes('ごろ</strong>に連絡してください。'), '§55 検査8: 引き継ぎMTGがラベルのない1行の申し送りになっていない');
+assert(!meetingHtml55.includes(handoverTicket55.s.trueCause) && !meetingHtml55.includes(handoverTicket55.s.opening) && !/照会|原因|対処/.test(meetingHtml55), '§55 検査9: 引き継ぎMTGが3点以外の原因・照会・会話を漏らす');
+assert.equal(typeof meetingNodes55['btn-finish-handover'].onclick, 'function', '§55 検査8: 引き継ぎMTGから夜勤を始める操作がつながらない');
+
+const startMeeting55 = new Function('handoverMeetingTickets','showHandoverMeeting','enterShiftAfterMeeting', functionSource('startShiftFromBriefing') + '\nreturn startShiftFromBriefing;');
+let shownMeeting55 = 0, enteredShift55 = 0;
+startMeeting55(() => [],() => { shownMeeting55++; },() => { enteredShift55++; })();
+assert(shownMeeting55 === 0 && enteredShift55 === 1 && functionSource('careerBriefingHtml').includes("件 ／ 引き継ぎ ' + handoverCount"), '§55 検査10: 引き継ぎ0件の日に空の会議を見せる、または0件と知らせず夜勤へ入る');
+startMeeting55(() => [handoverTicket55],() => { shownMeeting55++; },() => { enteredShift55++; })();
+assert(shownMeeting55 === 1 && enteredShift55 === 1, '§55 検査8: 引き継ぎがある日にも会議を飛ばして夜勤へ入る');
+
+const meetingState55 = {handoverMeetingComplete:false};
+let meetingAdvances55 = 0, meetingEntries55 = 0;
+const enterAfterMeeting55 = new Function('state','closeSheet','advance','enterOffice', functionSource('enterShiftAfterMeeting') + '\nreturn enterShiftAfterMeeting;')(
+  meetingState55,() => {},() => { meetingAdvances55++; },() => { meetingEntries55++; }
+);
+enterAfterMeeting55(); enterAfterMeeting55();
+assert(meetingAdvances55 === 1 && meetingEntries55 === 1, '§55 検査10: 23時の引き継ぎ完了を二重に実行できる');
+
+const availabilityState55 = {random:() => .499999};
+const available55 = new Function('state','HANDOVER_ANSWER_RATE', functionSource('handoverCustomerAvailable') + '\nreturn handoverCustomerAvailable;')(availabilityState55,HANDOVER_ANSWER_RATE);
+const unavailableBoundary55 = new Function('state','HANDOVER_ANSWER_RATE', functionSource('handoverCustomerAvailable') + '\nreturn handoverCustomerAvailable;')({random:() => .5},HANDOVER_ANSWER_RATE);
+const deterministicAvailable55 = new Function('state','HANDOVER_ANSWER_RATE', functionSource('handoverCustomerAvailable') + '\nreturn handoverCustomerAvailable;')({random:() => .999999},HANDOVER_ANSWER_RATE);
+assert(HANDOVER_ANSWER_RATE === .5 && available55({luckRate:.9}) && !unavailableBoundary55({luckRate:.9}) && deterministicAvailable55({luckRate:1}), '§55 検査11: 在室50%またはluckRate 1で必ず在室の境界が違う');
+
+const unavailableState55 = {focus:null,clock:handoverTicket55.callbackDue,ui:null};
+const unavailableTicket55 = newTicket55(handed55[0]);
+let unavailableAdvance55 = 0;
+const resumeHandoverSource55 = functionSource('resumeHandoverCallback');
+assert(resumeHandoverSource55.indexOf('t.handoverAttempted ||') >= 0 && resumeHandoverSource55.indexOf('t.handoverAttempted ||') < resumeHandoverSource55.indexOf('t.handoverAttempted = true'), '§55 検査12: 引き継ぎへ一度連絡したあと再発信を拒否しない');
+const resumeUnavailable55 = new Function('state','playPickupSound','handoverCustomerAvailable','advance','finishUnavailableHandover','spendOnCall','pushCustomerLine','deliverStayHint','defaultUi','enterCall', functionSource('resumeHandoverCallback') + '\nreturn resumeHandoverCallback;')(
+  unavailableState55,() => {},() => false,minutes => { unavailableAdvance55 += minutes; },ticket => { ticket.state='closed'; ticket.result={kind:'unavailable',csat:null}; unavailableState55.focus=null; },() => { throw new Error('不在なのに通話時間を課金した'); },() => {},() => {},() => ({}),() => {}
+);
+resumeUnavailable55(unavailableTicket55); resumeUnavailable55(unavailableTicket55);
+assert(unavailableTicket55.handoverAttempted && unavailableTicket55.callbackCount === 1 && unavailableAdvance55 === 1 && unavailableTicket55.dialMinutes === 1 && unavailableTicket55.callMinutes === 0 && unavailableTicket55.outboundMinutes === 0 && unavailableTicket55.result.kind === 'unavailable', '§55 検査12: 不在時に一度だけ連絡した記録で完了せず、再発信または通話課金できる');
+
+const answeredTicket55 = newTicket55(handed55[1]);
+const answeredState55 = {focus:null,clock:answeredTicket55.callbackDue,ui:null};
+let answeredOpening55 = '';
+const resumeAnswered55 = new Function('state','playPickupSound','handoverCustomerAvailable','advance','finishUnavailableHandover','spendOnCall','pushCustomerLine','deliverStayHint','defaultUi','enterCall', functionSource('resumeHandoverCallback') + '\nreturn resumeHandoverCallback;')(
+  answeredState55,() => {},() => true,() => {},() => {},ticket => { ticket.callMinutes++; ticket.outboundMinutes++; return true; },(_ticket,text) => { answeredOpening55=text; },() => {},() => ({}),() => {}
+);
+resumeAnswered55(answeredTicket55);
+assert(answeredTicket55.state === 'open' && answeredTicket55.callDirection === 'outbound' && answeredTicket55.callbackStage === 'direct' && answeredOpening55 === answeredTicket55.s.opening, '§55 検査13: 在室時にFront Deskを挟まず本人へ発信し、日勤から聞いた症状を会話へ接続できない');
+
+const handoverMetrics55 = new Function('state','unscoredOutcome', functionSource('metrics') + '\nreturn metrics;')({tickets:[
+  {result:{kind:'closed',csat:5,firstCallResolved:true},abandonedCalls:0,callMinutes:2},
+  {result:{kind:'unavailable',csat:null,firstCallResolved:false},abandonedCalls:0,callMinutes:0},
+]}, ticket => ['unavailable','handed_off'].includes(ticket.result && ticket.result.kind))();
+assert(handoverMetrics55.csat === 5 && handoverMetrics55.answerRate === 1 && handoverMetrics55.aht === 2 && handoverMetrics55.unscored === 1, '§55 検査14: 不在の引き継ぎ案件がCSAT・応答率・平均通話を下げる');
+
+const reportState55 = {outageKnown:false,outageRegion:null,tickets:[Object.assign(answeredTicket55,{state:'closed',result:{kind:'handed_off',csat:null}})]};
+const reportOptions55 = new Function('state','unscoredOutcome','fmtClock', functionSource('reportOptions') + '\nreturn reportOptions;')(
+  reportState55,ticket => ['unavailable','handed_off'].includes(ticket.result && ticket.result.kind),minute => 'T' + minute
+)();
+assert(reportOptions55.handoff.some(item => item.required && item.id === 'morning_handoff_' + answeredTicket55.s.id && item.text.includes(answeredTicket55.s.handoverSymptom)), '§55 検査15: 07時の通話中案件が日勤への必須申し送りに残らない');
+const debrief55 = functionSource('renderDebrief');
+assert(debrief55.indexOf('if (unscoredOutcome(t))') < debrief55.indexOf('const cls = r.csat') && debrief55.includes('評価対象外 ／ '), '§55 検査14: 不在・朝の引き継ぎにCSATや真の原因を表示して評価する');
+
+// §57: ゲームの判定時刻は先に確定させ、時計と現在線だけを同じ表示時刻で補間する。
+const duration57 = new Function(functionSource('timePassageDuration') + '\nreturn timePassageDuration;')();
+assert(duration57(60) >= 1000 && duration57(60) <= 2000, '§57 検査1: 1時間の経過演出が1〜2秒に収まらない');
+assert(duration57(1) < duration57(2) && duration57(2) < duration57(60) && duration57(60) < duration57(120) && duration57(480) <= 3000, '§57 検査2: 経過時間に応じて演出時間が変わらない、または長時間待たせすぎる');
+const display57 = functionSource('renderPresentedTime');
+const strip57 = functionSource('renderShiftStrip');
+assert(display57.includes("$('clock')") && display57.includes("$('office-clock')") && display57.includes('renderShiftStrip(rounded)'), '§57 検査3: 時計とタイムシフト表が同じ表示時刻で動かない');
+assert(strip57.startsWith('function renderShiftStrip(displayClock = state.clock)') && strip57.includes('(displayClock - SHIFT_START)'), '§57 検査4: タイムシフト表の現在線が補間中の表示時刻を使わない');
+assert(!/state\.(?:clock|turn)\s*=|\badvance\(|activateDueInbound|abandonTicket|resolveCarrierRequest/.test(functionSource('startTimePassageIfNeeded') + display57), '§57 検査7: 演出の途中でゲーム時刻または判定を動かしている');
+const displayNodes57 = {clock:{textContent:''},'office-clock':{textContent:''}};
+let stripMinute57 = null;
+const renderDisplayed57 = new Function('$','fmtClock','renderShiftStrip',display57 + '\nreturn renderPresentedTime;')(
+  id => displayNodes57[id] || null,
+  minute => 'T' + minute,
+  minute => { stripMinute57 = minute; }
+);
+renderDisplayed57(1439.6);
+assert(displayNodes57.clock.textContent === 'T1440' && displayNodes57['office-clock'].textContent === 'T1440' && stripMinute57 === 1440, '§57 検査3: 2つの時計と現在線が同じ分へ着地しない');
+const passage57 = functionSource('startTimePassageIfNeeded');
+assert(passage57.includes('typewriterOff()') && passage57.includes('finishTimePassage()'), '§57 検査5: prefers-reduced-motionで即着地しない');
+assert(passage57.includes('requestAnimationFrame(step)') && passage57.includes('timePassageDuration(minutes)'), '§57 検査6: 時間経過をフレーム補間しない');
+const clickSkip57 = eventSource.indexOf('if (timePassage){ finishTimePassage(); return; }');
+const typingSkip57 = eventSource.indexOf('if (typingLine){ finishTyping(); return; }');
+assert(clickSkip57 >= 0 && clickSkip57 < typingSkip57 && eventSource.includes("if (timePassage && (e.key === ' ' || e.key === 'Enter'))"), '§57 検査8: タップ・キーで時間経過演出を飛ばせない');
+assert(functionSource('renderReport').startsWith('function renderReport(){\n  if (startTimePassageIfNeeded(() => renderReport())) return;'), '§57 検査9: 07:00の着地前に業務報告へ飛ぶ');
+assert(page.includes('id="time-passage-indicator"') && page.includes('時間が進んでいます ／ タップで進む'), '§57 検査10: 時間経過中とスキップ方法が画面に出ない');
 
 console.log('UI契約・素材同期・SIM清掃仕様: 問題なし');

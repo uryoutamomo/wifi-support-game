@@ -37,7 +37,7 @@ function hotelRoom(t){
 }
 
 function defaultUi(tab = 'command'){
-  return { tab, cause:null, remedy:null, lookup:null, askGroup:null, boardExcludedOpen:false };
+  return { tab, cause:null, remedy:null, lookup:null, askGroup:null };
 }
 
 const state = {
@@ -61,6 +61,7 @@ const state = {
   endingReplay: false,
   endingType: 'career',
   officeEvents: [],
+  handoverMeetingComplete: false,
   random: Math.random,
 };
 
@@ -85,6 +86,19 @@ function dailyTicketCount(random, flags = GAME_FLAGS){
     return flags.dailyTickets;
   }
   return 2 + Math.floor(random() * 4);
+}
+
+function handoverTicketCount(random, flags = GAME_FLAGS){
+  if (flags.handoverTickets !== null && flags.handoverTickets !== undefined){
+    if (!Number.isInteger(flags.handoverTickets) || flags.handoverTickets < 0 || flags.handoverTickets > 2){
+      throw new Error('handoverTickets は null または0〜2の整数で指定してください');
+    }
+    return flags.handoverTickets;
+  }
+  const roll = random();
+  if (roll < HANDOVER_ZERO_RATE) return 0;
+  if (roll < HANDOVER_ZERO_RATE + HANDOVER_ONE_RATE) return 1;
+  return 2;
 }
 
 function scenarioLocalMinute(scenario, place){
@@ -217,6 +231,32 @@ function prepareDailyScenarios(scenarios, random, flags = GAME_FLAGS){
   return assignScenarioIdentities(selected, random, flags);
 }
 
+function drawHandoverCallbackTurns(count, inboundTurns, random){
+  const candidates = [];
+  for (let minute = 30; minute <= LAST_INBOUND_TURN; minute += 30){
+    if (inboundTurns.every(turn => Math.abs(turn - minute) >= MIN_INBOUND_GAP)) candidates.push(minute);
+  }
+  const selected = shuffleScenarios(candidates, random).slice(0, count).sort((a,b) => a - b);
+  if (selected.length !== count || selected.slice(1).some((turn,index) => turn - selected[index] < MIN_INBOUND_GAP)){
+    throw new Error('引き継ぎの折り返し時刻を安全に割り当てられません');
+  }
+  return selected;
+}
+
+function prepareShiftScenarios(scenarios, random, flags = GAME_FLAGS){
+  const inboundCount = dailyTicketCount(random, flags);
+  const handoverCount = handoverTicketCount(random, flags);
+  const total = inboundCount + handoverCount;
+  const ordered = flags.shuffleArrival ? shuffleScenarios(scenarios, random) : scenarios.slice();
+  const arrivalSlots = drawInboundArrivalTurns(inboundCount, random);
+  const callbackTurns = drawHandoverCallbackTurns(handoverCount, arrivalSlots, random);
+  const timed = ordered.slice(0, total).map((scenario,index) => index < inboundCount
+    ? Object.assign({}, scenario, { workOrigin:'inbound', arrive:arrivalSlots[index] })
+    : Object.assign({}, scenario, { workOrigin:'handover', arrive:callbackTurns[index - inboundCount], handoverCallbackTurn:callbackTurns[index - inboundCount] })
+  );
+  return assignScenarioIdentities(timed, random, flags);
+}
+
 /* §52: 圧縮した乱数を並べてから最小間隔を足す。これなら最後は06:00まで、
    各着信は20分以上離れ、案件定義の arrive には依存しない。 */
 function drawInboundArrivalTurns(count, random){
@@ -258,7 +298,7 @@ function validCareerRecord(value){
   if (value.badges.some(id => !badgeIds.has(id)) || new Set(value.badges).size !== value.badges.length) return false;
   if (value.solvedScenarios.some(id => !scenarioIds.has(id)) || new Set(value.solvedScenarios).size !== value.solvedScenarios.length) return false;
   return value.shifts.every(shift => shift && typeof shift.endedAt === 'string' && !Number.isNaN(Date.parse(shift.endedAt)) &&
-    Number.isInteger(shift.tickets) && shift.tickets >= 2 && shift.tickets <= 5 && /^[SABCDE]$/.test(shift.grade) &&
+    Number.isInteger(shift.tickets) && shift.tickets >= 2 && shift.tickets <= 7 && /^[SABCDE]$/.test(shift.grade) &&
     shift.scores && ['csat','fcr','answer','cost','report'].every(key => Number.isFinite(shift.scores[key])) &&
     Number.isInteger(shift.complaints) && shift.complaints >= 0);
 }
@@ -355,15 +395,18 @@ function localClock(t){
 /* ---------- 初期化 ---------- */
 
 function newTicket(s){
+  const handover = s.workOrigin === 'handover';
+  const callbackTurn = handover ? s.handoverCallbackTurn : null;
   return {
-    s, state:'inbound', patience:100, arrivedTurn:s.arrive,
+    s, state:handover ? 'callback' : 'inbound', patience:100, arrivedTurn:handover ? callbackTurn : s.arrive,
+    workOrigin:handover ? 'handover' : 'inbound', handover, handoverAttempted:false,
     facts:[], asked:new Set(), askCounts:new Map(), questionCount:0, lookedUp:new Set(), tested:new Set(), testCounts:new Map(),
-    transcript:[], callTranscriptStart:0, greeted:false, identified:false, nameKnown:false, destinationKnown:false,
+    transcript:[], callTranscriptStart:0, greeted:handover, identified:handover, nameKnown:handover, destinationKnown:handover,
     stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, inboundMinutes:0, outboundMinutes:0, callSegmentMinutes:0, callDirection:'inbound', holdMinutes:0,
     callChargeConcerned:false,
-    callbackCount:0, callbackDue:null, callbackLate:false, callbackKind:null, callbackDestination:null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, callbackReliefApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
-    callbackReason:null, callbackStage:null, callbackPromised:null, returnTimeKnown:false, frontDeskAttempts:0,
+    callbackCount:0, callbackDue:handover ? SHIFT_START + callbackTurn : null, callbackLate:false, callbackKind:handover ? 'handover' : null, callbackDestination:handover ? 'direct' : null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, callbackReliefApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
+    callbackReason:handover ? 'handover' : null, callbackStage:handover ? 'scheduled' : null, callbackPromised:handover ? 'day_shift' : null, returnTimeKnown:handover, frontDeskAttempts:0,
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
@@ -378,7 +421,7 @@ function resetGame(){
   state.phase = 'briefing';
   state.turn = 0;
   state.clock = SHIFT_START;
-  state.tickets = prepareDailyScenarios(SCENARIOS, state.random).map(newTicket);
+  state.tickets = prepareShiftScenarios(SCENARIOS, state.random).map(newTicket);
   state.focus = null;
   state.escLeft = ESCALATIONS;
   state.cost = 0;
@@ -392,6 +435,7 @@ function resetGame(){
   state.report = null;
   state.careerUpdate = null;
   state.officeEvents = [];
+  state.handoverMeetingComplete = false;
 }
 
 function recordOfficeEvent(kind, text){
@@ -477,11 +521,32 @@ function abandonTicket(t, note){
   return true;
 }
 
+function unscoredOutcome(t){
+  return Boolean(t && t.result && ['unavailable','handed_off'].includes(t.result.kind));
+}
+
+function handoffActiveTicket(t){
+  if (!t || t.state !== 'open') return false;
+  t.state = 'closed';
+  t.pendingResult = null;
+  t.pendingInterruption = false;
+  t.pendingConversation = null;
+  t.result = { kind:'handed_off', csat:null, label:'日勤へ引き継ぎ', firstCallResolved:false };
+  if (!Array.isArray(t.attempts)) t.attempts = [];
+  t.attempts.push({ ...t.result, atTurn:SHIFT_DURATION, arrivedTurn:t.arrivedTurn, note:'07:00時点で通話中のため日勤担当へ引き継ぎました。' });
+  t.transcript.push({ who:'note', text:'07:00になったため、通話中の対応を日勤担当へ引き継ぎました。' });
+  recordOfficeEvent('handoff', t.s.id + '：通話中の対応を日勤担当へ引き継ぎました。');
+  return true;
+}
+
 function finishShiftAtTime(){
   if (state.phase === 'report') return;
   state.clock = SHIFT_END;
   state.turn = SHIFT_DURATION;
-  state.tickets.forEach(t => abandonTicket(t, '07:00の勤務終了で放棄呼になりました。'));
+  state.tickets.forEach(t => {
+    if (t.state === 'open') handoffActiveTicket(t);
+    else abandonTicket(t, '07:00の勤務終了で放棄呼になりました。');
+  });
   state.focus = null;
   state.desk = null;
   playShiftEndSound();
@@ -570,6 +635,7 @@ function greetCurrentCustomer(){
 
 function resumeCallback(t){
   if (state.focus || !t || t.state !== 'callback' || state.clock < t.callbackDue) return;
+  if (t.handover){ resumeHandoverCallback(t); return; }
   playPickupSound();
   t.callbackLate = state.clock > t.callbackDue;
   t.state = 'open';
@@ -581,6 +647,49 @@ function resumeCallback(t){
   state.focus = t;
   resolveCarrierRequest(t);
   t.transcript.push({ who:'front', text:CALL_FLOW_LINES.frontDesk.greeting + (isLateLocalTime(t) ? ' ' + CALL_FLOW_LINES.frontDesk.lateQuestion : '') });
+  state.ui = defaultUi();
+  enterCall();
+}
+
+function handoverCustomerAvailable(flags = GAME_FLAGS){
+  return flags.luckRate === 1 || state.random() < HANDOVER_ANSWER_RATE;
+}
+
+function finishUnavailableHandover(t){
+  t.state = 'closed';
+  t.result = { kind:'unavailable', csat:null, label:'不在（連絡実施）', firstCallResolved:false };
+  t.transcript.push({ who:'note', text:'呼び出しましたが応答はありませんでした。その夜の連絡義務は完了です。' });
+  t.attempts.push({ ...t.result, atTurn:state.turn, arrivedTurn:t.arrivedTurn });
+  playDisconnectSound();
+  recordOfficeEvent('handover', t.s.id + '：引き継ぎ案件へ一度連絡しましたが不在でした。');
+  if (state.focus === t) state.focus = null;
+  state.ui = defaultUi();
+  checkShiftEnd();
+}
+
+function resumeHandoverCallback(t){
+  if (state.focus || !t || !t.handover || t.handoverAttempted || t.state !== 'callback' || state.clock < t.callbackDue) return;
+  playPickupSound();
+  t.handoverAttempted = true;
+  t.callbackCount++;
+  t.callbackLate = state.clock > t.callbackDue;
+  t.state = 'open';
+  t.callDirection = 'outbound';
+  t.callSegmentMinutes = 0;
+  t.callbackStage = 'direct';
+  t.callTranscriptStart = t.transcript.length;
+  state.focus = t;
+  t.transcript.push({ who:'me', text:t.s.name + '様でしょうか。日勤担当から引き継いだグローバルデスクです。' });
+  const available = handoverCustomerAvailable();
+  if (!available){
+    t.dialMinutes = (t.dialMinutes || 0) + 1;
+    advance(1);
+    finishUnavailableHandover(t);
+    return;
+  }
+  if (!spendOnCall(t, 1, 0)) return;
+  pushCustomerLine(t, t.s.opening);
+  deliverStayHint(t);
   state.ui = defaultUi();
   enterCall();
 }

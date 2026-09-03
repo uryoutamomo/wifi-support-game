@@ -9,6 +9,9 @@ const SHIFT_END = SHIFT_START + SHIFT_DURATION; // 翌07:00 JST
 /* §52: 着信時刻は案件データではなく、この夜勤の器から引く。 */
 const LAST_INBOUND_TURN = 7 * 60; // 06:00 までに最後の着信
 const MIN_INBOUND_GAP = 20;
+const HANDOVER_ZERO_RATE = 0.6; // 引き継ぎなしの夜を最も多くする
+const HANDOVER_ONE_RATE = 0.25;
+const HANDOVER_ANSWER_RATE = 0.5;
 const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
@@ -45,6 +48,7 @@ const GAME_FLAGS = {
   shuffleArrival: true,
   shuffleIdentity: true,
   dailyTickets: null,
+  handoverTickets: null,
   careerStage: null,
   unlockedBadges: null,
   solvedScenarios: null,
@@ -615,6 +619,7 @@ const SCENARIOS = [
   contractId:{ minutes:2, text:'予約番号…はい、探します。手が震えて…すみません。ありました。GDW-410882、これで合っていますか？' },
   country:'タイ', city:'バンコク', cityEn:'BANGKOK', localOffset:-2, carrierName:'AIS', device:'GD-500', plan:'{country} ／ 500MBプラン',
   opening:'あの…地図が全然開かないんです。昨日まで使えたのに、今日だけ急に遅くて…。どうしたらいいでしょうか。',
+  handoverSymptom:'地図の読み込みが非常に遅い',
   smalltalk:[
     { id:'st_s1_trip', reveal:'q_when', askLabel:'{city}では、どちらを回られるご予定ですか？', tellLabel:'新婚旅行、おめでとうございます', goodReply:'ありがとうございます…。{spouse}と一緒だと思ったら、少し息ができました。', badReply:'ありがとうございます。でも地図がないと、ホテルにも戻れなくなりそうで…。' },
     { id:'st_s1_movie', reveal:'q_when', askLabel:'昨夜は、どのような映画をご覧になったんですか？', tellLabel:'お二人で映画を楽しまれたんですね', goodReply:'はい…つい見入ってしまって。思い出したら、少し落ち着きました。', badReply:'映画の話をしたら、私が使いすぎたせいって決まるんでしょうか…？' },
@@ -652,6 +657,7 @@ const SCENARIOS = [
   contractId:{ minutes:4, text:'番号…どの紙でしょう。すみません、老眼鏡も見つからなくて…。これですか？ GDW-336104。違っていたら、ごめんなさいね。' },
   country:'イギリス', city:'ロンドン', cityEn:'LONDON', localOffset:-8, carrierName:'Vodafone UK', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'も、もしもし。インターネットが繋がらなくて…。変な所を押して壊したんでしょうか。すみません、機械のことが本当に分からなくて…。',
+  handoverSymptom:'スマートフォンだけWi-Fiにつながらない',
   smalltalk:[{ id:'st_s2_tour', reveal:'q_other_device', askLabel:'ツアーでは、どちらを回られたんですか？', tellLabel:'皆様とのご旅行、素敵ですね', goodReply:'旅程では博物館へ…。皆さんと一緒だと思うと、少し心強いです。', badReply:'お気遣いまで、すみません。同行のお二人にも迷惑をかけないか心配で…。' }],
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:3, maxClients:5, battery:71, ssid:'Globaldesk-4471' },
   trueCause:'device_side', best:'r_forget_guide', partial:['r_use_other'],
@@ -691,6 +697,7 @@ const SCENARIOS = [
   rushedReply:'はい。挨拶は分かった。続き、早く。', contractId:{ minutes:1, text:'メールにあります。GDW-529017。はい、次。' },
   country:'ハワイ', city:'ホノルル', cityEn:'HONOLULU', localOffset:-19, carrierName:'T-Mobile US', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'急いでます。一台だけ繋がりません。ほかは使えます。あと10分で移動しないといけません。何を見ればいいですか。',
+  handoverSymptom:'複数端末のうち一台だけつながらない',
   smalltalk:[{ id:'st_s3_daughter', reveal:'q_other_device', askLabel:'お嬢様はタブレットで何をご覧になるんですか？', tellLabel:'お嬢様とのご旅行、楽しそうですね', goodReply:'家族旅行です。…はい、少し落ち着きました。次は？', badReply:'その話は後。バスが着きます。直し方を先に。' }],
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:5, maxClients:5, battery:55, ssid:'Globaldesk-8802' },
   trueCause:'devices', best:'r_disconnect', partial:['r_second_unit'], shipNeed:'normal',
@@ -732,6 +739,7 @@ const SCENARIOS = [
   contractId:{ minutes:1, text:'GDW-118350です。控えてあります。' },
   country:'中国本土', city:'上海', cityEn:'SHANGHAI', localOffset:-1, carrierName:'China Unicom', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'電波強度と回線速度は正常。ただ、社内システムと海外系サービスだけ到達しません。疎通は取れて、名前解決で落ちます。経路条件を疑っています。',
+  handoverSymptom:'特定の業務システムと海外サービスだけ開けない',
   smalltalk:[{ id:'st_s4_work', reveal:'q_when', askLabel:'{city}では、どのようなお仕事をされているんですか？', tellLabel:'{city}でのお仕事、お疲れさまです', goodReply:'ありがとうございます。現地チームとの技術打ち合わせです。では続けましょう。', badReply:'お気遣いは不要です。その質問が障害切り分けにどう寄与しますか。' }],
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:false, clients:2, maxClients:5, battery:80, ssid:'Globaldesk-1174' },
   trueCause:'geo_block', best:'r_vpn_plan', partial:['r_explain_block'],
@@ -763,6 +771,7 @@ const SCENARIOS = [
   contractId:{ minutes:2, text:'はい…会社の手配です。えっと、GDW-673925。間違っていませんよね？' },
   country:'アメリカ', city:'ニューヨーク', cityEn:'NEW YORK', localOffset:-13, carrierName:'T-Mobile US', regionGroup:'us_northeast', regionName:'米国北東部', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'あの…30分前に全部切れて、再起動しても戻りません。明朝までに必要な資料が開けなくて…。失敗したらと思うと、手が震えます。どうしよう…。',
+  handoverSymptom:'突然すべて通信できなくなった',
   smalltalk:[{ id:'st_s5_visit', reveal:'q_when', askLabel:'明日は、どのようなお客様を訪問されるんですか？', tellLabel:'明日のご訪問、うまく進むといいですね', goodReply:'ありがとうございます…。大事な提案なので、その一言で少し呼吸が戻りました。', badReply:'ありがとうございます。でも、このままだと提案そのものができなくなります…。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:45, ssid:'Globaldesk-6390' },
   trueCause:'carrier', best:'r_outage_explain', bestNoOutage:'r_escalate_line', partial:['r_escalate_line'],
@@ -804,6 +813,7 @@ const SCENARIOS = [
   rushedReply:'分かってます。前置きは終わり。進めて。', contractId:{ minutes:1, text:'毎月使うので控えてます。GDW-206441。次。' },
   country:'アメリカ', city:'ボストン', cityEn:'BOSTON', localOffset:-13, carrierName:'T-Mobile US', regionGroup:'us_northeast', regionName:'米国北東部', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'急に圏外。再起動済み、変化なし。次の移動まで15分。交換が要るか、いま判断してください。',
+  handoverSymptom:'再起動しても圏外のまま',
   smalltalk:[{ id:'st_s6_regular', reveal:'q_when', askLabel:'毎月のご出張では、いつも{city}へ来られるんですか？', tellLabel:'いつもご利用いただき、ありがとうございます', goodReply:'毎月です。はい、少しだけ落ち着きました。判断を。', badReply:'利用歴の話は後。残り15分。交換判断を先に。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:38, ssid:'Globaldesk-6512' },
   trueCause:'carrier', best:'r_outage_explain', bestNoOutage:'r_escalate_line', partial:['r_escalate_line'],
@@ -836,6 +846,7 @@ const SCENARIOS = [
   contractId:{ minutes:1, text:'GDW-887302。画面に出しています。照合してください。' },
   country:'スペイン', city:'バルセロナ', cityEn:'BARCELONA', localOffset:-7, carrierName:'Orange ES', device:'GD-200', plan:'{country} ／ 1GBプラン',
   opening:'市街地では正常でしたが、郊外へ移動後は完全に圏外です。3台とも同じなので端末要因は除外済み。地域差か対応周波数を確認していただけますか。',
+  handoverSymptom:'郊外へ移動してから複数端末が圏外になる',
   smalltalk:[{ id:'st_s7_village', reveal:'q_where', askLabel:'その村へは、どのような目的で来られたんですか？', tellLabel:'{city}近郊の村、素敵なところでしょうね', goodReply:'静かで景色のよい場所です。ありがとうございます。では確認を。', badReply:'観光情報は障害条件ではありません。地域と機種の適合を確認してください。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:3, maxClients:5, battery:66, ssid:'Globaldesk-3028' },
   trueCause:'coverage', best:'r_coverage_replacement', partial:['r_coverage_refund'], shipNeed:'next', wantsReplacement:true,
@@ -879,6 +890,7 @@ const SCENARIOS = [
   contractId:{ minutes:3, text:'番号…箱の紙ですか？ すみません、見方が…。あ、GDW-745168。これでしょうか？' },
   country:'UAE', city:'ドバイ', cityEn:'DUBAI', localOffset:-5, carrierName:'Etisalat', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'あの、すみません。今日受け取って、電源を入れただけなのに「SIMカードがありません」と…。再起動は何度かしました。私、最初から何か間違えましたでしょうか。',
+  handoverSymptom:'受取直後から「SIMカードがありません」と表示される',
   smalltalk:[{ id:'st_s8_arrival', reveal:'q_when', askLabel:'{city}には、今日着かれたばかりですか？', tellLabel:'長いご移動、お疲れさまでした', goodReply:'はい、着いたばかりです。お気遣いまで…少し安心しました。', badReply:'ありがとうございます。でも受け取ってすぐなので、私が壊したのかと…。' }],
   panel:{ bars:null, carrier:null, sim:'none', throttle:false, clients:0, maxClients:5, battery:80, ssid:'Globaldesk-7745' },
   trueCause:'sim', best:'r_sim_clean', partial:['r_escalate_swap'],
@@ -924,6 +936,7 @@ const SCENARIOS = [
   rushedReply:'はい。で、結論は？', contractId:{ minutes:1, text:'GDW-091774。番号は最初からあります。次。' },
   country:'ベトナム', city:'ハノイ', cityEn:'HANOI', localOffset:-2, carrierName:'Viettel', device:'（未受取）', plan:'{country} ／ 500MBプラン',
   opening:'{city}国際空港。カウンターは無人で、機器を受け取れていません。タクシーを待たせています。市内へ出る前に、受取方法を決めてください。',
+  handoverSymptom:'空港で機器を受け取れていない',
   smalltalk:[{ id:'st_s9_city', reveal:'opening', askLabel:'市内では、まずどちらへ向かわれるんですか？', tellLabel:'{city}までのご移動、お疲れさまでした', goodReply:'市内のホテルです。ありがとう。では、受取方法を。', badReply:'行き先の話は後。タクシーが待ってる。受取方法を今。' }],
   panel:null,
   trueCause:'logistics', best:'r_transfer_logi', partial:['r_come_tomorrow'], shipNeed:'fast',
@@ -948,6 +961,7 @@ const SCENARIOS = [
   contractId:{ minutes:2, text:'予約番号はGDW-814263です。あと6日もあるのに…。すみません、ちゃんと控えていてよかった…。' },
   country:'フランス', city:'パリ', cityEn:'PARIS', localOffset:-8, carrierName:'Orange FR', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'3日使えたのに、突然「No SIM」になって…。再起動しても戻りません。このまま全部の予定が駄目になったらと思うと…すみません、助けてください。',
+  handoverSymptom:'使用中に突然「No SIM」と表示された',
   smalltalk:[{ id:'st_s10_stay', reveal:'q_stay_length', askLabel:'{city}には、あと6日ほどお仕事で滞在されるんですね？', tellLabel:'長いご滞在でのお仕事、お疲れさまです', goodReply:'ありがとうございます…。まだ一人じゃないと思えて、少し落ち着きました。', badReply:'ありがとうございます。でも残り6日、全部使えないままだったらどうしよう…。' }],
   panel:{ bars:null, carrier:null, sim:'none', throttle:false, clients:0, maxClients:5, battery:76, ssid:'Globaldesk-9031' },
   trueCause:'hardware', best:'r_hardware_swap', partial:['r_hardware_no_swap'], shipNeed:'next', wantsReplacement:true,
@@ -991,6 +1005,7 @@ const SCENARIOS = [
   rushedReply:'はい。場所なら動く。指示を。', contractId:{ minutes:1, text:'GDW-562940。はい、次。' },
   country:'イタリア', city:'ローマ', cityEn:'ROME', localOffset:-8, carrierName:'TIM', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'{city}の会議場。地下へ入ったときだけ圏外。地上では使えました。場所なら動けます。切り分けを急いでいます。次の指示をください。',
+  handoverSymptom:'会議場の地下に入ると圏外になる',
   smalltalk:[{ id:'st_s11_meeting', reveal:'opening', askLabel:'この会議場では、どのような会議に参加されるんですか？', tellLabel:'会議場からのお電話、ありがとうございます', goodReply:'海外拠点との会議で使っています。ありがとう。次の確認を。', badReply:'会議内容は後。通信確認を先に。' }],
   panel:{ bars:1, carrier:'{carrier}', sim:'ok', throttle:false, clients:2, maxClients:5, battery:68, ssid:'Globaldesk-6154' },
   trueCause:'location', best:'r_move_guide', partial:['r_window_stationary'],
@@ -1022,6 +1037,7 @@ const SCENARIOS = [
   contractId:{ minutes:3, text:'予約番号ですね…。箱の裏に、GDW-348621とあります。これで合っていますか？' },
   country:'オーストラリア', city:'シドニー', cityEn:'SYDNEY', localOffset:1, carrierName:'Telstra', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'夜になって急に圏外になりました。さっきまで使えていたのに、再起動しても戻りません。私、何か設定を変えてしまったのでしょうか。',
+  handoverSymptom:'夜になって突然圏外になった',
   smalltalk:[{ id:'st_s12_night', reveal:'q_when', askLabel:'夜になってから、急に使えなくなったのですね？', tellLabel:'遅い時間に突然つながらなくなると、ご不安ですよね', goodReply:'そうなんです。日付が変わる頃までは使えていたのですが…。ゆっくり確認していただけると助かります。', badReply:'ありがとうございます。でも、夜になって急に止まった理由が分からなくて…。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:73, ssid:'Globaldesk-4826' },
   trueCause:'provision', best:'r_carrier_reopened_explain', partial:[],
@@ -1064,6 +1080,7 @@ const SCENARIOS = [
   contractId:{ minutes:2, text:'予約番号はGDW-630519です。受け取ったときの紙にありました。私の扱い方が悪かったのでしょうか…。' },
   country:'ポルトガル', city:'リスボン', cityEn:'LISBON', localOffset:-8, carrierName:'MEO', device:'GD-500', plan:'{country} ／ 無制限プラン',
   opening:'あの…受け取ってから一度もつながらず、ずっと圏外なんです。私が最初の設定を何か間違えたのでしょうか。',
+  handoverSymptom:'受取後、一度も通信できていない',
   smalltalk:[{ id:'st_s13_stay', reveal:'q_stay_length', askLabel:'こちらのホテルには、あと7日ほどご滞在の予定ですか？', tellLabel:'長いご滞在の初日からつながらず、ご不安でしたよね', goodReply:'はい、あと7泊ずっと同じホテルです。そう言っていただけると、少し安心します…。', badReply:'はい、あと7泊です。でも初日から使えないのは、やはり私のせいでしょうか…。' }],
   panel:{ bars:0, carrier:null, sim:'ok', throttle:false, clients:2, maxClients:5, battery:82, ssid:'Globaldesk-3418' },
   trueCause:'logistics', best:'r_logistics_replacement', partial:['r_logistics_refund'], shipNeed:'next', wantsReplacement:true,
@@ -1109,6 +1126,7 @@ const SCENARIOS = [
   rushedReply:'はい。挨拶はいいです。原因を。', contractId:{ minutes:1, text:'GDW-771403。控えてあります。次。' },
   country:'台湾', city:'台北', cityEn:'TAIPEI', localOffset:-1, carrierName:'Chunghwa Telecom', device:'GD-500', plan:'{country} ／ 1GBプラン',
   opening:'昼から急に遅いです。動画は止まるし、地図もなかなか出ません。使い放題のはずでは？ 原因を短くお願いします。',
+  handoverSymptom:'動画や地図の読み込みが非常に遅い',
   smalltalk:[{ id:'st_s14_work', reveal:'q_destination', askLabel:'お仕事で{city}へいらしているんですか？', tellLabel:'移動の合間にご不便をおかけしています', goodReply:'出張です。移動中に資料を落とすので通信は要ります。で、原因は？', badReply:'その話は後で。遅い理由を先に教えてください。' }],
   panel:{ bars:4, carrier:'{carrier}', sim:'ok', throttle:true, clients:1, maxClients:5, battery:58, ssid:'Globaldesk-3390' },
   trueCause:'fup', best:'r_topup', partial:['r_slow_ok'],

@@ -9,6 +9,8 @@ let typingLine = null;
 let endingRevealTimer = null;
 let tapGuardTimer = null;
 let endingTapGuard = false;
+let presentedClock = SHIFT_START;
+let timePassage = null;
 let officeRingTimer = null;
 let officeRingLit = false;
 let audioContext = null;
@@ -129,6 +131,74 @@ function playCareerEndingSound(){ withAudio((ctx, volume) => [[392,0,.2],[523,.2
 
 function typewriterOff(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
+function timePassageDuration(minutes){
+  return Math.min(2800, Math.max(25, minutes * 25));
+}
+
+function presentedGameClock(){
+  return presentedClock;
+}
+
+function renderPresentedTime(minute){
+  const rounded = Math.round(minute);
+  const topClock = $('clock');
+  const officeClock = $('office-clock');
+  if (topClock) topClock.textContent = fmtClock(rounded);
+  if (officeClock) officeClock.textContent = fmtClock(rounded);
+  renderShiftStrip(rounded);
+}
+
+function resetTimePassage(){
+  if (timePassage && timePassage.frame) cancelAnimationFrame(timePassage.frame);
+  timePassage = null;
+  presentedClock = state.clock;
+  document.body.classList.remove('time-advancing');
+}
+
+function finishTimePassage(){
+  if (!timePassage) return false;
+  if (timePassage.frame) cancelAnimationFrame(timePassage.frame);
+  const target = timePassage.to;
+  const onComplete = timePassage.onComplete;
+  timePassage = null;
+  presentedClock = target;
+  document.body.classList.remove('time-advancing');
+  renderPresentedTime(presentedClock);
+  if (onComplete) onComplete();
+  return true;
+}
+
+function startTimePassageIfNeeded(onComplete = null){
+  const target = state.clock;
+  if (target <= presentedClock) return false;
+  if (timePassage){
+    if (onComplete) timePassage.onComplete = onComplete;
+    return true;
+  }
+  const from = presentedClock;
+  const minutes = target - from;
+  timePassage = { from, to:target, startedAt:null, frame:null, onComplete };
+  document.body.classList.add('time-advancing');
+  const indicator = $('time-passage-indicator');
+  if (indicator) indicator.textContent = minutes + '分経過中 ／ タップで進む';
+  if (typewriterOff()){
+    finishTimePassage();
+    return true;
+  }
+  const duration = timePassageDuration(minutes);
+  const step = timestamp => {
+    if (!timePassage) return;
+    if (timePassage.startedAt === null) timePassage.startedAt = timestamp;
+    const progress = clamp((timestamp - timePassage.startedAt) / duration, 0, 1);
+    presentedClock = from + (target - from) * progress;
+    renderPresentedTime(presentedClock);
+    if (progress >= 1){ finishTimePassage(); return; }
+    timePassage.frame = requestAnimationFrame(step);
+  };
+  timePassage.frame = requestAnimationFrame(step);
+  return true;
+}
+
 function finishTyping(skipEndingBeat = true){
   if (!typingLine) return;
   if (state.phase === 'ending' && endingTapGuard){
@@ -176,11 +246,11 @@ function render(){
   if (state.phase === 'desk'){ renderDesk(); return; }
   if (state.phase !== 'call') return;
   mountShiftStrip(false);
-  $('clock').textContent = fmtClock(state.clock);
-  renderShiftStrip();
+  $('clock').textContent = fmtClock(presentedGameClock());
+  renderShiftStrip(presentedGameClock());
   renderQueue();
   renderCall();
-  renderBoard();
+  startTimePassageIfNeeded();
 }
 
 function mountShiftStrip(inOffice){
@@ -191,7 +261,8 @@ function mountShiftStrip(inOffice){
 
 function metrics(){
   const finished = state.tickets.filter(t => t.result);
-  const answered = finished.filter(t => t.result.kind !== 'abandoned');
+  const scored = finished.filter(t => !unscoredOutcome(t));
+  const answered = scored.filter(t => t.result.kind !== 'abandoned');
   const abandoned = state.tickets.reduce((sum, t) => sum + (Number.isInteger(t.abandonedCalls)
     ? t.abandonedCalls
     : (t.result && t.result.kind === 'abandoned' ? 1 : 0)), 0);
@@ -201,12 +272,12 @@ function metrics(){
   const fcr = answered.length ? fcrCount / answered.length : null;
   const answerAttempts = answered.length + abandoned;
   const answerRate = answerAttempts ? answered.length / answerAttempts : 1;
-  const handled = state.tickets.filter(t => t.callMinutes > 0);
+  const handled = state.tickets.filter(t => t.callMinutes > 0 && !unscoredOutcome(t));
   const aht = handled.length ? handled.reduce((n,t) => n + t.callMinutes, 0) / handled.length : null;
-  return { finished, answered, abandoned, csat, fcrCount, fcr, answerRate, aht };
+  return { finished, scored, answered, abandoned, unscored:finished.length - scored.length, csat, fcrCount, fcr, answerRate, aht };
 }
 
-function renderShiftStrip(){
+function renderShiftStrip(displayClock = state.clock){
   const strip = $('shift-strip');
   if (!strip) return;
 
@@ -219,13 +290,13 @@ function renderShiftStrip(){
         pinRecords.push({ t, arrivedTurn:attempt.arrivedTurn, cls:'abandoned', status:'放棄呼' });
       }
     });
-    if (t.arrivedTurn <= state.turn){
+    if (t.handover || t.arrivedTurn <= state.turn){
       let cls = 'closed';
       if (t.state === 'waiting') cls = 'waiting';
       else if (t.state === 'open') cls = 'active';
       else if (t.state === 'callback') cls = 'callback';
       else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
-      const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '現地キャリア照会中' : cls === 'abandoned' ? '放棄呼' : '完了';
+      const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? (t.handover ? '引き継ぎ折り返し待ち' : '現地キャリア照会中') : cls === 'abandoned' ? '放棄呼' : '完了';
       pinRecords.push({ t, arrivedTurn:t.arrivedTurn, cls, status });
     }
   });
@@ -244,7 +315,7 @@ function renderShiftStrip(){
   const ticks = [
     [0,'23'], [25,'01'], [50,'03'], [75,'05'], [100,'07'],
   ].map(([pos,label], index) => '<span class="shift-tick ' + (index < 3 ? 'light' : 'dark') + ' ' + (index === 0 ? 'first' : index === 4 ? 'last' : '') + '" style="left:' + pos + '%">' + label + '</span>').join('');
-  const now = clamp((state.clock - SHIFT_START) / SHIFT_DURATION * 100, 0, 100);
+  const now = clamp((displayClock - SHIFT_START) / SHIFT_DURATION * 100, 0, 100);
 
   strip.innerHTML =
     '<div class="shift-sky"></div>' +
@@ -259,7 +330,7 @@ function renderQueue(){
   const callbacks = state.tickets.filter(t => t.state === 'callback');
   const longest = q.length ? Math.max(0, ...q.map(t => state.turn - t.arrivedTurn)) : 0;
   $('queue-count').textContent = q.length + '件';
-  $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>現地キャリア照会中 <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
+  $('call-summary').innerHTML = '<b>待ち ' + q.length + '件 ／ 最長 ' + longest + '分</b><br>折り返し待ち <b>' + callbacks.length + '件</b><br><span class="hint-bar">通話中は個別の電話を取れません。保留時間と待ち行列を見比べて判断してください。</span>';
   $('queue-hint').innerHTML = '終話後はオフィスで、新しい電話を取るか、照会結果が出た相手へ電話をかけます。';
 }
 
@@ -460,10 +531,10 @@ function renderOffice(){
   document.body.classList.add('office-view');
   document.body.classList.remove('call-view');
   mountShiftStrip(true);
-  $('clock').textContent = fmtClock(state.clock);
-  $('office-clock').textContent = fmtClock(state.clock);
+  $('clock').textContent = fmtClock(presentedGameClock());
+  $('office-clock').textContent = fmtClock(presentedGameClock());
   $('office-slogan').textContent = state.slogan;
-  renderShiftStrip();
+  renderShiftStrip(presentedGameClock());
   const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
   const callbacks = state.tickets.filter(t => t.state === 'callback').sort((a,b) => a.callbackDue - b.callbackDue);
   const readyCallbacks = callbacks.filter(t => t.callbackDue <= state.clock);
@@ -489,10 +560,11 @@ function renderOffice(){
   $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
   $('office-callback').disabled = !readyCallbacks.length;
   $('office-callback-status').textContent = callbacks.length
-    ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '照会中 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
+    ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '折り返し予定 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
     : '折り返し 0件';
   $('office-desk').disabled = !callbacks.length;
   $('office-desk-status').textContent = callbacks.length ? '調査可能 ' + callbacks.length + '件' : '調査可能 0件';
+  startTimePassageIfNeeded();
 }
 
 function enterOffice(){
@@ -520,8 +592,8 @@ function enterDesk(){
 /* 折り返し待ちの案件を、通話をつながずにデスク端末だけで調べる画面。 */
 function renderDesk(){
   mountShiftStrip(false);
-  $('clock').textContent = fmtClock(state.clock);
-  renderShiftStrip();
+  $('clock').textContent = fmtClock(presentedGameClock());
+  renderShiftStrip(presentedGameClock());
   renderQueue();
   $('line-state').textContent = '端末作業中';
   $('call').classList.remove('on-hold');
@@ -539,7 +611,7 @@ function renderDesk(){
     '<div class="actions">' + head + body + '</div>';
   const box = $('transcript');
   if (box) box.scrollTop = box.scrollHeight;
-  renderBoard();
+  startTimePassageIfNeeded();
 }
 
 /* 通話は切れているので、通話時間と通話料の代わりに折り返しの約束時刻を出す。 */
@@ -958,20 +1030,16 @@ function renderCustomerRecord(t, includeLog){
       '<p><b>セッション履歴</b><span>' + lookupRecordValue(t, 'l_session') + '</span></p>' +
       '<p><b>障害情報</b><span>' + lookupRecordValue(t, 'l_outage') + '</span></p>' +
     '</div></section>';
-  return '<div class="log-view">' + base + (includeLog ? renderRecordLog(t) : '') + '</div><footer>RECORD ／ VERIFIED</footer></section></div>';
+  const handover = t.handover
+    ? '<section class="record-system-block handover-record"><h3>日勤引き継ぎ</h3><div class="log-customer">' +
+      '<p><b>誰か</b><span>' + esc(t.s.name) + '様</span></p>' +
+      '<p><b>何が</b><span>' + esc(t.s.handoverSymptom) + '</span></p>' +
+      '<p><b>いつ</b><span>' + fmtClock(t.callbackDue) + 'ごろに連絡</span></p></div></section>'
+    : '';
+  return '<div class="log-view">' + base + handover + (includeLog ? renderRecordLog(t) : '') + '</div><footer>RECORD ／ VERIFIED</footer></section></div>';
 }
 function renderRecordLog(t){
-  const ty = TYPES[t.s.type];
-  const facts = t.facts.length
-    ? '<ul>' + t.facts.map(fact => '<li>' + esc(fact.text) + '</li>').join('') + '</ul>'
-    : '<p>まだ手がかりはありません。</p>';
-  const remaining = remainingCauseCandidates(t);
-  const candidateText = remaining.length
-    ? remaining.map(cause => esc(cause.label)).join(' ／ ')
-    : '候補なし';
-  return '<section class="record-system-block"><h3>ログの手がかり</h3>' + facts + '<p class="log-candidates"><b>残っている原因の候補</b><span>' + candidateText + '</span></p></section>' +
-    '<section class="record-system-block"><h3>次にできること</h3><p>' + esc(nextActionGuide(t)) + '</p></section>' +
-    '<section class="record-system-block"><h3>会話の全履歴</h3><div class="record-system-transcript">' + renderRecordTranscript(t) + '</div></section>';
+  return '<section class="record-system-block"><h3>会話の全履歴</h3><div class="record-system-transcript">' + renderRecordTranscript(t) + '</div></section>';
 }
 function renderRecord(t){
   return '<p class="hint-bar">1分かけてログを確認しています。お客様は通話口で待っています。</p>' + renderCustomerRecord(t, true);
@@ -993,18 +1061,6 @@ function renderRecordTranscript(t){
       : esc(line.text) + (line.viz ? renderLookupViz(line.viz) : '');
     return '<div class="record-system-entry ' + line.who + '"><b>' + who + '</b><span>' + content + '</span></div>';
   }).join('');
-}
-
-function remainingCauseCandidates(t){
-  const excluded = ruledOut(t);
-  return CAUSES.filter(cause => !excluded.has(cause.id));
-}
-
-function nextActionGuide(t){
-  const remaining = remainingCauseCandidates(t).length;
-  if (!t.facts.length) return 'まだ手がかりがありません。まず「聞く」コマンドから始めてください。';
-  if (remaining <= 2) return '候補が' + remaining + 'つまで絞れています。診断に進めます。';
-  return '手がかりをもとに候補を絞り込み中です。聞き取りか社内照会を続けてください。';
 }
 
 function commandPrompt(tab){
@@ -1071,11 +1127,6 @@ function renderShipping(t){
   return '<div class="shipment"><p class="eyebrow">TRANSGLOBE EXPRESS ／ TGX</p><h3>送り状を確認</h3><div class="waybill"><div><b>AWB No.</b><span>' + awb + '</span></div><div><b>発送元</b><span>現地デポ（' + esc(t.s.city) + '）</span></div><div><b>届け先</b><span>' + esc(t.stayAddress) + '</span></div><div><b>内容品</b><span>レンタル用モバイルWiFiルーター 1台（返送予定品）</span></div><div><b>サービス</b><span>' + esc(level.label) + ' ／ ' + esc(level.eta) + '</span></div><div><b>到着目安</b><span>現地 ' + fmtClock(eta) + '</span></div></div><button class="btn-primary shipment-confirm" data-ship-confirm="1">TGXへ手配を確定する</button></div>';
 }
 
-function ruledOut(t){
-  const s = new Set();
-  t.facts.forEach(f => (f.out || []).forEach(c => s.add(c)));
-  return s;
-}
 function hotCauses(t){
   const s = new Set();
   t.facts.forEach(f => (f.hot || []).forEach(c => s.add(c)));
@@ -1118,77 +1169,6 @@ function renderLookupSystemScreen(line){
     (line.viz ? renderLookupViz(line.viz) : '') +
     '<footer>STATUS ／ COMPLETE</footer></section>';
 }
-
-function renderDevicePanel(t){
-  const p = t.s.panel;
-  const label = '<div class="device-label"><span>聞き取りメモ</span><span>' + esc(t.identified ? t.s.device : '機種未特定') + '</span></div>';
-
-  if (!p){
-    return '<div class="device-card">' + label +
-      '<div class="lcd missing"><span class="lcd-placeholder"><b>端末未受取</b>本体の表示は確認できません</span></div></div>';
-  }
-  if (!t.asked.has('q_lamp')){
-    return '<div class="device-card">' + label +
-      '<div class="lcd obscured"><span class="lcd-placeholder"><b>本体の表示は未確認</b>「聞く」で表示を確認してください</span></div></div>';
-  }
-
-  const status = p.sim === 'none' ? 'No SIM' : p.bars === 0 ? '圏外 ／ SIM 認識あり' : 'SIM 認識あり';
-  return '<div class="device-card listening-note">' + label + '<dl>' +
-    '<div><dt>アンテナ</dt><dd>' + (p.bars === null ? '表示なし' : p.bars + '本') + '</dd></div>' +
-    '<div><dt>表示</dt><dd>' + status + (p.throttle ? ' ／ 速度制限アイコンあり' : '') + '</dd></div>' +
-    '<div><dt>事業者</dt><dd>' + esc(p.carrier || '表示なし') + '</dd></div>' +
-    '<div><dt>接続台数</dt><dd>' + p.clients + ' / ' + p.maxClients + '</dd></div>' +
-    '<div><dt>電池残量</dt><dd>' + p.battery + '%</dd></div>' +
-    '<div><dt>SSID</dt><dd>' + esc(p.ssid) + '</dd></div></dl></div>';
-}
-
-function renderBoard(){
-  const t = state.focus;
-  if (!t){
-    $('fact-count').textContent = '0件';
-    $('board').innerHTML = '<p class="empty-note">案件を開くと、ここに原因の候補と<br>集まった手がかりが並びます。</p>';
-    return;
-  }
-  const ruled = ruledOut(t);
-  const hot = hotCauses(t);
-  $('fact-count').textContent = t.facts.length + '件';
-
-  const causeRow = c => {
-    const out = ruled.has(c.id) && !hot.has(c.id);
-    const isHot = hot.has(c.id);
-    return '<div class="cause ' + (out ? 'out' : '') + ' ' + (isHot ? 'hot' : '') + '">' +
-      '<span class="tick">' + (out ? '×' : isHot ? '●' : '·') + '</span>' +
-      '<span>' + esc(c.label) + '</span>' +
-      '<span class="tier">' + c.tier + '</span></div>';
-  };
-  const remainingCauses = CAUSES.filter(c => !(ruled.has(c.id) && !hot.has(c.id)));
-  const excludedCauses = CAUSES.filter(c => ruled.has(c.id) && !hot.has(c.id));
-  const causes = remainingCauses.map(causeRow).join('');
-  const excluded = excludedCauses.length
-    ? '<button class="board-toggle" data-board-excluded="1" aria-expanded="' + !!state.ui.boardExcludedOpen + '">除外済み（' + excludedCauses.length + '件）<span>' + (state.ui.boardExcludedOpen ? '閉じる' : '開く') + '</span></button>' +
-      (state.ui.boardExcludedOpen ? '<div class="board-excluded">' + excludedCauses.map(causeRow).join('') + '</div>' : '')
-    : '';
-
-  const facts = t.facts.length
-    ? t.facts.map(f => '<div class="fact"><span class="src">' + esc(f.src) + '</span>' + esc(f.text) + '</div>').join('')
-    : '<p class="empty-note" style="padding:10px 0">まだ手がかりがありません。</p>';
-
-  $('board').innerHTML =
-    renderDevicePanel(t) +
-    '<p class="eyebrow" style="margin:0 0 6px">残っている候補 ' + remainingCauses.length + ' / ' + CAUSES.length + '</p>' +
-    causes + excluded +
-    '<p class="eyebrow" style="margin:20px 0 8px">集まった手がかり</p>' +
-    '<div class="facts">' + facts + '</div>' +
-    '<p class="eyebrow" style="margin:20px 0 8px">この案件のここまで</p>' +
-    '<div class="mini-list">' +
-      mini('通話時間', t.callMinutes + '分') +
-      mini('うち保留', t.holdMinutes + '分') +
-      mini('聞き取り', t.asked.size + '回') +
-      mini('社内照会', t.lookedUp.size + '回') +
-      mini('見立て違い', t.misdiagnoses + '回') +
-    '</div>';
-}
-function mini(k, v){ return '<div class="mini"><span>' + k + '</span><b>' + esc(v) + '</b></div>'; }
 
 /* ============================================================
    オーバーレイ
@@ -1259,10 +1239,12 @@ function initializeCareer(){
 
 function careerBriefingHtml(){
   const career = state.career || freshCareerRecord();
+  const inboundCount = state.tickets.filter(ticket => !ticket.handover).length;
+  const handoverCount = state.tickets.filter(ticket => ticket.handover).length;
   const storageNote = career.totals.days === 0
     ? '<span>勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。</span>'
     : '';
-  return '<section class="career-briefing"><b>' + (career.totals.days + 1) + '日目 ／ ' + esc(CAREER_STAGES[career.stage].label) + ' ／ 今夜 ' + state.tickets.length + '件</b>' +
+  return '<section class="career-briefing"><b>' + (career.totals.days + 1) + '日目 ／ ' + esc(CAREER_STAGES[career.stage].label) + ' ／ 入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件</b>' +
     storageNote + '</section>';
 }
 
@@ -1272,7 +1254,42 @@ function audioDiagnosticHtml(){
     '<button class="btn-ghost" data-audio-unlock="1">音をテスト／再有効化</button></section>';
 }
 
+function handoverMeetingTickets(){
+  return state.tickets.filter(ticket => ticket.handover).sort((a,b) => a.callbackDue - b.callbackDue);
+}
+
+function enterShiftAfterMeeting(){
+  if (state.handoverMeetingComplete) return;
+  state.handoverMeetingComplete = true;
+  closeSheet();
+  advance(0);
+  enterOffice();
+}
+
+function showHandoverMeeting(){
+  const tickets = handoverMeetingTickets();
+  if (!tickets.length){ enterShiftAfterMeeting(); return; }
+  const entries = tickets.map(ticket =>
+    '<article class="handover-card"><p><strong>' + esc(ticket.s.name) + '様</strong>が「' +
+      esc(ticket.s.handoverSymptom) + '」とお困りなので、<strong>' +
+      fmtClock(ticket.callbackDue) + 'ごろ</strong>に連絡してください。</p></article>'
+  ).join('');
+  $('sheet').innerHTML =
+    '<p class="eyebrow">HANDOVER MEETING ／ ' + fmtClock(SHIFT_START) + ' JST</p>' +
+    '<h1>23時の引き継ぎ</h1><p class="handover-speaker"><b>日勤担当</b>から、今夜の折り返しを引き継ぎます。</p>' +
+    '<div class="handover-list">' + entries + '</div>' +
+    '<button class="btn-primary" id="btn-finish-handover">引き継いで夜勤を始める</button>';
+  openSheet();
+  $('btn-finish-handover').onclick = enterShiftAfterMeeting;
+}
+
+function startShiftFromBriefing(){
+  if (handoverMeetingTickets().length){ showHandoverMeeting(); return; }
+  enterShiftAfterMeeting();
+}
+
 function showBriefing(){
+  resetTimePassage();
   $('sheet').innerHTML =
     '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +
     '<h1>深夜のグローバルデスク</h1>' +
@@ -1290,9 +1307,7 @@ function showBriefing(){
   $('btn-start').onclick = () => {
     initAudio();
     unlockAudioFromGesture();
-    closeSheet();
-    advance(0);
-    enterOffice();
+    startShiftFromBriefing();
   };
 }
 
@@ -1482,7 +1497,7 @@ function showBalanceConsole(){
 function reportOptions(){
   const handled = id => {
     const t = state.tickets.find(x => x.s.id === id);
-    return t && t.result && t.result.kind !== 'abandoned';
+    return t && t.result && t.result.kind !== 'abandoned' && !unscoredOutcome(t);
   };
   const shipments = state.tickets.filter(t => t.shipment);
   const byId = id => state.tickets.find(t => t.s.id === id);
@@ -1499,6 +1514,9 @@ function reportOptions(){
   if (state.outageKnown) handoff.push({ id:'outage_watch', required:true, ticketId:'S5', text:state.outageRegion + 'の障害は未復旧。朝の入電増に注意' });
   const s8 = byId('S8');
   if (s8 && s8.shipment) handoff.push({ id:'s8_delivery', required:true, ticketId:'S8', text:s8.s.city + '宛の代替機が現地' + fmtClock(s8.shipment.eta) + '到着予定。着荷確認が必要' });
+  state.tickets.filter(ticket => ticket.result && ticket.result.kind === 'handed_off').forEach(ticket => {
+    handoff.push({ id:'morning_handoff_' + ticket.s.id, required:true, ticketId:ticket.s.id, text:ticket.s.name + '様との通話中。' + ticket.s.handoverSymptom + 'の対応を日勤へ引き継ぎ' });
+  });
   return { special, handoff };
 }
 
@@ -1525,7 +1543,7 @@ function currentShiftSummary(){
 }
 
 function careerShiftContext(){
-  const tickets = state.tickets;
+  const tickets = state.tickets.filter(ticket => !unscoredOutcome(ticket));
   return {
     maxStresses:tickets.map(ticket => ticket.maxStress),
     redials:tickets.reduce((sum, ticket) => sum + ticket.redialCount, 0),
@@ -1543,7 +1561,7 @@ function recordCurrentCareerShift(summary = currentShiftSummary()){
   if (!state.career) state.career = freshCareerRecord();
   const shift = {
     endedAt:new Date().toISOString(),
-    tickets:state.tickets.length,
+    tickets:state.tickets.filter(ticket => !unscoredOutcome(ticket)).length,
     grade:summary.grade,
     scores:{
       csat:summary.avg,
@@ -1563,16 +1581,19 @@ function recordCurrentCareerShift(summary = currentShiftSummary()){
 }
 
 function renderReport(){
+  if (startTimePassageIfNeeded(() => renderReport())) return;
   const o = reportOptions();
   if (!state.report) state.report = { special:[], handoff:[] };
   const m = metrics();
+  const inboundCount = state.tickets.filter(ticket => !ticket.handover).length;
+  const handoverCount = state.tickets.filter(ticket => ticket.handover).length;
   const escaped = x => esc(x.text);
   /* 提出前は required を一切見せない。何を報告すべきかを選ぶことがこの画面の中身なので、
      正解が先に見えていると判断が消える。答え合わせは提出後の振り返りで行う */
   const checks = (items, chosen, attr) => items.map(x => '<label class="report-check"><input type="checkbox" data-' + attr + '="' + x.id + '" ' + (chosen.includes(x.id) ? 'checked' : '') + '><span>' + escaped(x) + '</span></label>').join('') || '<p class="empty-note">該当する特記事項はありません。</p>';
   $('sheet').innerHTML =
     '<p class="eyebrow">DAILY REPORT ／ ' + fmtClock(state.clock) + ' JST</p><h1>業務報告 ／ 深夜シフト</h1>' +
-    '<div class="report-auto">対応件数 ' + state.tickets.length + '件（うち放棄呼 ' + m.abandoned + '件）／ 平均通話 ' + (m.aht === null ? '—' : m.aht.toFixed(1)) + '分 ／ エスカレーション ' + state.tickets.filter(t => t.escUsed).length + '件 ／ 発生費用 ¥' + totalCost().toLocaleString('ja-JP') + '</div>' +
+    '<div class="report-auto">対応件数 ' + state.tickets.length + '件（入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件 ／ 放棄呼 ' + m.abandoned + '件 ／ 評価対象外 ' + m.unscored + '件）／ 平均通話 ' + (m.aht === null ? '—' : m.aht.toFixed(1)) + '分 ／ エスカレーション ' + state.tickets.filter(t => t.escUsed).length + '件 ／ 発生費用 ¥' + totalCost().toLocaleString('ja-JP') + '</div>' +
     '<h2>特記事項</h2><p class="hint-bar">実際に起きたことで、次の担当が知るべきものを選びます。必須と日常対応が混ざっています。</p><div class="report-list">' + checks(o.special, state.report.special, 'report-special') + '</div>' +
     '<h2>申し送り</h2><p class="hint-bar">翌シフトへの引き継ぎです。必須がある夜に「特になし」は誤りです。</p><div class="report-list">' + checks(o.handoff, state.report.handoff, 'report-handoff') + '<label class="report-check"><input type="checkbox" data-report-handoff="none" ' + (state.report.handoff.includes('none') ? 'checked' : '') + '><span>特になし<i>引き継ぎ不要</i></span></label></div>' +
     '<button class="btn-primary" id="report-submit" data-report-submit="1">業務報告を提出する</button>';
@@ -1771,6 +1792,15 @@ function renderDebrief(){
 
   const reviews = ts.map(t => {
     const r = t.result || { kind:'abandoned', csat:0, label:'未対応' };
+    const misses = reportMissForTicket(t);
+    if (unscoredOutcome(t)){
+      const judge = r.kind === 'unavailable'
+        ? '約束どおり一度連絡しましたが不在でした。連絡義務は完了しており、評価には影響しません。'
+        : '07:00時点で通話中だったため、放棄呼にせず日勤担当へ対応を引き継ぎました。';
+      return '<div class="review mid"><div class="rh"><span class="rn">' + esc(t.s.name) + '</span>' +
+        '<span class="rp">' + esc(t.s.cityEn) + '</span><span class="rs">評価対象外 ／ ' + esc(r.label) + ' ／ 通話' + t.callMinutes + '分</span></div>' +
+        '<div class="rb">' + esc(judge) + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
+    }
     const cls = r.csat >= 4 ? 'win' : r.csat >= 2.5 ? 'mid' : 'bad';
     let judge;
     if (r.kind === 'abandoned') judge = '呼び出しに応答できず、放棄呼になりました。';
@@ -1781,7 +1811,6 @@ function renderDebrief(){
     else if (r.grade === 'partial') judge = '原因は当たっていましたが、対処は次善どまりでした。';
     else judge = '原因は当たっていましたが、対処が噛み合っていませんでした。';
 
-    const misses = reportMissForTicket(t);
     const abandonmentNote = t.abandonedCalls ? '<br>応答前の放棄呼：' + t.abandonedCalls + '回（履歴に保持）' : '';
     return '<div class="review ' + cls + '">' +
       '<div class="rh"><span class="rn">' + esc(t.s.name) + '</span>' +
