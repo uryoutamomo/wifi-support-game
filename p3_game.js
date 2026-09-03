@@ -10,6 +10,8 @@ function customerLabel(t, withTicket){
 function customerHonorific(t){ return t.nameKnown ? customerLabel(t) + 'さん' : customerLabel(t); }
 const CALLBACK_OVERDUE_MIN = 10;
 const CALL_RATE_PER_MIN = 180;
+const CALL_CHARGE_CONCERN_MIN = 5;
+const CALL_CHARGE_CONCERN_MAX = 10;
 const SHIP_LEVELS = [
   { id:'fast', label:'最速便', eta:'現地翌朝08:00まで', fee:18000, rank:3 },
   { id:'next', label:'翌日便', eta:'現地翌日中', fee:9000, rank:2 },
@@ -73,6 +75,10 @@ const state = {
 
 function rollLuck(){
   return state.random() < GAME_FLAGS.luckRate;
+}
+
+function callChargeConcernThreshold(random = state.random){
+  return CALL_CHARGE_CONCERN_MIN + Math.floor(random() * (CALL_CHARGE_CONCERN_MAX - CALL_CHARGE_CONCERN_MIN + 1));
 }
 
 function shuffleScenarios(scenarios, random){
@@ -418,7 +424,7 @@ function newTicket(s){
     transcript:[], callTranscriptStart:0, greeted:handover, identified:handover, nameKnown:handover, destinationKnown:handover,
     stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, inboundMinutes:0, outboundMinutes:0, callSegmentMinutes:0, callDirection:'inbound', holdMinutes:0,
-    callChargeConcerned:false, callChargeThresholdPassed:false,
+    callChargeConcerned:false, callChargeThresholdPassed:false, callChargeThreshold:null,
     callbackCount:0, callbackDue:handover ? SHIFT_START + callbackTurn : null, callbackLate:false, callbackKind:handover ? 'handover' : null, callbackDestination:handover ? 'direct' : null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, callbackReliefApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
     callbackReason:handover ? 'handover' : null, callbackStage:handover ? 'scheduled' : null, callbackPromised:handover ? 'day_shift' : null, returnTimeKnown:handover, frontDeskAttempts:0,
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
@@ -837,9 +843,13 @@ function callbackOperatorLine(t){
   return t.callbackLate ? CALL_FLOW_LINES.callback.late : CALL_FLOW_LINES.callback.normal;
 }
 
-function spendOnCall(t, minutes, holdMinutes){
+function spendOnCall(t, minutes, holdMinutes, resolvingSymptom = false){
   const before = t.callMinutes;
   const inboundBefore = t.inboundMinutes || 0;
+  const chargeConcernType = CALL_CHARGE_COMPLAINT_TYPES.includes(t.s.type);
+  if (chargeConcernType && t.callDirection === 'inbound' && !Number.isInteger(t.callChargeThreshold)){
+    t.callChargeThreshold = callChargeConcernThreshold();
+  }
   t.callMinutes += minutes;
   t.callSegmentMinutes = (t.callSegmentMinutes || 0) + minutes;
   if (t.callDirection === 'outbound') t.outboundMinutes = (t.outboundMinutes || 0) + minutes;
@@ -851,13 +861,12 @@ function spendOnCall(t, minutes, holdMinutes){
     const direction = t.callDirection === 'outbound' ? 'outbound' : 'inbound';
     if (!addStress(t, held * HOLD_STRESS_PER_MINUTE[direction], false, true)) return false;
   }
-  if (!t.callChargeThresholdPassed && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5 && t.state === 'open' && !t.pendingResult){
+  const chargeThreshold = t.callChargeThreshold;
+  if (!t.callChargeThresholdPassed && chargeConcernType && t.callDirection === 'inbound' && inboundBefore <= chargeThreshold && t.inboundMinutes > chargeThreshold && t.state === 'open' && !t.pendingResult && !t.symptomResolved && !resolvingSymptom){
     t.callChargeThresholdPassed = true;
-    if (CALL_CHARGE_COMPLAINT_TYPES.includes(t.s.type)){
-      t.callChargeConcerned = true;
-      pushCustomerLine(t, CALL_FLOW_LINES.callChargeConcern[t.s.type], { plain:true });
-      if (!changeStress(t, 4, true)) return false;
-    }
+    t.callChargeConcerned = true;
+    pushCustomerLine(t, CALL_FLOW_LINES.callChargeConcern[t.s.type], { plain:true });
+    if (!changeStress(t, 4, true)) return false;
   }
   const longMinutes = Math.max(0, t.callMinutes - 10) - Math.max(0, before - 10);
   if (longMinutes && t.state === 'open') addStress(t, longMinutes * 2);
@@ -1471,7 +1480,7 @@ function doTest(tid){
   const sequence = testDef && testDef.sequence;
   const def = sequence ? sequence[Math.min(previous, sequence.length - 1)] : testDef;
   const redundant = previous > 0 && (!sequence || previous >= sequence.length);
-  if (!spendOnCall(t, test.turns, 0)) return;
+  if (!spendOnCall(t, test.turns, 0, Boolean(def && !redundant && def.solves))) return;
 
   if (risky){
     pushCustomerLine(t, risky.result);
@@ -1901,12 +1910,29 @@ function finishResolvedCall(t){
   render();
 }
 
+function finishResolvedWithoutExplanation(t){
+  const identityRecordMissing = !t.nameKnown;
+  const csat = clamp(Math.round((3.0 - (identityRecordMissing ? IDENTITY_RECORD_PENALTY : 0)) * 10) / 10, 1.0, 5.0);
+  pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.interrupt }]);
+  t.transcript.push({ who:'note', text:'通信は復旧済みですが、原因をご説明しないまま終話しました。' });
+  closeTicket(t, {
+    kind:'closed', csat, grade:'partial', causeId:t.s.trueCause, causeMatched:true,
+    identityRecordMissing, firstCallResolved:t.callbackCount === 0 && t.misdiagnoses === 0,
+    label:'復旧（原因説明なし）',
+  });
+  render();
+}
+
 /* §66: 「伝える」の先頭から確認なしで終話する。折り返し約束だけは専用の待機状態へ進める。 */
 function endCurrentCall(t){
   if (!t || t.state !== 'open' || t.pendingResult) return;
   if (t.callbackPromised){
     pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.interrupt }]);
     finishPromisedCallback(t);
+    return;
+  }
+  if (t.symptomResolved){
+    finishResolvedWithoutExplanation(t);
     return;
   }
   interruptCall(t);

@@ -293,8 +293,8 @@ const CALL_FLOW_LINES = Object.freeze({
   callChargeConcern:Object.freeze({
     anxious:'海外からの通話料が心配で…。このまま長くなっても大丈夫でしょうか。',
     novice:'この電話、海外からなので料金がかかりますよね。まだ長くなりますか？',
-    hurried:'もう5分超えてます。国際電話代もあるので、長引くなら折り返してください。',
-    expert:'国際通話が5分を超えています。以降はホテルへの折り返しに切り替えられますか。',
+    hurried:'もうかなり話しています。国際電話代もあるので、長引くなら折り返してください。',
+    expert:'国際通話が長くなっています。以降はホテルへの折り返しに切り替えられますか。',
   }),
   frontDesk:Object.freeze({
     greeting:'Good evening, this is the front desk. How may I help you?',

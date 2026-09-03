@@ -193,8 +193,8 @@ const mutations = [
   },
   {
     name:'§51 苛立ちによる記録不足の免除を復活させる', file:'p3_game.js',
-    from:'  const identityRecordMissing = !t.nameKnown;',
-    to:'  const identityRecordMissing = !t.nameKnown && !t.identityStressSeen;',
+    from:'  const identityRecordMissing = !t.nameKnown;\n  if (identityRecordMissing) base -= IDENTITY_RECORD_PENALTY;',
+    to:'  const identityRecordMissing = !t.nameKnown && !t.identityStressSeen;\n  if (identityRecordMissing) base -= IDENTITY_RECORD_PENALTY;',
     expected:'§51 検査6: 苛立ちが高いと記録不足の減点が免除されてしまう',
   },
   {
@@ -2028,7 +2028,7 @@ const mutations = [
     name:'§66 折り返し約束済みも通常切断にする', file:'p3_game.js',
     from:"  if (t.callbackPromised){\n    pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.interrupt }]);\n    finishPromisedCallback(t);\n    return;\n  }",
     to:"  if (t.callbackPromised){\n    interruptCall(t);\n    return;\n  }",
-    expected:'通常切断と折り返し約束の即時終話を分けられない',
+    expected:'通常切断・折り返し約束・復旧後終話を分けられない',
   },
   {
     name:'前提不足の理由専用クラスを外す', file:'p4_view.js',
@@ -2338,15 +2338,39 @@ const mutations = [
   },
   {
     name:'通話料の心配をタイプ間で使い回す', file:'p2_data.js',
-    from:'国際通話が5分を超えています。以降はホテルへの折り返しに切り替えられますか。',
+    from:'国際通話が長くなっています。以降はホテルへの折り返しに切り替えられますか。',
     to:'海外からの通話料が心配で…。このまま長くなっても大丈夫でしょうか。',
     expected:'§39 検査4: 通話料を気にする発話がタイプ別に書き分けられていない',
   },
   {
-    name:'5分超の通話料発話を毎分繰り返す', file:'p3_game.js',
-    from:"!t.callChargeThresholdPassed && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5",
-    to:"t.callDirection === 'inbound' && t.inboundMinutes > 5",
+    name:'閾値超の通話料発話を毎分繰り返す', file:'p3_game.js',
+    from:"!t.callChargeThresholdPassed && chargeConcernType && t.callDirection === 'inbound' && inboundBefore <= chargeThreshold && t.inboundMinutes > chargeThreshold",
+    to:"chargeConcernType && t.callDirection === 'inbound' && t.inboundMinutes > chargeThreshold",
     expected:'§39 検査5: 通話料判定後に発話を繰り返す',
+  },
+  {
+    name:'§68 通話料の発話時刻を5分へ固定する', file:'p3_game.js',
+    from:'return CALL_CHARGE_CONCERN_MIN + Math.floor(random() * (CALL_CHARGE_CONCERN_MAX - CALL_CHARGE_CONCERN_MIN + 1));',
+    to:'return CALL_CHARGE_CONCERN_MIN;',
+    expected:'§68 検査G2: 通話料を気にし始める時刻が5〜10分に分散しない',
+  },
+  {
+    name:'§68 復旧後も通話料を訴える', file:'p3_game.js',
+    from:' && !t.symptomResolved && !resolvingSymptom',
+    to:'',
+    expected:'§68 検査G4: 復旧済みまたは復旧する操作と同時に通話料を訴える',
+  },
+  {
+    name:'§68 復旧する操作を通話時間処理へ伝えない', file:'p3_game.js',
+    from:'Boolean(def && !redundant && def.solves)',
+    to:'false',
+    expected:'§68 検査G5: 復旧する操作をspendOnCallへ伝えず同時発話を防げない',
+  },
+  {
+    name:'§68 復旧後の終話も対応放棄へ送る', file:'p3_game.js',
+    from:'if (t.symptomResolved){',
+    to:'if (false && t.symptomResolved){',
+    expected:'通常切断・折り返し約束・復旧後終話を分けられない',
   },
   {
     // §40: 連絡先を持たないまま、ふつうの折り返しとして成立させてしまう変異。

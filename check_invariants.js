@@ -738,7 +738,7 @@ if (MORNING_STAFF.some(staff => Object.keys(staff).some(key => /player|highlight
 const tell66 = sourceOf('renderTellOptions');
 const endCall66 = sourceOf('endCurrentCall');
 if (!tell66.includes("{ attrs:'data-end-call=\"1\"', body:'<span class=\"opt-label\">電話を切る</span>' }") || tell66.indexOf('data-end-call') > tell66.indexOf('data-tell="close"')) bad('§66 「電話を切る」が「伝える」の先頭にない');
-if (!endCall66.includes('CALL_FLOW_LINES.interrupt') || !endCall66.includes('finishPromisedCallback(t)') || !endCall66.includes('interruptCall(t)')) bad('§66 即時終話が通常切断と折り返し約束を分けていない');
+if (!endCall66.includes('CALL_FLOW_LINES.interrupt') || !endCall66.includes('finishPromisedCallback(t)') || !endCall66.includes('t.symptomResolved') || !endCall66.includes('finishResolvedWithoutExplanation(t)') || !endCall66.includes('interruptCall(t)')) bad('§66/§68 即時終話が通常切断・折り返し約束・復旧後終話を分けていない');
 if (sourceOf('unresolvedHangupGuide') || sourceOf('renderHangupConfirmation') || /data-hangup(?:=|-)/.test(gameSource) || gameSource.includes('hangup-confirm')) bad('§66 廃止した終話案内・確認が残っている');
 if (!sourceOf('renderCloseFlow').includes('remedy-block-reason') || !pageSource.includes('.opt:disabled.has-block-reason') || !pageSource.includes('.remedy-block-reason')) bad('§33 前提不足の理由が通常説明と違う見た目にならない');
 if (!sourceOf('remedyBlockReason').includes('先に「伝える」→「やってみてもらう」を ')) bad('§33 前提不足の従来理由文が変わっている');
@@ -809,7 +809,7 @@ if (SCENARIOS.some(scenario => Object.prototype.hasOwnProperty.call(scenario,'ti
 
 // §39: 入電は客負担、ホテル折り返しは当社負担。Front Deskを英語で通す。
 if (!sourceOf('callCost').includes('t.outboundMinutes') || !sourceOf('customerCallCost').includes('t.inboundMinutes') || sourceOf('callCost').includes('t.callMinutes')) bad('§39 入電と折り返しの通話料負担が分離されていない');
-if (!sourceOf('spendOnCall').includes("t.callDirection === 'outbound'") || !sourceOf('spendOnCall').includes('t.callChargeThresholdPassed = true') || !sourceOf('spendOnCall').includes('t.callChargeConcerned = true') || !sourceOf('spendOnCall').includes('CALL_FLOW_LINES.callChargeConcern[t.s.type]')) bad('§39 方向別分数または5分超の一度きり発話がない');
+if (!sourceOf('spendOnCall').includes("t.callDirection === 'outbound'") || !sourceOf('spendOnCall').includes('callChargeConcernThreshold()') || !sourceOf('spendOnCall').includes('t.callChargeThresholdPassed = true') || !sourceOf('spendOnCall').includes('!t.symptomResolved && !resolvingSymptom') || !sourceOf('spendOnCall').includes('t.callChargeConcerned = true') || !sourceOf('spendOnCall').includes('CALL_FLOW_LINES.callChargeConcern[t.s.type]')) bad('§39/§68 方向別分数、通話料発話の幅、または復旧後の抑止がない');
 if (Object.keys(CALL_FLOW_LINES.callChargeConcern).length !== 4 || new Set(Object.values(CALL_FLOW_LINES.callChargeConcern)).size !== 4) bad('§39 通話料を気にする発話が4タイプ分ない');
 if (!sourceOf('renderCallHeader').includes("outbound ? '当社負担' : 'お客様負担'") || !sourceOf('renderCallHeader').includes('t.callSegmentMinutes')) bad('§39 通話ヘッダに負担者と区間時間が出ない');
 // §40: 折り返しは「伝える」の中の一手。滞在先を聞かずに切ることもでき、その場合は折り返せず客から掛かってくる。

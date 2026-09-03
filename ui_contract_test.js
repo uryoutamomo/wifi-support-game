@@ -934,18 +934,31 @@ assert(routeHangup.includes('if (d.endCall)') && routeHangup.includes('endCurren
 assert(eventSource.includes('[data-end-call]') && eventSource.includes('[data-finish-call]') && !/data-hangup(?:=|-)/.test(eventSource), '廃止したdata-hangup経路が残るか新しい終話経路がない');
 const endCurrentCallSource = functionSource('endCurrentCall');
 const endCalls = [];
-const endCurrentCall = new Function('CALL_FLOW_LINES','pushFlowLines','finishPromisedCallback','interruptCall', endCurrentCallSource + '\nreturn endCurrentCall;')(
+const endCurrentCall = new Function('CALL_FLOW_LINES','pushFlowLines','finishPromisedCallback','finishResolvedWithoutExplanation','interruptCall', endCurrentCallSource + '\nreturn endCurrentCall;')(
   CALL_FLOW_LINES,
   (ticket, lines) => { ticket.transcript.push(...lines); },
   ticket => endCalls.push(['promised',ticket]),
+  ticket => endCalls.push(['resolved',ticket]),
   ticket => endCalls.push(['interrupted',ticket])
 );
 const immediateTicket = {state:'open',pendingResult:null,callbackPromised:null,transcript:[]};
 endCurrentCall(immediateTicket);
 const promisedEndTicket = {state:'open',pendingResult:null,callbackPromised:'immediate',transcript:[]};
 endCurrentCall(promisedEndTicket);
-assert.deepEqual(endCalls.map(call => call[0]), ['interrupted','promised'], '通常切断と折り返し約束の即時終話を分けられない');
+const resolvedEndTicket = {state:'open',pendingResult:null,callbackPromised:null,symptomResolved:true,transcript:[]};
+endCurrentCall(resolvedEndTicket);
+assert.deepEqual(endCalls.map(call => call[0]), ['interrupted','promised','resolved'], '通常切断・折り返し約束・復旧後終話を分けられない');
 assert.deepEqual(promisedEndTicket.transcript, [{who:'me',text:'失礼します。'}], '折り返し約束の終話で「失礼します」が会話ログに残らない');
+assert(endCurrentCallSource.indexOf('t.symptomResolved') < endCurrentCallSource.indexOf('interruptCall(t)'), '§68 検査H1: 復旧済みでも対応放棄の再入電へ送る');
+const resolvedWithoutExplanationSource = functionSource('finishResolvedWithoutExplanation');
+let resolvedWithoutExplanationResult = null;
+const finishResolvedWithoutExplanation = new Function('IDENTITY_RECORD_PENALTY','clamp','CALL_FLOW_LINES','pushFlowLines','closeTicket','render', resolvedWithoutExplanationSource + '\nreturn finishResolvedWithoutExplanation;')(
+  IDENTITY_RECORD_PENALTY,(value,min,max) => Math.max(min,Math.min(max,value)),CALL_FLOW_LINES,(ticket,lines) => ticket.transcript.push(...lines),(_ticket,result) => { resolvedWithoutExplanationResult = result; },() => {}
+);
+const explainedMissingTicket = {s:{trueCause:'sim'},nameKnown:true,callbackCount:0,misdiagnoses:0,transcript:[]};
+finishResolvedWithoutExplanation(explainedMissingTicket);
+assert(resolvedWithoutExplanationResult && resolvedWithoutExplanationResult.kind === 'closed' && resolvedWithoutExplanationResult.csat === 3.0 && resolvedWithoutExplanationResult.grade === 'partial' && resolvedWithoutExplanationResult.causeMatched === true && resolvedWithoutExplanationResult.firstCallResolved === true, '§68 検査H2: 復旧後に説明せず切った評価が成立しない');
+assert(explainedMissingTicket.transcript.some(line => line.who === 'me' && line.text === '失礼します。') && explainedMissingTicket.transcript.some(line => line.who === 'note' && line.text.includes('原因をご説明しないまま')) && !explainedMissingTicket.transcript.some(line => /いま切りましたね|対応途中/.test(line.text)), '§68 検査H3: 復旧後の終話が対応放棄の詰問として記録される');
 const interruptSource = functionSource('interruptCall');
 const finishInterruptedSource = functionSource('finishInterruptedCall');
 assert(interruptSource.includes('addStress(t, REDIAL_STRESS)'), '途中切断で+25×顧客係数のストレスが加算されない');
@@ -2253,17 +2266,32 @@ assert(/待ち 2件/.test(renderHeader39({s:{id:'S1'},callDirection:'inbound',ca
 
 assert.deepEqual(Object.keys(CALL_FLOW_LINES.callChargeConcern).sort(),['anxious','expert','hurried','novice'],'§39 検査4: 通話料を気にする発話が4タイプ分ない');
 assert.equal(new Set(Object.values(CALL_FLOW_LINES.callChargeConcern)).size,4,'§39 検査4: 通話料を気にする発話がタイプ別に書き分けられていない');
-const spend39 = new Function('CALL_FLOW_LINES','CALL_CHARGE_COMPLAINT_TYPES','advance','pushCustomerLine','changeStress','addStress',functionSource('spendOnCall') + '\nreturn spendOnCall;')(
-  CALL_FLOW_LINES,CALL_CHARGE_COMPLAINT_TYPES,() => {},(ticket,text) => ticket.concerns.push(text),(ticket,delta) => { ticket.stress += delta; return true; },() => true
+assert(!Object.values(CALL_FLOW_LINES.callChargeConcern).some(line => /5分/.test(line)),'§68 検査G1: 通話料発話が全員一律の5分表現に戻る');
+const chargeThresholdSource68 = functionSource('callChargeConcernThreshold');
+const chargeThreshold68 = new Function('CALL_CHARGE_CONCERN_MIN','CALL_CHARGE_CONCERN_MAX',chargeThresholdSource68 + '\nreturn callChargeConcernThreshold;')(5,10);
+assert.deepEqual([chargeThreshold68(() => 0),chargeThreshold68(() => 0.5),chargeThreshold68(() => 0.999999)],[5,8,10],'§68 検査G2: 通話料を気にし始める時刻が5〜10分に分散しない');
+const spend39 = new Function('CALL_FLOW_LINES','CALL_CHARGE_COMPLAINT_TYPES','callChargeConcernThreshold','advance','pushCustomerLine','changeStress','addStress',functionSource('spendOnCall') + '\nreturn spendOnCall;')(
+  CALL_FLOW_LINES,CALL_CHARGE_COMPLAINT_TYPES,() => 7,() => {},(ticket,text) => ticket.concerns.push(text),(ticket,delta) => { ticket.stress += delta; return true; },() => true
 );
 Object.keys(TYPES).forEach(type => {
-  const ticket = {s:{type},state:'open',pendingResult:null,callMinutes:5,inboundMinutes:5,outboundMinutes:0,callSegmentMinutes:5,callDirection:'inbound',holdMinutes:0,callChargeConcerned:false,callChargeThresholdPassed:false,stress:10,concerns:[]};
+  const ticket = {s:{type},state:'open',pendingResult:null,symptomResolved:false,callMinutes:5,inboundMinutes:5,outboundMinutes:0,callSegmentMinutes:5,callDirection:'inbound',holdMinutes:0,callChargeConcerned:false,callChargeThresholdPassed:false,callChargeThreshold:5,stress:10,concerns:[]};
   const complains = CALL_CHARGE_COMPLAINT_TYPES.includes(type);
-  assert(spend39(ticket,1,0) && ticket.callChargeThresholdPassed && ticket.callChargeConcerned === complains && ticket.concerns.length === (complains ? 1 : 0) && ticket.stress === (complains ? 14 : 10),'§65 検査2: 5分超で対象タイプだけに通話料発話と苛立ち増が起きない');
+  assert(spend39(ticket,1,0) && ticket.callChargeThresholdPassed === complains && ticket.callChargeConcerned === complains && ticket.concerns.length === (complains ? 1 : 0) && ticket.stress === (complains ? 14 : 10),'§65 検査2: 閾値超過で対象タイプだけに通話料発話と苛立ち増が起きない');
   if (complains) assert(ticket.concerns[0] === CALL_FLOW_LINES.callChargeConcern[type],'§65 検査2: 通話料の発話が顧客タイプと一致しない');
   spend39(ticket,1,0);
   assert.equal(ticket.concerns.length,complains ? 1 : 0,'§39 検査5: 通話料判定後に発話を繰り返す');
 });
+const randomChargeTicket68 = {s:{type:'expert'},state:'open',pendingResult:null,symptomResolved:false,callMinutes:6,inboundMinutes:6,outboundMinutes:0,callSegmentMinutes:6,callDirection:'inbound',holdMinutes:0,callChargeConcerned:false,callChargeThresholdPassed:false,callChargeThreshold:null,stress:10,concerns:[]};
+spend39(randomChargeTicket68,1,0);
+assert(randomChargeTicket68.callChargeThreshold === 7 && randomChargeTicket68.concerns.length === 0,'§68 検査G3: 各通話の閾値を一度だけ抽選して保持しない');
+spend39(randomChargeTicket68,1,0);
+assert(randomChargeTicket68.concerns.length === 1,'§68 検査G3: 抽選した通話料閾値を超えても発話しない');
+const resolvedChargeTicket68 = {s:{type:'hurried'},state:'open',pendingResult:null,symptomResolved:true,callMinutes:5,inboundMinutes:5,outboundMinutes:0,callSegmentMinutes:5,callDirection:'inbound',holdMinutes:0,callChargeConcerned:false,callChargeThresholdPassed:false,callChargeThreshold:5,stress:10,concerns:[]};
+spend39(resolvedChargeTicket68,1,0);
+const resolvingChargeTicket68 = {...resolvedChargeTicket68,symptomResolved:false,callMinutes:5,inboundMinutes:5,callSegmentMinutes:5,concerns:[]};
+spend39(resolvingChargeTicket68,1,0,true);
+assert(resolvedChargeTicket68.concerns.length === 0 && resolvingChargeTicket68.concerns.length === 0,'§68 検査G4: 復旧済みまたは復旧する操作と同時に通話料を訴える');
+assert(functionSource('doTest').includes('Boolean(def && !redundant && def.solves)'),'§68 検査G5: 復旧する操作をspendOnCallへ伝えず同時発話を防げない');
 assert.deepEqual([...CALL_CHARGE_COMPLAINT_TYPES].sort(),['expert','hurried'],'§65 検査1: 通話料を直接訴えるタイプが半分でない');
 assert.equal(SCENARIOS.filter(scenario => CALL_CHARGE_COMPLAINT_TYPES.includes(scenario.type)).length,7,'§65 検査1: 14案件のうち直接訴える客が7件でない');
 
@@ -2564,8 +2592,8 @@ assert(callbackEffects53.wait === 8 && callbackEffects53.relief === CALLBACK_PUN
 assert(!CALLBACK_WAIT_REPLIES.expert.includes('約束した時間を超え') && CALLBACK_PUNCTUAL_REPLIES.expert.includes('時間どおり'),'§53 検査4: 実時間を見ていない不満発話が時刻超過を断定する、または定刻発話まで失われる');
 
 const holdStress53 = [];
-const spend53 = new Function('advance','HOLD_STRESS_PER_MINUTE','CALL_FLOW_LINES','pushCustomerLine','changeStress','addStress',functionSource('spendOnCall') + '\nreturn spendOnCall;')(
-  () => {},HOLD_STRESS_PER_MINUTE,CALL_FLOW_LINES,() => {},() => true,(ticket,base,miss,expected) => { holdStress53.push({direction:ticket.callDirection,base,miss,expected}); return true; }
+const spend53 = new Function('advance','HOLD_STRESS_PER_MINUTE','CALL_FLOW_LINES','CALL_CHARGE_COMPLAINT_TYPES','callChargeConcernThreshold','pushCustomerLine','changeStress','addStress',functionSource('spendOnCall') + '\nreturn spendOnCall;')(
+  () => {},HOLD_STRESS_PER_MINUTE,CALL_FLOW_LINES,CALL_CHARGE_COMPLAINT_TYPES,() => 5,() => {},() => true,(ticket,base,miss,expected) => { holdStress53.push({direction:ticket.callDirection,base,miss,expected}); return true; }
 );
 const holdTicket53 = direction => ({state:'open',pendingResult:null,callDirection:direction,callMinutes:0,callSegmentMinutes:0,inboundMinutes:0,outboundMinutes:0,holdMinutes:0,callChargeConcerned:false,s:{type:'expert'}});
 spend53(holdTicket53('inbound'),2,2);
