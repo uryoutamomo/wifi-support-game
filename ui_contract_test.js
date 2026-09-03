@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,CALL_FLOW_LINES};';
-const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
+const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -441,11 +441,11 @@ assert.equal(expectedTreatment(false), false, '本来どおり時に誤診が失
 assert.equal(adverseTreatment(true), false, '裏目時に正しい対処が未解決にならない');
 assert.equal(adverseTreatment(false), true, '裏目時に誤診が解決しない');
 
-function runCloseContract(causeMatched, expectedOutcome, identityStressSeen = false){
+function runCloseContract(causeMatched, expectedOutcome, nameKnown = false, identityStressSeen = false){
   const ticket = {
     s:{ trueCause:'right', best:'r_right', partial:[], type:'hurried' }, state:'open', transcript:[],
     callMinutes:0, holdMinutes:0, stress:10, patience:100, damage:0, wasted:0, misdiagnoses:0,
-    shipment:null, pendingResult:null, extraMinutes:0, identityStressSeen,
+    shipment:null, pendingResult:null, extraMinutes:0, nameKnown, identityStressSeen,
   };
   const closeState = { focus:ticket, cost:0, escLeft:3, ui:null };
   const deps = {
@@ -2192,10 +2192,44 @@ assert(functionSource('commandPrompt').includes('どの対処が効いたかを�
 const closeFlow48 = functionSource('renderCloseFlow');
 assert(!/ruledOut\(|hotCauses\(|isHot|\bhot\b|\bused\b|●|手がかりが指しています|噛み合いません/.test(closeFlow48), '§48-3 検査1: 原因選択に診断ボード用の強調・除外表示が残っている');
 assert(functionSource('renderBoard').includes('isHot') && functionSource('renderBoard').includes("(out ? '×' : isHot ? '●' : '·')"), '§48-3 検査2: 診断ボードから根拠の強調・除外表示まで消えている');
-assert.equal(correctExpected.pendingResult.csat, 4.6, '§48-5 検査1: 本人確認未完了の終話に記録不足0.4点が反映されない');
-const exemptClose48 = runCloseContract(true, true, true);
-assert.equal(exemptClose48.pendingResult.csat, 5.0, '§48-5 検査2: 高ストレスで本人確認できなかった終話が減点免除されない');
-assert(functionSource('finishSuccessfulClose').includes('!t.identified && !t.identityStressSeen') && functionSource('changeStress').includes('if (t.stress >= 50) t.identityStressSeen = true'), '§48-5 検査2: 高ストレス時の本人確認減点免除が共通ストレス経路にない');
-assert(functionSource('renderDebrief').includes('記録不足として評価を下げました') && functionSource('renderDebrief').includes('減点は免除しました'), '§48-5 検査3: 終話レポートに記録不足の減点・免除の説明がない');
+assert.equal(correctExpected.pendingResult.csat, 4.6, '§48-5 検査1: 名前を伺えなかった終話に記録不足0.4点が反映されない');
+/* §51: 記録に残すのは名前。苛立ちによる免除は廃止した——解決したあとなら
+   怒っていた客でも名前は答えるので、聞かなかったことの言い訳にならない。 */
+const namedClose51 = runCloseContract(true, true, true);
+assert.equal(namedClose51.pendingResult.csat, 5.0, '§51 検査7: 名前を伺っていても記録不足の減点が入る');
+const angryUnnamed51 = runCloseContract(true, true, false, true);
+assert.equal(angryUnnamed51.pendingResult.csat, 4.6, '§51 検査6: 苛立ちが高いと記録不足の減点が免除されてしまう');
+assert(functionSource('finishSuccessfulClose').includes('const identityRecordMissing = !t.nameKnown;'), '§51 検査7: 記録不足の判定が名前の有無になっていない');
+assert(!functionSource('finishSuccessfulClose').includes('identityStressSeen'), '§51 検査6: 記録不足の判定に苛立ちによる免除が残っている');
+assert(functionSource('renderDebrief').includes('社内システムへ記録を残せず') && !functionSource('renderDebrief').includes('減点は免除しました'), '§51 検査6: 終話レポートに免除の説明が残っている');
+/* §51-2: 解決したあと、切る前に名前を伺える。伺えば記録が残せるので減点が戻る。
+   戻すだけで加点はしない——最初から聞いていた対応と同じ点に戻るだけ。 */
+const runLateName51 = ticket => new Function('state','LATE_NAME_REPLIES','IDENTITY_RECORD_PENALTY','pushCustomerLine','identificationReady','clamp','defaultUi','render',
+  functionSource('askLateName') + '\nreturn askLateName;')(
+  { focus:ticket, ui:null }, LATE_NAME_REPLIES, IDENTITY_RECORD_PENALTY,
+  (t, text) => { t.saidName = text; },
+  t => Boolean(t.nameKnown && t.destinationKnown),
+  (value, low, high) => Math.min(Math.max(value, low), high),
+  () => ({tab:'command'}), () => {}
+)();
+const lateTicket51 = { nameKnown:false, destinationKnown:true, s:{ name:'試験 顧客', type:'anxious' }, pendingResult:{ csat:4.6, identityRecordMissing:true } };
+runLateName51(lateTicket51);
+assert.equal(lateTicket51.nameKnown, true,'§51 検査3: 名前を伺っても nameKnown が立たない');
+assert.equal(lateTicket51.saidName, LATE_NAME_REPLIES.anxious.replace('{name}','試験 顧客'),'§51 検査3: 客の答えがタイプ別の文面になっていない');
+assert.equal(lateTicket51.pendingResult.csat, 5.0,'§51 検査4: 名前を伺っても記録不足の減点が戻らない');
+assert.equal(lateTicket51.pendingResult.identityRecordMissing, false,'§51 検査4: 記録不足の印が残ったまま');
+runLateName51(lateTicket51);
+assert.equal(lateTicket51.pendingResult.csat, 5.0,'§51 検査5: 二度伺うと減点が二重に戻る');
+/* 解決前は何も起きないこと。ガードを外すと例外になるので、それも同じ検査で捕まえる。 */
+const notPending51 = { nameKnown:false, destinationKnown:true, s:{ name:'試験 顧客', type:'anxious' }, pendingResult:null };
+let lateGuardBroke51 = false;
+try { runLateName51(notPending51); } catch (error) { lateGuardBroke51 = true; }
+assert(!lateGuardBroke51 && notPending51.nameKnown === false,'§51 検査1: 解決前でも名前を後から伺えてしまう');
+assert.deepEqual(Object.keys(LATE_NAME_REPLIES).sort(),['anxious','expert','hurried','novice'],'§51 検査8: 答え方が4タイプ分ない');
+assert(new Set(Object.values(LATE_NAME_REPLIES)).size === 4 && Object.values(LATE_NAME_REPLIES).every(line => line.includes('{name}')),'§51 検査8: 答え方がタイプごとに書き分けられていない、または名前が入らない');
+const pendingActions51 = functionSource('renderActions');
+assert(pendingActions51.includes('data-late-name') && pendingActions51.includes('社内システムへ記録を残せません'),'§51 検査1: 解決後に名前を伺う導線が出ない');
+assert(pendingActions51.includes("t.nameKnown ? '' :"),'§51 検査2: 名前を伺い済みでも導線が出る');
+assert(eventSource.includes('[data-late-name]') && eventSource.includes('askLateName()'),'§51 検査1: 名前を伺うボタンが繋がっていない');
 
 console.log('UI契約・素材同期・SIM清掃仕様: 問題なし');

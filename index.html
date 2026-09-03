@@ -1222,6 +1222,9 @@ body.sheet-open .console{ display: none; }
 .complaint-email{ margin-top:10px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
 .complaint-email b,.complaint-email span{ display:block; }
 .complaint-email span{ margin-top:3px; color:var(--crit); font:700 12px/1.4 var(--display); }
+/* §51-2: 切る前に「記録が残せない」と気づける枠。取り返せるのは名前だけ。 */
+.record-gap{ margin:0 0 10px; padding:12px; border:1px solid var(--warn); border-radius:8px; background:var(--surface-2); }
+.record-gap>b{ display:block; margin-bottom:8px; color:var(--warn); font-size:13px; line-height:1.5; }
 /* §50-4: お礼は苦情と対になる枠で出す。半分の確率でしか届かないので、届いた夜が分かる。 */
 .gratitude-mailbox{ margin:24px 0; padding:16px; border:2px solid var(--good); border-radius:10px; background:var(--good-glow, var(--surface-2)); }
 .gratitude-mailbox h2{ margin:0 0 4px; color:var(--good); }
@@ -1904,6 +1907,15 @@ const GRATITUDE_EMAIL_TEMPLATES = Object.freeze({
 
 /* §50-4: 感謝が届く確率。調整コンソールで運を切る（luckRate 1.0）と必ず届く。 */
 const GRATITUDE_RATE = 0.5;
+
+/* §51-3: 解決したあとに名前を伺ったときの答え。用は済んでいるので、怒っていた客も
+   答える。ただし hurried は最後まで急いでいる。 */
+const LATE_NAME_REPLIES = Object.freeze({
+  anxious:'すみません、名乗るのも忘れていました。{name}です。',
+  novice:'あら、そういえば申し上げていませんでしたね。{name}と申します。',
+  expert:'{name}です。記録に残すのであれば、先に伺うべきでしたね。',
+  hurried:'{name}。じゃあ切りますよ。',
+});
 
 /* ---------- 質問プール ---------- */
 
@@ -4147,6 +4159,23 @@ function queueUnverifiableRedial(t){
   enterOffice();
 }
 
+/* §51-2: 解決したあと、電話を切るまでの間に名前を伺える。用は済んでいるので、
+   怒っていた客も答える。伺えれば記録が残せるので、記録不足の減点を返す。
+   戻すだけで加点はしない——最初から聞いていた対応と同じ点に戻るだけ。 */
+function askLateName(){
+  const t = state.focus;
+  if (!t || !t.pendingResult || t.nameKnown) return;
+  pushCustomerLine(t, LATE_NAME_REPLIES[t.s.type].replace('{name}', t.s.name), { plain:true });
+  t.nameKnown = true;
+  t.identified = identificationReady(t);
+  if (t.pendingResult.identityRecordMissing){
+    t.pendingResult.identityRecordMissing = false;
+    t.pendingResult.csat = clamp(Math.round((t.pendingResult.csat + IDENTITY_RECORD_PENALTY) * 10) / 10, 1.0, 5.0);
+  }
+  state.ui = defaultUi();
+  render();
+}
+
 function finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched){
   const s = t.s;
   if (remedy.cost) state.cost += remedy.cost;
@@ -4161,7 +4190,10 @@ function finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched){
   else if ((s.partial || []).includes(remedyId)){ base = 3.5; grade = 'partial'; }
   else { base = 2.2; grade = 'poor'; }
 
-  const identityRecordMissing = !t.identified && !t.identityStressSeen;
+  /* §51-2: 記録に残すのは名前。社内システムを開く鍵（契約番号、または氏名＋渡航先）とは
+     目的が違うので、判定を名前に絞る。苛立ちによる免除は置かない——解決したあとなら
+     怒っていた客でも名前は答えるので、聞かなかったことの言い訳にならない（§51-1）。 */
+  const identityRecordMissing = !t.nameKnown;
   if (identityRecordMissing) base -= IDENTITY_RECORD_PENALTY;
   base -= t.damage;
   base -= t.misdiagnoses * 1.2;
@@ -5016,7 +5048,13 @@ function renderActions(t){
 
   if (t.pendingResult){
     if (pendingTypedLine(t)) return '<div class="actions"><div class="pending-note">お客様の最後の言葉を聞いています。</div></div>';
-    return '<div class="actions">' + renderHangupButton('お客様との会話が終わりました。終話してください。', pendingResultButtonLabel(t.pendingResult)) + '</div>';
+    /* §51-2: 名前を伺えていなければ、切る前にここで気づける。解決したあとなので、
+       怒っていた客でも答える。取り返せるのは名前だけで、対処の選び直しはできない。 */
+    const recordGap = t.nameKnown ? '' :
+      '<div class="record-gap"><b>お名前を伺えていないため、社内システムへ記録を残せません。</b>' +
+      '<button class="opt" data-late-name="1"><span class="opt-label">お名前を確認する' +
+      '<span class="opt-sub">解決したいま伺えば、記録を残せます。</span></span></button></div>';
+    return '<div class="actions">' + recordGap + renderHangupButton('お客様との会話が終わりました。終話してください。', pendingResultButtonLabel(t.pendingResult)) + '</div>';
   }
   if (t.pendingInterruption) return '<div class="actions">' + renderHangupButton('こちらから通話を切ります。', 'オフィスへ戻る') + '</div>';
   if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation(t) + '</div>';
@@ -6092,11 +6130,10 @@ function renderDebrief(){
       '<span class="rs">CSAT ' + r.csat.toFixed(1) + ' ／ ' + esc(r.label) + ' ／ 通話' + t.callMinutes + '分（保留' + t.holdMinutes + '分）</span></div>' +
       '<div class="review-csat" aria-label="CSAT ' + r.csat.toFixed(1) + ' / 5"><i style="width:' + clamp(r.csat / 5 * 100, 0, 100) + '%"></i></div>' +
       '<div class="rb"><b style="color:var(--text);font-weight:500">真の原因：' + esc(causeName(t.s.trueCause)) + '</b><br>' +
+      /* §51-2: 記録に残すのは名前。免除は置かない——解決したあとなら伺えるので。 */
       esc(judge) + '<br>' + (r.identityRecordMissing
-        ? '本人確認を完了できなかったため、記録不足として評価を下げました。<br>'
-        : t.identityStressSeen
-          ? '満足度が大きく下がっており本人確認を求められなかったため、記録不足の減点は免除しました。<br>'
-          : '') + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
+        ? 'お名前を伺えなかったため、社内システムへ記録を残せず、評価を下げました。<br>'
+        : '') + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
   }).join('');
 
   /* §50: その場の評価と、後からの評価は別もの。誤診はその場では感謝されて終わり、
@@ -6158,7 +6195,7 @@ function cell(k, v, n){
 
 document.addEventListener('click', (e) => {
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-board-excluded]');
+  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name],[data-board-excluded]');
   if (!el || el.disabled) return;
   playCommandSound();
   routeAction(el.dataset);
@@ -6256,6 +6293,7 @@ function handleResolutionAction(d){
   if (d.shipConfirm){ confirmShipment(); return true; }
   if (d.reportSubmit){ submitReport(); return true; }
   if (d.closeConfirm){ doClose(state.ui.cause, state.ui.remedy); return true; }
+  if (d.lateName){ askLateName(); return true; }
   return false;
 }
 

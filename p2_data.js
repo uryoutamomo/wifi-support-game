@@ -374,6 +374,15 @@ const GRATITUDE_EMAIL_TEMPLATES = Object.freeze({
 /* §50-4: 感謝が届く確率。調整コンソールで運を切る（luckRate 1.0）と必ず届く。 */
 const GRATITUDE_RATE = 0.5;
 
+/* §51-3: 解決したあとに名前を伺ったときの答え。用は済んでいるので、怒っていた客も
+   答える。ただし hurried は最後まで急いでいる。 */
+const LATE_NAME_REPLIES = Object.freeze({
+  anxious:'すみません、名乗るのも忘れていました。{name}です。',
+  novice:'あら、そういえば申し上げていませんでしたね。{name}と申します。',
+  expert:'{name}です。記録に残すのであれば、先に伺うべきでしたね。',
+  hurried:'{name}。じゃあ切りますよ。',
+});
+
 /* ---------- 質問プール ---------- */
 
 const QUESTIONS = [

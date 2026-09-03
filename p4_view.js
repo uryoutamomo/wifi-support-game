@@ -602,7 +602,13 @@ function renderActions(t){
 
   if (t.pendingResult){
     if (pendingTypedLine(t)) return '<div class="actions"><div class="pending-note">お客様の最後の言葉を聞いています。</div></div>';
-    return '<div class="actions">' + renderHangupButton('お客様との会話が終わりました。終話してください。', pendingResultButtonLabel(t.pendingResult)) + '</div>';
+    /* §51-2: 名前を伺えていなければ、切る前にここで気づける。解決したあとなので、
+       怒っていた客でも答える。取り返せるのは名前だけで、対処の選び直しはできない。 */
+    const recordGap = t.nameKnown ? '' :
+      '<div class="record-gap"><b>お名前を伺えていないため、社内システムへ記録を残せません。</b>' +
+      '<button class="opt" data-late-name="1"><span class="opt-label">お名前を確認する' +
+      '<span class="opt-sub">解決したいま伺えば、記録を残せます。</span></span></button></div>';
+    return '<div class="actions">' + recordGap + renderHangupButton('お客様との会話が終わりました。終話してください。', pendingResultButtonLabel(t.pendingResult)) + '</div>';
   }
   if (t.pendingInterruption) return '<div class="actions">' + renderHangupButton('こちらから通話を切ります。', 'オフィスへ戻る') + '</div>';
   if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation(t) + '</div>';
@@ -1678,11 +1684,10 @@ function renderDebrief(){
       '<span class="rs">CSAT ' + r.csat.toFixed(1) + ' ／ ' + esc(r.label) + ' ／ 通話' + t.callMinutes + '分（保留' + t.holdMinutes + '分）</span></div>' +
       '<div class="review-csat" aria-label="CSAT ' + r.csat.toFixed(1) + ' / 5"><i style="width:' + clamp(r.csat / 5 * 100, 0, 100) + '%"></i></div>' +
       '<div class="rb"><b style="color:var(--text);font-weight:500">真の原因：' + esc(causeName(t.s.trueCause)) + '</b><br>' +
+      /* §51-2: 記録に残すのは名前。免除は置かない——解決したあとなら伺えるので。 */
       esc(judge) + '<br>' + (r.identityRecordMissing
-        ? '本人確認を完了できなかったため、記録不足として評価を下げました。<br>'
-        : t.identityStressSeen
-          ? '満足度が大きく下がっており本人確認を求められなかったため、記録不足の減点は免除しました。<br>'
-          : '') + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
+        ? 'お名前を伺えなかったため、社内システムへ記録を残せず、評価を下げました。<br>'
+        : '') + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
   }).join('');
 
   /* §50: その場の評価と、後からの評価は別もの。誤診はその場では感謝されて終わり、

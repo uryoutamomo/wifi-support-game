@@ -1413,6 +1413,23 @@ function queueUnverifiableRedial(t){
   enterOffice();
 }
 
+/* §51-2: 解決したあと、電話を切るまでの間に名前を伺える。用は済んでいるので、
+   怒っていた客も答える。伺えれば記録が残せるので、記録不足の減点を返す。
+   戻すだけで加点はしない——最初から聞いていた対応と同じ点に戻るだけ。 */
+function askLateName(){
+  const t = state.focus;
+  if (!t || !t.pendingResult || t.nameKnown) return;
+  pushCustomerLine(t, LATE_NAME_REPLIES[t.s.type].replace('{name}', t.s.name), { plain:true });
+  t.nameKnown = true;
+  t.identified = identificationReady(t);
+  if (t.pendingResult.identityRecordMissing){
+    t.pendingResult.identityRecordMissing = false;
+    t.pendingResult.csat = clamp(Math.round((t.pendingResult.csat + IDENTITY_RECORD_PENALTY) * 10) / 10, 1.0, 5.0);
+  }
+  state.ui = defaultUi();
+  render();
+}
+
 function finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched){
   const s = t.s;
   if (remedy.cost) state.cost += remedy.cost;
@@ -1427,7 +1444,10 @@ function finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched){
   else if ((s.partial || []).includes(remedyId)){ base = 3.5; grade = 'partial'; }
   else { base = 2.2; grade = 'poor'; }
 
-  const identityRecordMissing = !t.identified && !t.identityStressSeen;
+  /* §51-2: 記録に残すのは名前。社内システムを開く鍵（契約番号、または氏名＋渡航先）とは
+     目的が違うので、判定を名前に絞る。苛立ちによる免除は置かない——解決したあとなら
+     怒っていた客でも名前は答えるので、聞かなかったことの言い訳にならない（§51-1）。 */
+  const identityRecordMissing = !t.nameKnown;
   if (identityRecordMissing) base -= IDENTITY_RECORD_PENALTY;
   base -= t.damage;
   base -= t.misdiagnoses * 1.2;
