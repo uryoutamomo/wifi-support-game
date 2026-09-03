@@ -324,8 +324,7 @@ const askGroupChoiceCss42 = [...page.matchAll(/\.ask-group-choice\{([^}]*)\}/g)]
 assert(askGroupChoiceCss42.some(block => /grid-template-columns\s*:\s*minmax\(0,1fr\)/.test(block)), '§42-3 番号なしcommand-choiceが番号用の列指定を上書きしない');
 assert(askGroupChoiceCss42.every(block => !/grid-template-columns\s*:\s*24px/.test(block)), '§42-3 番号なし質問区分の本文が24px列へ押し込まれる');
 
-const worldSource = functionSource('renderWorldStrip');
-assert(worldSource.includes('state.tickets.filter(t => t.destinationKnown)'), '渡航先未判明の待ちチケットが世界地図に現れる');
+const shiftSource = functionSource('renderShiftStrip');
 assert(page.includes('.stress-panel'), '大きな苛立ちメーターCSSがない');
 
 const tellSource = functionSource('renderTellOptions');
@@ -786,9 +785,33 @@ assert(!page.includes('22:00') && briefing52.includes('fmtClock(SHIFT_START)') &
 const verifySource52 = fs.readFileSync(__dirname + '/verify.js', 'utf8');
 assert(verifySource52.includes('drawInboundArrivalTurns') && verifySource52.includes('SHIFT_START + arrival') && !verifySource52.includes('22 * 60 + s.arrive'), '§52 検査4: verify.jsの到着スケジュールが実際の着信を表示しない');
 
+// §52-6 検査12〜17: 帯は勤務時間を示し、未来の着信を漏らさず通話中にも残す。
+assert(page.includes('id="shift-strip"') && /aria-label="23時から7時まで/.test(page), '§52 検査12: タイムシフト表が23時から7時の帯として置かれていない');
+assert(shiftSource.includes("[0,'23'], [25,'01'], [50,'03'], [75,'05'], [100,'07']"), '§52 検査12: 帯の目盛りが23時から7時にならない');
+assert(shiftSource.includes('t.arrivedTurn / SHIFT_DURATION * 100'), '§52 検査14: 案件のピンが着信時刻の位置に立たない');
+const shiftStrip52 = {innerHTML:''};
+const shiftState52 = {turn:120,clock:SHIFT_START + 120,tickets:[
+  {arrivedTurn:60,state:'waiting',s:{id:'S1',city:'バンコク',localOffset:7}},
+  {arrivedTurn:180,state:'inbound',s:{id:'S2',city:'ロンドン',localOffset:0}},
+  {arrivedTurn:120,state:'closed',result:{kind:'abandoned'},s:{id:'S3',city:'台北',localOffset:8}},
+]};
+const renderShiftStrip52 = new Function('state','$','clamp','esc','localClock','fmtClock','SHIFT_START','SHIFT_DURATION', shiftSource + '\nreturn renderShiftStrip;')(
+  shiftState52, () => shiftStrip52, (v,a,b) => Math.max(a,Math.min(b,v)), value => String(value), ticket => '現地時刻', () => 'JST時刻', SHIFT_START, SHIFT_DURATION
+);
+renderShiftStrip52();
+assert(/>23<.*>01<.*>03<.*>05<.*>07</.test(shiftStrip52.innerHTML), '§52 検査12: 帯の左端23時・右端7時の目盛りがない');
+assert(shiftStrip52.innerHTML.includes('class="shift-now" style="left:25.00%" aria-label="現在時刻"></span>') && !shiftStrip52.innerHTML.includes('>いま<'), '§52 検査13: 現在時刻がラベルなしの線で帯に出ない');
+assert(!shiftStrip52.innerHTML.includes('S2'), '§52 検査15: まだ着信していない案件のピンが出る');
+assert(shiftStrip52.innerHTML.includes('S1') && shiftStrip52.innerHTML.includes('left:12.50%'), '§52 検査14: 案件のピンが着信時刻の位置に立たない');
+assert(shiftStrip52.innerHTML.includes('バンコク 現地時刻 待ち中') && shiftStrip52.innerHTML.includes('台北 現地時刻 放棄呼'), '§52 検査17: ピンに都市・現地時刻・状態が残らない');
+assert(shiftSource.includes('localClock(t)'), '§52 検査17: ピンに現地時刻が残らない');
+assert(!/body\.call-view \.shift-strip\{[^}]*height:\s*0/.test(page) && !page.includes('world-strip'), '§52 検査16: 通話中にタイムシフト表が畳まれる、または旧名称が残る');
+assert(/\.shift-tick\.last\{\s*right:\s*auto;\s*transform:\s*translateX\(-100%\)/.test(page), '§52 検査12: 右端07の目盛りが軸の外へはみ出す');
+assert(page.includes('.shift-tick.light{ color:#eef4f8;') && page.includes('.shift-tick.dark{ color:#102a43;') && shiftSource.includes("index < 3 ? 'light' : 'dark'"), '§52 検査12: 夜明けの背景で目盛りのコントラストが読めない');
+
 const queue21Source = functionSource('renderQueue');
-const world21Source = functionSource('renderWorldStrip');
-assert(queue21Source.includes('state.tickets.filter') && world21Source.includes('state.tickets.filter') && functionSource('renderOffice').includes('state.tickets.filter'), '未選択案件が待機・世界地図から除外されない');
+const shift21Source = functionSource('renderShiftStrip');
+assert(queue21Source.includes('state.tickets.filter') && shift21Source.includes('state.tickets.filter') && functionSource('renderOffice').includes('state.tickets.filter'), '未選択案件が待機・タイムシフト表から除外されない');
 
 assert(functionSource('checkShiftEnd').includes('state.clock >= SHIFT_END') && !functionSource('checkShiftEnd').includes("state.tickets.some(t => t.state !== 'closed')"), '§52 検査2: 全件終了で早くシフトが終わってしまう');
 
@@ -2139,10 +2162,8 @@ assert.equal(progression39.status,0,'§39 検査15: progression_testが通らな
 const customerRecord41 = functionSource('renderCustomerRecord') + functionSource('recordValue');
 assert(customerRecord41.includes('const identified = identificationReady(t);') && customerRecord41.includes('―― 未照会'), '§41-11 本人確認前または未照会欄が伏せられない');
 
-/* §48-7: 通話中の画面を、対応に要る5つ（時計・会話・コマンド・電話の状態・業務システム）
-   へ絞る。実測では通話画面がビューポート4個分あり、選択肢を開くと5.3個分まで伸びて、
-   会話が画面の外へ出たまま戻らなかった。ペインそのものは消さない（§42 の3ペイン）。 */
-assert(/body\.call-view \.world-strip\{[^}]*height:\s*0/.test(page),'§48-7 検査4: 通話中に世界時計の帯が畳まれない');
+/* §52: タイムシフト表は通話中こそ必要なので、§48-7 の帯を畳む判断を置き換える。 */
+assert(!/body\.call-view \.shift-strip\{[^}]*height:\s*0/.test(page),'§52 検査16: 通話中にタイムシフト表が畳まれる');
 assert(/body\.call-view \.pane\.call-summary > \.summary-figure/.test(page) && /body\.call-view \.pane\.call-summary > \.hint-bar/.test(page),'§48-7 検査5: 通話中に待機状況の中身が畳まれない');
 assert(/body\.call-view [^{]*\.opts\{[^}]*max-height/.test(page) && /body\.call-view [^{]*\.opts\{[^}]*overflow-y:\s*auto/.test(page),'§48-7 検査6: 選択肢が枠内でスクロールせず、ページごと伸びる');
 /* §48-7: CSSのセレクタが、実際に描かれる入れ子と噛み合っているかまで見る。

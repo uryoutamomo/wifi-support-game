@@ -352,14 +352,6 @@ function localClock(t){
   return fmtClock(((state.clock + t.s.localOffset * 60) % 1440 + 1440) % 1440);
 }
 
-function daylightMix(utcOffset){
-  const utc = state.clock - 9 * 60;
-  const local = ((utc + utcOffset * 60) % 1440 + 1440) % 1440;
-  const hour = local / 60;
-  const sun = (hour > 6 && hour < 18) ? Math.sin((hour - 6) / 12 * Math.PI) : 0;
-  return Math.round(7 + sun * 61);
-}
-
 /* ---------- 初期化 ---------- */
 
 function newTicket(s){

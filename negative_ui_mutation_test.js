@@ -94,12 +94,6 @@ const mutations = [
     expected:'§49 検査4/6: Front Deskへつないだ段階で回復または本人確認済みにしている',
   },
   {
-    name:'§48-7 通話中も世界時計の帯を出す', file:'p1_head.html',
-    from:'body.call-view .world-strip{ height: 0; border-top: 0; }',
-    to:'body.call-view .world-strip{ border-top: 0; }',
-    expected:'§48-7 検査4: 通話中に世界時計の帯が畳まれない',
-  },
-  {
     name:'§48-7 通話中も待機状況の中身を出す', file:'p1_head.html',
     from:'body.call-view .pane.call-summary > .summary-figure,\nbody.call-view .pane.call-summary > .hint-bar{ display: none; }',
     to:'body.call-view .pane.call-summary > .hint-bar{ display: none; }',
@@ -1255,12 +1249,6 @@ const mutations = [
     expected:'日次案件の選択に重複がある',
   },
   {
-    name:'未選択案件を世界地図へ戻す', file:'p4_view.js',
-    from:'const pins = state.tickets.filter(t => t.destinationKnown).map(t => {',
-    to:'const pins = SCENARIOS.filter(t => t.destinationKnown).map(t => {',
-    expected:'渡航先未判明の待ちチケットが世界地図に現れる',
-  },
-  {
     name:'応答率を11件固定で割る', file:'p4_view.js',
     from:'const answerRate = (state.tickets.length - abandoned) / state.tickets.length;',
     to:'const answerRate = (state.tickets.length - abandoned) / 11;',
@@ -2352,6 +2340,54 @@ const mutations = [
     from:'  const min = SHIFT_START + arrival;',
     to:'  const min = 22 * 60 + arrival;',
     expected:'§52 検査4: verify.jsの到着スケジュールが実際の着信を表示しない',
+  },
+  {
+    name:'§52 タイムシフト表の終点を8時へずらす', file:'p4_view.js',
+    from:"[0,'23'], [25,'01'], [50,'03'], [75,'05'], [100,'07']",
+    to:"[0,'23'], [25,'01'], [50,'03'], [75,'05'], [100,'08']",
+    expected:'§52 検査12: 帯の目盛りが23時から7時にならない',
+  },
+  {
+    name:'§52 現在時刻線を消す', file:'p4_view.js',
+    from:"ticks + '<span class=\"shift-now\" style=\"left:' + now.toFixed(2) + '%\" aria-label=\"現在時刻\"></span>' + pins +",
+    to:'ticks + pins +',
+    expected:'§52 検査13: 現在時刻がラベルなしの線で帯に出ない',
+  },
+  {
+    name:'§52 ピンを現在時刻へ寄せる', file:'p4_view.js',
+    from:'const pos = clamp(t.arrivedTurn / SHIFT_DURATION * 100, 0, 100);',
+    to:'const pos = clamp(state.turn / SHIFT_DURATION * 100, 0, 100);',
+    expected:'§52 検査14: 案件のピンが着信時刻の位置に立たない',
+  },
+  {
+    name:'§52 未着信ピンを出す', file:'p4_view.js',
+    from:'state.tickets.filter(t => t.arrivedTurn <= state.turn)',
+    to:'state.tickets.filter(t => t.arrivedTurn >= state.turn)',
+    expected:'§52 検査15: まだ着信していない案件のピンが出る',
+  },
+  {
+    name:'§52 通話中にタイムシフト表を畳む', file:'p1_head.html',
+    from:'/* §52: 通話中にも、自分の夜がどこまで来たかを判断できるようタイムシフト表を残す。',
+    to:'body.call-view .shift-strip{ height: 0; }\n/* §52: 通話中にも、自分の夜がどこまで来たかを判断できるようタイムシフト表を残す。',
+    expected:'§52 検査16: 通話中にタイムシフト表が畳まれる、または旧名称が残る',
+  },
+  {
+    name:'§52 ピンから現地時刻を外す', file:'p4_view.js',
+    from:"esc(localClock(t))",
+    to:"esc(fmtClock(state.clock))",
+    expected:'§52 検査17: ピンに都市・現地時刻・状態が残らない',
+  },
+  {
+    name:'§52 右端07を軸の外へずらす', file:'p1_head.html',
+    from:'.shift-tick.last{ right: auto; transform: translateX(-100%); }',
+    to:'.shift-tick.last{ right: 0; transform: none; }',
+    expected:'§52 検査12: 右端07の目盛りが軸の外へはみ出す',
+  },
+  {
+    name:'§52 夜明けの目盛りを読めなくする', file:'p1_head.html',
+    from:'.shift-tick.dark{ color:#102a43;',
+    to:'.shift-tick.dark{ color:#5d7185;',
+    expected:'§52 検査12: 夜明けの背景で目盛りのコントラストが読めない',
   },
 ];
 

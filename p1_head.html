@@ -152,26 +152,25 @@ button:focus-visible, [tabindex]:focus-visible{
 }
 .btn-help:hover,.btn-balance:hover{ border-color: var(--amber-deep); color: var(--amber); }
 
-/* ---------- UTC-12〜UTC+12 ワールドクロック ---------- */
+/* ---------- 23:00〜07:00 タイムシフト表 ---------- */
 
-.world-strip{
+.shift-strip{
   position: relative;
   height: 44px;
   overflow: hidden;
   border-top: 1px solid var(--line-soft);
   background: var(--panel);
 }
-.world-sky{
+.shift-sky{
   position: absolute;
   inset: 0;
-  opacity: .72;
-  transition: background .25s ease;
+  background: linear-gradient(90deg, #102a43 0%, #40566b 56%, #92aebe 100%);
 }
-.world-axis{
+.shift-axis{
   position: absolute;
   inset: 0 20px;
 }
-.world-axis::after{
+.shift-axis::after{
   content: "";
   position: absolute;
   left: 0;
@@ -179,37 +178,27 @@ button:focus-visible, [tabindex]:focus-visible{
   top: 25px;
   border-top: 1px solid var(--line);
 }
-.world-zone-label{
+.shift-tick{
   position: absolute;
   bottom: 1px;
   transform: translateX(-50%);
   font-family: var(--mono);
   font-size: 11px;
-  color: var(--faint);
   letter-spacing: .04em;
 }
-.world-zone-label.first{ left: 0; transform: none; }
-.world-zone-label.mid{ left: 50%; }
-.world-zone-label.last{ right: 0; transform: none; }
-.world-jst{
+.shift-tick.light{ color:#eef4f8; text-shadow:0 1px 1px #102a43; }
+.shift-tick.dark{ color:#102a43; text-shadow:0 1px 0 rgba(238,244,248,.42); }
+.shift-tick.first{ left: 0; transform: none; }
+.shift-tick.last{ right: auto; transform: translateX(-100%); }
+.shift-now{
   position: absolute;
-  left: 87.5%;
   top: 0;
   bottom: 0;
   width: 1px;
   background: var(--amber-deep);
   opacity: .75;
 }
-.world-jst span{
-  position: absolute;
-  right: 3px;
-  bottom: 0;
-  font-family: var(--display);
-  font-size: 11px;
-  letter-spacing: .12em;
-  color: var(--amber);
-}
-.world-pin{
+.shift-pin{
   --stack: 0;
   position: absolute;
   top: calc(2px + var(--stack) * 10px);
@@ -223,7 +212,7 @@ button:focus-visible, [tabindex]:focus-visible{
   font-size: 11px;
   color: var(--dim);
 }
-.world-pin-dot{
+.shift-pin-dot{
   width: 7px;
   height: 7px;
   border: 1px solid var(--line);
@@ -231,11 +220,11 @@ button:focus-visible, [tabindex]:focus-visible{
   background: var(--faint);
   box-shadow: 0 0 0 2px var(--panel);
 }
-.world-pin.waiting .world-pin-dot{ background: var(--amber); border-color: var(--amber); animation: pinpulse 1.8s ease-in-out infinite; }
-.world-pin.active .world-pin-dot{ background: var(--signal); border-color: var(--signal); }
-.world-pin.closed{ color: var(--faint); opacity: .62; }
-.world-pin.abandoned{ color: var(--crit); opacity: 1; }
-.world-pin.abandoned .world-pin-dot{ background: var(--crit); border-color: var(--crit); }
+.shift-pin.waiting .shift-pin-dot{ background: var(--amber); border-color: var(--amber); animation: pinpulse 1.8s ease-in-out infinite; }
+.shift-pin.active .shift-pin-dot{ background: var(--signal); border-color: var(--signal); }
+.shift-pin.closed{ color: var(--faint); opacity: .62; }
+.shift-pin.abandoned{ color: var(--crit); opacity: 1; }
+.shift-pin.abandoned .shift-pin-dot{ background: var(--crit); border-color: var(--crit); }
 @keyframes pinpulse{
   0%,100%{ transform: scale(.85); opacity: .62; }
   50%{ transform: scale(1.2); opacity: 1; }
@@ -271,12 +260,10 @@ body.office-view .console{ display: none; }
 body.call-view .office-scene{ display: none; }
 body.call-view .console{ animation: call-in .22s ease both; }
 
-/* §48-7: 通話中は、対応に要る5つ（時計・会話・コマンド・電話の状態・業務システム）
-   だけを残す。世界時計の帯は電話を取る前に時差の全体像を見るもので、通話中は
-   会話とコマンドを画面の外へ押し出すだけになる。待機状況も同じ理由で畳み、
+/* §52: 通話中にも、自分の夜がどこまで来たかを判断できるようタイムシフト表を残す。
+   待機状況は、会話とコマンドを画面の外へ押し出さないよう畳み、
    要点の待ち件数は電話の状態とペイン見出しへ出す。
    ペインそのものは消さない（3ペインの並びは §42 の判断どおり保つ）。 */
-body.call-view .world-strip{ height: 0; border-top: 0; }
 /* §48-7: 選択肢が増えるとページ自体が伸び、会話が画面の外へ押し出されて戻らない
    （原因の一覧は14件あり、それだけで画面1.5個分になる）。選択肢の側をスクロール
    させて、会話とコマンドが同じ画面に残るようにする。 */
@@ -1271,10 +1258,10 @@ body.sheet-open .console{ display: none; }
 /* ---------- ライト業務画面の仕上げ ---------- */
 .topbar{ background:var(--surface); box-shadow:0 1px 0 var(--line-soft),0 5px 16px rgba(21,32,43,.06); }
 .brand .mark,.clock .t{ color:var(--accent); }
-.world-strip{ background:var(--surface); }
-.world-axis::after{ border-color:var(--line); }.world-jst{ background:var(--accent); }.world-jst span{ color:var(--accent); }
-.world-pin{ color:var(--text-2); }.world-pin-dot{ box-shadow:0 0 0 2px var(--surface); }
-.world-pin.waiting .world-pin-dot{ background:var(--accent); border-color:var(--accent); }
+.shift-strip{ background:var(--surface); }
+.shift-axis::after{ border-color:var(--line); }.shift-now{ background:var(--accent); }
+.shift-pin{ color:var(--text-2); }.shift-pin-dot{ box-shadow:0 0 0 2px var(--surface); }
+.shift-pin.waiting .shift-pin-dot{ background:var(--accent); border-color:var(--accent); }
 .console{ background:var(--line-soft); }.pane{ background:var(--surface); }
 .office-scene{ background:var(--bg); }.office-floor{ background:var(--surface); box-shadow:none; }
 .office-object{ background:var(--surface-2); color:var(--text-2); }.office-object b{ color:var(--text-2); }
@@ -1337,10 +1324,10 @@ body.playing{ display:block; height:auto; min-height:100dvh; overflow:auto; }
 .btn-balance::after{ content:"調"; font:700 17px/1 var(--display); }
 .topbar-inner > .btn-balance{ grid-row:1; grid-column:3; align-self:center; justify-self:end; z-index:2; }
 .topbar-inner > .btn-help{ grid-row:1; grid-column:4; align-self:center; justify-self:end; z-index:2; }
-.world-strip{ height:52px; }
-.world-axis{ inset-inline:14px; }
-.world-zone-label,.world-jst span{ font-size:12px; }
-.world-pin-label{ display:none; }
+.shift-strip{ height:52px; }
+.shift-axis{ inset-inline:14px; }
+.shift-tick{ font-size:12px; }
+.shift-pin-label{ display:none; }
 
 .console{ display:flex; flex-direction:column; min-height:calc(100dvh - 170px); background:var(--bg); }
 .pane,body.playing .pane{
@@ -1467,7 +1454,7 @@ body.office-view .office-scene{ gap:14px; }
     <button class="btn-balance" id="btn-balance" aria-label="ゲーム調整コンソール">ゲーム調整</button>
     <button class="btn-help" id="btn-manual">対応マニュアル</button>
   </div>
-  <div class="world-strip" id="world-strip" role="img" aria-label="UTC-12からUTC+12までの昼夜と、現在対応中の都市"></div>
+  <div class="shift-strip" id="shift-strip" role="img" aria-label="23時から7時までの夜勤時間と、着信済み案件の状態"></div>
 </div>
 
 <section class="office-scene" id="office" aria-label="深夜のグローバルデスク オフィス">

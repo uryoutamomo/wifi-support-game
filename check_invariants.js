@@ -630,7 +630,7 @@ try {
   bad('日次案件の選択ロジックを検査できない: ' + error.message);
 }
 // 5. 非選択案件を参照せず、その日のstate.ticketsだけを表示する。
-if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('renderWorldStrip').includes('state.tickets.filter') || !sourceOf('renderOffice').includes('state.tickets.filter')) bad('未選択案件が待機・世界地図から除外されない');
+if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('renderShiftStrip').includes('state.tickets.filter') || !sourceOf('renderOffice').includes('state.tickets.filter')) bad('未選択案件が待機・タイムシフト表から除外されない');
 // 6. 夜勤は23:00〜07:00で終了し、残件は放棄呼にする。
 if (SHIFT_START !== 23 * 60 || SHIFT_END - SHIFT_START !== 8 * 60 || !sourceOf('checkShiftEnd').includes('state.clock >= SHIFT_END') || !sourceOf('finishShiftAtTime').includes('abandonTicket(t')) bad('夜勤が23:00〜07:00で終わらない、または残件を放棄呼にしない');
 // 7. 集計と表示が実件数を使い、2件の日の空欄にも表示を持つ。

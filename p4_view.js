@@ -129,7 +129,7 @@ function render(){
   if (state.phase === 'desk'){ renderDesk(); return; }
   if (state.phase !== 'call') return;
   $('clock').textContent = fmtClock(state.clock);
-  renderWorldStrip();
+  renderShiftStrip();
   renderQueue();
   renderCall();
   renderBoard();
@@ -149,21 +149,13 @@ function metrics(){
   return { finished, answered, abandoned, csat, fcrCount, fcr, answerRate, aht };
 }
 
-function renderWorldStrip(){
-  const strip = $('world-strip');
+function renderShiftStrip(){
+  const strip = $('shift-strip');
   if (!strip) return;
 
-  const stops = [];
-  for (let i = 0; i <= 48; i++){
-    const offset = -12 + i / 2;
-    const pos = i / 48 * 100;
-    stops.push('color-mix(in srgb, var(--amber) ' + daylightMix(offset) + '%, var(--panel-3)) ' + pos.toFixed(2) + '%');
-  }
-
   const seen = new Map();
-  const pins = state.tickets.filter(t => t.destinationKnown).map(t => {
-    const utcOffset = 9 + t.s.localOffset;
-    const pos = clamp((utcOffset + 12) / 24 * 100, 0, 100);
+  const pins = state.tickets.filter(t => t.arrivedTurn <= state.turn).map(t => {
+    const pos = clamp(t.arrivedTurn / SHIFT_DURATION * 100, 0, 100);
     const key = pos.toFixed(3);
     const stack = seen.get(key) || 0;
     seen.set(key, stack + 1);
@@ -175,18 +167,20 @@ function renderWorldStrip(){
     else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
 
     const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '現地キャリア照会中' : cls === 'abandoned' ? '放棄呼' : '完了';
-    return '<span class="world-pin ' + cls + '" style="left:' + pos.toFixed(2) + '%;--stack:' + stack + '" ' +
+    return '<span class="shift-pin ' + cls + '" style="left:' + pos.toFixed(2) + '%;--stack:' + stack + '" ' +
       'title="' + esc(t.s.city) + ' ' + esc(localClock(t)) + ' ' + status + '" aria-label="' + esc(t.s.city) + ' ' + status + '">' +
-      '<i class="world-pin-dot"></i><span class="world-pin-label">' + esc(t.s.id) + '</span></span>';
+      '<i class="shift-pin-dot"></i><span class="shift-pin-label">' + esc(t.s.id) + '</span></span>';
   }).join('');
 
+  const ticks = [
+    [0,'23'], [25,'01'], [50,'03'], [75,'05'], [100,'07'],
+  ].map(([pos,label], index) => '<span class="shift-tick ' + (index < 3 ? 'light' : 'dark') + ' ' + (index === 0 ? 'first' : index === 4 ? 'last' : '') + '" style="left:' + pos + '%">' + label + '</span>').join('');
+  const now = clamp((state.clock - SHIFT_START) / SHIFT_DURATION * 100, 0, 100);
+
   strip.innerHTML =
-    '<div class="world-sky" style="background:linear-gradient(90deg,' + stops.join(',') + ')"></div>' +
-    '<div class="world-axis">' +
-      '<span class="world-zone-label first">UTC−12</span>' +
-      '<span class="world-zone-label mid">UTC</span>' +
-      '<span class="world-zone-label last">UTC+12</span>' +
-      '<span class="world-jst"><span>JST</span></span>' + pins +
+    '<div class="shift-sky"></div>' +
+    '<div class="shift-axis">' +
+      ticks + '<span class="shift-now" style="left:' + now.toFixed(2) + '%" aria-label="現在時刻"></span>' + pins +
     '</div>';
 }
 
@@ -206,68 +200,100 @@ function pixelRect(ctx, color, x, y, width, height){
 }
 
 function drawCeilingLights(ctx, p){
-  pixelRect(ctx, p.navy, 0, 0, 192, 34);
-  for (let x = 0; x < 192; x += 48) pixelRect(ctx, p.blue, x, 0, 2, 34);
-  pixelRect(ctx, p.blue, 0, 16, 192, 2);
-  for (const y of [4, 21]){
+  // 16-bit風の天井。蛍光灯を「白い長方形」だけで終わらせず、枠・反射・梁で奥行きを作る。
+  pixelRect(ctx, p.navy, 0, 0, 192, 35);
+  pixelRect(ctx, p.ink, 0, 0, 192, 3);
+  for (let x = 0; x <= 192; x += 48){
+    pixelRect(ctx, p.blue, x, 3, 2, 32);
+    pixelRect(ctx, p.charcoal, x + 2, 3, 1, 32);
+  }
+  for (const y of [5, 22]){
+    pixelRect(ctx, p.blue, 0, y - 2, 192, 1);
     for (const x of [7, 55, 103, 151]){
+      pixelRect(ctx, p.charcoal, x - 2, y - 1, 36, 11);
       pixelRect(ctx, p.silver, x, y, 32, 9);
-      pixelRect(ctx, p.white, x + 3, y + 2, 26, 5);
+      pixelRect(ctx, p.white, x + 3, y + 2, 26, 4);
+      pixelRect(ctx, p.glow, x + 5, y + 6, 22, 1);
     }
   }
 }
 
 function drawBackWall(ctx, p){
-  pixelRect(ctx, p.silver, 0, 34, 192, 35);
-  pixelRect(ctx, p.gray, 0, 66, 192, 3);
+  pixelRect(ctx, p.silver, 0, 35, 192, 37);
+  pixelRect(ctx, p.white, 0, 36, 192, 2);
+  pixelRect(ctx, p.gray, 0, 68, 192, 4);
+  pixelRect(ctx, p.charcoal, 0, 72, 192, 2);
+  // 奥の消灯したモニターとブラインド。小さくても「夜の無人フロア」を読ませる。
   for (const x of [7, 36, 65, 94]){
-    pixelRect(ctx, p.charcoal, x, 39, 25, 24);
-    pixelRect(ctx, p.blue, x + 2, 41, 21, 20);
-    for (let y = 44; y < 60; y += 4) pixelRect(ctx, p.silver, x + 2, y, 21, 1);
+    pixelRect(ctx, p.charcoal, x, 42, 25, 22);
+    pixelRect(ctx, p.black, x + 2, 44, 21, 18);
+    for (let y = 46; y < 61; y += 4) pixelRect(ctx, p.blue, x + 2, y, 21, 1);
+    pixelRect(ctx, p.gray, x + 10, 64, 5, 3);
   }
-  pixelRect(ctx, p.white, 128, 39, 55, 27);
-  for (const x of [128, 146, 165]) pixelRect(ctx, p.gray, x, 39, 2, 27);
-  for (const y of [47, 56]) pixelRect(ctx, p.gray, 128, y, 55, 2);
-  pixelRect(ctx, p.paper, 115, 60, 12, 5);
-  pixelRect(ctx, p.white, 118, 57, 9, 3);
-  pixelRect(ctx, p.paper, 176, 34, 9, 5);
+  pixelRect(ctx, p.charcoal, 126, 40, 58, 27);
+  pixelRect(ctx, p.blue, 128, 42, 54, 23);
+  for (let y = 44; y < 64; y += 4) pixelRect(ctx, p.silver, 128, y, 54, 1);
+  for (const x of [128, 146, 164, 182]) pixelRect(ctx, p.gray, x, 42, 2, 23);
+  pixelRect(ctx, p.paper, 112, 62, 15, 6);
+  pixelRect(ctx, p.white, 115, 59, 10, 4);
+  pixelRect(ctx, p.paper, 176, 35, 9, 5);
+  pixelRect(ctx, p.red, 177, 36, 2, 1);
 }
 
 function drawDeskIslands(ctx, p){
-  pixelRect(ctx, p.carpet, 0, 69, 192, 99);
-  for (let x = 0; x < 192; x += 24) pixelRect(ctx, p.carpetShade, x, 69, 1, 99);
-  for (let y = 69; y < 168; y += 20) pixelRect(ctx, p.carpetShade, 0, y, 192, 1);
-  pixelRect(ctx, p.charcoal, 15, 82, 162, 4);
-  pixelRect(ctx, p.silver, 17, 86, 158, 12);
-  pixelRect(ctx, p.gray, 17, 98, 158, 3);
-  pixelRect(ctx, p.charcoal, 15, 122, 162, 4);
-  pixelRect(ctx, p.silver, 17, 126, 158, 13);
-  pixelRect(ctx, p.gray, 17, 139, 158, 3);
-  pixelRect(ctx, p.blue, 18, 103, 156, 5);
-  pixelRect(ctx, p.navy, 18, 108, 156, 2);
+  pixelRect(ctx, p.carpet, 0, 74, 192, 94);
+  // カーペットの遠近線と、机の影。1段の陰影だけで深さを作る。
+  for (let y = 82; y < 168; y += 18) pixelRect(ctx, p.carpetShade, 0, y, 192, 1);
+  for (const x of [15, 48, 80, 112, 144, 176]){
+    pixelRect(ctx, p.carpetShade, x, 74, 1, 94);
+  }
+  // 奥の島は細く、手前の島は太くしてカメラ寄りに見せる。
+  pixelRect(ctx, p.black, 13, 82, 166, 5);
+  pixelRect(ctx, p.charcoal, 16, 86, 160, 4);
+  pixelRect(ctx, p.silver, 18, 90, 156, 8);
+  pixelRect(ctx, p.white, 20, 91, 152, 2);
+  pixelRect(ctx, p.gray, 18, 98, 156, 3);
+  pixelRect(ctx, p.black, 11, 120, 170, 6);
+  pixelRect(ctx, p.charcoal, 15, 126, 162, 5);
+  pixelRect(ctx, p.silver, 18, 131, 156, 12);
+  pixelRect(ctx, p.white, 20, 132, 152, 3);
+  pixelRect(ctx, p.gray, 18, 143, 156, 4);
+  pixelRect(ctx, p.navy, 18, 147, 156, 3);
+  pixelRect(ctx, p.blue, 20, 150, 152, 2);
 }
 
 function drawOfficeStation(ctx, p, station, ringLit){
   const x = station.x;
   const y = station.y;
   const screen = station.active ? p.glow : p.black;
-  pixelRect(ctx, p.charcoal, x + 3, y - 13, 20, 12);
-  pixelRect(ctx, screen, x + 5, y - 11, 16, 8);
-  if (station.active) pixelRect(ctx, p.white, x + 7, y - 9, 5, 2);
-  pixelRect(ctx, p.charcoal, x + 11, y - 1, 4, 4);
-  pixelRect(ctx, p.charcoal, x + 7, y + 3, 12, 2);
+  // モニターは枠・液晶・反射・台座まで描く。自席だけに白い反射を入れて点灯を強調する。
+  pixelRect(ctx, p.black, x + 2, y - 15, 22, 14);
+  pixelRect(ctx, p.charcoal, x + 4, y - 13, 18, 11);
+  pixelRect(ctx, screen, x + 6, y - 11, 14, 7);
+  if (station.active){
+    pixelRect(ctx, p.white, x + 8, y - 10, 5, 2);
+    pixelRect(ctx, p.glow, x + 7, y - 6, 11, 1);
+  }
+  pixelRect(ctx, p.gray, x + 11, y - 2, 4, 3);
+  pixelRect(ctx, p.charcoal, x + 10, y + 1, 6, 3);
+  pixelRect(ctx, p.black, x + 7, y + 4, 12, 2);
   const phoneColor = station.active && ringLit ? p.red : p.charcoal;
-  pixelRect(ctx, phoneColor, x + 27, y - 6, 9, 7);
-  pixelRect(ctx, station.active && ringLit ? p.amber : p.black, x + 29, y - 4, 5, 2);
-  pixelRect(ctx, p.paper, x + 29, y + 3, 8, 3);
-  pixelRect(ctx, p.charcoal, x + 2, y + 7, 11, 15);
-  pixelRect(ctx, p.gray, x + 4, y + 9, 7, 3);
-  pixelRect(ctx, p.gray, x + 4, y + 13, 7, 3);
-  pixelRect(ctx, p.gray, x + 4, y + 17, 7, 3);
-  pixelRect(ctx, p.navy, x + 20, y + 12, 15, 9);
-  pixelRect(ctx, p.black, x + 22, y + 21, 11, 3);
-  pixelRect(ctx, p.black, x + 20, y + 24, 3, 3);
-  pixelRect(ctx, p.black, x + 32, y + 24, 3, 3);
+  pixelRect(ctx, p.black, x + 26, y - 8, 11, 10);
+  pixelRect(ctx, phoneColor, x + 27, y - 7, 9, 7);
+  pixelRect(ctx, station.active && ringLit ? p.amber : p.black, x + 29, y - 5, 5, 2);
+  pixelRect(ctx, p.paper, x + 28, y + 2, 9, 3);
+  pixelRect(ctx, p.charcoal, x + 2, y + 7, 11, 16);
+  for (const drawerY of [y + 9, y + 14, y + 19]){
+    pixelRect(ctx, p.gray, x + 4, drawerY, 7, 3);
+    pixelRect(ctx, p.silver, x + 5, drawerY + 1, 2, 1);
+  }
+  // 椅子は背もたれ・座面・キャスターまで。人物ではなく無人の席として残す。
+  pixelRect(ctx, p.navy, x + 19, y + 12, 17, 9);
+  pixelRect(ctx, p.charcoal, x + 21, y + 20, 13, 4);
+  pixelRect(ctx, p.black, x + 26, y + 24, 3, 4);
+  pixelRect(ctx, p.black, x + 20, y + 27, 15, 2);
+  pixelRect(ctx, p.black, x + 19, y + 29, 3, 2);
+  pixelRect(ctx, p.black, x + 33, y + 29, 3, 2);
 }
 
 function drawOfficePixelArt(ringLit = false, canvasId = 'office-canvas', palette = OFFICE_PALETTE){
@@ -367,7 +393,7 @@ function renderOffice(){
   $('clock').textContent = fmtClock(state.clock);
   $('office-clock').textContent = fmtClock(state.clock);
   $('office-slogan').textContent = state.slogan;
-  renderWorldStrip();
+  renderShiftStrip();
   const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
   const callbacks = state.tickets.filter(t => t.state === 'callback').sort((a,b) => a.callbackDue - b.callbackDue);
   const readyCallbacks = callbacks.filter(t => t.callbackDue <= state.clock);
@@ -424,7 +450,7 @@ function enterDesk(){
 /* 折り返し待ちの案件を、通話をつながずにデスク端末だけで調べる画面。 */
 function renderDesk(){
   $('clock').textContent = fmtClock(state.clock);
-  renderWorldStrip();
+  renderShiftStrip();
   renderQueue();
   $('line-state').textContent = '端末作業中';
   $('call').classList.remove('on-hold');
