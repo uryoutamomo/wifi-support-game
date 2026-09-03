@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
-const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,CALL_FLOW_LINES};';
+const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -649,7 +649,7 @@ assert(rejectedRefund.ticket.callMinutes === 2 && rejectedRefund.ticket.stress >
 assert(satisfiedRefund.ticket.transcript.some(line => line.text === '通常の別れの言葉'), '満足した返金に通常の別れの言葉が付かない');
 assert(!dissatisfiedRefund.ticket.transcript.some(line => line.text === '通常の別れの言葉'), '不満足な返金に別れの言葉が付く');
 assert(satisfiedRefund.result.csat < 4, '返金に満足したCSATが正しく解決した4点台へ届く');
-const refundComplaintArrival = new Function('rollLuck', functionSource('complaintEmailArrives') + '\nreturn complaintEmailArrives;')(() => true);
+const refundComplaintArrival = new Function('rollLuck', functionSource('misdiagnosisResurfaces') + '\n' + functionSource('complaintEmailArrives') + '\nreturn complaintEmailArrives;')(() => true);
 assert.equal(refundComplaintArrival({kind:'refunded',csat:1.0}), true, '不満足な返金が後日の苦情メール対象に入らない');
 const refundConfirmSource = functionSource('renderRefundConfirmation');
 assert(refundConfirmSource.includes('REFUND_POLICY.amount.toLocaleString') && refundConfirmSource.includes('返金をご提案します') && refundConfirmSource.includes('受け入れていただければ') && !refundConfirmSource.includes('この電話はこれで終わります。') && refundConfirmSource.includes('data-refund-confirm'), '§31 検査9: 返金確認が提案と条件つき終話を伝えない');
@@ -908,12 +908,42 @@ assert.deepEqual([complaintEnd.closed.kind, complaintEnd.closed.csat, hangupEnd.
 assert(complaintEnd.ticket.transcript.some(line => line.who === 'note' && line.text.includes('強い苦情')), 'クレーム終話の情報が通話メモに残らない');
 assert(hangupEnd.ticket.transcript.some(line => line.who === 'note' && line.text.includes('一方的')), '一方的切断の情報が通話メモに残らない');
 
-const complaintArrivalSource = functionSource('complaintEmailArrives');
+const complaintArrivalSource = functionSource('misdiagnosisResurfaces') + '\n' + functionSource('complaintEmailArrives');
 const complaintArrival = luck => new Function('rollLuck', complaintArrivalSource + '\nreturn complaintEmailArrives;')(() => luck);
 let emailRolls = 0;
 const fixedEmailArrival = new Function('rollLuck', complaintArrivalSource + '\nreturn complaintEmailArrives;')(() => { emailRolls++; return false; });
 assert(fixedEmailArrival({kind:'complaint',csat:1}) && fixedEmailArrival({kind:'hangup',csat:.5}), 'クレーム／切断で苦情メールが必着にならない');
 assert.equal(emailRolls, 0, 'クレーム／切断の苦情メール判定が不要な運抽選を行う');
+/* §50: その場の評価と、後からの評価は別もの。誤診は症状が消えているので
+   その場では気づかれず、原因が違うまま残るので翌日に再発する。運は挟まない
+   （客が黙って我慢するかどうかの話ではなく、物理的に再発するため）。 */
+const misdiagnosisArrival50 = new Function('rollLuck', complaintArrivalSource + '\nreturn complaintEmailArrives;')(() => false);
+assert.equal(misdiagnosisArrival50({kind:'closed',csat:5.0,causeMatched:false}), true,'§50 検査1: 誤診で解決しても翌日クレームが届かない');
+assert.equal(misdiagnosisArrival50({kind:'refunded',csat:5.0,causeMatched:false}), true,'§50 検査1: 誤診のまま返金しても翌日クレームが届かない');
+const resurfaces50 = new Function(functionSource('misdiagnosisResurfaces') + '\nreturn misdiagnosisResurfaces;')();
+assert.equal(resurfaces50({kind:'closed',csat:5.0,causeMatched:true}), false,'§50 検査1: 原因を当てた案件まで再発扱いにしている');
+assert.equal(resurfaces50({kind:'complaint',csat:1.0,causeMatched:false}), false,'§50 検査2: 怒って終わった案件を誤診の再発と混同している');
+/* §50-4: うまくやった夜にだけ、半分の確率で届く。運を切れば必ず届く。 */
+const gratitudeSource50 = functionSource('gratitudeEmailArrives');
+const gratitude50 = (result, flags) => new Function('GRATITUDE_RATE','state', gratitudeSource50 + '\nreturn gratitudeEmailArrives;')(GRATITUDE_RATE,{random:() => 0.99})(result, flags);
+const finePlay50 = { kind:'closed', csat:5.0, grade:'best', causeMatched:true, firstCallResolved:true };
+assert.equal(gratitude50(finePlay50, {luckRate:1}), true,'§50 検査4: 運を切ってもファインプレーに感謝が届かない');
+assert.equal(gratitude50(finePlay50, {luckRate:0.9}), false,'§50 検査4: 感謝が抽選を通らずに必ず届いている');
+assert.equal(GRATITUDE_RATE, 0.5,'§50 検査4: 感謝の確率が50%でない');
+[['grade','partial'],['causeMatched',false],['firstCallResolved',false],['csat',4.4]].forEach(([key,value]) => {
+  assert.equal(gratitude50(Object.assign({}, finePlay50, {[key]:value}), {luckRate:1}), false,'§50 検査5: ' + key + ' を欠いても感謝が届く');
+});
+assert.equal(gratitude50({kind:'complaint',csat:5.0,grade:'best',causeMatched:true,firstCallResolved:true}, {luckRate:1}), false,'§50 検査7: 苦情で終わった案件に感謝が届く');
+assert.deepEqual(Object.keys(GRATITUDE_EMAIL_TEMPLATES).sort(),['anxious','expert','hurried','novice'],'§50 検査8: 感謝の文面が4タイプ分ない');
+assert.deepEqual(Object.keys(MISDIAGNOSIS_EMAIL_TEMPLATES).sort(),['anxious','expert','hurried','novice'],'§50 検査8: 誤診の再発の文面が4タイプ分ない');
+assert(new Set(Object.values(GRATITUDE_EMAIL_TEMPLATES).map(t => t.lines.join(''))).size === 4,'§50 検査8: 感謝の文面がタイプごとに書き分けられていない');
+assert(new Set(Object.values(MISDIAGNOSIS_EMAIL_TEMPLATES).map(t => t.lines.join(''))).size === 4,'§50 検査8: 誤診の再発の文面がタイプごとに書き分けられていない');
+assert(Object.values(MISDIAGNOSIS_EMAIL_TEMPLATES).every(t => t.lines.join('').includes('{symptom}')) && Object.values(GRATITUDE_EMAIL_TEMPLATES).every(t => t.lines.join('').includes('{symptom}')),'§50 検査8: 文面に案件の症状が差し込まれない');
+assert(Object.entries(MISDIAGNOSIS_EMAIL_TEMPLATES).every(([type,t]) => t.lines.join('') !== COMPLAINT_EMAIL_TEMPLATES[type].lines.join('')),'§50 検査2: 誤診の再発が怒って終わったときと同じ文面になっている');
+const debrief50 = functionSource('renderDebrief');
+assert(debrief50.includes('t.misdiagnosisEmail') && debrief50.includes('MISDIAGNOSIS_EMAIL_TEMPLATES'),'§50 検査2: 翌日の画面が誤診の再発を別の文面で出さない');
+assert(debrief50.includes('t.gratitudeEmail') && debrief50.includes('GRATITUDE_EMAIL_TEMPLATES') && debrief50.includes('gratitudeMailbox'),'§50 検査9: 翌日の画面にお礼が出ない');
+assert(functionSource('closeTicket').includes('t.gratitudeEmail = !t.complaintEmail && gratitudeEmailArrives(result)'),'§50 検査7: 苦情と感謝が同時に届きうる');
 assert.equal(complaintArrival(true)({kind:'closed',csat:1.9}), true, '通常クローズCSAT 2未満で運が当たっても苦情メールが来ない');
 assert.equal(complaintArrival(false)({kind:'closed',csat:1.9}), false, '通常クローズCSAT 2未満で運が外れても苦情メールが必着になる');
 assert.equal(complaintArrival(true)({kind:'closed',csat:2.0}), false, '通常クローズCSAT 2以上にも苦情メールが来る');

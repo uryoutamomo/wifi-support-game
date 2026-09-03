@@ -1222,6 +1222,12 @@ body.sheet-open .console{ display: none; }
 .complaint-email{ margin-top:10px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
 .complaint-email b,.complaint-email span{ display:block; }
 .complaint-email span{ margin-top:3px; color:var(--crit); font:700 12px/1.4 var(--display); }
+/* §50-4: お礼は苦情と対になる枠で出す。半分の確率でしか届かないので、届いた夜が分かる。 */
+.gratitude-mailbox{ margin:24px 0; padding:16px; border:2px solid var(--good); border-radius:10px; background:var(--good-glow, var(--surface-2)); }
+.gratitude-mailbox h2{ margin:0 0 4px; color:var(--good); }
+.gratitude-mailbox>p{ margin:0 0 12px; color:var(--text-2); font:700 13px/1.4 var(--mono); }
+.gratitude-email{ margin-top:10px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+.gratitude-email b{ display:block; }
 .complaint-email p{ margin:8px 0 0; color:var(--text-2); font-size:14px; line-height:1.65; }
 .report-auto{ margin:14px 0; padding:11px 13px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font-family:var(--mono); font-size:12px; line-height:1.75; }
 .report-list{ display:flex; flex-direction:column; gap:6px; }.report-check{ display:flex; gap:9px; align-items:flex-start; padding:9px 10px; border:1px solid var(--line-soft); background:var(--panel-2); cursor:pointer; font-size:12.5px; line-height:1.6; }.report-check:hover{ border-color:var(--amber-deep); }.report-check input{ margin-top:5px; accent-color:var(--amber); }.report-check span{ flex:1; }.report-check i{ display:block; margin-top:2px; color:var(--faint); font-size:11px; font-style:normal; }.report-miss{ margin-top:8px; padding:7px 9px; border-left:2px solid var(--crit); background:var(--crit-glow); color:var(--text); font-size:11.5px; }
@@ -1877,6 +1883,27 @@ const COMPLAINT_EMAIL_TEMPLATES = Object.freeze({
   hurried:Object.freeze({ lines:Object.freeze(['「{symptom}」と急ぎで伝えたのに、結論が出ないまま大切な予定に間に合いませんでした。', '前置きではなく必要な対応をすぐ示すべきです。失った時間をどう考えているのか回答してください。']) }),
 });
 
+
+/* §50-3: 誤診で解決した案件は、その場では感謝されている。翌日、同じことが再発して
+   初めて発覚する。怒って終わったときとは書き出しから違う。 */
+const MISDIAGNOSIS_EMAIL_TEMPLATES = Object.freeze({
+  anxious:Object.freeze({ lines:Object.freeze(['昨夜はありがとうございました。あのときは本当に助かって、やっと眠れたんです。', 'それが今朝、また「{symptom}」と同じことになってしまって…。原因が違ったということでしょうか。せっかく安心できたのに、また怖くなっています。']) }),
+  novice:Object.freeze({ lines:Object.freeze(['昨日は丁寧に教えてくださって、ありがとうございました。あのときは直ったと思ったんです。', 'ところが今日また「{symptom}」なんです。私がまた何か間違えたのでしょうか。それとも、直っていなかったのでしょうか。']) }),
+  expert:Object.freeze({ lines:Object.freeze(['昨夜の対応で通信は復旧しましたが、本日同一事象が再発しました。「{symptom}」と同じ状態です。', '症状が消えただけで、原因の切り分けが誤っていたと判断します。対症で終わらせず、根本原因の再調査を求めます。']) }),
+  hurried:Object.freeze({ lines:Object.freeze(['昨日はどうも。あのときは繋がったので、そのまま予定に向かえました。', 'で、今日また同じです。「{symptom}」。直ってなかったってことですよね。今度は原因まで突き止めてください。']) }),
+});
+
+/* §50-4: うまくやった夜にだけ届く。半分の確率でしか来ないので、来たときは嬉しい。
+   何が嬉しかったかはタイプで違う。 */
+const GRATITUDE_EMAIL_TEMPLATES = Object.freeze({
+  anxious:Object.freeze({ lines:Object.freeze(['昨夜は本当にありがとうございました。「{symptom}」と申し上げたとき、頭が真っ白でした。', '落ち着いて聞いてくださって、原因まで教えていただけたので、もう怖くありません。旅の続きを楽しめます。あの時間に働いてくださる方がいることに、救われました。']) }),
+  novice:Object.freeze({ lines:Object.freeze(['昨日はお世話になりました。機械のことが分からない私に、一つずつ教えてくださいましたね。', '「{symptom}」がなぜ起きたのかまで分かって、本当に安心しました。同じ旅行の方にも、こちらの会社をお勧めしておきました。']) }),
+  expert:Object.freeze({ lines:Object.freeze(['昨夜の対応について記録を残します。「{symptom}」に対し、切り分けの順序が適切で、無用な操作を求められませんでした。', '原因の説明も観測結果と整合しており、再発時の判断材料になります。この品質であれば継続利用します。担当者へ評価が伝わることを望みます。']) }),
+  hurried:Object.freeze({ lines:Object.freeze(['昨日は助かりました。正直、あの時間で直るとは思っていませんでした。', '「{symptom}」の原因も一言で分かったので、予定に間に合いました。手短で的確でした。またよろしく。']) }),
+});
+
+/* §50-4: 感謝が届く確率。調整コンソールで運を切る（luckRate 1.0）と必ず届く。 */
+const GRATITUDE_RATE = 0.5;
 
 /* ---------- 質問プール ---------- */
 
@@ -3074,7 +3101,7 @@ function newTicket(s){
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
-    complaintEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
+    complaintEmail:false, misdiagnosisEmail:false, gratitudeEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
   };
 }
 
@@ -4319,6 +4346,8 @@ function finishInterruptedCall(t){
 
 function closeTicket(t, result){
   t.complaintEmail = complaintEmailArrives(result);
+  t.misdiagnosisEmail = t.complaintEmail && misdiagnosisResurfaces(result);
+  t.gratitudeEmail = !t.complaintEmail && gratitudeEmailArrives(result);
   t.state = 'closed';
   t.result = result;
   playDisconnectSound();
@@ -4330,9 +4359,27 @@ function closeTicket(t, result){
   if (state.phase === 'office') return;
 }
 
+/* §50: 一夜の評価は、その場と後からの2つある。誤診はその場では気づかれない——
+   症状が消えているので客は満足して切る——が、原因が違うので翌日に再発する。
+   その場の CSAT は書き換えない。「満点だった」ことと「後から発覚した」ことは、
+   どちらも起きた事実として残す。 */
+function misdiagnosisResurfaces(result){
+  return (result.kind === 'closed' || result.kind === 'refunded') && result.causeMatched === false;
+}
+
 function complaintEmailArrives(result){
   if (result.kind === 'complaint' || result.kind === 'hangup') return true;
+  if (misdiagnosisResurfaces(result)) return true;
   return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false;
+}
+
+/* §50-4: 原因を当て、最適な対処を選び、折り返しも誤診もなく初回で終えた夜にだけ届く。
+   半分の確率でしか来ないので、来たときに嬉しい。全案件に何か届くと、届いたことの
+   意味がなくなる。 */
+function gratitudeEmailArrives(result, flags = GAME_FLAGS){
+  if (result.kind !== 'closed') return false;
+  if (!result.causeMatched || result.grade !== 'best' || !result.firstCallResolved || result.csat < 4.5) return false;
+  return flags.luckRate === 1 ? true : state.random() < GRATITUDE_RATE;
 }
 
 function causeName(id){
@@ -6052,13 +6099,23 @@ function renderDebrief(){
           : '') + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
   }).join('');
 
-  const complaintEmails = ts.filter(t => t.complaintEmail).map(t => {
-    const template = COMPLAINT_EMAIL_TEMPLATES[t.s.type];
+  /* §50: その場の評価と、後からの評価は別もの。誤診はその場では感謝されて終わり、
+     翌日に再発して初めて発覚するので、怒って終わったときとは文面から違う。 */
+  const dayAfterMail = (t, templates, label, className) => {
+    const template = templates[t.s.type];
     const lines = template.lines.map(line => esc(line.replace('{symptom}', t.s.opening))).join('<br>');
-    return '<div class="complaint-email"><b>' + esc(t.s.name) + '様からの苦情メール</b><p>' + lines + '</p></div>';
-  }).join('');
+    return '<div class="' + className + '"><b>' + esc(t.s.name) + '様からの' + label + '</b><p>' + lines + '</p></div>';
+  };
+  const complaintEmails = ts.filter(t => t.complaintEmail).map(t => t.misdiagnosisEmail
+    ? dayAfterMail(t, MISDIAGNOSIS_EMAIL_TEMPLATES, '再発のご連絡', 'complaint-email')
+    : dayAfterMail(t, COMPLAINT_EMAIL_TEMPLATES, '苦情メール', 'complaint-email')).join('');
   const complaintMailbox = complaintEmails
     ? '<section class="complaint-mailbox"><h2>翌日、次の苦情が届いています</h2><p>' + ts.filter(t => t.complaintEmail).length + '件</p>' + complaintEmails + '</section>'
+    : '';
+  const gratitudeEmails = ts.filter(t => t.gratitudeEmail)
+    .map(t => dayAfterMail(t, GRATITUDE_EMAIL_TEMPLATES, 'お礼のメール', 'gratitude-email')).join('');
+  const gratitudeMailbox = gratitudeEmails
+    ? '<section class="gratitude-mailbox"><h2>翌日、お礼が届いています</h2><p>' + ts.filter(t => t.gratitudeEmail).length + '件</p>' + gratitudeEmails + '</section>'
     : '';
 
   $('sheet').innerHTML =
@@ -6078,6 +6135,7 @@ function renderDebrief(){
     '</div>' +
 
     complaintMailbox +
+    gratitudeMailbox +
     '<h2>一件ずつの振り返り</h2>' + reviews +
 
     '<button class="btn-primary" id="btn-again">' + (state.careerUpdate && state.careerUpdate.endingQueue.length ? '勤務記録を閉じる' : 'もう一度シフトに入る') + '</button>' +

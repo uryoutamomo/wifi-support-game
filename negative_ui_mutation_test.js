@@ -22,6 +22,48 @@ const boardPane = `  <section class="pane board">
   </section>`;
 const mutations = [
   {
+    name:'§50 誤診で解決しても翌日なにも起きない', file:'p3_game.js',
+    from:'  if (misdiagnosisResurfaces(result)) return true;\n',
+    to:'',
+    expected:'§50 検査1: 誤診で解決しても翌日クレームが届かない',
+  },
+  {
+    name:'§50 誤診の再発にも運を挟む', file:'p3_game.js',
+    from:'  if (misdiagnosisResurfaces(result)) return true;',
+    to:'  if (misdiagnosisResurfaces(result)) return rollLuck();',
+    expected:'§50 検査1: 誤診で解決しても翌日クレームが届かない',
+  },
+  {
+    name:'§50 原因を当てた案件まで再発扱いにする', file:'p3_game.js',
+    from:"  return (result.kind === 'closed' || result.kind === 'refunded') && result.causeMatched === false;",
+    to:"  return (result.kind === 'closed' || result.kind === 'refunded');",
+    expected:'§50 検査1: 原因を当てた案件まで再発扱いにしている',
+  },
+  {
+    name:'§50 感謝を抽選なしで必ず届ける', file:'p3_game.js',
+    from:'  return flags.luckRate === 1 ? true : state.random() < GRATITUDE_RATE;',
+    to:'  return true;',
+    expected:'§50 検査4: 感謝が抽選を通らずに必ず届いている',
+  },
+  {
+    name:'§50 ファインプレーでなくても感謝を届ける', file:'p3_game.js',
+    from:"  if (!result.causeMatched || result.grade !== 'best' || !result.firstCallResolved || result.csat < 4.5) return false;",
+    to:'',
+    expected:'§50 検査5: grade を欠いても感謝が届く',
+  },
+  {
+    name:'§50 苦情と感謝を同時に届ける', file:'p3_game.js',
+    from:'  t.gratitudeEmail = !t.complaintEmail && gratitudeEmailArrives(result);',
+    to:'  t.gratitudeEmail = gratitudeEmailArrives(result);',
+    expected:'§50 検査7: 苦情と感謝が同時に届きうる',
+  },
+  {
+    name:'§50 誤診の再発を苦情と同じ文面で出す', file:'p4_view.js',
+    from:"    ? dayAfterMail(t, MISDIAGNOSIS_EMAIL_TEMPLATES, '再発のご連絡', 'complaint-email')",
+    to:"    ? dayAfterMail(t, COMPLAINT_EMAIL_TEMPLATES, '再発のご連絡', 'complaint-email')",
+    expected:'§50 検査2: 翌日の画面が誤診の再発を別の文面で出さない',
+  },
+  {
     name:'§49 約束どおり折り返しても満足度を回復させない', file:'p3_game.js',
     from:'  applyPunctualCallbackRelief(t);\n  finishCarrierLookup(t);',
     to:'  finishCarrierLookup(t);',

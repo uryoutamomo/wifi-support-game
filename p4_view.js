@@ -1685,13 +1685,23 @@ function renderDebrief(){
           : '') + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
   }).join('');
 
-  const complaintEmails = ts.filter(t => t.complaintEmail).map(t => {
-    const template = COMPLAINT_EMAIL_TEMPLATES[t.s.type];
+  /* §50: その場の評価と、後からの評価は別もの。誤診はその場では感謝されて終わり、
+     翌日に再発して初めて発覚するので、怒って終わったときとは文面から違う。 */
+  const dayAfterMail = (t, templates, label, className) => {
+    const template = templates[t.s.type];
     const lines = template.lines.map(line => esc(line.replace('{symptom}', t.s.opening))).join('<br>');
-    return '<div class="complaint-email"><b>' + esc(t.s.name) + '様からの苦情メール</b><p>' + lines + '</p></div>';
-  }).join('');
+    return '<div class="' + className + '"><b>' + esc(t.s.name) + '様からの' + label + '</b><p>' + lines + '</p></div>';
+  };
+  const complaintEmails = ts.filter(t => t.complaintEmail).map(t => t.misdiagnosisEmail
+    ? dayAfterMail(t, MISDIAGNOSIS_EMAIL_TEMPLATES, '再発のご連絡', 'complaint-email')
+    : dayAfterMail(t, COMPLAINT_EMAIL_TEMPLATES, '苦情メール', 'complaint-email')).join('');
   const complaintMailbox = complaintEmails
     ? '<section class="complaint-mailbox"><h2>翌日、次の苦情が届いています</h2><p>' + ts.filter(t => t.complaintEmail).length + '件</p>' + complaintEmails + '</section>'
+    : '';
+  const gratitudeEmails = ts.filter(t => t.gratitudeEmail)
+    .map(t => dayAfterMail(t, GRATITUDE_EMAIL_TEMPLATES, 'お礼のメール', 'gratitude-email')).join('');
+  const gratitudeMailbox = gratitudeEmails
+    ? '<section class="gratitude-mailbox"><h2>翌日、お礼が届いています</h2><p>' + ts.filter(t => t.gratitudeEmail).length + '件</p>' + gratitudeEmails + '</section>'
     : '';
 
   $('sheet').innerHTML =
@@ -1711,6 +1721,7 @@ function renderDebrief(){
     '</div>' +
 
     complaintMailbox +
+    gratitudeMailbox +
     '<h2>一件ずつの振り返り</h2>' + reviews +
 
     '<button class="btn-primary" id="btn-again">' + (state.careerUpdate && state.careerUpdate.endingQueue.length ? '勤務記録を閉じる' : 'もう一度シフトに入る') + '</button>' +

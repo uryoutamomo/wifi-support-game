@@ -367,7 +367,7 @@ function newTicket(s){
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
-    complaintEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
+    complaintEmail:false, misdiagnosisEmail:false, gratitudeEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
   };
 }
 
@@ -1612,6 +1612,8 @@ function finishInterruptedCall(t){
 
 function closeTicket(t, result){
   t.complaintEmail = complaintEmailArrives(result);
+  t.misdiagnosisEmail = t.complaintEmail && misdiagnosisResurfaces(result);
+  t.gratitudeEmail = !t.complaintEmail && gratitudeEmailArrives(result);
   t.state = 'closed';
   t.result = result;
   playDisconnectSound();
@@ -1623,9 +1625,27 @@ function closeTicket(t, result){
   if (state.phase === 'office') return;
 }
 
+/* §50: 一夜の評価は、その場と後からの2つある。誤診はその場では気づかれない——
+   症状が消えているので客は満足して切る——が、原因が違うので翌日に再発する。
+   その場の CSAT は書き換えない。「満点だった」ことと「後から発覚した」ことは、
+   どちらも起きた事実として残す。 */
+function misdiagnosisResurfaces(result){
+  return (result.kind === 'closed' || result.kind === 'refunded') && result.causeMatched === false;
+}
+
 function complaintEmailArrives(result){
   if (result.kind === 'complaint' || result.kind === 'hangup') return true;
+  if (misdiagnosisResurfaces(result)) return true;
   return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false;
+}
+
+/* §50-4: 原因を当て、最適な対処を選び、折り返しも誤診もなく初回で終えた夜にだけ届く。
+   半分の確率でしか来ないので、来たときに嬉しい。全案件に何か届くと、届いたことの
+   意味がなくなる。 */
+function gratitudeEmailArrives(result, flags = GAME_FLAGS){
+  if (result.kind !== 'closed') return false;
+  if (!result.causeMatched || result.grade !== 'best' || !result.firstCallResolved || result.csat < 4.5) return false;
+  return flags.luckRate === 1 ? true : state.random() < GRATITUDE_RATE;
 }
 
 function causeName(id){

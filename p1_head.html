@@ -1222,6 +1222,12 @@ body.sheet-open .console{ display: none; }
 .complaint-email{ margin-top:10px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
 .complaint-email b,.complaint-email span{ display:block; }
 .complaint-email span{ margin-top:3px; color:var(--crit); font:700 12px/1.4 var(--display); }
+/* §50-4: お礼は苦情と対になる枠で出す。半分の確率でしか届かないので、届いた夜が分かる。 */
+.gratitude-mailbox{ margin:24px 0; padding:16px; border:2px solid var(--good); border-radius:10px; background:var(--good-glow, var(--surface-2)); }
+.gratitude-mailbox h2{ margin:0 0 4px; color:var(--good); }
+.gratitude-mailbox>p{ margin:0 0 12px; color:var(--text-2); font:700 13px/1.4 var(--mono); }
+.gratitude-email{ margin-top:10px; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+.gratitude-email b{ display:block; }
 .complaint-email p{ margin:8px 0 0; color:var(--text-2); font-size:14px; line-height:1.65; }
 .report-auto{ margin:14px 0; padding:11px 13px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font-family:var(--mono); font-size:12px; line-height:1.75; }
 .report-list{ display:flex; flex-direction:column; gap:6px; }.report-check{ display:flex; gap:9px; align-items:flex-start; padding:9px 10px; border:1px solid var(--line-soft); background:var(--panel-2); cursor:pointer; font-size:12.5px; line-height:1.6; }.report-check:hover{ border-color:var(--amber-deep); }.report-check input{ margin-top:5px; accent-color:var(--amber); }.report-check span{ flex:1; }.report-check i{ display:block; margin-top:2px; color:var(--faint); font-size:11px; font-style:normal; }.report-miss{ margin-top:8px; padding:7px 9px; border-left:2px solid var(--crit); background:var(--crit-glow); color:var(--text); font-size:11.5px; }
