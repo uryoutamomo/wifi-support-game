@@ -117,7 +117,7 @@ const mutations = [
     name:'§48-7 選択肢を枠に収めずページごと伸ばす', file:'p1_head.html',
     from:'body.call-view .call .opts{ max-height: 42vh; overflow-y: auto; }',
     to:'body.call-view .call .opts{ overflow-y: auto; }',
-    expected:'§48-7 検査6: 選択肢が枠内でスクロールせず、ページごと伸びる',
+    expected:'§48-7 検査9: 選択肢の高さを抑えるCSSが、実際の入れ子（.call の中の .opts）を対象にしていない',
   },
   {
     name:'§48-7 通話中に保留の累計を出さない', file:'p4_view.js',
