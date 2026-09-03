@@ -4,9 +4,13 @@
 const fs = require('fs');
 const path = process.argv[2] || require('path').join(__dirname, 'p2_data.js');
 const src = fs.readFileSync(path, 'utf8') +
-  '\nreturn {CAUSES,TYPES,QUESTIONS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS};';
+  '\nreturn {SHIFT_START,LAST_INBOUND_TURN,MIN_INBOUND_GAP,CAUSES,TYPES,QUESTIONS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS};';
 const D = new Function(src)();
-const {CAUSES, TYPES, QUESTIONS, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS} = D;
+const {SHIFT_START, LAST_INBOUND_TURN, MIN_INBOUND_GAP, CAUSES, TYPES, QUESTIONS, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS} = D;
+const gameSource = fs.readFileSync(require('path').join(__dirname, 'p3_game.js'), 'utf8');
+const drawStart = gameSource.indexOf('function drawInboundArrivalTurns(');
+const drawEnd = gameSource.indexOf('\nfunction ', drawStart + 1);
+const drawInboundArrivalTurns = new Function('LAST_INBOUND_TURN','MIN_INBOUND_GAP', gameSource.slice(drawStart, drawEnd) + '\nreturn drawInboundArrivalTurns;')(LAST_INBOUND_TURN, MIN_INBOUND_GAP);
 
 const causeIds = new Set(CAUSES.map(c => c.id));
 const qIds = new Set(QUESTIONS.map(q => q.id));
@@ -95,12 +99,15 @@ SCENARIOS.forEach(s => {
 });
 
 console.log('\n--- 到着スケジュール ---');
-SCENARIOS.forEach(s => {
-  const min = 22 * 60 + s.arrive;
+const sampleRandom = (() => { let seed = 52; return () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296); })();
+const sampleCount = 5;
+const sampleArrivals = drawInboundArrivalTurns(sampleCount, sampleRandom);
+sampleArrivals.forEach((arrival, index) => {
+  const min = SHIFT_START + arrival;
   const h = Math.floor(min / 60) % 24, m = min % 60;
-  console.log('  ' + s.id + ' +' + String(s.arrive).padStart(2) + '分  ' +
+  console.log('  着信' + (index + 1) + ' +' + String(arrival).padStart(3) + '分  ' +
     String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + '  ' +
-    s.city + ' / ' + s.trueCause + ' / ' + s.abandonAfter + '分で放棄');
+    '（例: 5件の日。実際の案件と着信順は毎シフト変わります）');
 });
 
 console.log('\n' + (errors ? '★ ' + errors + ' 件の問題あり' : '問題なし'));

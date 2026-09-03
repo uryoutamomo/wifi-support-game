@@ -2,9 +2,9 @@
 const fs = require('fs');
 const { readGameSource, functionSource: extractFunctionSource } = require('./test_helpers');
 const src = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,CALL_FLOW_LINES};';
+  '\nreturn {SHIFT_START,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,CALL_FLOW_LINES};';
 const D = new Function(src)();
-const { CAUSES, TYPES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE, CALL_FLOW_LINES } = D;
+const { SHIFT_START, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, CAUSES, TYPES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE, CALL_FLOW_LINES } = D;
 
 const EXPECTED_SLOGANS = [
   '凡事徹底',
@@ -608,17 +608,18 @@ if (s10Speech32[0].fact.text !== '1回目のSIM清掃では認識しない' || s
 try {
   const dailyCount15 = new Function(sourceOf('dailyTicketCount') + '\nreturn dailyTicketCount;')();
   const shuffle15 = new Function(sourceOf('shuffleScenarios') + '\nreturn shuffleScenarios;')();
-  const prepare15 = new Function('shuffleScenarios','dailyTicketCount','assignScenarioIdentities', sourceOf('prepareDailyScenarios') + '\nreturn prepareDailyScenarios;')(shuffle15,dailyCount15,scenarios => scenarios);
+  const drawArrivals15 = new Function('LAST_INBOUND_TURN','MIN_INBOUND_GAP', sourceOf('drawInboundArrivalTurns') + '\nreturn drawInboundArrivalTurns;')(LAST_INBOUND_TURN,MIN_INBOUND_GAP);
+  const prepare15 = new Function('shuffleScenarios','dailyTicketCount','drawInboundArrivalTurns','assignScenarioIdentities', sourceOf('prepareDailyScenarios') + '\nreturn prepareDailyScenarios;')(shuffle15,dailyCount15,drawArrivals15,scenarios => scenarios);
   // 1-2. 何度選んでも2〜5件で、乱数境界により日ごとに変わる。
   const counts15 = [0,.249999,.25,.5,.999999].map(value => dailyCount15(() => value, {dailyTickets:null}));
   if (JSON.stringify(counts15) !== JSON.stringify([2,2,3,4,5]) || new Set(counts15).size !== 4) bad('1日件数が2〜5の範囲で日ごとに変わらない');
-  // 3-4. 重複なし、件数ぶんだけ先頭到着枠へ圧縮。
+  // 3-5. 重複なし、勤務の器の中で06:00まで・20分以上離して着信。
   [2,3,4,5].forEach(count => {
     const selected = prepare15(SCENARIOS, () => .37, {dailyTickets:count,shuffleArrival:true});
     if (selected.length !== count || new Set(selected.map(s => s.id)).size !== count) bad(count + '件の日次案件に欠落または重複がある');
-    const expectedArrivals = SCENARIOS.slice(0,count).map(s => s.arrive);
-    if (JSON.stringify(selected.map(s => s.arrive)) !== JSON.stringify(expectedArrivals)) bad(count + '件の日の到着時刻が先頭枠へ詰められていない');
+    if (selected.some(s => s.arrive < 0 || s.arrive > LAST_INBOUND_TURN) || selected.slice(1).some((s,index) => s.arrive - selected[index].arrive < MIN_INBOUND_GAP)) bad(count + '件の日の着信が06:00まで・20分間隔にならない');
   });
+  if (sourceOf('prepareDailyScenarios').includes('scenario.arrive')) bad('案件データの arrive を夜勤の着信時刻に使っている');
   // 8. GAME_FLAGSで2〜5件を固定でき、範囲外は拒否する。
   if (!Object.prototype.hasOwnProperty.call(GAME_FLAGS,'dailyTickets') || GAME_FLAGS.dailyTickets !== null) bad('GAME_FLAGS.dailyTicketsの既定値がnullではない');
   if ([2,3,4,5].some(count => dailyCount15(() => 0, {dailyTickets:count}) !== count)) bad('GAME_FLAGSから1日件数を2〜5へ固定できない');
@@ -630,8 +631,8 @@ try {
 }
 // 5. 非選択案件を参照せず、その日のstate.ticketsだけを表示する。
 if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('renderWorldStrip').includes('state.tickets.filter') || !sourceOf('renderOffice').includes('state.tickets.filter')) bad('未選択案件が待機・世界地図から除外されない');
-// 6. 実際の全件closedで既存日報へ進む。
-if (!sourceOf('checkShiftEnd').includes("state.tickets.some(t => t.state !== 'closed')") || !sourceOf('checkShiftEnd').includes("state.phase = 'report'; renderReport()")) bad('その日の全件終了でシフト終了レポートへ到達しない');
+// 6. 夜勤は23:00〜07:00で終了し、残件は放棄呼にする。
+if (SHIFT_START !== 23 * 60 || SHIFT_END - SHIFT_START !== 8 * 60 || !sourceOf('checkShiftEnd').includes('state.clock >= SHIFT_END') || !sourceOf('finishShiftAtTime').includes('abandonTicket(t')) bad('夜勤が23:00〜07:00で終わらない、または残件を放棄呼にしない');
 // 7. 集計と表示が実件数を使い、2件の日の空欄にも表示を持つ。
 if (!sourceOf('metrics').includes('state.tickets.length - abandoned') || !sourceOf('renderReport').includes("state.tickets.length + '件") || !sourceOf('renderReport').includes('該当する特記事項はありません。') || !sourceOf('careerBriefingHtml').includes("state.tickets.length + '件</b>'")) bad('レポート集計・ブリーフィング・空項目が当日の実件数に追従しない');
 if (!sourceOf('resetGame').includes('prepareDailyScenarios(SCENARIOS, state.random).map(newTicket)')) bad('resetGameが日次案件選択を使わない');
@@ -822,7 +823,7 @@ if (!callback41.includes('CALLBACK_SCHEDULED_MINUTES') || !callback41.includes("
 if (!callback41.includes('blindCallbackRedial(t)')) bad('§41-3 滞在先未確認でも失敗できる折り返しでない');
 if (!desk41.includes('callbackLookupCount') || !front41.includes('CALLBACK_OVER_LOOKUP_STRESS') || !front41.includes('CALLBACK_WAIT_REPLIES')) bad('§41-4/5 折り返し中の照会超過ストレスがない');
 if (!front41.includes('CALLBACK_IDLE_STRESS') || !front41.includes('CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE')) bad('§41-6/7 1時間待ちの未照会代償または上限なしがない');
-if (!sourceOf('renderOffice').includes('callbackRemaining') || !sourceOf('renderOffice').includes('queueCutoff')) bad('§41-8 待機時間と放棄までの時間が見えない');
+if (!sourceOf('renderOffice').includes('callbackRemaining') || sourceOf('renderOffice').includes('queueCutoff') || sourceOf('renderOffice').includes('切断')) bad('§41-8/§52 待機時間が見えない、または放棄までの時間を見せている');
 if (!sourceOf('finishLookup').includes("defaultUi('system_record')") || !record41.includes('顧客レコード') || record41.includes('includeLog ? renderRecordLog(t) :') === false) bad('§41-9/13 照会・ログのレコード表示が分かれていない');
 ['l_plan','l_ship','l_area','l_session','l_outage'].forEach(id => { if (!record41.includes("lookupRecordValue(t, '" + id + "')")) bad('§41-10 レコード欄がない: ' + id); });
 if (!record41.includes('identificationReady(t)') || !record41.includes('―― 未照会')) bad('§41-11 本人確認前または未照会欄が伏せられない');

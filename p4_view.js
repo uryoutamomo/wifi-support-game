@@ -382,7 +382,6 @@ function renderOffice(){
   $('office-sv-status').textContent = state.escLeft ? 'ESC枠 ' + state.escLeft + ' / ' + ESCALATIONS : '別件対応中';
   $('office-ship-status').textContent = '手配 ' + shipments + '件 ／ 費用 ¥' + state.tickets.reduce((n,t) => n + (t.shipment ? t.shipment.fee : 0), 0).toLocaleString('ja-JP');
   const callbackRemaining = callbacks.length ? Math.max(0, callbacks[0].callbackDue - state.clock) : 0;
-  const queueCutoff = waiting.length ? Math.ceil(Math.min(...waiting.map(ticket => ticket.patience / 100 * ticket.s.abandonAfter))) : null;
   $('office-tray-status').textContent = callbacks.length ? '折り返し待ち ' + callbacks.length + '件 ／ ' + callbacks[0].s.id + 'まであと ' + callbackRemaining + '分' : '折り返し待ち 0件';
   const officeNotices = [];
   if (state.outageKnown) officeNotices.push(esc(state.outageRegion) + '：提携キャリアの広域障害<br>復旧見込み 未定');
@@ -391,7 +390,7 @@ function renderOffice(){
     ? officeNotices.map(text => '<div class="notice">' + text + '</div>').join('')
     : '<div class="blank">特記事項なし</div>';
   $('office-answer').disabled = !waiting.length;
-  $('office-answer-status').textContent = waiting.length ? '待ち ' + waiting.length + '件 ／ 最短あと ' + queueCutoff + '分で切断' : '待ち 0件';
+  $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
   $('office-callback').disabled = !readyCallbacks.length;
   $('office-callback-status').textContent = callbacks.length
     ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '照会中 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
@@ -401,8 +400,10 @@ function renderOffice(){
 }
 
 function enterOffice(){
+  if (state.phase === 'report') return;
   state.phase = 'office';
   advanceIdleOffice();
+  if (state.phase === 'report') return;
   renderOffice();
   window.scrollTo(0, 0);
 }
@@ -1173,7 +1174,7 @@ function careerBriefingHtml(){
 
 function showBriefing(){
   $('sheet').innerHTML =
-    '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 22:00 JST</p>' +
+    '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +
     '<h1>深夜のグローバルデスク</h1>' +
     careerBriefingHtml() +
     '<div class="artifact-qr-card" aria-label="iPhoneで遊ぶためのQRコード">' +
@@ -1319,7 +1320,7 @@ function showBalanceConsole(){
     return '<details class="balance-card"><summary>' + esc(s.id + ' ' + s.name + ' ／ ' + s.city + ' ／ ' + type.label) + '</summary>' +
       '<div class="balance-card-body"><p>' + esc(s.opening) + '</p>' +
       '<div class="balance-facts">' +
-        '<div class="balance-fact"><b>到着</b>22:00 +' + s.arrive + '分</div>' +
+        '<div class="balance-fact"><b>着信</b>勤務中にランダムに決まります（' + fmtClock(SHIFT_START) + '〜' + fmtClock(SHIFT_START + LAST_INBOUND_TURN) + '）</div>' +
         '<div class="balance-fact"><b>開始ストレス</b>' + type.stressStart + ' ／ ' + esc(type.note) + '</div>' +
         '<div class="balance-fact"><b>真因</b>' + esc(causeName(s.trueCause)) + '</div>' +
         '<div class="balance-fact"><b>正解対処</b>' + esc(remedy ? remedy.label : s.best) + '</div>' +
@@ -1722,7 +1723,7 @@ function renderDebrief(){
       cell('発生費用', '¥' + totalCost().toLocaleString('ja-JP'), '通話料を含む ／ 配点10%') +
       cell('業務報告', Math.round(reportScore * 100) + '%', '必須・漏れ・冗長さ ／ 配点10%') +
       cell('AHT', m.aht === null ? '—' : m.aht.toFixed(1) + '分', '平均通話時間 ／ 配点なし') +
-      cell('所要', (state.clock - SHIFT_START) + '分', '22:00 〜 ' + fmtClock(state.clock)) +
+      cell('所要', (state.clock - SHIFT_START) + '分', fmtClock(SHIFT_START) + ' 〜 ' + fmtClock(state.clock)) +
     '</div>' +
 
     complaintMailbox +

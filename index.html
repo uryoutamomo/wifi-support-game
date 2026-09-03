@@ -1461,7 +1461,7 @@ body.office-view .office-scene{ gap:14px; }
       <span class="sub">海外用モバイルWiFi ／ 深夜シフト テクニカルサポート</span>
     </div>
     <div class="clock">
-      <span class="t" id="clock">22:00</span>
+      <span class="t" id="clock">23:00</span>
       <span class="z">JST</span>
     </div>
     <button class="btn-balance" id="btn-balance" aria-label="ゲーム調整コンソール">ゲーム調整</button>
@@ -1494,7 +1494,7 @@ body.office-view .office-scene{ gap:14px; }
       <div class="office-object office-sv" id="office-sv"><b>SV席</b><small id="office-sv-status">ESC枠 3 / 3</small><i class="lamp" aria-hidden="true"></i></div>
       <div class="office-object office-ship"><b>配送手配カウンター</b><small id="office-ship-status">手配 0件</small></div>
       <div class="office-object office-tray"><b>書類トレイ</b><small id="office-tray-status">折り返し待ち 0件</small></div>
-      <div class="office-object office-clock" id="office-clock">22:00</div>
+      <div class="office-object office-clock" id="office-clock">23:00</div>
     </div>
   </div>
 </section>
@@ -1537,7 +1537,12 @@ body.office-view .office-scene{ gap:14px; }
    ============================================================ */
 
 const TURN_MIN = 1;          // 時間進行の最小単位＝ゲーム内1分
-const SHIFT_START = 22 * 60; // 22:00 JST
+const SHIFT_START = 23 * 60; // 23:00 JST
+const SHIFT_DURATION = 8 * 60;
+const SHIFT_END = SHIFT_START + SHIFT_DURATION; // 翌07:00 JST
+/* §52: 着信時刻は案件データではなく、この夜勤の器から引く。 */
+const LAST_INBOUND_TURN = 7 * 60; // 06:00 までに最後の着信
+const MIN_INBOUND_GAP = 20;
 const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
@@ -2956,11 +2961,19 @@ function assignScenarioIdentities(scenarios, random, flags = GAME_FLAGS){
 function prepareDailyScenarios(scenarios, random, flags = GAME_FLAGS){
   const count = dailyTicketCount(random, flags);
   const ordered = flags.shuffleArrival ? shuffleScenarios(scenarios, random) : scenarios.slice();
-  const arrivalSlots = scenarios.map(scenario => scenario.arrive).sort((a, b) => a - b).slice(0, count);
+  const arrivalSlots = drawInboundArrivalTurns(count, random);
   const selected = ordered.slice(0, count).map((scenario, index) =>
     Object.assign({}, scenario, { arrive:arrivalSlots[index] })
   );
   return assignScenarioIdentities(selected, random, flags);
+}
+
+/* §52: 圧縮した乱数を並べてから最小間隔を足す。これなら最後は06:00まで、
+   各着信は20分以上離れ、案件定義の arrive には依存しない。 */
+function drawInboundArrivalTurns(count, random){
+  const freeMinutes = LAST_INBOUND_TURN - (count - 1) * MIN_INBOUND_GAP;
+  const compressed = Array.from({ length:count }, () => Math.floor(random() * (freeMinutes + 1))).sort((a,b) => a - b);
+  return compressed.map((minute,index) => minute + index * MIN_INBOUND_GAP);
 }
 
 /* ---------- キャリア記録 ---------- */
@@ -3177,11 +3190,37 @@ function activateDueInbound(){
   return activated;
 }
 
+function abandonTicket(t, note){
+  if (t.state === 'closed') return false;
+  t.state = 'closed';
+  t.result = { kind:'abandoned', csat:0, label:'放棄呼', firstCallResolved:false };
+  playCloseJingle(t.result);
+  recordOfficeEvent('abandoned', t.s.id + '：' + note);
+  return true;
+}
+
+function finishShiftAtTime(){
+  if (state.phase === 'report') return;
+  state.clock = SHIFT_END;
+  state.turn = SHIFT_DURATION;
+  state.tickets.forEach(t => abandonTicket(t, '07:00の勤務終了で放棄呼になりました。'));
+  state.focus = null;
+  state.desk = null;
+  playShiftEndSound();
+  state.phase = 'report';
+  renderReport();
+}
+
 function advance(turns){
   if (turns === 0) activateDueInbound();
   for (let i = 0; i < turns; i++){
     state.turn++;
     state.clock += TURN_MIN;
+
+    if (state.clock >= SHIFT_END){
+      finishShiftAtTime();
+      break;
+    }
 
     state.tickets.forEach(t => resolveCarrierRequest(t));
 
@@ -3191,10 +3230,7 @@ function advance(turns){
       else if (t.state === 'callback' && state.clock > t.callbackDue) t.patience -= 100 / CALLBACK_OVERDUE_MIN;
       if (t.patience <= 0 && (t.state === 'waiting' || t.state === 'callback')){
         t.patience = 0;
-        t.state = 'closed';
-        t.result = { kind:'abandoned', csat:0, label:'放棄呼', firstCallResolved:false };
-        playCloseJingle(t.result);
-        recordOfficeEvent('abandoned', t.s.id + '：応答前に切断され、放棄呼になりました。');
+        abandonTicket(t, '応答前に切断され、放棄呼になりました。');
       }
     });
 
@@ -4145,6 +4181,7 @@ function confirmShipment(){
 /* ---------- クローズ判定 ---------- */
 
 function queueUnverifiableRedial(t){
+  if (state.phase === 'report') return;
   t.redialCount++;
   t.state = 'waiting';
   t.arrivedTurn = state.turn;
@@ -4420,9 +4457,8 @@ function causeName(id){
 }
 
 function checkShiftEnd(){
-  const live = state.tickets.some(t => t.state !== 'closed');
-  if (!live){ playShiftEndSound(); state.phase = 'report'; renderReport(); }
-  else { enterOffice(); }
+  if (state.clock >= SHIFT_END) finishShiftAtTime();
+  else enterOffice();
 }
 
 function nextInboundDelta(tickets, turn){
@@ -4439,7 +4475,8 @@ function advanceIdleOffice(){
   const inboundDelta = nextInboundDelta(state.tickets, state.turn);
   const callbackDeltas = state.tickets.filter(t => t.state === 'callback' && t.callbackDue > state.clock).map(t => t.callbackDue - state.clock);
   const callbackDelta = callbackDeltas.length ? Math.min(...callbackDeltas) : null;
-  const delta = [inboundDelta, callbackDelta].filter(value => value !== null && value > 0).sort((a,b) => a - b)[0] || null;
+  const shiftEndDelta = SHIFT_END - state.clock;
+  const delta = [inboundDelta, callbackDelta, shiftEndDelta].filter(value => value !== null && value > 0).sort((a,b) => a - b)[0] || null;
   if (delta && delta > 0) advance(delta);
   return delta || 0;
 }
@@ -4828,7 +4865,6 @@ function renderOffice(){
   $('office-sv-status').textContent = state.escLeft ? 'ESC枠 ' + state.escLeft + ' / ' + ESCALATIONS : '別件対応中';
   $('office-ship-status').textContent = '手配 ' + shipments + '件 ／ 費用 ¥' + state.tickets.reduce((n,t) => n + (t.shipment ? t.shipment.fee : 0), 0).toLocaleString('ja-JP');
   const callbackRemaining = callbacks.length ? Math.max(0, callbacks[0].callbackDue - state.clock) : 0;
-  const queueCutoff = waiting.length ? Math.ceil(Math.min(...waiting.map(ticket => ticket.patience / 100 * ticket.s.abandonAfter))) : null;
   $('office-tray-status').textContent = callbacks.length ? '折り返し待ち ' + callbacks.length + '件 ／ ' + callbacks[0].s.id + 'まであと ' + callbackRemaining + '分' : '折り返し待ち 0件';
   const officeNotices = [];
   if (state.outageKnown) officeNotices.push(esc(state.outageRegion) + '：提携キャリアの広域障害<br>復旧見込み 未定');
@@ -4837,7 +4873,7 @@ function renderOffice(){
     ? officeNotices.map(text => '<div class="notice">' + text + '</div>').join('')
     : '<div class="blank">特記事項なし</div>';
   $('office-answer').disabled = !waiting.length;
-  $('office-answer-status').textContent = waiting.length ? '待ち ' + waiting.length + '件 ／ 最短あと ' + queueCutoff + '分で切断' : '待ち 0件';
+  $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
   $('office-callback').disabled = !readyCallbacks.length;
   $('office-callback-status').textContent = callbacks.length
     ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '照会中 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
@@ -4847,8 +4883,10 @@ function renderOffice(){
 }
 
 function enterOffice(){
+  if (state.phase === 'report') return;
   state.phase = 'office';
   advanceIdleOffice();
+  if (state.phase === 'report') return;
   renderOffice();
   window.scrollTo(0, 0);
 }
@@ -5619,7 +5657,7 @@ function careerBriefingHtml(){
 
 function showBriefing(){
   $('sheet').innerHTML =
-    '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 22:00 JST</p>' +
+    '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +
     '<h1>深夜のグローバルデスク</h1>' +
     careerBriefingHtml() +
     '<div class="artifact-qr-card" aria-label="iPhoneで遊ぶためのQRコード">' +
@@ -5765,7 +5803,7 @@ function showBalanceConsole(){
     return '<details class="balance-card"><summary>' + esc(s.id + ' ' + s.name + ' ／ ' + s.city + ' ／ ' + type.label) + '</summary>' +
       '<div class="balance-card-body"><p>' + esc(s.opening) + '</p>' +
       '<div class="balance-facts">' +
-        '<div class="balance-fact"><b>到着</b>22:00 +' + s.arrive + '分</div>' +
+        '<div class="balance-fact"><b>着信</b>勤務中にランダムに決まります（' + fmtClock(SHIFT_START) + '〜' + fmtClock(SHIFT_START + LAST_INBOUND_TURN) + '）</div>' +
         '<div class="balance-fact"><b>開始ストレス</b>' + type.stressStart + ' ／ ' + esc(type.note) + '</div>' +
         '<div class="balance-fact"><b>真因</b>' + esc(causeName(s.trueCause)) + '</div>' +
         '<div class="balance-fact"><b>正解対処</b>' + esc(remedy ? remedy.label : s.best) + '</div>' +
@@ -6168,7 +6206,7 @@ function renderDebrief(){
       cell('発生費用', '¥' + totalCost().toLocaleString('ja-JP'), '通話料を含む ／ 配点10%') +
       cell('業務報告', Math.round(reportScore * 100) + '%', '必須・漏れ・冗長さ ／ 配点10%') +
       cell('AHT', m.aht === null ? '—' : m.aht.toFixed(1) + '分', '平均通話時間 ／ 配点なし') +
-      cell('所要', (state.clock - SHIFT_START) + '分', '22:00 〜 ' + fmtClock(state.clock)) +
+      cell('所要', (state.clock - SHIFT_START) + '分', fmtClock(SHIFT_START) + ' 〜 ' + fmtClock(state.clock)) +
     '</div>' +
 
     complaintMailbox +

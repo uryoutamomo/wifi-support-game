@@ -3,7 +3,12 @@
    ============================================================ */
 
 const TURN_MIN = 1;          // 時間進行の最小単位＝ゲーム内1分
-const SHIFT_START = 22 * 60; // 22:00 JST
+const SHIFT_START = 23 * 60; // 23:00 JST
+const SHIFT_DURATION = 8 * 60;
+const SHIFT_END = SHIFT_START + SHIFT_DURATION; // 翌07:00 JST
+/* §52: 着信時刻は案件データではなく、この夜勤の器から引く。 */
+const LAST_INBOUND_TURN = 7 * 60; // 06:00 までに最後の着信
+const MIN_INBOUND_GAP = 20;
 const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率

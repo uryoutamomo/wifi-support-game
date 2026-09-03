@@ -210,11 +210,19 @@ function assignScenarioIdentities(scenarios, random, flags = GAME_FLAGS){
 function prepareDailyScenarios(scenarios, random, flags = GAME_FLAGS){
   const count = dailyTicketCount(random, flags);
   const ordered = flags.shuffleArrival ? shuffleScenarios(scenarios, random) : scenarios.slice();
-  const arrivalSlots = scenarios.map(scenario => scenario.arrive).sort((a, b) => a - b).slice(0, count);
+  const arrivalSlots = drawInboundArrivalTurns(count, random);
   const selected = ordered.slice(0, count).map((scenario, index) =>
     Object.assign({}, scenario, { arrive:arrivalSlots[index] })
   );
   return assignScenarioIdentities(selected, random, flags);
+}
+
+/* §52: 圧縮した乱数を並べてから最小間隔を足す。これなら最後は06:00まで、
+   各着信は20分以上離れ、案件定義の arrive には依存しない。 */
+function drawInboundArrivalTurns(count, random){
+  const freeMinutes = LAST_INBOUND_TURN - (count - 1) * MIN_INBOUND_GAP;
+  const compressed = Array.from({ length:count }, () => Math.floor(random() * (freeMinutes + 1))).sort((a,b) => a - b);
+  return compressed.map((minute,index) => minute + index * MIN_INBOUND_GAP);
 }
 
 /* ---------- キャリア記録 ---------- */
@@ -431,11 +439,37 @@ function activateDueInbound(){
   return activated;
 }
 
+function abandonTicket(t, note){
+  if (t.state === 'closed') return false;
+  t.state = 'closed';
+  t.result = { kind:'abandoned', csat:0, label:'放棄呼', firstCallResolved:false };
+  playCloseJingle(t.result);
+  recordOfficeEvent('abandoned', t.s.id + '：' + note);
+  return true;
+}
+
+function finishShiftAtTime(){
+  if (state.phase === 'report') return;
+  state.clock = SHIFT_END;
+  state.turn = SHIFT_DURATION;
+  state.tickets.forEach(t => abandonTicket(t, '07:00の勤務終了で放棄呼になりました。'));
+  state.focus = null;
+  state.desk = null;
+  playShiftEndSound();
+  state.phase = 'report';
+  renderReport();
+}
+
 function advance(turns){
   if (turns === 0) activateDueInbound();
   for (let i = 0; i < turns; i++){
     state.turn++;
     state.clock += TURN_MIN;
+
+    if (state.clock >= SHIFT_END){
+      finishShiftAtTime();
+      break;
+    }
 
     state.tickets.forEach(t => resolveCarrierRequest(t));
 
@@ -445,10 +479,7 @@ function advance(turns){
       else if (t.state === 'callback' && state.clock > t.callbackDue) t.patience -= 100 / CALLBACK_OVERDUE_MIN;
       if (t.patience <= 0 && (t.state === 'waiting' || t.state === 'callback')){
         t.patience = 0;
-        t.state = 'closed';
-        t.result = { kind:'abandoned', csat:0, label:'放棄呼', firstCallResolved:false };
-        playCloseJingle(t.result);
-        recordOfficeEvent('abandoned', t.s.id + '：応答前に切断され、放棄呼になりました。');
+        abandonTicket(t, '応答前に切断され、放棄呼になりました。');
       }
     });
 
@@ -1399,6 +1430,7 @@ function confirmShipment(){
 /* ---------- クローズ判定 ---------- */
 
 function queueUnverifiableRedial(t){
+  if (state.phase === 'report') return;
   t.redialCount++;
   t.state = 'waiting';
   t.arrivedTurn = state.turn;
@@ -1674,9 +1706,8 @@ function causeName(id){
 }
 
 function checkShiftEnd(){
-  const live = state.tickets.some(t => t.state !== 'closed');
-  if (!live){ playShiftEndSound(); state.phase = 'report'; renderReport(); }
-  else { enterOffice(); }
+  if (state.clock >= SHIFT_END) finishShiftAtTime();
+  else enterOffice();
 }
 
 function nextInboundDelta(tickets, turn){
@@ -1693,7 +1724,8 @@ function advanceIdleOffice(){
   const inboundDelta = nextInboundDelta(state.tickets, state.turn);
   const callbackDeltas = state.tickets.filter(t => t.state === 'callback' && t.callbackDue > state.clock).map(t => t.callbackDue - state.clock);
   const callbackDelta = callbackDeltas.length ? Math.min(...callbackDeltas) : null;
-  const delta = [inboundDelta, callbackDelta].filter(value => value !== null && value > 0).sort((a,b) => a - b)[0] || null;
+  const shiftEndDelta = SHIFT_END - state.clock;
+  const delta = [inboundDelta, callbackDelta, shiftEndDelta].filter(value => value !== null && value > 0).sort((a,b) => a - b)[0] || null;
   if (delta && delta > 0) advance(delta);
   return delta || 0;
 }

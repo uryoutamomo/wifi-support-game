@@ -1261,12 +1261,6 @@ const mutations = [
     expected:'渡航先未判明の待ちチケットが世界地図に現れる',
   },
   {
-    name:'全件終了でも日報へ進めない', file:'p3_game.js',
-    from:"if (!live){ playShiftEndSound(); state.phase = 'report'; renderReport(); }",
-    to:"if (false){ playShiftEndSound(); state.phase = 'report'; renderReport(); }",
-    expected:'2件の日を全件終えてもシフト終了レポートへ到達しない',
-  },
-  {
     name:'応答率を11件固定で割る', file:'p4_view.js',
     from:'const answerRate = (state.tickets.length - abandoned) / state.tickets.length;',
     to:'const answerRate = (state.tickets.length - abandoned) / 11;',
@@ -2292,6 +2286,72 @@ const mutations = [
     from:"  provision:'deep_night',\n});",
     to:"  provision:'deep_night',\n  carrier:'shared_region',\n});",
     expected:'§38 検査6-12: 土地の制約がgeo_blockとprovisionの2つだけではない',
+  },
+  {
+    name:'§52 夜勤を22時開始へ戻す', file:'p2_data.js',
+    from:'const SHIFT_START = 23 * 60; // 23:00 JST',
+    to:'const SHIFT_START = 22 * 60; // 22:00 JST',
+    expected:'§52 検査1: 勤務が23:00に始まらない',
+  },
+  {
+    name:'§52 07時の終了時刻を一分前にする', file:'p3_game.js',
+    from:'  state.clock = SHIFT_END;\n  state.turn = SHIFT_DURATION;',
+    to:'  state.clock = SHIFT_END - 1;\n  state.turn = SHIFT_DURATION;',
+    expected:'§52 検査2: 07:00でシフトが終わらない',
+  },
+  {
+    name:'§52 時間切れの残件を放棄呼にしない', file:'p3_game.js',
+    from:"  state.tickets.forEach(t => abandonTicket(t, '07:00の勤務終了で放棄呼になりました。'));",
+    to:'  state.tickets.forEach(() => {});',
+    expected:'§52 検査3: 07:00に残った案件が放棄呼にならない',
+  },
+  {
+    name:'§52 案件データの固定arriveを着信に戻す', file:'p3_game.js',
+    from:'  const arrivalSlots = drawInboundArrivalTurns(count, random);',
+    to:'  const arrivalSlots = drawInboundArrivalTurns(count, random); // scenario.arrive',
+    expected:'§52 検査4: 案件データの arrive を着信時刻に使っている',
+  },
+  {
+    name:'§52 着信間隔をなくす', file:'p2_data.js',
+    from:'const MIN_INBOUND_GAP = 20;',
+    to:'const MIN_INBOUND_GAP = 0;',
+    expected:'§52 検査5: 着信どうしが20分以上離れない',
+  },
+  {
+    name:'§52 放棄までの残り時間を表示する', file:'p4_view.js',
+    from:"  $('office-answer-status').textContent = '待ち ' + waiting.length + '件';",
+    to:"  $('office-answer-status').textContent = '待ち ' + waiting.length + '件 ／ 最短あと 1分で切断';",
+    expected:'電話を取るボタンが待ち件数だけを表示していない',
+  },
+  {
+    name:'§52 patienceによる放棄を止める', file:'p3_game.js',
+    from:'if (t.state === \'waiting\') t.patience -= 100 / t.s.abandonAfter;',
+    to:"if (t.state === 'waiting') t.patience -= 0;",
+    expected:'§52 検査8: patienceが0で切断される仕組みが変わった',
+  },
+  {
+    name:'§52 日報後にもオフィスへ戻す', file:'p4_view.js',
+    from:"function enterOffice(){\n  if (state.phase === 'report') return;",
+    to:'function enterOffice(){',
+    expected:'§52 検査2: 07:00の日報後にデスク照会からオフィスへ戻って進行不能になる',
+  },
+  {
+    name:'§52 日報後にも未検証対処を再入電へ戻す', file:'p3_game.js',
+    from:"function queueUnverifiableRedial(t){\n  if (state.phase === 'report') return;",
+    to:'function queueUnverifiableRedial(t){',
+    expected:'§52 検査2: 07:00後に未検証対処が放棄呼を再入電待ちへ戻す',
+  },
+  {
+    name:'§52 ブリーフィングを22時表記へ戻す', file:'p4_view.js',
+    from:"'<p class=\"eyebrow\">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +",
+    to:"'<p class=\"eyebrow\">SHIFT BRIEFING ／ 08月31日 22:00 JST</p>' +",
+    expected:'§52 検査1: 画面に出る勤務開始時刻がSHIFT_STARTと一致しない',
+  },
+  {
+    name:'§52 verifyを固定22時到着表へ戻す', file:'verify.js',
+    from:'  const min = SHIFT_START + arrival;',
+    to:'  const min = 22 * 60 + arrival;',
+    expected:'§52 検査4: verify.jsの到着スケジュールが実際の着信を表示しない',
   },
 ];
 
