@@ -2824,7 +2824,7 @@ const mutations = [
     name:'小画面で直近の顧客発話を消す', file:'p1_head.html', layout:true,
     from:'  body.call-view .transcript.recent{\n    position:fixed; z-index:101; isolation:isolate; left:0; right:0;\n    bottom:var(--short-call-actions-height);\n    display:flex;',
     to:'  body.call-view .transcript.recent{\n    position:fixed; z-index:101; isolation:isolate; left:0; right:0;\n    bottom:var(--short-call-actions-height);\n    display:none;',
-    expected:'直近の顧客発話が描画されていない',
+    expected:'直近の顧客発話 が描画されていない',
   },
   {
     name:'小画面の上部バーを時計込み5列へ戻す', file:'p1_head.html', layout:true,
