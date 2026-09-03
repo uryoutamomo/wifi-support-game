@@ -362,7 +362,7 @@ function newTicket(s){
     stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, inboundMinutes:0, outboundMinutes:0, callSegmentMinutes:0, callDirection:'inbound', holdMinutes:0,
     callChargeConcerned:false,
-    callbackCount:0, callbackDue:null, callbackLate:false, callbackKind:null, callbackDestination:null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
+    callbackCount:0, callbackDue:null, callbackLate:false, callbackKind:null, callbackDestination:null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, callbackReliefApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
     callbackReason:null, callbackStage:null, callbackPromised:null, returnTimeKnown:false, frontDeskAttempts:0,
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
@@ -552,6 +552,12 @@ function handleFrontDeskChoice(choice){
   ]);
   applyCallbackWaitStress(t);
   t.callbackStage = 'connected';
+  /* §49-2: こちらから指定した客室へ繋がった相手なので、本人確認は済んだものとして扱う。
+     フロントには名前か部屋番号を伝えて繋いでもらっており、入電で名乗る前の相手とは
+     なりすましの余地がまるで違う。滞在先だけ聞いて折り返すと社内システムを開けない、
+     という食い違いはここで解く。入電側の条件（§41）は変えない。 */
+  t.identified = true;
+  applyPunctualCallbackRelief(t);
   finishCarrierLookup(t);
   state.ui = defaultUi();
   render();
@@ -560,6 +566,19 @@ function handleFrontDeskChoice(choice){
 function callbackLookupAllowance(t){
   return t.callbackKind === 'scheduled' ? CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE : CALLBACK_IMMEDIATE_LOOKUP_ALLOWANCE;
 }
+/* §49-1: 約束の時刻までに掛け直せていれば、客室につながった時点で客が落ち着く。
+   遅れた場合は回復させない（遅れの罰は採点の -1.5 にあり、二重に罰さない）。
+   運は入れない。「守っても報われないことがある」形にすると、折り返しを選ぶ判断が
+   成り立たなくなる。回復は接続の1回だけで、折り返しを繰り返しても増えない。 */
+function applyPunctualCallbackRelief(t){
+  if (t.callbackReliefApplied || t.callbackLate) return;
+  t.callbackReliefApplied = true;
+  const delta = CALLBACK_PUNCTUAL_RELIEF[t.s.type];
+  if (!delta) return;
+  pushCustomerLine(t, CALLBACK_PUNCTUAL_REPLIES[t.s.type], { plain:true });
+  changeStress(t, delta, true);
+}
+
 function applyCallbackWaitStress(t){
   if (t.callbackWaitStressApplied) return;
   const over = Math.max(0, (t.callbackLookupCount || 0) - callbackLookupAllowance(t));

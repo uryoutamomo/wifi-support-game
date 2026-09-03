@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
-const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,CALL_FLOW_LINES};';
+const { CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -1957,7 +1957,7 @@ assert(promised45.callbackDue === startState39.clock,'§45 検査5: いますぐ
 const scheduled45 = {asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',transcript:[],callbackCount:0,state:'open',callbackPromised:null};
 startState39.focus = scheduled45; startHotel39('scheduled');
 finishHotel45(scheduled45);
-assert(scheduled45.callbackDue === startState39.clock + CALLBACK_SCHEDULED_MINUTES,'§45 検査2: 1時間後の折り返し時刻が60分後でない');
+assert(scheduled45.callbackDue === startState39.clock + CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,'§45 検査2: 1時間後の折り返し時刻が60分後でない');
 
 // §40/§45 検査6: 滞在先を聞かずに切ると、折り返せなかった扱いになる（既存の経路を使う）。
 const noStay39 = {asked:new Set(),stayAddress:null,transcript:[],callbackCount:0,state:'open',callbackPromised:null};
@@ -2035,10 +2035,15 @@ assert(lateLocal39.isLateLocalTime({s:{localOffset:9}}) && !localModule39({clock
 assert(resume39.includes('isLateLocalTime(t)') && resume39.includes('CALL_FLOW_LINES.frontDesk.lateQuestion'),'§39 検査10: 深夜のFront Deskが難色を示さない');
 
 const frontState39 = {clock:22*60,focus:null,ui:{tab:'command'}};
-const frontModule39 = new Function('state','CALL_FLOW_LINES','spendOnCall','pushFlowLines','applyCallbackWaitStress','finishCarrierLookup','defaultUi','render',[
-  functionSource('ticketLocalMinute'),functionSource('isLateLocalTime'),functionSource('hotelRoom'),functionSource('callbackCustomerReply'),functionSource('handleFrontDeskChoice'),
+/* §49 で客室接続が本人確認と満足度の回復も担うようになったので、その2つを本物のまま
+   注入して実際に走らせる。changeStress と pushCustomerLine だけ観測用に差し替える。 */
+const frontModule39 = new Function('state','CALL_FLOW_LINES','spendOnCall','pushFlowLines','applyCallbackWaitStress','finishCarrierLookup','defaultUi','render','CALLBACK_PUNCTUAL_RELIEF','CALLBACK_PUNCTUAL_REPLIES','pushCustomerLine','changeStress',[
+  functionSource('ticketLocalMinute'),functionSource('isLateLocalTime'),functionSource('hotelRoom'),functionSource('callbackCustomerReply'),functionSource('applyPunctualCallbackRelief'),functionSource('handleFrontDeskChoice'),
 ].join('\n') + '\nreturn handleFrontDeskChoice;')(
-  frontState39,CALL_FLOW_LINES,(ticket,minutes) => { ticket.spent = minutes; return true; },(ticket,lines) => ticket.lines = lines,() => {},() => true,() => ({tab:'command'}),() => {}
+  frontState39,CALL_FLOW_LINES,(ticket,minutes) => { ticket.spent = minutes; return true; },(ticket,lines) => ticket.lines = lines,() => {},() => true,() => ({tab:'command'}),() => {},
+  CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,
+  (ticket,text) => { ticket.reliefLine = text; },
+  (ticket,delta) => { ticket.stressDelta = (ticket.stressDelta || 0) + delta; return true; }
 );
 const makeFrontTicket39 = () => ({callbackStage:'front_desk',callbackReason:'general',nameKnown:true,stayAddress:'ホテル、512号室',s:{name:'試験 顧客',nameEn:'Test Customer',type:'novice',localOffset:9,lookups:{}},transcript:[],frontDeskAttempts:0});
 const directFront39 = makeFrontTicket39(); frontState39.focus = directFront39; frontModule39('callback');
@@ -2048,6 +2053,25 @@ assert(directFront39.callbackStage === 'connected' && directFront39.spent === 1 
   assert(ticket.callbackStage === 'connected' && ticket.spent === 2 && ticket.lines.some(line => line.who === 'cust'),'§39 検査12: 別の英語選択肢で客室へつながらず詰む');
 });
 assert(functionSource('finishPromisedCallback').includes("t.callbackReason = 'general'") && !functionSource('finishPromisedCallback').includes('l_carrier'),'§39 検査14: 一般折り返しがl_carrier専用のまま');
+
+/* §49-1: 約束の時刻までに折り返して客室へつながったら、客が落ち着く。
+   §49-2: こちらから指定した客室へ繋がった相手なので、本人確認は済んだものとして扱う。
+   滞在先だけ聞いて折り返すと社内システムを開けない、という食い違いを解く。 */
+const punctual49 = makeFrontTicket39(); frontState39.focus = punctual49; frontModule39('room');
+assert(punctual49.stressDelta === CALLBACK_PUNCTUAL_RELIEF.novice && punctual49.stressDelta < 0,'§49 検査1: 約束どおり折り返して客室へつながっても満足度が回復しない');
+assert(punctual49.reliefLine === CALLBACK_PUNCTUAL_REPLIES.novice,'§49 検査2: 回復したときの客の反応がタイプ別になっていない');
+assert(punctual49.identified === true,'§49 検査5: 客室へつながっても本人確認が済んだ扱いにならない');
+const lateBack49 = Object.assign(makeFrontTicket39(), { callbackLate:true }); frontState39.focus = lateBack49; frontModule39('room');
+assert(lateBack49.stressDelta === undefined,'§49 検査3: 約束に遅れた折り返しでも満足度が回復してしまう');
+assert(lateBack49.identified === true,'§49 検査5: 遅れても客室へつながれば本人確認は済む');
+const twice49 = makeFrontTicket39(); frontState39.focus = twice49; frontModule39('room');
+twice49.callbackStage = 'front_desk'; frontModule39('room');
+assert(twice49.stressDelta === CALLBACK_PUNCTUAL_RELIEF.novice,'§49 検査7: 折り返しを繰り返すたびに満足度が回復してしまう');
+assert.deepEqual(Object.keys(CALLBACK_PUNCTUAL_RELIEF).sort(),['anxious','expert','hurried','novice'],'§49 検査2: 回復量が4タイプ分そろっていない');
+assert(new Set(Object.values(CALLBACK_PUNCTUAL_RELIEF)).size === 4 && Object.values(CALLBACK_PUNCTUAL_RELIEF).every(value => value < 0),'§49 検査2: 回復量がタイプごとに書き分けられていない、または回復になっていない');
+assert(new Set(Object.values(CALLBACK_PUNCTUAL_REPLIES)).size === 4,'§49 検査2: 回復したときの反応がタイプごとに書き分けられていない');
+assert(!functionSource('resumeCallback').includes('applyPunctualCallbackRelief') && !functionSource('resumeCallback').includes('t.identified = true'),'§49 検査4/6: Front Deskへつないだ段階で回復または本人確認済みにしている');
+assert(!functionSource('blindCallbackRedial').includes('t.identified = true'),'§49-4: 客から掛け直してきた入電まで本人確認済みにしている');
 const progression39 = spawnSync(process.execPath,['progression_test.js'],{cwd:__dirname,encoding:'utf8'});
 assert.equal(progression39.status,0,'§39 検査15: progression_testが通らない\n' + (progression39.stdout || '') + (progression39.stderr || ''));
 

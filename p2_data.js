@@ -20,6 +20,16 @@ const CALLBACK_WAIT_REPLIES = Object.freeze({
   expert:'約束した時間を超えています。照会の進捗を説明してください。',
   hurried:'いつまで待たせるんですか。結論を。',
 });
+/* §49-1: 約束の時刻までに折り返して客室へつながったときの、満足度の回復。
+   何に安心するかがタイプで違う。expert は約束を守るのを当然と見ているので小さい。
+   遊んだ感触で動かせるよう、ここに集めてある。 */
+const CALLBACK_PUNCTUAL_RELIEF = Object.freeze({ anxious:-14, novice:-12, hurried:-8, expert:-4 });
+const CALLBACK_PUNCTUAL_REPLIES = Object.freeze({
+  anxious:'…本当に掛け直してくださったんですね。少し、落ち着きました。',
+  novice:'まあ、わざわざ掛けてくださって。ありがとうございます。',
+  expert:'時間どおりですね。では続けてください。',
+  hurried:'お、ちゃんと掛かってきた。じゃあ続き、頼みます。',
+});
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
   shuffleArrival: true,

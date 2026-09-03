@@ -22,6 +22,36 @@ const boardPane = `  <section class="pane board">
   </section>`;
 const mutations = [
   {
+    name:'§49 約束どおり折り返しても満足度を回復させない', file:'p3_game.js',
+    from:'  applyPunctualCallbackRelief(t);\n  finishCarrierLookup(t);',
+    to:'  finishCarrierLookup(t);',
+    expected:'§49 検査1: 約束どおり折り返して客室へつながっても満足度が回復しない',
+  },
+  {
+    name:'§49 遅れた折り返しでも満足度を回復させる', file:'p3_game.js',
+    from:'  if (t.callbackReliefApplied || t.callbackLate) return;',
+    to:'  if (t.callbackReliefApplied) return;',
+    expected:'§49 検査3: 約束に遅れた折り返しでも満足度が回復してしまう',
+  },
+  {
+    name:'§49 折り返すたびに満足度を回復させる', file:'p3_game.js',
+    from:'  t.callbackReliefApplied = true;\n  const delta = CALLBACK_PUNCTUAL_RELIEF[t.s.type];',
+    to:'  const delta = CALLBACK_PUNCTUAL_RELIEF[t.s.type];',
+    expected:'§49 検査7: 折り返しを繰り返すたびに満足度が回復してしまう',
+  },
+  {
+    name:'§49 客室へつながっても他人のまま扱う', file:'p3_game.js',
+    from:'  t.identified = true;\n  applyPunctualCallbackRelief(t);',
+    to:'  applyPunctualCallbackRelief(t);',
+    expected:'§49 検査5: 客室へつながっても本人確認が済んだ扱いにならない',
+  },
+  {
+    name:'§49 Front Deskへつないだ段階で本人確認済みにする', file:'p3_game.js',
+    from:"  t.callbackStage = 'front_desk';\n  t.frontDeskAttempts = 0;",
+    to:"  t.callbackStage = 'front_desk';\n  t.identified = true;\n  t.frontDeskAttempts = 0;",
+    expected:'§49 検査4/6: Front Deskへつないだ段階で回復または本人確認済みにしている',
+  },
+  {
     name:'§48-7 通話中も世界時計の帯を出す', file:'p1_head.html',
     from:'body.call-view .world-strip{ height: 0; border-top: 0; }',
     to:'body.call-view .world-strip{ border-top: 0; }',
