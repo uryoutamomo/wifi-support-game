@@ -2832,6 +2832,12 @@ const mutations = [
     to:'  .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto auto; }\n  .topbar-inner > .clock{ display:flex; }\n  .topbar-inner > .btn-sound{ grid-column:3; }\n  .topbar-inner > .btn-balance{ grid-column:4; }\n  .topbar-inner > .btn-help{ grid-column:5; }',
     expected:'上部バーの実描画が重なっている',
   },
+  {
+    name:'小画面で固定領域ぶんの本文余白を外す', file:'p1_head.html', layout:true,
+    from:'  body.call-view .call{ padding-bottom:var(--short-call-flow-reserve); }',
+    to:'  body.call-view .call{ padding-bottom:0; }',
+    expected:'固定領域と本文情報が重なっている',
+  },
 ];
 
 const requestedMutations = process.env.MUTATION_MATCH

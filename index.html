@@ -1331,11 +1331,27 @@ body.office-view .office-scene{ gap:14px; }
   body.call-view .call{ isolation:isolate; }
   /* コマンド4つと終話を収める高さを予約する。会話はこの領域の上に出すので、
      553px級でも症状を読んでから次の手を選べる。 */
-  body.call-view{ --short-call-actions-height:calc(212px + env(safe-area-inset-bottom)); }
+  body.call-view{
+    --short-call-actions-height:calc(212px + env(safe-area-inset-bottom));
+    --short-call-transcript-height:clamp(84px,18dvh,120px);
+    --short-call-fixed-height:calc(var(--short-call-actions-height) + var(--short-call-transcript-height));
+    --short-call-flow-reserve:calc(var(--short-call-fixed-height) + 24px);
+  }
+  /* fixed の会話・操作より後のカードを文書フロー上でも下へ送る。
+     初期位置では見出しと満足度を読め、続きは普通にスクロールして読める。 */
+  body.call-view .call{ padding-bottom:var(--short-call-flow-reserve); }
+  body.call-view .call-head{ flex-wrap:nowrap; gap:4px; overflow:auto; padding:4px 12px; }
+  body.call-view .call-head > span{ flex:none; font-size:11px; white-space:nowrap; }
+  body.call-view .stress-panel{ margin:4px 12px 0; padding:4px 8px; }
+  body.call-view .stress-panel-head{ gap:5px; }
+  body.call-view .stress-panel-head span{ font-size:10px; }
+  body.call-view .stress-panel-head b{ font-size:20px; }
+  body.call-view .stress-panel-head strong{ padding:2px 5px; font-size:10px; }
+  body.call-view .stress-track{ height:6px; margin-top:4px; }
   body.call-view .transcript.recent{
     position:fixed; z-index:101; isolation:isolate; left:0; right:0;
     bottom:var(--short-call-actions-height);
-    display:flex; height:clamp(84px,18dvh,120px); min-height:0; max-height:none;
+    display:flex; height:var(--short-call-transcript-height); min-height:0; max-height:none;
     overflow:auto; padding:8px 12px; gap:6px;
     background:var(--surface); border-top:1px solid var(--line);
     box-shadow:0 -8px 20px rgba(21,32,43,.12);

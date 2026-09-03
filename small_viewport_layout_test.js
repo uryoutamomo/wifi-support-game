@@ -2,6 +2,7 @@
 const assert = require('assert');
 const path = require('path');
 const VIEWPORTS = [
+  { width:430, height:708 },
   { width:430, height:745 },
   { width:393, height:659 },
   { width:375, height:553 },
@@ -100,6 +101,15 @@ function noTopbarOverlap(label, rects){
   }
 }
 
+function noFixedContentOverlap(label, fixedRects, contentRects){
+  const fixed = fixedRects.filter(rect => rect.width > 0 && rect.height > 0);
+  const content = contentRects.filter(rect => rect.width > 0 && rect.height > 0);
+  fixed.forEach(a => content.forEach(b => {
+    const overlaps = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    assert(!overlaps, '固定領域と本文情報が重なっている: ' + JSON.stringify({ label, a, b }));
+  }));
+}
+
 async function assertTopbarClear(cdp, label){
   const rects = await evaluate(cdp, `(() => {
     const textRect = (name, selector) => { const node=document.querySelector(selector), range=document.createRange(); range.selectNodeContents(node); const r=range.getBoundingClientRect(); return { name, left:r.left, right:r.right, top:r.top, bottom:r.bottom, width:r.width, height:r.height }; };
@@ -135,9 +145,10 @@ async function verifyViewport(cdp, viewport){
     return null;
   })()`);
   await pause(80);
-  const call = await evaluate(cdp, `(() => { const rectFor = node => { const r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { text:node.textContent.trim(), center:r.top+r.height/2, top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit), hitClass:hit && hit.className }; }; const customerLines=[...document.querySelectorAll('.transcript.recent .line.cust .say')]; return { scrollY, customer:customerLines.length ? rectFor(customerLines.at(-1)) : null, commands:[...document.querySelectorAll('.command-grid .command-choice')].map(rectFor), hangup:rectFor(document.querySelector('.hangup-button')) }; })()`);
+  const call = await evaluate(cdp, `(() => { const rectFor = node => { const r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { text:node.textContent.trim(), center:r.top+r.height/2, top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit), hitClass:hit && hit.className }; }; const rect = node => { const r=node.getBoundingClientRect(); return { text:node.textContent.trim(), top:r.top, bottom:r.bottom, left:r.left, right:r.right, width:r.width, height:r.height }; }; const customerLines=[...document.querySelectorAll('.transcript.recent .line.cust .say')]; return { scrollY, customer:customerLines.length ? rectFor(customerLines.at(-1)) : null, commands:[...document.querySelectorAll('.command-grid .command-choice')].map(rectFor), hangup:rectFor(document.querySelector('.hangup-button')), fixed:[...document.querySelectorAll('.transcript.recent, body.call-view .actions')].map(rect), content:[...document.querySelectorAll('.call-head, .stress-panel, #call-summary, .pane-title')].map(rect) }; })()`);
   assert.equal(call.scrollY, 0, '通話が初期表示でスクロールしている');
   await assertTopbarClear(cdp, '通話');
+  noFixedContentOverlap('通話', call.fixed, call.content);
   assert(call.customer, '直近の顧客発話が描画されていない');
   visibleCenters('直近の顧客発話', [call.customer], viewport.height);
   assert.equal(call.commands.length, 4, '通話の主コマンドが4つではない');
@@ -157,7 +168,7 @@ async function verifyViewport(cdp, viewport){
     await cdp.ready();
     await cdp.send('Page.enable');
     for (const viewport of VIEWPORTS) await verifyViewport(cdp, viewport);
-    console.log('Small viewport layout: 3/3 green');
+    console.log('Small viewport layout: 4/4 green');
   } finally {
     if (cdp) cdp.close();
     if (targetId) {
