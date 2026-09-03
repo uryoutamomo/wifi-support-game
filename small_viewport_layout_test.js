@@ -108,8 +108,10 @@ async function verifyViewport(cdp, viewport){
     return null;
   })()`);
   await pause(80);
-  const call = await evaluate(cdp, `(() => ({ scrollY, commands:[...document.querySelectorAll('.command-grid .command-choice')].map(node => { const r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { text:node.textContent.trim(), center:r.top+r.height/2, top:r.top, bottom:r.bottom, hit:hit === node || node.contains(hit), hitClass:hit && hit.className }; }), hangup:(() => { const node=document.querySelector('.hangup-button'), r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { center:r.top+r.height/2, top:r.top, bottom:r.bottom, hit:hit === node || node.contains(hit), hitClass:hit && hit.className }; })() }))()`);
+  const call = await evaluate(cdp, `(() => { const rectFor = node => { const r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { text:node.textContent.trim(), center:r.top+r.height/2, top:r.top, bottom:r.bottom, hit:hit === node || node.contains(hit), hitClass:hit && hit.className }; }; const customerLines=[...document.querySelectorAll('.transcript.recent .line.cust .say')]; return { scrollY, customer:customerLines.length ? rectFor(customerLines.at(-1)) : null, commands:[...document.querySelectorAll('.command-grid .command-choice')].map(rectFor), hangup:rectFor(document.querySelector('.hangup-button')) }; })()`);
   assert.equal(call.scrollY, 0, '通話が初期表示でスクロールしている');
+  assert(call.customer, '直近の顧客発話が描画されていない');
+  visibleCenters('直近の顧客発話', [call.customer], viewport.height);
   assert.equal(call.commands.length, 4, '通話の主コマンドが4つではない');
   visibleCenters('通話4コマンド', call.commands, viewport.height);
   visibleCenters('電話を切る', [call.hangup], viewport.height);

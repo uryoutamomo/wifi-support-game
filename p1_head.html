@@ -1315,7 +1315,7 @@ body.office-view .office-scene{ gap:14px; }
 .briefing-actions .btn-primary{ margin:0; }
 
 /* オフィスと通話では、現在の会話や設備より先に、次の操作を小画面の下端に置く。
-   背後の情報は必要に応じてスクロールして読めるが、電話・4コマンド・終話は常に押せる。 */
+   ただし通話では直近の顧客発話も判断材料なので、操作のすぐ上に必ず残す。 */
 @media (max-height:760px){
   /* transform を持つアニメーション祖先は fixed の基準面を本文に変えるため、
      縮んだ画面では入場アニメーションを使わない。 */
@@ -1329,11 +1329,23 @@ body.office-view .office-scene{ gap:14px; }
   body.office-view .office-call-action{ min-height:58px; padding:7px 10px; font-size:16px; }
   body.office-view .office-call-action span{ margin-top:2px; font-size:11px; line-height:1.25; }
   body.call-view .call{ isolation:isolate; }
-  /* 553px級では会話履歴より次の一手を優先し、初期表示から外す。 */
-  body.call-view .transcript.recent{ display:none; }
+  /* コマンド4つと終話を収める高さを予約する。会話はこの領域の上に出すので、
+     553px級でも症状を読んでから次の手を選べる。 */
+  body.call-view{ --short-call-actions-height:calc(212px + env(safe-area-inset-bottom)); }
+  body.call-view .transcript.recent{
+    position:fixed; z-index:101; isolation:isolate; left:0; right:0;
+    bottom:var(--short-call-actions-height);
+    display:flex; height:clamp(84px,18dvh,120px); min-height:0; max-height:none;
+    overflow:auto; padding:8px 12px; gap:6px;
+    background:var(--surface); border-top:1px solid var(--line);
+    box-shadow:0 -8px 20px rgba(21,32,43,.12);
+  }
+  body.call-view .transcript.recent .line{ max-width:100%; }
+  body.call-view .transcript.recent .line .who{ font-size:11px; }
+  body.call-view .transcript.recent .line .say{ padding:7px 9px; font-size:15px; line-height:1.4; }
   body.call-view .actions{
     position:fixed; z-index:100; isolation:isolate; left:0; right:0; bottom:0;
-    max-height:calc(100dvh - 106px); overflow:auto;
+    height:var(--short-call-actions-height); max-height:calc(100dvh - 106px); overflow:auto;
     padding:8px 12px calc(10px + env(safe-area-inset-bottom));
     background:var(--surface); border-top:1px solid var(--line);
     box-shadow:0 -8px 20px rgba(21,32,43,.16);

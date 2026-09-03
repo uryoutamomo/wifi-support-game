@@ -2820,6 +2820,12 @@ const mutations = [
     to:'    position:static; z-index:45; left:0; right:0; bottom:0;',
     expected:'オフィス4操作 の中心が初期表示の画面外',
   },
+  {
+    name:'小画面で直近の顧客発話を消す', file:'p1_head.html', layout:true,
+    from:'  body.call-view .transcript.recent{\n    position:fixed; z-index:101; isolation:isolate; left:0; right:0;\n    bottom:var(--short-call-actions-height);\n    display:flex;',
+    to:'  body.call-view .transcript.recent{\n    position:fixed; z-index:101; isolation:isolate; left:0; right:0;\n    bottom:var(--short-call-actions-height);\n    display:none;',
+    expected:'直近の顧客発話が描画されていない',
+  },
 ];
 
 const requestedMutations = process.env.MUTATION_MATCH
