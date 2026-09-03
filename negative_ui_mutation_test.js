@@ -333,6 +333,12 @@ const mutations = [
     expected:'§67 検査A6: 返金が通信復旧として扱われる',
   },
   {
+    name:'§43 手配では食い違い反論を飛ばす', file:'p3_game.js',
+    from:'if (!causeMatched && s.contradicts && s.contradicts[causeId]){',
+    to:"if (remedy.outcomeMode === 'treatment' && !causeMatched && s.contradicts && s.contradicts[causeId]){",
+    expected:'§43-6 検査13: S3のcarrier×代替機手配で反論後も通話を続けられない',
+  },
+  {
     name:'§67 未採点の結果待ちへCSAT表示を強制する', file:'p3_game.js',
     from:"  const scoreText = Number.isFinite(result.csat) ? ' CSAT ' + result.csat.toFixed(1) : '';",
     to:"  const scoreText = ' CSAT ' + result.csat.toFixed(1);",
@@ -835,9 +841,9 @@ const mutations = [
     expected:'裏目の正しい対処でmisdiagnosesが増える',
   },
   {
-    name:'追加時間を抽選結果で変える', file:'p3_game.js',
-    from:'if (!causeMatched) advance(2);', to:'if (!treatmentWorked) advance(2);',
-    expected:'正しい対処の時間・費用が抽選結果で揺れる',
+    name:'誤診の追加時間を正しい診断へ付け替える', file:'p3_game.js',
+    from:'if (!causeMatched) advance(2);', to:'if (causeMatched) advance(2);',
+    expected:'§43-6 検査13: S3のcarrier×代替機手配で反論後も通話を続けられない',
   },
   {
     name:'苛立ちの裏目で符号を反転する', file:'p3_game.js',

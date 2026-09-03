@@ -458,6 +458,16 @@ assert(close43.includes("s.panel.bars === 0 || s.panel.sim === 'none'") && close
 const s3_43 = SCENARIOS.find(s => s.id === 'S3');
 assert(s3_43.contradicts && s3_43.contradicts.carrier && !/devices|接続台数|真因/.test(s3_43.contradicts.carrier), '§43-6 検査9/10: S3の食い違い指摘がない、または真因を漏らす');
 assert(close43.includes('s.contradicts[causeId]') && close43.includes("t.state = 'open'"), '§43-6 検査11: 食い違い指摘のあと切り分けを続けられない');
+assert(close43.indexOf('s.contradicts[causeId]') < close43.indexOf("remedy.outcomeMode === 'refund'") && close43.indexOf('s.contradicts[causeId]') < close43.indexOf("remedy.outcomeMode === 'arrangement'"), '§43-6 検査12: 手配・返金が食い違い指摘を飛び越えて確定する');
+const contradictedState43 = {focus:{s:s3_43,transcript:[],state:'open'},ui:null};
+let deferredCalls43 = 0;
+let refundCalls43 = 0;
+let advanced43 = 0;
+const runContradictedClose43 = new Function('state','REMEDIES','remedyBlockReason','spendOnCall','playClueSound','advance','pushCustomerLine','addStress','defaultUi','render','finishRemedyRefund','finishDeferredArrangement','treatmentSucceeds', close43 + '\nreturn doClose;')(
+  contradictedState43,REMEDIES,() => '',() => true,() => {},minutes => { advanced43 += minutes; },(ticket,text) => ticket.transcript.push({who:'cust',text}),() => true,() => ({}),() => {},() => { refundCalls43++; },() => { deferredCalls43++; },() => { throw new Error('食い違い指摘前に復旧抽選へ入った'); }
+);
+assert.doesNotThrow(() => runContradictedClose43('carrier','r_swap_unit'), '§43-6 検査13: S3のcarrier×代替機手配が食い違い指摘より先に確定する');
+assert(contradictedState43.focus.transcript.some(line => line.who === 'cust' && line.text === s3_43.contradicts.carrier) && contradictedState43.focus.state === 'open' && deferredCalls43 === 0 && refundCalls43 === 0 && advanced43 === 2, '§43-6 検査13: S3のcarrier×代替機手配で反論後も通話を続けられない');
 
 // §9: 90/10の運、反応と対処だけの揺れ、登場順シャッフル、旧挙動への復帰。
 assert.equal(LUCK_RATE, 0.9, '運の本来どおり率が0.9ではない');

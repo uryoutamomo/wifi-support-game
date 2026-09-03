@@ -1793,15 +1793,6 @@ function doClose(causeId, remedyId){
 
   const causeMatched = causeId === s.trueCause;
   if (causeMatched) playClueSound();
-  if (remedy.outcomeMode === 'refund'){
-    finishRemedyRefund(t, remedy, causeId, remedyId, causeMatched);
-    return;
-  }
-  if (remedy.outcomeMode === 'arrangement'){
-    finishDeferredArrangement(t, remedy, causeId, remedyId, causeMatched);
-    return;
-  }
-  const treatmentWorked = remedy.reportsRestored ? causeMatched && t.carrierRestored : treatmentSucceeds(causeMatched);
   // 見立て違いのやり直し時間は選択内容で決まり、抽選結果では揺らさない。
   if (!causeMatched) advance(2);
 
@@ -1813,6 +1804,16 @@ function doClose(causeId, remedyId){
     render();
     return;
   }
+
+  if (remedy.outcomeMode === 'refund'){
+    finishRemedyRefund(t, remedy, causeId, remedyId, causeMatched);
+    return;
+  }
+  if (remedy.outcomeMode === 'arrangement'){
+    finishDeferredArrangement(t, remedy, causeId, remedyId, causeMatched);
+    return;
+  }
+  const treatmentWorked = remedy.reportsRestored ? causeMatched && t.carrierRestored : treatmentSucceeds(causeMatched);
 
   // ---- 対処後も解決しない ----
   if (!treatmentWorked){
