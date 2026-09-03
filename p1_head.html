@@ -1335,11 +1335,13 @@ body.office-view .office-scene{ gap:14px; }
     --short-call-actions-height:calc(212px + env(safe-area-inset-bottom));
     --short-call-transcript-height:clamp(84px,18dvh,120px);
     --short-call-fixed-height:calc(var(--short-call-actions-height) + var(--short-call-transcript-height));
-    --short-call-flow-reserve:calc(var(--short-call-fixed-height) + 24px);
+    --short-call-flow-reserve:calc(var(--short-call-fixed-height) + 128px);
   }
   /* fixed の会話・操作より後のカードを文書フロー上でも下へ送る。
      初期位置では見出しと満足度を読め、続きは普通にスクロールして読める。 */
   body.call-view .call{ padding-bottom:var(--short-call-flow-reserve); }
+  /* 最後の待機状況も、最下部まで送ったとき固定操作の下に潜らないようにする。 */
+  body.call-view .console{ padding-bottom:var(--short-call-fixed-height); }
   body.call-view .call-head{ flex-wrap:nowrap; gap:4px; overflow:auto; padding:4px 12px; }
   body.call-view .call-head > span{ flex:none; font-size:11px; white-space:nowrap; }
   body.call-view .stress-panel{ margin:4px 12px 0; padding:4px 8px; }
@@ -1372,6 +1374,10 @@ body.office-view .office-scene{ gap:14px; }
   body.call-view .command-copy b{ font-size:17px; }
   body.call-view .hangup-box{ padding-top:7px; }
   body.call-view .hangup-button{ min-height:42px; }
+}
+@media (max-height:600px){
+  /* 553px級では満足度の直後に会話を置く。最新発話は中でスクロールして読める。 */
+  body.call-view{ --short-call-transcript-height:56px; }
 }
 @media (max-width:480px){
   body{ width:100%; box-shadow:none; }
