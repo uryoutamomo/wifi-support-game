@@ -40,6 +40,14 @@ assert(runVerification().advanced === 0 && verificationState.turn === blockedTur
 verificationState.tickets[0].state = 'closed';
 const completedVerification = runVerification();
 assert(completedVerification.advanced === DEVICE_VERIFICATION_MINUTES - 7 && completedVerification.completed && verificationState.verifiedDevices === 1 && verificationState.deviceVerificationMinutes === 0 && verificationRenders === 2, '中断した機器検証を再開して合計60分で1台完了できない');
+verificationState.turn = 0;
+verificationState.clock = 23 * 60;
+verificationState.deviceVerificationMinutes = 0;
+verificationState.tickets = [{state:'callback',callbackDue:23 * 60 + 5}];
+const callbackInterruptedVerification = runVerification();
+assert(callbackInterruptedVerification.advanced === 5 && callbackInterruptedVerification.interrupted && !callbackInterruptedVerification.completed && verificationState.clock === 23 * 60 + 5, '§67 検査C3: 機器検証が折り返し時刻で止まらない');
+const callbackBlockedTurn = verificationState.turn;
+assert(runVerification().advanced === 0 && verificationState.turn === callbackBlockedTurn, '§67 検査C4: 折り返し可能なのに機器検証で時間を進められる');
 
 const closeSource = functionSource('doClose') + functionSource('finishSuccessfulClose');
 assert(closeSource.includes('t.pendingResult = result'), '解決後に終話待ち状態へ入らない');

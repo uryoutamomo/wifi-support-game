@@ -2,9 +2,9 @@
 const fs = require('fs');
 const { readGameSource, functionSource: extractFunctionSource } = require('./test_helpers');
 const src = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {SHIFT_START,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,DEVICE_VERIFICATION_MINUTES,CALL_CHARGE_COMPLAINT_TYPES,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,SOUND_SETTINGS,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,CALL_FLOW_LINES};';
+  '\nreturn {SHIFT_START,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,DEVICE_VERIFICATION_MINUTES,CALL_CHARGE_COMPLAINT_TYPES,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,SOUND_SETTINGS,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_REDIAL_OPENINGS,COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,CALL_FLOW_LINES};';
 const D = new Function(src)();
-const { SHIFT_START, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, TYPES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, DEVICE_VERIFICATION_MINUTES, CALL_CHARGE_COMPLAINT_TYPES, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, SOUND_SETTINGS, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE, CALL_FLOW_LINES } = D;
+const { SHIFT_START, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, TYPES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, DEVICE_VERIFICATION_MINUTES, CALL_CHARGE_COMPLAINT_TYPES, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, SOUND_SETTINGS, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_REDIAL_OPENINGS, COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE, CALL_FLOW_LINES } = D;
 
 const EXPECTED_SLOGANS = [
   '凡事徹底',
@@ -277,7 +277,7 @@ const briefing29 = sourceOf('showBriefing');
 const manual29 = sourceOf('showManual');
 const removedBriefing29 = ['海外用モバイルWiFiレンタルのテクニカルサポート','ここは、すでに海外にいるお客様','<h2>やること</h2>','<h2>評価の重みは隠しません</h2>','<h2>ひとつだけ先に</h2>'];
 if (removedBriefing29.some(token => briefing29.includes(token))) bad('§29 ブリーフィングに毎夜不要な説明が残っている');
-if (!careerBriefing29.includes("'日目 ／ '") || !careerBriefing29.includes('CAREER_STAGES[career.stage].label') || !careerBriefing29.includes("' ／ 入電 ' + inboundCount") || !careerBriefing29.includes("'件 ／ 引き継ぎ ' + handoverCount")) bad('§29 何日目・段階・今夜の入電・引き継ぎ件数が1行で出ない');
+if (!careerBriefing29.includes("'日目 ／ '") || !careerBriefing29.includes('CAREER_STAGES[career.stage].label') || /inboundCount|handoverCount|入電|引き継ぎ/.test(careerBriefing29)) bad('§67 ブリーフィングは日数・段階だけを示し、今夜の件数を漏らさない');
 if (!briefing29.includes('id="btn-start">シフトを始める</button>')) bad('§29 ブリーフィングにシフト開始ボタンがない');
 if (!careerBriefing29.includes('career.totals.days === 0') || !careerBriefing29.includes('勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。')) bad('§29 保存注記が初回だけになっていない');
 const scoreWeights29 = ['顧客満足（CSAT）35%','一次解決率 25%','応答率 20%','費用 10%','業務報告 10%'];
@@ -547,18 +547,19 @@ if (!/v <= 25 \? 0 : v <= 50 \? \.3 : v <= 70 \? \.8 : v <= 90 \? 1\.5 : 2\.2/.t
 
 // §16／§17: 怒り終話・翌日苦情メール・トースト全廃。
 if (gameSource.includes("kind:'supervisor'") || gameSource.includes('上長が引き取り')) bad('怒り終話に上長引き取りが残っている');
-if (JSON.stringify(ANGRY_DEFAULT_OUTCOMES) !== JSON.stringify({anxious:'hangup',novice:'complaint',expert:'complaint',hurried:'hangup'})) bad('顧客タイプ別の既定怒り終話が確定仕様と違う');
-if (Object.keys(ANGRY_END_LINES).length !== 4 || Object.values(ANGRY_END_LINES).some(lines => !lines.complaint || !lines.hangup)) bad('クレーム／切断の終話台詞が4タイプ分揃っていない');
+if (JSON.stringify(ANGRY_DEFAULT_OUTCOMES) !== JSON.stringify({anxious:'redial',novice:'email',expert:'email',hurried:'redial'})) bad('顧客タイプ別の既定苦情経路が確定仕様と違う');
+if (Object.keys(ANGRY_REDIAL_OPENINGS).length !== 4 || Object.values(ANGRY_REDIAL_OPENINGS).some(line => !line)) bad('後から掛かる苦情電話の第一声が4タイプ分揃っていない');
 if (Object.keys(COMPLAINT_EMAIL_TEMPLATES).length !== 4 || Object.values(COMPLAINT_EMAIL_TEMPLATES).some(template => !Array.isArray(template.lines) || template.lines.length < 2 || template.lines.length > 3 || !template.lines[0].includes('{symptom}'))) bad('翌日の苦情メールが4タイプ分・客自身の2〜3行で揃っていない');
 if (!gameSource.includes("endAngryCall(t, 'stress')") || !sourceOf('advanceConversationFlow').includes('endAngryCall(t, reason)')) bad('ストレス100と誤診2回目が共通の怒り終話を通らない');
-if (!gameSource.includes("csat:kind === 'complaint' ? 1.0 : 0.5")) bad('クレーム／切断のCSATが1.0／0.5ではない');
+if (!sourceOf('endAngryCall').includes("kind:'complaint'") || !sourceOf('endAngryCall').includes("label:'翌日の苦情メール'") || sourceOf('endAngryCall').includes('pendingResult')) bad('怒りの限界で即時結果を見せず、後続の苦情へ分けられない');
+if (!sourceOf('scheduleAngryRedial').includes('state.turn + MIN_INBOUND_GAP') || !sourceOf('scheduleAngryRedial').includes('ANGRY_REDIAL_OPENINGS')) bad('怒りの限界後に時間を空けた苦情再入電がない');
 if (!gameSource.includes('function complaintEmailArrives') || !gameSource.includes("(result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false")) bad('苦情メールの必着・低CSAT抽選条件がない');
 if (!gameSource.includes('翌日、次の苦情が届いています') || !pageSource.includes('.complaint-mailbox')) bad('翌日デブリーフの苦情メール別枠がない');
 if (!gameSource.includes("line.replace('{symptom}', t.s.opening)") || /template\.lines[\s\S]{0,240}(?:trueCause|causeName)/.test(gameSource)) bad('苦情メールが客の症状ではなく真因を漏らしている');
 if (/toast/i.test(pageSource + '\n' + gameSource)) bad('トーストの関数・呼び出し・DOM・CSSが残っている');
 if (!pageSource.includes('.stress-panel.alert') || !gameSource.includes("t.stress > 80 ? ' alert' : ''") || gameSource.includes('stressWarned')) bad('苛立ち80超の状態駆動点滅が往復に追従しない');
 if (!gameSource.includes("recordOfficeEvent('abandoned'") || !gameSource.includes("recordOfficeEvent('redial'") || !gameSource.includes('state.officeEvents.slice(-3)')) bad('放棄呼・再着信がオフィス状態へ移っていない');
-if (!gameSource.includes("recordOfficeEvent('closed'") || !gameSource.includes("result.label + ' CSAT ' + result.csat.toFixed(1)")) bad('案件クローズ結果がオフィス状態へ移っていない');
+if (!gameSource.includes("recordOfficeEvent('closed'") || !gameSource.includes('result.label + scoreText') || !gameSource.includes('Number.isFinite(result.csat)')) bad('案件クローズ結果がオフィス状態へ移っていない');
 
 // §18: Web Audio合成音は任意の飾りで、10場面と5段階の案件結果を区別する。
 if (!gameSource.includes('new AudioContextClass()') || !gameSource.includes('createOscillator()') || !gameSource.includes('createGain()')) bad('Web Audioのコード合成がない');
@@ -576,7 +577,7 @@ if (!gameSource.includes('id="balance-sound"') || !gameSource.includes('id="bala
 // §58: 顧客の打鍵音だけを性別で穏やかに分け、性別不明は中間音へ戻す。
 const pitch58 = sourceOf('typeSoundFrequency');
 const typeSound58 = sourceOf('playTypeSound');
-if (!gameSource.includes("const TYPE_SOUND_BASE_HZ = Object.freeze({ male:660, neutral:760, female:860 })") || !pitch58.includes("line.who === 'cust'") || !pitch58.includes('ticket.s.gender') || !pitch58.includes('TYPE_SOUND_BASE_HZ.neutral')) bad('§58 顧客の男女と性別不明の打鍵音を3つの高さに分けていない');
+if (!gameSource.includes("const TYPE_SOUND_BASE_HZ = Object.freeze({ male:380, neutral:760, female:1520 })") || !pitch58.includes("line.who === 'cust'") || !pitch58.includes('ticket.s.gender') || !pitch58.includes('TYPE_SOUND_BASE_HZ.neutral')) bad('§67 顧客の男女の打鍵音を中立から1オクターブずつ分けていない');
 if (/trueCause|handoverSymptom|\.opening|\.type\b/.test(pitch58 + typeSound58)) bad('§58 声の高さが性別以外の症状・真因・顧客タイプを漏らしている');
 if (!typeSound58.includes(".018, {type:'square',level:.025}") || !sourceOf('startTyping').includes('playTypeSound(pos, line, t)')) bad('§58 打鍵音の音量・長さを維持して話し手を渡していない');
 if (sourceOf('pendingTypedLine').includes("x.who === 'me'")) bad('§58 オペレーター発話に顧客と同じ文字送り音を付けている');
@@ -636,8 +637,8 @@ try {
   const drawArrivals15 = new Function('LAST_INBOUND_TURN','MIN_INBOUND_GAP', sourceOf('drawInboundArrivalTurns') + '\nreturn drawInboundArrivalTurns;')(LAST_INBOUND_TURN,MIN_INBOUND_GAP);
   const prepare15 = new Function('shuffleScenarios','dailyTicketCount','drawInboundArrivalTurns','assignScenarioIdentities', sourceOf('prepareDailyScenarios') + '\nreturn prepareDailyScenarios;')(shuffle15,dailyCount15,drawArrivals15,scenarios => scenarios);
   // 1-2. 何度選んでも2〜5件で、乱数境界により日ごとに変わる。
-  const counts15 = [0,.249999,.25,.5,.999999].map(value => dailyCount15(() => value, {dailyTickets:null}));
-  if (JSON.stringify(counts15) !== JSON.stringify([2,2,3,4,5]) || new Set(counts15).size !== 4) bad('1日件数が2〜5の範囲で日ごとに変わらない');
+  const counts15 = [0,.199999,.2,.799999,.8,.899999,.9,.999999].map(value => dailyCount15(() => value, {dailyTickets:null}));
+  if (JSON.stringify(counts15) !== JSON.stringify([2,2,3,3,4,4,5,5]) || new Set(counts15).size !== 4) bad('1日件数が20%/60%/10%/10%の境界で2〜5件にならない');
   // 3-5. 重複なし、勤務の器の中で06:00まで・20分以上離して着信。
   [2,3,4,5].forEach(count => {
     const selected = prepare15(SCENARIOS, () => .37, {dailyTickets:count,shuffleArrival:true});
@@ -659,7 +660,7 @@ if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('rend
 // 6. 夜勤は23:00〜07:00で終了し、残件は放棄呼にする。
 if (SHIFT_START !== 23 * 60 || SHIFT_END - SHIFT_START !== 8 * 60 || !sourceOf('checkShiftEnd').includes('state.clock >= SHIFT_END') || !sourceOf('finishShiftAtTime').includes('abandonTicket(t')) bad('夜勤が23:00〜07:00で終わらない、または残件を放棄呼にしない');
 // 7. 集計と表示が実件数を使い、2件の日の空欄にも表示を持つ。
-if (!sourceOf('metrics').includes('answered.length / answerAttempts') || !sourceOf('renderReport').includes("state.tickets.length + '件（入電 '") || !sourceOf('renderReport').includes('該当する特記事項はありません。') || !sourceOf('careerBriefingHtml').includes("' ／ 入電 ' + inboundCount")) bad('レポート集計・ブリーフィング・空項目が当日の入電・引き継ぎ実件数に追従しない');
+if (!sourceOf('metrics').includes('answered.length / answerAttempts') || !sourceOf('renderReport').includes("state.tickets.length + '件（入電 '") || !sourceOf('renderReport').includes('該当する特記事項はありません。') || /inboundCount|handoverCount/.test(sourceOf('careerBriefingHtml'))) bad('レポート集計が実件数に追従しない、またはブリーフィングが件数を漏らす');
 if (!sourceOf('resetGame').includes('prepareShiftScenarios(SCENARIOS, state.random).map(newTicket)')) bad('resetGameが入電・引き継ぎ案件の選択を使わない');
 
 // §21-7: 会話の継ぎ目に関する12検査。
@@ -667,13 +668,13 @@ const actions21 = sourceOf('renderActions');
 const refund21 = sourceOf('doRefund');
 const angry21 = sourceOf('endAngryCall');
 const close21 = sourceOf('doClose') + sourceOf('finishSuccessfulClose');
-// 1. 5経路はすべてpendingResultで待ち、顧客発話中はボタンを出さない。
-if (!actions21.includes('if (pendingTypedLine(t))') || !refund21.includes('t.pendingResult = {') || !angry21.includes('t.pendingResult = {') || !close21.includes('t.pendingResult = result') || refund21.includes('closeTicket(') || angry21.includes('closeTicket(') || close21.includes('closeTicket(t, result)')) bad('5経路のいずれかが顧客最終発話より先に終話する');
-// 2. 経路別ボタン。
+// 1. 通常解決と返金はpendingResultで最後の顧客発話を待つ。怒りの限界は§67で即時切断する。
+if (!actions21.includes('if (pendingTypedLine(t))') || !refund21.includes('t.pendingResult = {') || !close21.includes('t.pendingResult = result') || refund21.includes('closeTicket(') || close21.includes('closeTicket(t, result)') || angry21.includes('pendingResult')) bad('通常解決・返金の発話待ち、または怒りの即時切断が崩れている');
+// 2. すべての終話経路で同じボタン文言。
 const resultLabel21 = sourceOf('pendingResultButtonLabel');
-if (!resultLabel21.includes("result.kind === 'complaint' || result.kind === 'hangup'") || !resultLabel21.includes("'オフィスへ戻る'") || !resultLabel21.includes("'電話を切る'")) bad('終話ボタンが経路別の文言になっていない');
+if (!resultLabel21.includes("return '電話を切る'") || resultLabel21.includes("'オフィスへ戻る'")) bad('終話ボタンが全経路で「電話を切る」に揃っていない');
 // 3. すべての終話経路にオペレーター発話を置く。
-if (!close21.includes('resolutionOperatorClosing(') || !refund21.includes('CALL_FLOW_LINES.ending.refundSatisfied') || !refund21.includes('CALL_FLOW_LINES.ending.refundDissatisfied') || !angry21.includes('CALL_FLOW_LINES.ending[kind]')) bad('終話経路の最後付近にオペレーター発話が揃っていない');
+if (!close21.includes('resolutionOperatorClosing(') || !refund21.includes('CALL_FLOW_LINES.ending.refundSatisfied') || !refund21.includes('CALL_FLOW_LINES.ending.refundDissatisfied') || !angry21.includes('お客様との通話が切れました。')) bad('通常終話のオペレーター発話、または怒り切断の中立記録が揃っていない');
 // 4. 誤診2回目の順序。
 const misFailure21 = close21.indexOf('CALL_FLOW_LINES.misdiagnosis.failure');
 const misApology21 = close21.indexOf('CALL_FLOW_LINES.misdiagnosis.apology');
@@ -912,7 +913,7 @@ if (!ticket55.includes("state:handover ? 'callback' : 'inbound'") || !ticket55.i
 const meeting55 = sourceOf('showHandoverMeeting');
 if (!meeting55.includes('ticket.s.name') || !meeting55.includes('ticket.s.handoverSymptom') || !meeting55.includes('fmtClock(ticket.callbackDue)') || /trueCause|\.facts|\.lookups|\.opening|CAUSES|REMEDIES/.test(meeting55)) bad('§55 23時の引き継ぎMTGが誰か・何が・いつの3点に限られていない');
 if (!meeting55.includes("'様</strong>が「'") || !meeting55.includes("'」とお困りなので、<strong>'") || !meeting55.includes("'ごろ</strong>に連絡してください。</p></article>'") || /<dt>|誰か|何が|いつ/.test(meeting55) || (meeting55.match(/ticket\.s\.name/g) || []).length !== 1) bad('§55 23時の引き継ぎMTGがラベルや重複のない1行の申し送りになっていない');
-if (!sourceOf('startShiftFromBriefing').includes('if (handoverMeetingTickets().length)') || !sourceOf('careerBriefingHtml').includes("件 ／ 引き継ぎ ' + handoverCount")) bad('§55 引き継ぎ0件の日に空の会議を飛ばせない、または0件と分からない');
+if (!sourceOf('startShiftFromBriefing').includes('if (handoverMeetingTickets().length)')) bad('§55 引き継ぎ0件の日に空の会議を飛ばせない');
 const available55 = sourceOf('handoverCustomerAvailable');
 if (HANDOVER_ANSWER_RATE !== .5 || !available55.includes('flags.luckRate === 1') || !available55.includes('state.random() < HANDOVER_ANSWER_RATE')) bad('§55 在室50%またはluckRate 1で必ず在室にならない');
 const resume55 = sourceOf('resumeHandoverCallback');

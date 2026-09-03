@@ -15,7 +15,7 @@ let officeRingTimer = null;
 let officeRingLit = false;
 let audioContext = null;
 let audioUnlockStatus = 'idle';
-const TYPE_SOUND_BASE_HZ = Object.freeze({ male:660, neutral:760, female:860 });
+const TYPE_SOUND_BASE_HZ = Object.freeze({ male:380, neutral:760, female:1520 });
 
 function currentAudioContextState(){
   return audioContext && audioContext.state ? audioContext.state : 'not-created';
@@ -156,6 +156,7 @@ function playBadActionSound(){ withAudio((ctx, volume) => { synthTone(ctx, volum
 
 function closeSoundKind(result){
   if (result.kind === 'complaint' || result.kind === 'hangup') return 'accident';
+  if (result.kind === 'deferred') return 'neutral';
   if (result.kind === 'abandoned' || result.csat < 2) return 'failure';
   if (result.csat >= 4) return 'fanfare';
   if (result.csat >= 3) return 'success';
@@ -647,7 +648,7 @@ function renderOffice(){
     : '折り返し 0件';
   $('office-desk').disabled = !callbacks.length;
   $('office-desk-status').textContent = callbacks.length ? '調査可能 ' + callbacks.length + '件' : '調査可能 0件';
-  $('office-verify').disabled = waiting.length > 0;
+  $('office-verify').disabled = waiting.length > 0 || readyCallbacks.length > 0;
   $('office-verify-status').textContent = '完了 ' + state.verifiedDevices + '台 ／ 作業 ' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分';
   startTimePassageIfNeeded();
 }
@@ -904,7 +905,7 @@ function renderActions(t){
 }
 
 function pendingResultButtonLabel(result){
-  return result.kind === 'complaint' || result.kind === 'hangup' ? 'オフィスへ戻る' : '電話を切る';
+  return '電話を切る';
 }
 
 function renderCallCompletionButton(note, label){
@@ -1379,12 +1380,10 @@ function initializeCareer(){
 
 function careerBriefingHtml(){
   const career = state.career || freshCareerRecord();
-  const inboundCount = state.tickets.filter(ticket => !ticket.handover).length;
-  const handoverCount = state.tickets.filter(ticket => ticket.handover).length;
   const storageNote = career.totals.days === 0
     ? '<span>勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。</span>'
     : '';
-  return '<section class="career-briefing"><b>' + (career.totals.days + 1) + '日目 ／ ' + esc(CAREER_STAGES[career.stage].label) + ' ／ 入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件</b>' +
+  return '<section class="career-briefing"><b>' + (career.totals.days + 1) + '日目 ／ ' + esc(CAREER_STAGES[career.stage].label) + '</b>' +
     storageNote + '</section>';
 }
 

@@ -91,7 +91,11 @@ function dailyTicketCount(random, flags = GAME_FLAGS){
     }
     return flags.dailyTickets;
   }
-  return 2 + Math.floor(random() * 4);
+  const roll = random();
+  if (roll < 0.2) return 2;
+  if (roll < 0.8) return 3;
+  if (roll < 0.9) return 4;
+  return 5;
 }
 
 function handoverTicketCount(random, flags = GAME_FLAGS){
@@ -534,7 +538,7 @@ function abandonTicket(t, note){
 }
 
 function unscoredOutcome(t){
-  return Boolean(t && t.result && ['unavailable','handed_off'].includes(t.result.kind));
+  return Boolean(t && t.result && ['unavailable','handed_off','deferred'].includes(t.result.kind));
 }
 
 function handoffActiveTicket(t){
@@ -603,7 +607,8 @@ function advance(turns){
    着信した分で止める。途中までの作業は、通話後に同じ台から再開できる。 */
 function runDeviceVerification(){
   const alreadyWaiting = state.tickets.some(t => t.state === 'waiting');
-  if (state.phase !== 'office' || state.focus || alreadyWaiting) return { advanced:0, interrupted:alreadyWaiting, completed:false };
+  const callbackReady = state.tickets.some(t => t.state === 'callback' && t.callbackDue <= state.clock);
+  if (state.phase !== 'office' || state.focus || alreadyWaiting || callbackReady) return { advanced:0, interrupted:alreadyWaiting || callbackReady, completed:false };
   const remaining = DEVICE_VERIFICATION_MINUTES - state.deviceVerificationMinutes;
   let advanced = 0;
   let completed = false;
@@ -618,11 +623,13 @@ function runDeviceVerification(){
       recordOfficeEvent('verification', '返却機の検証を1台完了しました（累計 ' + state.verifiedDevices + '台）。');
       break;
     }
-    if (state.tickets.some(t => t.state === 'waiting')) break;
+    if (state.tickets.some(t => t.state === 'waiting' || (t.state === 'callback' && t.callbackDue <= state.clock))) break;
   }
-  const interrupted = state.phase !== 'report' && state.tickets.some(t => t.state === 'waiting');
+  const waitingInterrupted = state.phase !== 'report' && state.tickets.some(t => t.state === 'waiting');
+  const callbackInterrupted = state.phase !== 'report' && state.tickets.some(t => t.state === 'callback' && t.callbackDue <= state.clock);
+  const interrupted = waitingInterrupted || callbackInterrupted;
   if (interrupted && !completed){
-    recordOfficeEvent('verification', '着信のため機器検証を中断しました（' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分）。');
+    recordOfficeEvent('verification', (callbackInterrupted ? '折り返し時刻になったため' : '着信のため') + '機器検証を中断しました（' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分）。');
   }
   if (state.phase === 'office') renderOffice();
   return { advanced, interrupted, completed };
@@ -878,36 +885,46 @@ function changeStress(t, delta, expectedOutcome = rollLuck()){
 function angryOutcomeKind(t){
   const normal = ANGRY_DEFAULT_OUTCOMES[t.s.type];
   if (rollLuck()) return normal;
-  return normal === 'complaint' ? 'hangup' : 'complaint';
+  return normal === 'email' ? 'redial' : 'email';
+}
+
+function scheduleAngryRedial(t){
+  let candidate = state.turn + MIN_INBOUND_GAP;
+  while (candidate <= LAST_INBOUND_TURN && !inboundSlotAvailable(candidate)) candidate++;
+  if (candidate > LAST_INBOUND_TURN) return false;
+  t.redialCount++;
+  t.state = 'inbound';
+  t.arrivedTurn = candidate;
+  t.greeted = false;
+  t.redialOpening = ANGRY_REDIAL_OPENINGS[t.s.type];
+  t.redialSpoken = false;
+  t.redialGreeting = true;
+  t.stress = Math.min(t.stress, 80);
+  t.pendingConversation = null;
+  state.focus = null;
+  state.ui = defaultUi();
+  playDisconnectSound();
+  recordOfficeEvent('redial', customerLabel(t, true) + 'から' + fmtClock(SHIFT_START + candidate) + '以降に苦情の再入電予定です。');
+  enterOffice();
+  return true;
 }
 
 function endAngryCall(t, reason){
-  const kind = angryOutcomeKind(t);
-  pushFlowLines(t, [
-    { who:'cust', text:ANGRY_END_LINES[t.s.type][kind] },
-    { who:'me', text:CALL_FLOW_LINES.ending[kind] },
-  ]);
-  t.transcript.push({
-    who:'note',
-    text:kind === 'complaint'
-      ? 'お客様は強い苦情を述べて通話を終えました。'
-      : 'お客様は一方的に通話を切りました。',
-  });
+  t.transcript.push({ who:'note', text:'お客様との通話が切れました。' });
   // §45: 折り返しを約束していたなら、怒って切られても約束は生きている。折り返さないほうが業務として悪い。
   if (t.callbackPromised){
     t.transcript.push({ who:'note', text:'お客様から切られましたが、折り返しのお約束は残っています。' });
     finishPromisedCallback(t, false);
     return false;
   }
-  t.pendingResult = {
-    kind,
-    reason,
-    csat:kind === 'complaint' ? 1.0 : 0.5,
-    label:kind === 'complaint' ? 'クレーム終話' : '一方的な切断',
+  const followup = angryOutcomeKind(t);
+  if (followup === 'redial' && scheduleAngryRedial(t)) return false;
+  const result = {
+    kind:'complaint', reason, csat:1.0, label:'翌日の苦情メール',
     firstCallResolved:false,
   };
   t.pendingConversation = null;
-  state.ui = defaultUi();
+  closeTicket(t, result);
   render();
   return false;
 }
@@ -1668,22 +1685,6 @@ function confirmShipment(){
 
 /* ---------- クローズ判定 ---------- */
 
-function queueUnverifiableRedial(t){
-  if (state.phase === 'report') return;
-  t.redialCount++;
-  t.state = 'waiting';
-  t.arrivedTurn = state.turn;
-  t.greeted = false;
-  t.redialOpening = CALL_FLOW_LINES.unverifiable.redial[t.s.type];
-  t.redialSpoken = false;
-  t.redialGreeting = true;
-  state.focus = null;
-  state.ui = defaultUi();
-  playDisconnectSound();
-  recordOfficeEvent('redial', customerLabel(t, true) + 'から再入電しています。');
-  enterOffice();
-}
-
 /* §51-2: 解決したあと、電話を切るまでの間に名前を伺える。用は済んでいるので、
    怒っていた客も答える。伺えれば記録が残せるので、記録不足の減点を返す。
    戻すだけで加点はしない——最初から聞いていた対応と同じ点に戻るだけ。 */
@@ -1746,6 +1747,39 @@ function finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched){
   render();
 }
 
+function finishDeferredArrangement(t, remedy, causeId, remedyId, causeMatched){
+  if (remedy.cost) state.cost += remedy.cost;
+  if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
+  pushFlowLines(t, [
+    { who:'cust', text:CALL_FLOW_LINES.unverifiable.closing[t.s.type] },
+    { who:'me', text:'手配内容を記録しました。結果が分かりましたら、あらためてご連絡ください。失礼いたします。' },
+  ]);
+  t.pendingResult = {
+    kind:'deferred', csat:null, label:'手配完了（結果待ち）', remedyId, causeId, causeMatched,
+    firstCallResolved:false,
+  };
+  t.transcript.push({ who:'note', text:'手配は完了しました。通信復旧の成否は、配送・引き継ぎ後に確認されます。' });
+  state.ui = defaultUi();
+  render();
+}
+
+function finishRemedyRefund(t, remedy, causeId, remedyId, causeMatched){
+  const assessment = refundAssessment(t);
+  const satisfied = refundSatisfied(t, assessment);
+  state.cost += remedy.cost || REFUND_POLICY.amount;
+  pushCustomerLine(t, satisfied
+    ? '返金の件、分かりました。通信は戻っていませんが、今回は受け取ります。'
+    : '返金されても通信は戻らないんですね…。これで終わりには納得できません。', { plain:true });
+  pushFlowLines(t, [{ who:'me', text:satisfied ? CALL_FLOW_LINES.ending.refundSatisfied : CALL_FLOW_LINES.ending.refundDissatisfied }]);
+  t.pendingResult = {
+    kind:'refunded', satisfied, diagnosed:true, refundComplaint:!satisfied,
+    csat:satisfied ? 2.5 : 1.0, label:satisfied ? '返金で終結（未解決）' : '返金で終結（不満）',
+    remedyId, causeId, causeMatched, firstCallResolved:false,
+  };
+  state.ui = defaultUi();
+  render();
+}
+
 function doClose(causeId, remedyId){
   const t = state.focus;
   const s = t.s;
@@ -1759,6 +1793,14 @@ function doClose(causeId, remedyId){
 
   const causeMatched = causeId === s.trueCause;
   if (causeMatched) playClueSound();
+  if (remedy.outcomeMode === 'refund'){
+    finishRemedyRefund(t, remedy, causeId, remedyId, causeMatched);
+    return;
+  }
+  if (remedy.outcomeMode === 'arrangement'){
+    finishDeferredArrangement(t, remedy, causeId, remedyId, causeMatched);
+    return;
+  }
   const treatmentWorked = remedy.reportsRestored ? causeMatched && t.carrierRestored : treatmentSucceeds(causeMatched);
   // 見立て違いのやり直し時間は選択内容で決まり、抽選結果では揺らさない。
   if (!causeMatched) advance(2);
@@ -1779,18 +1821,6 @@ function doClose(causeId, remedyId){
     }
     if (remedy.cost) state.cost += remedy.cost;
     if (remedy.kind === 'escalate'){ state.escLeft--; t.escUsed = true; }
-
-    // 手配・説明・返金は客が通話中に成否を確かめられない。いったん納得して終え、
-    // 後で未復旧を責めて掛け直す（既存の再入電状態を使う）。
-    if (!remedy.verifiable && (causeMatched || t.misdiagnoses < 2)){
-      pushFlowLines(t, [
-        { who:'cust', text:CALL_FLOW_LINES.unverifiable.closing[s.type] },
-        { who:'me', text:'承知しました。引き継ぎ結果が分かり次第、対応いたします。失礼いたします。' },
-      ]);
-      t.transcript.push({ who:'note', text:'客が結果待ちで終話し、未復旧のため後から再入電する予定です。' });
-      queueUnverifiableRedial(t);
-      return;
-    }
 
     if (!causeMatched && t.misdiagnoses >= 2){
       pushFlowLines(t, [
@@ -1924,7 +1954,8 @@ function closeTicket(t, result){
   t.attempts.push({ ...result, atTurn:state.turn, arrivedTurn:t.arrivedTurn });
   playDisconnectSound();
   playCloseJingle(result);
-  recordOfficeEvent('closed', t.s.id + '：' + result.label + ' CSAT ' + result.csat.toFixed(1));
+  const scoreText = Number.isFinite(result.csat) ? ' CSAT ' + result.csat.toFixed(1) : '';
+  recordOfficeEvent('closed', t.s.id + '：' + result.label + scoreText);
   if (state.focus === t) state.focus = null;
   state.ui = defaultUi();
   checkShiftEnd();
@@ -1936,7 +1967,7 @@ function closeTicket(t, result){
    その場の CSAT は書き換えない。「満点だった」ことと「後から発覚した」ことは、
    どちらも起きた事実として残す。 */
 function misdiagnosisResurfaces(result){
-  return (result.kind === 'closed' || result.kind === 'refunded') && result.causeMatched === false;
+  return (result.kind === 'closed' || result.kind === 'refunded' || result.kind === 'deferred') && result.causeMatched === false;
 }
 
 function complaintEmailArrives(result){

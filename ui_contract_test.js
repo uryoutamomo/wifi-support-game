@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {SHIFT_START,SHIFT_DURATION,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,DEVICE_VERIFICATION_MINUTES,CALL_CHARGE_COMPLAINT_TYPES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_THREE_HOURS_MINUTES,CALLBACK_TOMORROW_DUE,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,SOUND_SETTINGS,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
-const { SHIFT_START, SHIFT_DURATION, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, DEVICE_VERIFICATION_MINUTES, CALL_CHARGE_COMPLAINT_TYPES, CALLBACK_SCHEDULED_MINUTES, CALLBACK_THREE_HOURS_MINUTES, CALLBACK_TOMORROW_DUE,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, SOUND_SETTINGS, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {SHIFT_START,SHIFT_DURATION,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,DEVICE_VERIFICATION_MINUTES,CALL_CHARGE_COMPLAINT_TYPES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_THREE_HOURS_MINUTES,CALLBACK_TOMORROW_DUE,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,SOUND_SETTINGS,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_REDIAL_OPENINGS,COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
+const { SHIFT_START, SHIFT_DURATION, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, DEVICE_VERIFICATION_MINUTES, CALL_CHARGE_COMPLAINT_TYPES, CALLBACK_SCHEDULED_MINUTES, CALLBACK_THREE_HOURS_MINUTES, CALLBACK_TOMORROW_DUE,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, SOUND_SETTINGS, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_REDIAL_OPENINGS, COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -415,11 +415,44 @@ assert(remedies43.every(remedy => typeof remedy.verifiable === 'boolean'), '§43
   assert(remedy && remedy.verifiable === false, '§43-6 検査2: 手配・返金・説明系がverifiable:falseではない: ' + id);
 });
 const close43 = functionSource('doClose');
-const redial43 = functionSource('queueUnverifiableRedial');
 assert(!close43.includes('運が悪かった'), '抽選結果が画面・ログ・transcriptに漏れる');
-assert(/if \(!remedy\.verifiable && \(causeMatched \|\| t\.misdiagnoses < 2\)\)/.test(close43), '§43-6 検査3: 確かめられない対処の失敗を後日の再入電へ分けない');
-assert(close43.includes('CALL_FLOW_LINES.unverifiable.closing[s.type]') && close43.includes('queueUnverifiableRedial(t)'), '§43-6 検査4: 結果待ちの終話と再入電がない');
-assert(redial43.includes('t.redialCount++') && redial43.includes('t.redialOpening') && redial43.includes('t.redialGreeting = true'), '§43-6 検査5: 再入電が既存のredial状態を使わない');
+assert(remedies43.every(remedy => ['treatment','arrangement','refund'].includes(remedy.outcomeMode)), '§67 検査A1: 対処が治療・手配・返金の3種類に分かれていない');
+['r_outage_explain','r_coverage_refund','r_hardware_no_swap','r_logistics_refund'].forEach(id => {
+  assert(remedies43.find(remedy => remedy.id === id).outcomeMode === 'refund', '§67 検査A2: 返金対処が金銭解決に分類されない: ' + id);
+});
+['r_escalate_line','r_coverage_replacement','r_hardware_swap','r_logistics_replacement'].forEach(id => {
+  assert(remedies43.find(remedy => remedy.id === id).outcomeMode === 'arrangement', '§67 検査A3: 手配対処が結果待ちに分類されない: ' + id);
+});
+const deferred43 = functionSource('finishDeferredArrangement');
+const refund43 = functionSource('finishRemedyRefund');
+assert(close43.includes("if (remedy.outcomeMode === 'refund'){") && close43.includes("if (remedy.outcomeMode === 'arrangement'){") && close43.indexOf("remedy.outcomeMode === 'refund'") < close43.indexOf('treatmentSucceeds(') && close43.indexOf("remedy.outcomeMode === 'arrangement'") < close43.indexOf('treatmentSucceeds('), '§67 検査A4: 手配・返金が通信復旧の抽選に入る');
+assert(deferred43.includes("kind:'deferred'") && deferred43.includes('通信復旧の成否は、配送・引き継ぎ後に確認') && !/繋がりました|つながりました/.test(deferred43), '§67 検査A5: 手配直後に復旧を確定する');
+assert(refund43.includes("kind:'refunded'") && refund43.includes('通信は戻っていません') && !refund43.includes('treatmentSucceeds'), '§67 検査A6: 返金が通信復旧として扱われる');
+const deferredState67 = {cost:0,escLeft:3,ui:null};
+const deferredTicket67 = {s:{type:'novice'},transcript:[],escUsed:false,pendingResult:null};
+const runDeferred67 = new Function('state','CALL_FLOW_LINES','pushFlowLines','defaultUi','render', deferred43 + '\nreturn finishDeferredArrangement;')(
+  deferredState67,CALL_FLOW_LINES,(ticket,lines) => ticket.transcript.push(...lines),() => ({}),() => {}
+);
+runDeferred67(deferredTicket67,{cost:28000,kind:'escalate'},'hardware','r_hardware_swap',true);
+assert(deferredTicket67.pendingResult && deferredTicket67.pendingResult.kind === 'deferred' && deferredTicket67.pendingResult.csat === null && deferredState67.cost === 28000 && deferredState67.escLeft === 2 && deferredTicket67.escUsed, '§67 検査A9: 手配を結果待ち・未採点として閉じられない');
+assert(!deferredTicket67.transcript.some(line => /繋がりました|つながりました/.test(line.text)), '§67 検査A10: 手配の実挙動がその場の復旧を告げる');
+const refundState67 = {cost:0,ui:null};
+const refundTicket67 = {s:{type:'novice'},transcript:[],pendingResult:null};
+const runRemedyRefund67 = new Function('state','REFUND_POLICY','refundAssessment','refundSatisfied','pushCustomerLine','pushFlowLines','CALL_FLOW_LINES','defaultUi','render', refund43 + '\nreturn finishRemedyRefund;')(
+  refundState67,REFUND_POLICY,() => ({diagnosed:true}),() => true,(ticket,text) => ticket.transcript.push({who:'cust',text}),(ticket,lines) => ticket.transcript.push(...lines),CALL_FLOW_LINES,() => ({}),() => {}
+);
+runRemedyRefund67(refundTicket67,{cost:2400},'logistics','r_logistics_refund',true);
+assert(refundTicket67.pendingResult && refundTicket67.pendingResult.kind === 'refunded' && refundTicket67.pendingResult.causeMatched && refundState67.cost === 2400, '§67 検査A11: 診断後の返金が金銭解決として完了しない');
+assert(refundTicket67.transcript.some(line => line.text.includes('通信は戻っていません')) && !refundTicket67.transcript.some(line => /繋がりました|つながりました/.test(line.text)), '§67 検査A12: 診断後の返金が未復旧を伝えない');
+const closeDeferredState67 = {focus:null,ui:null,turn:10};
+const closeDeferredTicket67 = {s:{id:'S67'},attempts:[]};
+closeDeferredState67.focus = closeDeferredTicket67;
+let closeDeferredNotice67 = '';
+const closeDeferred67 = new Function('state','complaintEmailArrives','misdiagnosisResurfaces','gratitudeEmailArrives','playDisconnectSound','playCloseJingle','recordOfficeEvent','defaultUi','checkShiftEnd', functionSource('closeTicket') + '\nreturn closeTicket;')(
+  closeDeferredState67,() => false,() => false,() => false,() => {},() => {},(_kind,text) => { closeDeferredNotice67 = text; },() => ({}),() => {}
+);
+assert.doesNotThrow(() => closeDeferred67(closeDeferredTicket67,{kind:'deferred',csat:null,label:'手配完了（結果待ち）',firstCallResolved:false}), '§67 検査A13: 未採点の結果待ちを閉じるとCSAT表示で落ちる');
+assert(closeDeferredTicket67.state === 'closed' && closeDeferredNotice67 === 'S67：手配完了（結果待ち）', '§67 検査A14: 結果待ちのオフィス記録へ架空のCSATを表示する');
 assert(close43.includes('t.misdiagnoses >= 2'), '§43-6 検査7: 2回目誤診の上長引き取りが消えている');
 assert(close43.includes("s.panel.bars === 0 || s.panel.sim === 'none'") && close43.includes('CALL_FLOW_LINES.unverifiable.noSignal[s.type]'), '§43-6 検査8: 圏外の客に復旧可否を判断させる');
 const s3_43 = SCENARIOS.find(s => s.id === 'S3');
@@ -456,8 +489,8 @@ function runCloseContract(causeMatched, expectedOutcome, nameKnown = false, iden
   const deps = {
     state:closeState,
     REMEDIES:{
-      right:[{id:'r_right', label:'正しい対処', cost:100, kind:'guide', verifiable:true}],
-      wrong:[{id:'r_wrong', label:'誤った対処', cost:200, kind:'guide', verifiable:true}],
+      right:[{id:'r_right', label:'正しい対処', cost:100, kind:'guide', verifiable:true, outcomeMode:'treatment'}],
+      wrong:[{id:'r_wrong', label:'誤った対処', cost:200, kind:'guide', verifiable:true, outcomeMode:'treatment'}],
     },
     TYPES:{ hurried:{tone:'brief'} },
     IDENTITY_RECORD_PENALTY,
@@ -476,6 +509,7 @@ function runCloseContract(causeMatched, expectedOutcome, nameKnown = false, iden
     gradeLabel:grade => grade === 'best' ? '解決' : grade,
     defaultUi:() => ({}), closingLine:() => '解決しました', farewellLine:() => 'ありがとうございました',
     resolutionOperatorClosing:() => '失礼いたします', CALL_FLOW_LINES,
+    finishRemedyRefund:() => {}, finishDeferredArrangement:() => {},
   };
   const run = new Function(...Object.keys(deps), functionSource('finishSuccessfulClose') + '\n' + functionSource('doClose') + '\nreturn doClose;')(...Object.values(deps));
   run(causeMatched ? 'right' : 'wrong', causeMatched ? 'r_right' : 'r_wrong');
@@ -763,8 +797,8 @@ const prepareDailyScenarios = new Function(
   'shuffleScenarios','dailyTicketCount','drawInboundArrivalTurns','assignScenarioIdentities',
   functionSource('prepareDailyScenarios') + '\nreturn prepareDailyScenarios;'
 )(shuffleScenarios, dailyTicketCount, drawInboundArrivalTurns, scenarios => scenarios);
-const randomCounts = [0,.249999,.25,.5,.999999].map(value => dailyTicketCount(() => value, {dailyTickets:null}));
-assert.deepEqual(randomCounts, [2,2,3,4,5], 'ランダムな1日件数が2〜5の境界に収まらない');
+const randomCounts = [0,.199999,.2,.799999,.8,.899999,.9,.999999].map(value => dailyTicketCount(() => value, {dailyTickets:null}));
+assert.deepEqual(randomCounts, [2,2,3,3,4,4,5,5], '§67 検査D1: 1日件数が20%/60%/10%/10%の境界に収まらない');
 assert(new Set(randomCounts).size === 4, '1日件数が日によって変わらない');
 
 const dailyFlags = count => ({dailyTickets:count,shuffleArrival:true});
@@ -804,7 +838,7 @@ const closeDeskLookup52 = new Function('state','enterOffice', functionSource('cl
 );
 closeDeskLookup52();
 assert(enterOffice52State.phase === 'report' && reportOfficeRenders52 === 0, '§52 検査2: 07:00の日報後にデスク照会からオフィスへ戻って進行不能になる');
-assert(functionSource('queueUnverifiableRedial').startsWith("function queueUnverifiableRedial(t){\n  if (state.phase === 'report') return;"), '§52 検査2: 07:00後に未検証対処が放棄呼を再入電待ちへ戻す');
+assert(functionSource('finishDeferredArrangement').includes("kind:'deferred'") && functionSource('unscoredOutcome').includes("'deferred'"), '§67 検査A7: 結果待ちの手配を勤務中の解決として採点する');
 const briefing52 = functionSource('showBriefing');
 const balance52 = functionSource('showBalanceConsole');
 assert(!page.includes('22:00') && briefing52.includes('fmtClock(SHIFT_START)') && balance52.includes('fmtClock(SHIFT_START)') && !balance52.includes('s.arrive') && functionSource('renderDebrief').includes('fmtClock(SHIFT_START)'), '§52 検査1: 画面に出る勤務開始時刻がSHIFT_STARTと一致しない');
@@ -856,7 +890,7 @@ const renderTwoTicketReport = new Function(
 )(twoTicketState, SCENARIOS, () => ({special:[],handoff:[]}), () => ({abandoned:0,unscored:0,aht:null}), () => reportSheet, () => '22:00', String, () => 0, () => {}, () => false);
 renderTwoTicketReport();
 assert(reportSheet.innerHTML.includes('対応件数 2件') && reportSheet.innerHTML.includes('該当する特記事項はありません。'), '2件の日のレポートが件数と空項目を成立させて表示しない');
-assert(functionSource('careerBriefingHtml').includes("' ／ 入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件</b>'") && functionSource('renderReport').includes("state.tickets.length + '件（入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件"), '当日の入電・引き継ぎ実件数がブリーフィングとレポートに表示されない');
+assert(!/inboundCount|handoverCount|入電|引き継ぎ/.test(functionSource('careerBriefingHtml')) && functionSource('renderReport').includes("state.tickets.length + '件（入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件"), '§67 検査E1: ブリーフィングが今夜の件数を漏らす、または勤務後レポートから実績が消える');
 assert(Object.prototype.hasOwnProperty.call(GAME_FLAGS, 'dailyTickets') && GAME_FLAGS.dailyTickets === null, 'GAME_FLAGSから日次件数を固定できない');
 
 const baselineClosed = runCloseContract(true, true);
@@ -966,47 +1000,50 @@ assert(game.includes("if ((l.who === 'cust' || l.who === 'front' || l.who === 's
 assert(game.includes('if (t.shipment && t.shipment.remedyId === remedyId){'), '同じ配送手配の重複防止がない');
 assert(game.includes("renderCommandHead('国際配送の手配', '配送方法を選んでください。')"), '配送画面の戻る導線がない');
 
-// §16: 怒りによる終話はクレーム／一方的切断だけ。苦情メールは翌日のデブリーフだけに出す。
+// §67-F: 怒りの限界では通話だけが切れ、不満は後から再入電かメールで表面化する。
 assert(!game.includes("kind:'supervisor'") && !game.includes('上長が引き取り'), '怒り終話に上長引き取りが残っている');
-assert(changeStressSource.includes("endAngryCall(t, 'stress')"), 'ストレス100がクレーム／切断以外の経路へ進む');
+assert(changeStressSource.includes("endAngryCall(t, 'stress')"), 'ストレス100が後続苦情の共通経路へ進まない');
 
 const angryKindSource = functionSource('angryOutcomeKind');
 const makeAngryKind = expected => new Function(
   'ANGRY_DEFAULT_OUTCOMES', 'rollLuck', angryKindSource + '\nreturn angryOutcomeKind;'
 )(ANGRY_DEFAULT_OUTCOMES, () => expected);
 const angryTypes = ['anxious','novice','expert','hurried'];
-assert.deepEqual(angryTypes.map(type => makeAngryKind(true)({s:{type}})), ['hangup','complaint','complaint','hangup'], '顧客タイプ別の既定終話が確定仕様と違う');
-assert.deepEqual(angryTypes.map(type => makeAngryKind(false)({s:{type}})), ['complaint','hangup','hangup','complaint'], '裏目で既定終話が反転しない');
+assert.deepEqual(angryTypes.map(type => makeAngryKind(true)({s:{type}})), ['redial','email','email','redial'], '§67 検査F1: 顧客タイプ別の既定苦情経路が違う');
+assert.deepEqual(angryTypes.map(type => makeAngryKind(false)({s:{type}})), ['email','redial','redial','email'], '§67 検査F2: 裏目で再入電とメールが反転しない');
 assert(functionSource('advanceConversationFlow').includes('endAngryCall(t, reason)'), '誤診2回目がストレス100と同じ終話経路を使わない');
 
 const angryEndSource = functionSource('endAngryCall');
-assert(!angryEndSource.includes('farewellLine') && !angryEndSource.includes('FAREWELL_LINES'), 'クレーム／切断のあとに別れの言葉を追加している');
-function runAngryEnd(type, expected){
-  const ticket = { s:{type}, state:'open', transcript:[] };
-  const angryState = {ui:null};
+assert(!angryEndSource.includes('pushCustomerLine') && !angryEndSource.includes('pushFlowLines') && !angryEndSource.includes('pendingResult'), '§67 検査F3: 切断時に劇的な台詞または即時結果を出す');
+function runAngryEnd(followup){
+  const ticket = { s:{type:'expert'}, state:'open', transcript:[], callbackPromised:null };
   const run = new Function(
-    'ANGRY_DEFAULT_OUTCOMES','ANGRY_END_LINES','CALL_FLOW_LINES','rollLuck','pushFlowLines','state','defaultUi','render',
-    angryKindSource + '\n' + angryEndSource + '\nreturn endAngryCall;'
+    'angryOutcomeKind','scheduleAngryRedial','finishPromisedCallback','closeTicket','render',
+    angryEndSource + '\nreturn endAngryCall;'
   )(
-    ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, CALL_FLOW_LINES, () => expected,
-    (t,lines) => lines.forEach(line => t.transcript.push({who:line.who,text:line.text})),
-    angryState, () => ({}), () => {}
+    () => followup,
+    t => { t.state = 'inbound'; t.scheduled = true; return true; },
+    () => {},
+    (t,result) => { t.state = 'closed'; t.result = result; t.complaintEmail = true; },
+    () => {}
   );
   run(ticket, 'stress');
-  return { ticket, closed:ticket.pendingResult };
+  return ticket;
 }
-const complaintEnd = runAngryEnd('expert', true);
-const hangupEnd = runAngryEnd('hurried', true);
-assert.deepEqual([complaintEnd.closed.kind, complaintEnd.closed.csat, hangupEnd.closed.kind, hangupEnd.closed.csat], ['complaint',1.0,'hangup',0.5], 'クレーム／切断のCSATが1.0／0.5ではない');
-assert(complaintEnd.ticket.transcript.some(line => line.who === 'note' && line.text.includes('強い苦情')), 'クレーム終話の情報が通話メモに残らない');
-assert(hangupEnd.ticket.transcript.some(line => line.who === 'note' && line.text.includes('一方的')), '一方的切断の情報が通話メモに残らない');
+const angryRedial = runAngryEnd('redial');
+const angryEmail = runAngryEnd('email');
+assert(angryRedial.scheduled && angryRedial.state === 'inbound' && !angryRedial.result, '§67 検査F4: 苦情電話が後の再入電にならない');
+assert(angryEmail.state === 'closed' && angryEmail.result.kind === 'complaint' && angryEmail.result.csat === 1.0 && angryEmail.complaintEmail, '§67 検査F5: メール経路が翌日の苦情にならない');
+assert([angryRedial,angryEmail].every(ticket => ticket.transcript.length === 1 && ticket.transcript[0].who === 'note' && ticket.transcript[0].text === 'お客様との通話が切れました。'), '§67 検査F6: 最初の終話が淡々とした切断だけにならない');
+const angryRedialSource = functionSource('scheduleAngryRedial');
+assert(angryRedialSource.includes('state.turn + MIN_INBOUND_GAP') && angryRedialSource.includes('ANGRY_REDIAL_OPENINGS') && angryRedialSource.includes("t.state = 'inbound'"), '§67 検査F7: 苦情電話が時間を空けた再入電として予約されない');
 
 const complaintArrivalSource = functionSource('misdiagnosisResurfaces') + '\n' + functionSource('complaintEmailArrives');
 const complaintArrival = luck => new Function('rollLuck', complaintArrivalSource + '\nreturn complaintEmailArrives;')(() => luck);
 let emailRolls = 0;
 const fixedEmailArrival = new Function('rollLuck', complaintArrivalSource + '\nreturn complaintEmailArrives;')(() => { emailRolls++; return false; });
-assert(fixedEmailArrival({kind:'complaint',csat:1}) && fixedEmailArrival({kind:'hangup',csat:.5}), 'クレーム／切断で苦情メールが必着にならない');
-assert.equal(emailRolls, 0, 'クレーム／切断の苦情メール判定が不要な運抽選を行う');
+assert(fixedEmailArrival({kind:'complaint',csat:1}), 'メール経路で苦情メールが必着にならない');
+assert.equal(emailRolls, 0, 'メール経路の苦情判定が不要な運抽選を行う');
 /* §50: その場の評価と、後からの評価は別もの。誤診は症状が消えているので
    その場では気づかれず、原因が違うまま残るので翌日に再発する。運は挟まない
    （客が黙って我慢するかどうかの話ではなく、物理的に再発するため）。 */
@@ -1064,7 +1101,7 @@ const informationMappings = [
   ['誤診2回目', closeSource, "pendingConversation = { kind:'second_misdiagnosis'"],
   ['未解決', closeSource, '原因の見立てが外れていました。もう一度切り分けをやり直せます。'],
   ['対応結果確定', closeSource, '対応結果が確定しました。電話を切って終話してください。'],
-  ['クローズ結果', functionSource('closeTicket'), "result.label + ' CSAT ' + result.csat.toFixed(1)"],
+  ['クローズ結果', functionSource('closeTicket'), 'result.label + scoreText'],
   ['再着信', finishInterruptedSource, "recordOfficeEvent('redial'"],
 ];
 assert.equal(informationMappings.length, 17, '現行トースト移行表が17件ではない');
@@ -1253,17 +1290,19 @@ assert.deepEqual([
   closeSoundKind({kind:'abandoned',csat:0}),
 ], ['fanfare','success','success','neutral','neutral','failure','failure'], 'クローズ音のCSAT 4.0／3.0／2.0境界または放棄呼の分類が違う');
 assert.deepEqual([closeSoundKind({kind:'complaint',csat:1}), closeSoundKind({kind:'hangup',csat:.5})], ['accident','accident'], 'complaint／hangupが事故音へ分類されない');
+assert.equal(closeSoundKind({kind:'deferred',csat:null}), 'neutral', '§67 検査A8: 結果待ちを失敗音で閉じる');
 assert(!['fanfare','success','neutral','failure'].includes(closeSoundKind({kind:'complaint',csat:1})), '事故音が他の案件結果音と同じ分類になる');
 assert(functionSource('finishShiftAtTime').includes('playShiftEndSound()') && !functionSource('playShiftEndSound').includes('playCloseJingle'), 'シフト終了音が案件クローズ音と別になっていない');
 
 // §21: 会話の継ぎ目は、終話・照会・途中切断を発話でつなぐ。
-const endingTickets = [correctExpected, satisfiedRefund.ticket, dissatisfiedRefund.ticket, complaintEnd.ticket, hangupEnd.ticket];
-assert(endingTickets.every(ticket => ticket.state === 'open' && ticket.pendingResult), '5経路のいずれかが顧客の最後の台詞より先に終話する');
+const endingTickets = [correctExpected, satisfiedRefund.ticket, dissatisfiedRefund.ticket];
+assert(endingTickets.every(ticket => ticket.state === 'open' && ticket.pendingResult), '通常解決または返金が顧客の最後の台詞より先に終話する');
+assert(angryRedial.state === 'inbound' && angryEmail.state === 'closed', '§67の怒り切断が後続苦情へ即時遷移しない');
 assert(pendingBranch.includes("if (pendingTypedLine(t))") && pendingBranch.indexOf("if (pendingTypedLine(t))") < pendingBranch.indexOf('renderCallCompletionButton('), '顧客の最後の台詞が表示され切る前に終話ボタンが出る');
 
 const pendingLabelSource = functionSource('pendingResultButtonLabel');
 const pendingResultButtonLabel = new Function(pendingLabelSource + '\nreturn pendingResultButtonLabel;')();
-assert.deepEqual(['closed','refunded','refunded','complaint','hangup'].map(kind => pendingResultButtonLabel({kind})), ['電話を切る','電話を切る','電話を切る','オフィスへ戻る','オフィスへ戻る'], '5経路の終話ボタン文言が違う');
+assert.deepEqual(['closed','refunded','deferred'].map(kind => pendingResultButtonLabel({kind})), ['電話を切る','電話を切る','電話を切る'], '通常解決・返金・結果待ちの終話ボタン文言が違う');
 
 assert.deepEqual(CALL_FLOW_LINES.ending, {
   refundSatisfied:'ご理解いただき、ありがとうございます。失礼いたします。',
@@ -1338,11 +1377,11 @@ const typeSoundFrequency58 = new Function('TYPE_SOUND_BASE_HZ', functionSource('
 const pitchMale58 = typeSoundFrequency58(12,{who:'cust'},{s:{gender:'male',trueCause:'carrier',type:'expert'}});
 const pitchNeutral58 = typeSoundFrequency58(12,{who:'front'},{s:{gender:'female'}});
 const pitchFemale58 = typeSoundFrequency58(12,{who:'cust'},{s:{gender:'female',trueCause:'carrier',type:'expert'}});
-assert.deepEqual([pitchMale58,pitchNeutral58,pitchFemale58],[660,760,860],'§58 男性・性別なし・女性の打鍵音が低・中・高に分かれない');
+assert.deepEqual([pitchMale58,pitchNeutral58,pitchFemale58],[380,760,1520],'§67 検査B1: 男性・女性の打鍵音が中立から1オクターブ離れていない');
 const maleWobble58 = [4,8,12].map(index => typeSoundFrequency58(index,{who:'cust'},{s:{gender:'male'}}));
 const neutralWobble58 = [4,8,12].map(index => typeSoundFrequency58(index,{who:'front'},null));
 const femaleWobble58 = [4,8,12].map(index => typeSoundFrequency58(index,{who:'cust'},{s:{gender:'female'}}));
-assert.deepEqual(maleWobble58,[695,730,660],'§58 男性の打鍵音で既存の3段揺れを維持できない');
+assert.deepEqual(maleWobble58,[415,450,380],'§58 男性の打鍵音で既存の3段揺れを維持できない');
 assert(Math.max(...maleWobble58) < Math.min(...neutralWobble58) && Math.max(...neutralWobble58) < Math.min(...femaleWobble58),'§58 男性・性別なし・女性の打鍵音域が重なって聞き分けにくい');
 assert.doesNotThrow(() => {
   assert.equal(typeSoundFrequency58(12,{who:'cust'},null),760);
@@ -1361,7 +1400,7 @@ const playTypeSound58 = new Function('withAudio','synthTone','typeSoundFrequency
   typeSoundFrequency58
 );
 playTypeSound58(12,{who:'cust'},{s:{gender:'female'}});
-assert.deepEqual(playedTypeTone58,{frequency:860,duration:.018,options:{type:'square',level:.025}},'§58 打鍵音の高さだけを変え、長さと音量を維持できない');
+assert.deepEqual(playedTypeTone58,{frequency:1520,duration:.018,options:{type:'square',level:.025}},'§67 検査B2: 打鍵音の高さだけを変え、長さと音量を維持できない');
 playedTypeTone58 = null;
 playTypeSound58(13,{who:'cust'},{s:{gender:'female'}});
 assert.equal(playedTypeTone58,null,'§58 打鍵音が従来どおり4文字ごとの間引きにならない');
@@ -1852,11 +1891,11 @@ const careerBriefing29 = new Function('state','freshCareerRecord','esc','CAREER_
   briefingRuntime29.state,() => briefingRuntime29.state.career,value => String(value),CAREER_STAGES
 );
 const firstBriefing29 = careerBriefing29();
-assert(firstBriefing29.includes('<b>1日目 ／ 試用期間 ／ 入電 4件 ／ 引き継ぎ 0件</b>'), '§29 何日目・段階・今夜の入電・引き継ぎ件数が1行で出ない');
+assert(firstBriefing29.includes('<b>1日目 ／ 試用期間</b>') && !/入電|引き継ぎ/.test(firstBriefing29), '§67 検査E3: ブリーフィングが日数・段階以外の件数を漏らす');
 assert(firstBriefing29.includes('勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。'), '§29 初回ブリーフィングに保存注記がない');
 briefingRuntime29.state.career = {totals:{days:1},stage:'probation'};
 const secondBriefing29 = careerBriefing29();
-assert(secondBriefing29.includes('<b>2日目 ／ 試用期間 ／ 入電 4件 ／ 引き継ぎ 0件</b>') && !secondBriefing29.includes('勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。'), '§29 保存注記が2日目以降にも出る');
+assert(secondBriefing29.includes('<b>2日目 ／ 試用期間</b>') && !/入電|引き継ぎ/.test(secondBriefing29) && !secondBriefing29.includes('勤務記録はこのブラウザ内だけに保存されます。氏名や会話内容は保存しません。'), '§29 保存注記が2日目以降にも出る、または件数が漏れる');
 
 // §29-5 検査3: 開始操作を残す。
 assert(briefingSource29.includes('id="btn-start">シフトを始める</button>') && briefingSource29.includes("$('btn-start').onclick"), '§29 ブリーフィングにシフト開始ボタンがない');
@@ -2263,14 +2302,13 @@ assert(noStay39.blind && noStay39.state === 'open' && noStay39.callbackCount ===
 // §45 検査8: 約束したあとに客から切られても、折り返しの約束は生きている。
 const angrySource45 = functionSource('endAngryCall');
 assert(angrySource45.includes('if (t.callbackPromised)') && angrySource45.includes('finishPromisedCallback(t, false)'),'§45 検査8: 客から切られると折り返しの約束が失効する');
-assert(angrySource45.indexOf('if (t.callbackPromised)') < angrySource45.indexOf('t.pendingResult = {'),'§45 検査8: 約束の確認が終話処理より後にある');
+assert(angrySource45.indexOf('if (t.callbackPromised)') < angrySource45.indexOf('const followup = angryOutcomeKind(t)'),'§45 検査8: 約束の確認が苦情経路の抽選より後にある');
 // 文字列ではなく、endAngryCall を実際に走らせて確かめる。
-const angryModule45 = new Function('ANGRY_END_LINES','CALL_FLOW_LINES','angryOutcomeKind','pushFlowLines','finishPromisedCallback','defaultUi','render','state',
+const angryModule45 = new Function('angryOutcomeKind','scheduleAngryRedial','finishPromisedCallback','closeTicket','render',
   functionSource('endAngryCall') + '\nreturn endAngryCall;')(
-  ANGRY_END_LINES, CALL_FLOW_LINES, () => 'complaint',
-  (ticket, lines) => ticket.transcript.push(...lines),
+  () => 'email', () => false,
   (ticket, charge) => { ticket.finished = { charge }; ticket.state = 'callback'; ticket.callbackPromised = null; },
-  () => ({tab:'command'}), () => {}, {ui:{tab:'command'}}
+  (ticket,result) => { ticket.result = result; ticket.state = 'closed'; }, () => {}
 );
 const angryPromised45 = { s:{type:'hurried'}, transcript:[], callbackPromised:'immediate', state:'open' };
 angryModule45(angryPromised45, 'stress');
@@ -2278,7 +2316,7 @@ assert(angryPromised45.finished && angryPromised45.finished.charge === false,'§
 assert(!angryPromised45.pendingResult && angryPromised45.state === 'callback','§45 検査8: 約束があるのにクレーム終話で閉じている');
 const angryPlain45 = { s:{type:'hurried'}, transcript:[], callbackPromised:null, state:'open' };
 angryModule45(angryPlain45, 'stress');
-assert(angryPlain45.pendingResult && angryPlain45.pendingResult.kind === 'complaint' && !angryPlain45.finished,'§45 検査8: 約束がない場合の既存の終話が変わっている');
+assert(angryPlain45.result && angryPlain45.result.kind === 'complaint' && !angryPlain45.finished,'§67 検査F8: 約束がないメール経路が閉じない');
 
 // §66: §62で残した中立の1文も、終話確認とともに撤去する。
 assert(!Object.prototype.hasOwnProperty.call(CALL_FLOW_LINES.callbackPromise,'guide') && !Object.prototype.hasOwnProperty.call(CALL_FLOW_LINES.callbackPromise,'guideNoReturn'),'§66 検査: 廃止した折り返し終話案内データが残っている');
@@ -2630,7 +2668,7 @@ assert.equal(typeof meetingNodes55['btn-finish-handover'].onclick, 'function', '
 const startMeeting55 = new Function('handoverMeetingTickets','showHandoverMeeting','enterShiftAfterMeeting', functionSource('startShiftFromBriefing') + '\nreturn startShiftFromBriefing;');
 let shownMeeting55 = 0, enteredShift55 = 0;
 startMeeting55(() => [],() => { shownMeeting55++; },() => { enteredShift55++; })();
-assert(shownMeeting55 === 0 && enteredShift55 === 1 && functionSource('careerBriefingHtml').includes("件 ／ 引き継ぎ ' + handoverCount"), '§55 検査10: 引き継ぎ0件の日に空の会議を見せる、または0件と知らせず夜勤へ入る');
+assert(shownMeeting55 === 0 && enteredShift55 === 1 && !/handoverCount|引き継ぎ/.test(functionSource('careerBriefingHtml')), '§67 検査E2: 引き継ぎ0件の日に空の会議を見せる、または開始前に件数を漏らす');
 startMeeting55(() => [handoverTicket55],() => { shownMeeting55++; },() => { enteredShift55++; })();
 assert(shownMeeting55 === 1 && enteredShift55 === 1, '§55 検査8: 引き継ぎがある日にも会議を飛ばして夜勤へ入る');
 
@@ -2750,8 +2788,8 @@ assert(!game.includes('function advanceIdleOffice') && !game.includes('function 
 const enterOffice64 = functionSource('enterOffice');
 assert(enterOffice64.includes('activateDueInbound()') && !enterOffice64.includes('advance('),'§64 検査1: オフィスへ戻るだけで時刻を進める');
 const verify64 = functionSource('runDeviceVerification');
-assert(verify64.includes('advance(1)') && verify64.includes('state.deviceVerificationMinutes++') && verify64.includes("t.state === 'waiting'") && verify64.includes('state.verifiedDevices++'),'§64 検査2/3/4: 機器検証の1分進行・着信中断・完了台数が揃わない');
-assert(functionSource('renderOffice').includes("$('office-verify').disabled = waiting.length > 0") && functionSource('renderOffice').includes('state.deviceVerificationMinutes'),'§64 検査5/7: 着信中の無効化または途中進捗表示がない');
+assert(verify64.includes('advance(1)') && verify64.includes('state.deviceVerificationMinutes++') && verify64.includes("t.state === 'waiting'") && verify64.includes("t.state === 'callback' && t.callbackDue <= state.clock") && verify64.includes('state.verifiedDevices++'),'§67 検査C1: 機器検証の1分進行・着信/折り返し中断・完了台数が揃わない');
+assert(functionSource('renderOffice').includes("$('office-verify').disabled = waiting.length > 0 || readyCallbacks.length > 0") && functionSource('renderOffice').includes('state.deviceVerificationMinutes'),'§67 検査C2: 着信または折り返し時刻到来中に機器検証を開始できる');
 assert(functionSource('renderReport').includes("機器検証 ' + state.verifiedDevices + '台完了") && !functionSource('metrics').includes('verifiedDevices') && !functionSource('careerShiftContext').includes('verifiedDevices'),'§64 検査7: 機器検証台数が報告に出ない、または電話対応の採点へ混ざる');
 
 // §65: 急ぐ客は一般折り返しを断り、同じ通話で解決を続ける。

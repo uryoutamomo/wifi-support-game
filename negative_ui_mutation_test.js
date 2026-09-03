@@ -43,8 +43,8 @@ const mutations = [
   },
   {
     name:'§50 原因を当てた案件まで再発扱いにする', file:'p3_game.js',
-    from:"  return (result.kind === 'closed' || result.kind === 'refunded') && result.causeMatched === false;",
-    to:"  return (result.kind === 'closed' || result.kind === 'refunded');",
+    from:"  return (result.kind === 'closed' || result.kind === 'refunded' || result.kind === 'deferred') && result.causeMatched === false;",
+    to:"  return (result.kind === 'closed' || result.kind === 'refunded' || result.kind === 'deferred');",
     expected:'§50 検査1: 原因を当てた案件まで再発扱いにしている',
   },
   {
@@ -309,10 +309,34 @@ const mutations = [
     expected:'§41-11 本人確認前または未照会欄が伏せられない',
   },
   {
-    name:'§43 確かめられない対処をその場の失敗へ戻す', file:'p3_game.js',
-    from:'if (!remedy.verifiable && (causeMatched || t.misdiagnoses < 2)){',
-    to:'if (false && !remedy.verifiable && (causeMatched || t.misdiagnoses < 2)){',
-    expected:'§43-6 検査3: 確かめられない対処の失敗を後日の再入電へ分けない',
+    name:'§67 手配を通信復旧の抽選へ戻す', file:'p3_game.js',
+    from:"  if (remedy.outcomeMode === 'arrangement'){",
+    to:"  if (false && remedy.outcomeMode === 'arrangement'){",
+    expected:'§67 検査A4: 手配・返金が通信復旧の抽選に入る',
+  },
+  {
+    name:'§67 返金を通信復旧の抽選へ戻す', file:'p3_game.js',
+    from:"  if (remedy.outcomeMode === 'refund'){",
+    to:"  if (false && remedy.outcomeMode === 'refund'){",
+    expected:'§67 検査A4: 手配・返金が通信復旧の抽選に入る',
+  },
+  {
+    name:'§67 手配の結果待ちを即時解決へ変える', file:'p3_game.js',
+    from:"    kind:'deferred', csat:null, label:'手配完了（結果待ち）'",
+    to:"    kind:'closed', csat:5.0, label:'解決'",
+    expected:'§67 検査A5: 手配直後に復旧を確定する',
+  },
+  {
+    name:'§67 診断後返金で通信未復旧を隠す', file:'p3_game.js',
+    from:'返金の件、分かりました。通信は戻っていませんが、今回は受け取ります。',
+    to:'返金の件、分かりました。今回は受け取ります。',
+    expected:'§67 検査A6: 返金が通信復旧として扱われる',
+  },
+  {
+    name:'§67 未採点の結果待ちへCSAT表示を強制する', file:'p3_game.js',
+    from:"  const scoreText = Number.isFinite(result.csat) ? ' CSAT ' + result.csat.toFixed(1) : '';",
+    to:"  const scoreText = ' CSAT ' + result.csat.toFixed(1);",
+    expected:'§67 検査A13: 未採点の結果待ちを閉じるとCSAT表示で落ちる',
   },
   {
     name:'§44 連続する顧客発話を最後の1行だけへ戻す', file:'p4_view.js',
@@ -519,14 +543,14 @@ const mutations = [
     expected:'トーストの関数・呼び出し・DOM・CSSが残っている',
   },
   {
-    name:'expertの既定終話を切断へ変える', file:'p2_data.js',
-    from:"  expert:'complaint',", to:"  expert:'hangup',",
-    expected:'顧客タイプ別の既定終話が確定仕様と違う',
+    name:'expertの既定苦情経路を再入電へ変える', file:'p2_data.js',
+    from:"  expert:'email',", to:"  expert:'redial',",
+    expected:'§67 検査F1: 顧客タイプ別の既定苦情経路が違う',
   },
   {
     name:'クレームCSATを上げる', file:'p3_game.js',
-    from:"csat:kind === 'complaint' ? 1.0 : 0.5", to:"csat:kind === 'complaint' ? 1.1 : 0.5",
-    expected:'クレーム／切断のCSATが1.0／0.5ではない',
+    from:"kind:'complaint', reason, csat:1.0, label:'翌日の苦情メール'", to:"kind:'complaint', reason, csat:1.1, label:'翌日の苦情メール'",
+    expected:'§67 検査F5: メール経路が翌日の苦情にならない',
   },
   {
     name:'苦情メール低CSAT境界を1へ下げる', file:'p3_game.js',
@@ -575,15 +599,21 @@ const mutations = [
     expected:'complaint／hangupが事故音へ分類されない',
   },
   {
+    name:'§67 結果待ちを失敗音で閉じる', file:'p4_view.js',
+    from:"  if (result.kind === 'deferred') return 'neutral';",
+    to:"  if (result.kind === 'deferred') return 'failure';",
+    expected:'§67 検査A8: 結果待ちを失敗音で閉じる',
+  },
+  {
     name:'タイプ音を毎文字鳴らす', file:'p4_view.js',
     from:'function playTypeSound(index, line, ticket){\n  if (index % 4) return;', to:'function playTypeSound(index, line, ticket){',
     expected:'タイプ音が1文字ごとではなく間引かれていない',
   },
   {
-    name:'§58 男性の声を中間音へ戻す', file:'p4_view.js',
-    from:'const TYPE_SOUND_BASE_HZ = Object.freeze({ male:660, neutral:760, female:860 });',
-    to:'const TYPE_SOUND_BASE_HZ = Object.freeze({ male:760, neutral:760, female:860 });',
-    expected:'§58 男性・性別なし・女性の打鍵音が低・中・高に分かれない',
+    name:'§67 男性の声を中間音へ戻す', file:'p4_view.js',
+    from:'const TYPE_SOUND_BASE_HZ = Object.freeze({ male:380, neutral:760, female:1520 });',
+    to:'const TYPE_SOUND_BASE_HZ = Object.freeze({ male:760, neutral:760, female:1520 });',
+    expected:'§67 検査B1: 男性・女性の打鍵音が中立から1オクターブ離れていない',
   },
   {
     name:'§58 性別不明で顧客データを直接参照する', file:'p4_view.js',
@@ -607,7 +637,7 @@ const mutations = [
     name:'§58 打鍵音を長くする', file:'p4_view.js',
     from:"  withAudio((ctx, volume) => synthTone(ctx, volume, frequency, 0, .018, {type:'square',level:.025}));",
     to:"  withAudio((ctx, volume) => synthTone(ctx, volume, frequency, 0, .08, {type:'square',level:.025}));",
-    expected:'§58 打鍵音の高さだけを変え、長さと音量を維持できない',
+    expected:'§67 検査B2: 打鍵音の高さだけを変え、長さと音量を維持できない',
   },
   {
     name:'§58 オペレーター発話にも顧客の文字送り音を付ける', file:'p3_game.js',
@@ -686,8 +716,8 @@ const mutations = [
   },
   {
     name:'クローズ結果をオフィスから消す', file:'p3_game.js',
-    from:"  recordOfficeEvent('closed', t.s.id + '：' + result.label + ' CSAT ' + result.csat.toFixed(1));\n", to:'',
-    expected:'クローズ結果の情報が状態表示・会話メモ・無効理由へ移っていない',
+    from:"  recordOfficeEvent('closed', t.s.id + '：' + result.label + scoreText);\n", to:'',
+    expected:'§67 検査A14: 結果待ちのオフィス記録へ架空のCSATを表示する',
   },
   {
     name:'ネタバレ警告へ接尾辞を足す', file:'p4_view.js',
@@ -934,7 +964,8 @@ const mutations = [
   },
   {
     name:'満足返金CSATを4.0へ上げる', file:'p3_game.js',
-    from:'csat:satisfied ? 2.5 : 1.0', to:'csat:satisfied ? 4.0 : 1.0',
+    from:'kind:\'refunded\', satisfied, diagnosed:assessment.diagnosed, refundComplaint:!assessment.diagnosed,\n    csat:satisfied ? 2.5 : 1.0',
+    to:'kind:\'refunded\', satisfied, diagnosed:assessment.diagnosed, refundComplaint:!assessment.diagnosed,\n    csat:satisfied ? 4.0 : 1.0',
     expected:'満足した返金が未解決扱いのCSAT 2.5にならない',
   },
   {
@@ -954,7 +985,8 @@ const mutations = [
   },
   {
     name:'旧refunds回数管理を戻す', file:'p3_game.js',
-    from:'const satisfied = refundSatisfied(t, assessment);', to:'t.refunds = (t.refunds || 0) + 1;\n  const satisfied = refundSatisfied(t, assessment);',
+    from:'  const assessment = refundAssessment(t);\n  const satisfied = refundSatisfied(t, assessment);\n  state.cost += REFUND_POLICY.amount;',
+    to:'  const assessment = refundAssessment(t);\n  t.refunds = (t.refunds || 0) + 1;\n  const satisfied = refundSatisfied(t, assessment);\n  state.cost += REFUND_POLICY.amount;',
     expected:'旧返金の回数管理・CSAT逓減がコードに残っている',
   },
   {
@@ -1349,16 +1381,16 @@ const mutations = [
     expected:'謝罪の受け止め方が4タイプ分揃っていない',
   },
   {
-    name:'ランダムな1日件数を1〜4件へずらす', file:'p3_game.js',
-    from:'return 2 + Math.floor(random() * 4);',
-    to:'return 1 + Math.floor(random() * 4);',
-    expected:'ランダムな1日件数が2〜5の境界に収まらない',
+    name:'§67 2件の日を10%へ減らす', file:'p3_game.js',
+    from:'  if (roll < 0.2) return 2;',
+    to:'  if (roll < 0.1) return 2;',
+    expected:'§67 検査D1: 1日件数が20%/60%/10%/10%の境界に収まらない',
   },
   {
-    name:'ランダムな1日件数を2件固定にする', file:'p3_game.js',
-    from:'return 2 + Math.floor(random() * 4);',
-    to:'return 2;',
-    expected:'ランダムな1日件数が2〜5の境界に収まらない',
+    name:'§67 ランダムな1日件数を2件固定にする', file:'p3_game.js',
+    from:'  const roll = random();\n  if (roll < 0.2) return 2;\n  if (roll < 0.8) return 3;\n  if (roll < 0.9) return 4;\n  return 5;',
+    to:'  return 2;',
+    expected:'§67 検査D1: 1日件数が20%/60%/10%/10%の境界に収まらない',
   },
   {
     name:'日次案件を同じ1件の重複にする', file:'p3_game.js',
@@ -1391,16 +1423,22 @@ const mutations = [
     expected:'解決後に顧客発話待ちと経路別終話ボタンだけが残らない',
   },
   {
-    name:'一方的切断のボタンを電話を切るへ戻す', file:'p4_view.js',
-    from:"return result.kind === 'complaint' || result.kind === 'hangup' ? 'オフィスへ戻る' : '電話を切る';",
-    to:"return result.kind === 'complaint' ? 'オフィスへ戻る' : '電話を切る';",
-    expected:'5経路の終話ボタン文言が違う',
+    name:'§67 結果待ちの終話ボタンをオフィスへ戻るへ変える', file:'p4_view.js',
+    from:"  return '電話を切る';",
+    to:"  return result.kind === 'deferred' ? 'オフィスへ戻る' : '電話を切る';",
+    expected:'通常解決・返金・結果待ちの終話ボタン文言が違う',
   },
   {
-    name:'怒り終話の締めをnoteへ落とす', file:'p3_game.js',
-    from:"{ who:'me', text:CALL_FLOW_LINES.ending[kind] },",
-    to:"{ who:'note', text:CALL_FLOW_LINES.ending[kind] },",
-    expected:'5経路のいずれかで最後付近にオペレーター発話がない',
+    name:'§67 怒り切断を劇的な顧客発話へ戻す', file:'p3_game.js',
+    from:"t.transcript.push({ who:'note', text:'お客様との通話が切れました。' });",
+    to:"t.transcript.push({ who:'cust', text:'もう限界です。正式に苦情を入れます。' });",
+    expected:'§67 検査F6: 最初の終話が淡々とした切断だけにならない',
+  },
+  {
+    name:'§67 苦情の再入電を同じ瞬間にする', file:'p3_game.js',
+    from:'  let candidate = state.turn + MIN_INBOUND_GAP;',
+    to:'  let candidate = state.turn;',
+    expected:'§67 検査F7: 苦情電話が時間を空けた再入電として予約されない',
   },
   {
     name:'誤診2回目の謝罪と不調報告を逆転する', file:'p3_game.js',
@@ -1627,9 +1665,10 @@ const mutations = [
     expected:'§29 ブリーフィングに毎夜不要な説明が残っている',
   },
   {
-    name:'ブリーフィング状態行から引き継ぎ件数を消す', file:'p4_view.js',
-    from:"+ '件 ／ 引き継ぎ ' + handoverCount + '件</b>'", to:"+ '件</b>'",
-    expected:'当日の入電・引き継ぎ実件数がブリーフィングとレポートに表示されない',
+    name:'§67 ブリーフィングへ今夜の件数を戻す', file:'p4_view.js',
+    from:"  return '<section class=\"career-briefing\"><b>' + (career.totals.days + 1) + '日目 ／ ' + esc(CAREER_STAGES[career.stage].label) + '</b>' +",
+    to:"  return '<section class=\"career-briefing\"><b>' + (career.totals.days + 1) + '日目 ／ ' + esc(CAREER_STAGES[career.stage].label) + ' ／ 入電 ' + state.tickets.length + '件</b>' +",
+    expected:'§67 検査E1: ブリーフィングが今夜の件数を漏らす、または勤務後レポートから実績が消える',
   },
   {
     name:'ブリーフィングの開始ボタンIDを外す', file:'p4_view.js',
@@ -2448,10 +2487,10 @@ const mutations = [
     expected:'§52 検査2: 07:00の日報後にデスク照会からオフィスへ戻って進行不能になる',
   },
   {
-    name:'§52 日報後にも未検証対処を再入電へ戻す', file:'p3_game.js',
-    from:"function queueUnverifiableRedial(t){\n  if (state.phase === 'report') return;",
-    to:'function queueUnverifiableRedial(t){',
-    expected:'§52 検査2: 07:00後に未検証対処が放棄呼を再入電待ちへ戻す',
+    name:'§67 結果待ちの手配を勤務中CSATへ混ぜる', file:'p3_game.js',
+    from:"['unavailable','handed_off','deferred'].includes(t.result.kind)",
+    to:"['unavailable','handed_off'].includes(t.result.kind)",
+    expected:'§67 検査A7: 結果待ちの手配を勤務中の解決として採点する',
   },
   {
     name:'§52 ブリーフィングを22時表記へ戻す', file:'p4_view.js',
@@ -2571,7 +2610,7 @@ const mutations = [
     name:'§55 引き継ぎ0件でも空の会議を開く', file:'p4_view.js',
     from:'  if (handoverMeetingTickets().length){ showHandoverMeeting(); return; }',
     to:'  if (true){ showHandoverMeeting(); return; }',
-    expected:'§55 検査10: 引き継ぎ0件の日に空の会議を見せる、または0件と知らせず夜勤へ入る',
+    expected:'§67 検査E2: 引き継ぎ0件の日に空の会議を見せる、または開始前に件数を漏らす',
   },
   {
     name:'§55 在室率を80%にする', file:'p2_data.js',
@@ -2795,10 +2834,16 @@ const mutations = [
     expected:'§25 機器検証中の着信と折り返し期限の進行を両立できない',
   },
   {
-    name:'§64 着信しても機器検証を止めない', file:'p3_game.js',
-    from:"    if (state.tickets.some(t => t.state === 'waiting')) break;",
-    to:'',
-    expected:'機器検証が着信した分で中断し、途中時間を保存できない',
+    name:'§67 折り返し時刻でも機器検証を止めない', file:'p3_game.js',
+    from:"    if (state.tickets.some(t => t.state === 'waiting' || (t.state === 'callback' && t.callbackDue <= state.clock))) break;",
+    to:"    if (state.tickets.some(t => t.state === 'waiting')) break;",
+    expected:'§67 検査C3: 機器検証が折り返し時刻で止まらない',
+  },
+  {
+    name:'§67 折り返し可能でも機器検証ボタンを有効にする', file:'p4_view.js',
+    from:"  $('office-verify').disabled = waiting.length > 0 || readyCallbacks.length > 0;",
+    to:"  $('office-verify').disabled = waiting.length > 0;",
+    expected:'§67 検査C2: 着信または折り返し時刻到来中に機器検証を開始できる',
   },
   {
     name:'§65 通話料を訴える客を半分以外にする', file:'p2_data.js',

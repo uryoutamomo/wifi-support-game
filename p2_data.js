@@ -225,31 +225,19 @@ const TYPES = {
     furious:['もう待てない。責任者に代わって。今。', 'ここで終わらせる。解約の手順だけ言って。'] },
 };
 
-/* 怒りが限界に達した通話の終わり方と、翌日に届く苦情メール。 */
+/* 怒りが限界に達した通話のあと、不満が表面化する経路。 */
 const ANGRY_DEFAULT_OUTCOMES = Object.freeze({
-  anxious:'hangup',
-  novice:'complaint',
-  expert:'complaint',
-  hurried:'hangup',
+  anxious:'redial',
+  novice:'email',
+  expert:'email',
+  hurried:'redial',
 });
 
-const ANGRY_END_LINES = Object.freeze({
-  anxious:Object.freeze({
-    complaint:'もう限界です…。この対応について、あとで正式に連絡します。',
-    hangup:'もう無理です…。これ以上お話しできません。',
-  }),
-  novice:Object.freeze({
-    complaint:'私にはもう分かりません。この対応は、あとで相談させてください。',
-    hangup:'すみません、もう怖いので切ります。',
-  }),
-  expert:Object.freeze({
-    complaint:'この対応品質は正式に問題として連絡します。記録を残してください。',
-    hangup:'これ以上の通話に意味はありません。ここで切ります。',
-  }),
-  hurried:Object.freeze({
-    complaint:'もう時間切れ。この対応はあとで正式に連絡する。',
-    hangup:'もう待てない。切る。',
-  }),
+const ANGRY_REDIAL_OPENINGS = Object.freeze({
+  anxious:'先ほどの対応が不安で、また掛けました…。責任者の方にも相談したいです。',
+  novice:'先ほどのお電話のあとも困っています。この対応について相談させてください。',
+  expert:'先ほどの対応品質について、正式な苦情として記録をお願いします。',
+  hurried:'さっきの対応の件です。苦情として記録して。',
 });
 
 /* 通話の継ぎ目を埋める短い発話。1回の追加は最大2行に制限する。 */
@@ -621,7 +609,13 @@ const VERIFIABLE_REMEDY_IDS = new Set([
   'r_vpn_off','r_move_guide','r_window_stationary','r_charge_guide','r_sim_clean','r_reboot_again',
   'r_carrier_reopened_explain',
 ]);
-Object.values(REMEDIES).flat().forEach(remedy => { remedy.verifiable = VERIFIABLE_REMEDY_IDS.has(remedy.id); });
+const REFUND_REMEDY_IDS = new Set([
+  'r_outage_explain','r_coverage_refund','r_hardware_no_swap','r_logistics_refund',
+]);
+Object.values(REMEDIES).flat().forEach(remedy => {
+  remedy.verifiable = VERIFIABLE_REMEDY_IDS.has(remedy.id);
+  remedy.outcomeMode = REFUND_REMEDY_IDS.has(remedy.id) ? 'refund' : (remedy.verifiable ? 'treatment' : 'arrangement');
+});
 
 /* ---------- シナリオ ---------- */
 
