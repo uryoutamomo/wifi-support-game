@@ -284,6 +284,12 @@ body.call-view .pane.call-summary > .pane-head{ border-bottom: 0; }
 }
 .office-head h1{ margin:0; font-family:var(--display); font-size:26px; letter-spacing:.1em; color:var(--text); }
 .office-head p{ margin:0; color:var(--faint); font-size:12px; }
+.office-time-panel{ width:100%; margin-top:10px; }
+.office-primary-clock{ display:flex; align-items:baseline; gap:7px; margin-bottom:6px; color:var(--amber); font-family:var(--mono); }
+.office-primary-clock .t{ font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; }
+.office-primary-clock .z{ color:var(--faint); font-size:11px; }
+.office-time-panel .shift-strip{ width:100%; border:1px solid var(--line); border-radius:6px; }
+body.office-view .topbar .clock{ display:none; }
 .office-floor{
   position:relative;
   width:100%;
@@ -351,7 +357,6 @@ body.call-view .pane.call-summary > .pane-head{ border-bottom: 0; }
 .office-board b{ color:#3b4d59; }.office-board .notice{ margin-top:7px; color:#943f37; font-weight:700; font-size:12px; }.office-board .blank{ margin-top:7px; color:#596b7a; font-size:11px; }
 .office-ship::before{ content:""; position:absolute; right:13px; bottom:13px; width:48px; height:24px; border:1px solid var(--signal-deep); background:repeating-linear-gradient(90deg,var(--signal-deep) 0 3px,transparent 3px 6px); opacity:.7; }
 .office-tray::before{ content:""; position:absolute; right:13px; top:14px; width:38px; height:28px; background:var(--amber); transform:rotate(5deg); opacity:.7; box-shadow:-5px 5px 0 var(--signal-deep); }
-.office-clock{ text-align:center; font-family:var(--mono); font-size:20px; color:var(--amber); }
 .office-call-actions{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
 .office-call-action{ min-height:66px; padding:10px 14px; border:2px solid var(--accent); border-radius:8px; background:var(--surface); color:var(--text); font:700 18px/1.25 var(--display); text-align:left; box-shadow:0 8px 22px rgba(0,0,0,.18); }
 .office-call-action span{ display:block; margin-top:5px; color:var(--text-3); font:600 12px/1.35 var(--mono); }
@@ -1223,6 +1228,10 @@ body.sheet-open .console{ display: none; }
 .report-list{ display:flex; flex-direction:column; gap:6px; }.report-check{ display:flex; gap:9px; align-items:flex-start; padding:9px 10px; border:1px solid var(--line-soft); background:var(--panel-2); cursor:pointer; font-size:12.5px; line-height:1.6; }.report-check:hover{ border-color:var(--amber-deep); }.report-check input{ margin-top:5px; accent-color:var(--amber); }.report-check span{ flex:1; }.report-check i{ display:block; margin-top:2px; color:var(--faint); font-size:11px; font-style:normal; }.report-miss{ margin-top:8px; padding:7px 9px; border-left:2px solid var(--crit); background:var(--crit-glow); color:var(--text); font-size:11.5px; }
 .career-briefing{ display:flex; flex-direction:column; gap:3px; margin:12px 0 18px; padding:12px 14px; border-left:4px solid var(--amber); background:var(--panel-2); }
 .career-briefing b{ color:var(--text); font:700 16px/1.4 var(--display); }.career-briefing span{ color:var(--dim); font-size:12px; }
+.audio-diagnostic{ margin:12px 0 18px; padding:14px; border:1px solid var(--accent-line); border-radius:10px; background:var(--accent-soft); }
+.audio-diagnostic b{ display:block; color:var(--text); font:800 16px/1.4 var(--display); }
+.audio-diagnostic p{ margin:6px 0 10px; color:var(--text-2); font-size:13px; line-height:1.6; }
+.audio-diagnostic .btn-ghost{ margin:0; }
 .promotion-banner{ margin:12px 0 18px; padding:14px; border:2px solid var(--amber); border-radius:10px; background:var(--amber-glow); color:var(--text); font:800 17px/1.4 var(--display); text-align:center; }
 .career-panel{ margin:18px 0 24px; padding:16px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
 .career-panel h2{ margin-top:0; }.career-summary{ display:flex; flex-wrap:wrap; gap:8px 14px; align-items:baseline; }.career-summary b{ font-size:20px; }.career-summary span{ color:var(--dim); font:600 12px/1.5 var(--mono); }
@@ -1266,7 +1275,7 @@ body.sheet-open .console{ display: none; }
 .office-scene{ background:var(--bg); }.office-floor{ background:var(--surface); box-shadow:none; }
 .office-object{ background:var(--surface-2); color:var(--text-2); }.office-object b{ color:var(--text-2); }
 .office-sv .lamp{ background:var(--accent); box-shadow:0 0 15px var(--accent-line); }.office-board{ background:var(--surface); color:var(--text); border-color:var(--line); }.office-board b{ color:var(--text-2); }.office-board .blank{ color:var(--text-3); }
-.office-clock{ color:var(--accent); }
+.office-primary-clock{ color:var(--accent); }
 .call{ background:var(--surface); border-color:var(--line); }.call.on-hold{ border-color:var(--accent-line); box-shadow:inset 0 0 0 1px var(--accent-line); background:linear-gradient(180deg,var(--accent-soft),var(--surface) 34%); }
 .call-head{ background:var(--surface); }.call-head .ctype{ color:var(--accent); border-color:var(--accent-line); }.call-guide{ width:100%; margin:2px 0 0; padding:7px 10px; border-left:3px solid var(--accent); background:var(--accent-soft); color:var(--text-2); font-size:13px; line-height:1.55; }
 .line.cust .say,.opt,.tone,.waybill,.report-auto,.report-check,.score-cell{ background:var(--surface-2); }.line.me .say{ background:var(--accent-soft); border-color:var(--accent-line); }.line.me .who,.tone .tname,.shipment h3{ color:var(--accent); }
@@ -1394,7 +1403,9 @@ body.playing .opts{ max-height:none; overflow:visible; }
 body.office-view .office-scene{ gap:14px; }
 .office-head{ display:block; margin:0; }
 .office-head h1{ font-size:29px; line-height:1.25; letter-spacing:.04em; }
-.office-head p{ margin-top:6px; font-size:16px; }
+.office-head > p{ margin-top:10px; font-size:16px; }
+.office-primary-clock{ margin-top:8px; margin-bottom:8px; }
+.office-primary-clock .t{ font-size:28px; }
 .office-floor{
   position:relative;
   display:flex;
@@ -1454,12 +1465,17 @@ body.office-view .office-scene{ gap:14px; }
     <button class="btn-balance" id="btn-balance" aria-label="ゲーム調整コンソール">ゲーム調整</button>
     <button class="btn-help" id="btn-manual">対応マニュアル</button>
   </div>
-  <div class="shift-strip" id="shift-strip" role="img" aria-label="23時から7時までの夜勤時間と、着信済み案件の状態"></div>
+  <div id="topbar-shift-slot"><div class="shift-strip" id="shift-strip" role="img" aria-label="23時から7時までの夜勤時間と、着信済み案件の状態"></div></div>
 </div>
 
 <section class="office-scene" id="office" aria-label="深夜のグローバルデスク オフィス">
   <div class="office-head">
-    <div><p class="eyebrow">NIGHT SHIFT FIELD</p><h1>深夜のグローバルデスク</h1></div>
+    <div><p class="eyebrow">NIGHT SHIFT FIELD</p><h1>深夜のグローバルデスク</h1>
+      <div class="office-time-panel" id="office-time-panel">
+        <div class="office-primary-clock"><span class="t" id="office-clock">23:00</span><span class="z">JST</span></div>
+        <div id="office-shift-slot"></div>
+      </div>
+    </div>
     <p>新しい電話を取るか、照会結果が出た相手へ電話をかけます。</p>
   </div>
   <div class="office-floor">
@@ -1481,7 +1497,6 @@ body.office-view .office-scene{ gap:14px; }
       <div class="office-object office-sv" id="office-sv"><b>SV席</b><small id="office-sv-status">ESC枠 3 / 3</small><i class="lamp" aria-hidden="true"></i></div>
       <div class="office-object office-ship"><b>配送手配カウンター</b><small id="office-ship-status">手配 0件</small></div>
       <div class="office-object office-tray"><b>書類トレイ</b><small id="office-tray-status">折り返し待ち 0件</small></div>
-      <div class="office-object office-clock" id="office-clock">23:00</div>
     </div>
   </div>
 </section>
@@ -1540,10 +1555,15 @@ const CALLBACK_IMMEDIATE_LOOKUP_ALLOWANCE = 1;
 const CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE = 2;
 const CALLBACK_OVER_LOOKUP_STRESS = 10;
 const CALLBACK_IDLE_STRESS = 8;
+/* §53: 保留はその場で負担になる。こちらから掛けた電話で再び待たせるほうを重くする。 */
+const HOLD_STRESS_PER_MINUTE = Object.freeze({ inbound:2, outbound:4 });
+const ABANDON_REDIAL_LIMIT = 1;
+const ABANDON_REDIAL_MIN_DELAY = MIN_INBOUND_GAP;
+const ABANDON_REDIAL_STRESS = 24;
 const CALLBACK_WAIT_REPLIES = Object.freeze({
   anxious:'ずっと待っていました…。何か進んだのでしょうか？',
   novice:'すみません、いつ戻るのか分からなくて不安でした。',
-  expert:'約束した時間を超えています。照会の進捗を説明してください。',
+  expert:'照会の進捗を説明してください。これ以上、根拠なく待たせないでください。',
   hurried:'いつまで待たせるんですか。結論を。',
 });
 /* §49-1: 約束の時刻までに折り返して客室へつながったときの、満足度の回復。
@@ -1772,8 +1792,7 @@ const CALL_FLOW_LINES = Object.freeze({
     note:'折り返しをお約束しました。切る前に、折り返し先とお戻りの時間を確認できます。',
     headImmediate:'折り返し約束済み（すぐに）',
     headScheduled:'折り返し約束済み（1時間後）',
-    guideReady:'折り返し先は確認できています。「電話を切る」で、こちらから掛け直します。',
-    guideNoAddress:'滞在先をまだ伺っていません。このまま切ると、折り返す先がありません。',
+    guide:'折り返しをお約束しました。「電話を切る」で、こちらから掛け直します。',
     guideNoReturn:'お戻りの時間を伺っていません。フロントで確認の手間が増えます。',
   }),
   callback:Object.freeze({
@@ -1844,6 +1863,12 @@ const CALL_FLOW_LINES = Object.freeze({
   recordStart:'少し記録を確認させてください。',
   interrupt:'申し訳ございません、一度お切りします。',
   redialGreeting:'先ほどは通話が切れてしまい、申し訳ございません。',
+  abandonedRedialOpenings:Object.freeze({
+    anxious:'さっきはつながらなくて…また掛けてしまってすみません。でも、まだ困っています。',
+    novice:'お忙しいところすみません。さっき切れてしまって、どうしたらいいか分からなくて…。',
+    expert:'先ほどは接続できませんでした。継続して利用不能です。今回は対応してください。',
+    hurried:'さっきから掛けています。今度こそ、すぐ結論をお願いします。',
+  }),
   unverifiable:Object.freeze({
     closing:Object.freeze({
       anxious:'分かりました…。では、ご連絡を待っています。どうか早く戻りますように。',
@@ -1876,6 +1901,14 @@ const COMPLAINT_EMAIL_TEMPLATES = Object.freeze({
   novice:Object.freeze({ lines:Object.freeze(['「{symptom}」と相談しましたが、説明が難しく、何をすればよいのか最後まで分かりませんでした。', '機械に詳しくない人にも分かるよう、一つずつ案内していただきたかったです。']) }),
   expert:Object.freeze({ lines:Object.freeze(['「{symptom}」という事象に対し、仮説と観測結果の対応が示されないまま終話となりました。', 'この切り分け品質は看過できません。対応記録を確認し、根拠を明示して回答してください。']) }),
   hurried:Object.freeze({ lines:Object.freeze(['「{symptom}」と急ぎで伝えたのに、結論が出ないまま大切な予定に間に合いませんでした。', '前置きではなく必要な対応をすぐ示すべきです。失った時間をどう考えているのか回答してください。']) }),
+});
+
+/* §53: 原因を確かめない返金は、金銭より復旧を求めていた顧客から必ず苦情になる。 */
+const BLIND_REFUND_EMAIL_TEMPLATES = Object.freeze({
+  anxious:Object.freeze({ lines:Object.freeze(['通信を使えるようにしてほしかったのに、原因も今後の案内もないまま返金だけで終わりました。', '海外でまだ困っています。お金ではなく、どうすれば使えるのかを説明してください。']) }),
+  novice:Object.freeze({ lines:Object.freeze(['使えるようにしてほしくて相談したのに、何が悪かったのか分からないまま返金だけで終わりました。', '次に何をすればよいのか、私にも分かるように教えてください。']) }),
+  expert:Object.freeze({ lines:Object.freeze(['原因仮説も復旧方針も示されないまま、返金だけで終話されました。', '金銭処理は障害解決ではありません。観測結果に基づく原因と次の対応を回答してください。']) }),
+  hurried:Object.freeze({ lines:Object.freeze(['必要だったのは通信の復旧です。原因も次の手も示さず、返金だけで終わらせないでください。', 'まだ使えません。結論と対応をすぐ連絡してください。']) }),
 });
 
 
@@ -2360,8 +2393,7 @@ const SCENARIOS = [
   },
   lookups:{
     l_area:{ text:'[エリア照会] {country} ／ 貸出機種: GD-200（旧型）／ 提携: {carrier} ／ 備考: GD-200 は提携キャリアが郊外をカバーする周波数帯に非対応のため、郊外・山間部では圏外となる場合あり。',
-      fact:{ text:'貸出機種が現地の郊外カバー用バンドに非対応。機種を替えないと解決しない', hot:['coverage'], out:['sim','carrier','provision'] },
-      customerReply:'申込地域では郊外利用も想定できたはずです。それに非対応の機種を御社が貸し出したのなら、これは利用者側ではなく手配側の責任ですよね。', stressDelta:35 },
+      fact:{ text:'貸出機種が現地の郊外カバー用バンドに非対応。機種を替えないと解決しない', hot:['coverage'], out:['sim','carrier','provision'] } },
     l_session:{ text:'[セッション] 07:40以降、圏内復帰なし。SIM認識: 正常。',
       fact:{ text:'SIMは認識されている。本体側の故障ではない', out:['sim','hardware'] } },
     l_outage:{ text:'[障害情報] {country} {carrier} 網 正常。障害報告なし。',
@@ -3018,7 +3050,7 @@ function careerWithFlags(record, flags = GAME_FLAGS){
 function solvedScenarioIdsFromTickets(tickets){
   return [...new Set(tickets.filter(ticket => {
     const result = ticket && ticket.result;
-    return result && (result.kind === 'closed' || (result.kind === 'refunded' && result.satisfied === true));
+    return result && result.kind === 'closed';
   }).map(ticket => ticket.s.id))];
 }
 
@@ -3105,7 +3137,9 @@ function newTicket(s){
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
-    complaintEmail:false, misdiagnosisEmail:false, gratitudeEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
+    complaintEmail:false, misdiagnosisEmail:false, gratitudeEmail:false, refundComplaint:false,
+    attempts:[], abandonedCalls:0, abandonRedialScheduled:false,
+    redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
   };
 }
 
@@ -3169,12 +3203,47 @@ function activateDueInbound(){
   return activated;
 }
 
+function inboundSlotAvailable(candidate, tickets = state.tickets){
+  return candidate <= LAST_INBOUND_TURN && tickets.every(other =>
+    !Number.isFinite(other.arrivedTurn) || Math.abs(candidate - other.arrivedTurn) >= MIN_INBOUND_GAP
+  );
+}
+
+function scheduleAbandonRedial(t){
+  if (t.abandonRedialScheduled || t.abandonedCalls > ABANDON_REDIAL_LIMIT || state.clock >= SHIFT_END) return false;
+  let candidate = state.turn + ABANDON_REDIAL_MIN_DELAY;
+  while (candidate <= LAST_INBOUND_TURN && !inboundSlotAvailable(candidate)) candidate++;
+  if (candidate > LAST_INBOUND_TURN) return false;
+
+  t.abandonRedialScheduled = true;
+  t.redialCount++;
+  t.state = 'inbound';
+  t.result = null;
+  t.arrivedTurn = candidate;
+  t.patience = 100;
+  t.greeted = false;
+  t.redialOpening = CALL_FLOW_LINES.abandonedRedialOpenings[t.s.type];
+  t.redialSpoken = false;
+  t.redialGreeting = true;
+  t.stress = clamp(t.stress + ABANDON_REDIAL_STRESS, 0, 100);
+  t.maxStress = Math.max(t.maxStress, t.stress);
+  recordOfficeEvent('redial', t.s.id + '：放棄呼のあと、' + fmtClock(SHIFT_START + candidate) + 'に再着信予定です。');
+  return true;
+}
+
 function abandonTicket(t, note){
   if (t.state === 'closed') return false;
+  const unansweredInbound = t.state === 'waiting';
+  const abandonedAtTurn = state.turn;
+  const abandonedArrival = t.arrivedTurn;
   t.state = 'closed';
   t.result = { kind:'abandoned', csat:0, label:'放棄呼', firstCallResolved:false };
+  t.abandonedCalls = (t.abandonedCalls || 0) + 1;
+  if (!Array.isArray(t.attempts)) t.attempts = [];
+  t.attempts.push({ kind:'abandoned', atTurn:abandonedAtTurn, arrivedTurn:abandonedArrival, note });
   playCloseJingle(t.result);
   recordOfficeEvent('abandoned', t.s.id + '：' + note);
+  if (unansweredInbound) scheduleAbandonRedial(t);
   return true;
 }
 
@@ -3307,18 +3376,19 @@ function handleFrontDeskChoice(choice){
   t.frontDeskAttempts++;
   if (!spendOnCall(t, late && !direct ? 2 : 1, 0)){ render(); return; }
   const frontReply = late && !direct ? CALL_FLOW_LINES.frontDesk.delayedConnect : CALL_FLOW_LINES.frontDesk.connect;
+  const customerReply = callbackConnectionCustomerReply(t);
   pushFlowLines(t, [
     { who:'front', text:frontReply },
-    { who:'cust', text:callbackCustomerReply(t) },
+    { who:'cust', text:customerReply },
   ]);
-  applyCallbackWaitStress(t);
+  applyCallbackWaitStress(t, false);
   t.callbackStage = 'connected';
   /* §49-2: こちらから指定した客室へ繋がった相手なので、本人確認は済んだものとして扱う。
      フロントには名前か部屋番号を伝えて繋いでもらっており、入電で名乗る前の相手とは
      なりすましの余地がまるで違う。滞在先だけ聞いて折り返すと社内システムを開けない、
      という食い違いはここで解く。入電側の条件（§41）は変えない。 */
   t.identified = true;
-  applyPunctualCallbackRelief(t);
+  applyPunctualCallbackRelief(t, false);
   finishCarrierLookup(t);
   state.ui = defaultUi();
   render();
@@ -3331,22 +3401,38 @@ function callbackLookupAllowance(t){
    遅れた場合は回復させない（遅れの罰は採点の -1.5 にあり、二重に罰さない）。
    運は入れない。「守っても報われないことがある」形にすると、折り返しを選ぶ判断が
    成り立たなくなる。回復は接続の1回だけで、折り返しを繰り返しても増えない。 */
-function applyPunctualCallbackRelief(t){
+function callbackPunctualReliefAvailable(t){
+  return !t.callbackReliefApplied && !t.callbackLate && Boolean(CALLBACK_PUNCTUAL_RELIEF[t.s.type]);
+}
+
+function applyPunctualCallbackRelief(t, speak = true){
   if (t.callbackReliefApplied || t.callbackLate) return;
   t.callbackReliefApplied = true;
   const delta = CALLBACK_PUNCTUAL_RELIEF[t.s.type];
   if (!delta) return;
-  pushCustomerLine(t, CALLBACK_PUNCTUAL_REPLIES[t.s.type], { plain:true });
+  if (speak) pushCustomerLine(t, CALLBACK_PUNCTUAL_REPLIES[t.s.type], { plain:true });
   changeStress(t, delta, true);
 }
 
-function applyCallbackWaitStress(t){
-  if (t.callbackWaitStressApplied) return;
+function callbackWaitStressDelta(t){
   const over = Math.max(0, (t.callbackLookupCount || 0) - callbackLookupAllowance(t));
   const idle = t.callbackKind === 'scheduled' && !t.callbackLookupCount;
-  const delta = over * CALLBACK_OVER_LOOKUP_STRESS + (idle ? CALLBACK_IDLE_STRESS : 0);
+  return over * CALLBACK_OVER_LOOKUP_STRESS + (idle ? CALLBACK_IDLE_STRESS : 0);
+}
+
+function callbackConnectionCustomerReply(t){
+  const carrierReply = callbackCustomerReply(t);
+  if (t.callbackReason === 'carrier') return carrierReply;
+  if (!t.callbackWaitStressApplied && callbackWaitStressDelta(t)) return CALLBACK_WAIT_REPLIES[t.s.type];
+  if (callbackPunctualReliefAvailable(t)) return CALLBACK_PUNCTUAL_REPLIES[t.s.type];
+  return carrierReply;
+}
+
+function applyCallbackWaitStress(t, speak = true){
+  if (t.callbackWaitStressApplied) return;
+  const delta = callbackWaitStressDelta(t);
   if (delta){
-    pushCustomerLine(t, CALLBACK_WAIT_REPLIES[t.s.type], { plain:true });
+    if (speak) pushCustomerLine(t, CALLBACK_WAIT_REPLIES[t.s.type], { plain:true });
     addStress(t, delta);
   }
   t.callbackWaitStressApplied = true;
@@ -3368,6 +3454,11 @@ function spendOnCall(t, minutes, holdMinutes){
   else t.inboundMinutes = inboundBefore + minutes;
   t.holdMinutes += holdMinutes || 0;
   advance(minutes);
+  const held = holdMinutes || 0;
+  if (held && t.state === 'open' && !t.pendingResult){
+    const direction = t.callDirection === 'outbound' ? 'outbound' : 'inbound';
+    if (!addStress(t, held * HOLD_STRESS_PER_MINUTE[direction], false, true)) return false;
+  }
   if (!t.callChargeConcerned && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5 && t.state === 'open' && !t.pendingResult){
     t.callChargeConcerned = true;
     pushCustomerLine(t, CALL_FLOW_LINES.callChargeConcern[t.s.type], { plain:true });
@@ -3730,10 +3821,20 @@ function refundResponsibility(causeId){
   return ['company','neutral','customer'].find(group => REFUND_POLICY[group].causes.includes(causeId));
 }
 
-function refundSatisfied(causeId){
-  const group = refundResponsibility(causeId);
-  if (GAME_FLAGS.luckRate === 1) return group === 'company';
-  return state.random() < REFUND_POLICY[group].satisfactionRate;
+function refundAssessment(t){
+  const excluded = new Set();
+  t.facts.forEach(fact => (fact.out || []).forEach(cause => excluded.add(cause)));
+  const candidates = CAUSES.map(cause => cause.id).filter(cause => !excluded.has(cause));
+  return {
+    diagnosed:candidates.length === 1 && candidates[0] === t.s.trueCause,
+    group:refundResponsibility(t.s.trueCause),
+  };
+}
+
+function refundSatisfied(t, assessment = refundAssessment(t)){
+  if (!assessment.diagnosed) return false;
+  if (GAME_FLAGS.luckRate === 1) return assessment.group === 'company';
+  return state.random() < REFUND_POLICY[assessment.group].satisfactionRate;
 }
 
 function refundProposalRejected(causeId){
@@ -3755,7 +3856,8 @@ function doRefund(){
     render();
     return;
   }
-  const satisfied = refundSatisfied(t.s.trueCause);
+  const assessment = refundAssessment(t);
+  const satisfied = refundSatisfied(t, assessment);
   state.cost += REFUND_POLICY.amount;
   t.transcript.push({ who:'me', text:'ご不便のお詫びとして、今回のご利用料金から2,400円を返金いたします。' });
   if (satisfied){
@@ -3769,8 +3871,9 @@ function doRefund(){
     text:satisfied ? CALL_FLOW_LINES.ending.refundSatisfied : CALL_FLOW_LINES.ending.refundDissatisfied,
   }]);
   t.pendingResult = {
-    kind:'refunded', satisfied, csat:satisfied ? 3.0 : 1.0,
-    label:satisfied ? '返金で終結（満足）' : '返金で終結（不満）', firstCallResolved:false,
+    kind:'refunded', satisfied, diagnosed:assessment.diagnosed, refundComplaint:!assessment.diagnosed,
+    csat:satisfied ? 2.5 : 1.0,
+    label:satisfied ? '返金で終結（未解決）' : '返金で終結（不満）', firstCallResolved:false,
   };
   state.ui = defaultUi();
   render();
@@ -3911,10 +4014,6 @@ function finishLookup(t, l, minutes, hold){
   if (!continued){ render(); return; }
   // 照会しただけで結果を客へ読み上げない。何をどう伝えるかは「伝える」で選ぶ。
   pushFlowLines(t, [{ who:'me', text:hold ? CALL_FLOW_LINES.lookup.holdComplete : CALL_FLOW_LINES.lookup.talkComplete }]);
-  if (r && r.customerReply){
-    pushCustomerLine(t, r.customerReply);
-    if (!addStress(t, r.stressDelta || 0, false, true)){ render(); return; }
-  }
   state.ui = defaultUi('system_record');
   render();
 }
@@ -4396,8 +4495,11 @@ function closeTicket(t, result){
   t.complaintEmail = complaintEmailArrives(result);
   t.misdiagnosisEmail = t.complaintEmail && misdiagnosisResurfaces(result);
   t.gratitudeEmail = !t.complaintEmail && gratitudeEmailArrives(result);
+  t.refundComplaint = Boolean(result.refundComplaint);
   t.state = 'closed';
   t.result = result;
+  if (!Array.isArray(t.attempts)) t.attempts = [];
+  t.attempts.push({ ...result, atTurn:state.turn, arrivedTurn:t.arrivedTurn });
   playDisconnectSound();
   playCloseJingle(result);
   recordOfficeEvent('closed', t.s.id + '：' + result.label + ' CSAT ' + result.csat.toFixed(1));
@@ -4417,6 +4519,7 @@ function misdiagnosisResurfaces(result){
 
 function complaintEmailArrives(result){
   if (result.kind === 'complaint' || result.kind === 'hangup') return true;
+  if (result.refundComplaint) return true;
   if (misdiagnosisResurfaces(result)) return true;
   return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false;
 }
@@ -4474,19 +4577,65 @@ let endingTapGuard = false;
 let officeRingTimer = null;
 let officeRingLit = false;
 let audioContext = null;
+let audioUnlockStatus = 'idle';
+
+function audioStatusText(){
+  if (!GAME_FLAGS.soundEnabled) return '効果音はOFFです。ONにしてから試してください。';
+  if (audioUnlockStatus === 'ready') return '音声機能は利用可能です。試聴音が聞こえなければ、iPhoneの消音モード・メディア音量・Bluetooth出力先を確認してください。';
+  if (audioUnlockStatus === 'needs_gesture') return 'iPhoneが音声を一時停止しました。「音をテスト」をもう一度タップしてください。';
+  if (audioUnlockStatus === 'unavailable') return 'このブラウザでは効果音機能を利用できません。ゲームは音なしで続けられます。';
+  if (audioUnlockStatus === 'error') return '音声を開始できませんでした。「音をテスト」を再度タップしてください。';
+  return '未確認です。「音をテスト」をタップすると、iPhoneで音声が開始できたか確認できます。';
+}
+
+function setAudioUnlockStatus(status){
+  audioUnlockStatus = status;
+  document.querySelectorAll('[data-audio-status]').forEach(node => { node.textContent = audioStatusText(); });
+}
 
 function initAudio(){
   try {
-    if (audioContext) return;
+    if (audioContext && audioContext.state !== 'closed') return audioContext;
+    audioContext = null;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (AudioContextClass) audioContext = new AudioContextClass();
-  } catch (error){ audioContext = null; }
+    else setAudioUnlockStatus('unavailable');
+  } catch (error){
+    audioContext = null;
+    setAudioUnlockStatus('error');
+  }
+  return audioContext;
+}
+
+async function unlockAudioFromGesture(){
+  if (!GAME_FLAGS.soundEnabled){ setAudioUnlockStatus('disabled'); return false; }
+  try {
+    if (typeof navigator !== 'undefined' && navigator.audioSession){
+      try { navigator.audioSession.type = 'playback'; } catch (error){ /* 未対応の値でも再生開始は試す */ }
+    }
+    const ctx = initAudio();
+    if (!ctx) return false;
+    /* suspended 中に予約した極小音は、同じタップで resume された直後に流れて経路を開く。 */
+    try { synthTone(ctx, 0.01, 220, 0, 0.01, { level:0.0001 }); } catch (error){ /* priming非対応でもresumeは続ける */ }
+    if (ctx.state === 'suspended') await ctx.resume();
+    const ready = ctx.state === 'running';
+    setAudioUnlockStatus(ready ? 'ready' : 'needs_gesture');
+    return ready;
+  } catch (error){
+    setAudioUnlockStatus('error');
+    return false;
+  }
 }
 
 function withAudio(makeSound){
   if (!GAME_FLAGS.soundEnabled || !audioContext) return;
   try {
-    if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+    /* 着信タイマーなど、ユーザー操作外からresumeしてもiOSでは解除できない。 */
+    if (audioContext.state !== 'running'){
+      if (audioContext.state === 'closed') audioContext = null;
+      setAudioUnlockStatus('needs_gesture');
+      return;
+    }
     makeSound(audioContext, clamp(GAME_FLAGS.soundVolume, 0, 1));
   } catch (error){ /* 音が出せなくてもゲーム進行は続ける */ }
 }
@@ -4511,6 +4660,7 @@ function playPickupSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 
 function playDisconnectSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 400, 0, .18, {level:.07}); synthTone(ctx, volume, 400, .28, .18, {level:.07}); }); }
 function playTypeSound(index){ if (index % 4) return; withAudio((ctx, volume) => synthTone(ctx, volume, 760 + (index % 3) * 35, 0, .018, {type:'square',level:.025})); }
 function playCommandSound(){ withAudio((ctx, volume) => synthTone(ctx, volume, 880, 0, .045, {type:'square',level:.055})); }
+function playAudioTestSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 523, 0, .12, {type:'triangle',level:.13}); synthTone(ctx, volume, 784, .15, .2, {type:'triangle',level:.13}); }); }
 function playStressWarning(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 980, 0, .11, {type:'square',level:.12}); synthTone(ctx, volume, 980, .17, .11, {type:'square',level:.12}); }); }
 function playClueSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 660, 0, .07, {level:.06}); synthTone(ctx, volume, 880, .08, .1, {level:.07}); }); }
 function playBadActionSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 155, 0, .42, {type:'sawtooth',level:.1,endFrequency:105}); synthTone(ctx, volume, 164, 0, .36, {type:'square',level:.045,endFrequency:110}); }); }
@@ -4590,6 +4740,7 @@ function render(){
   if (state.phase === 'office'){ renderOffice(); return; }
   if (state.phase === 'desk'){ renderDesk(); return; }
   if (state.phase !== 'call') return;
+  mountShiftStrip(false);
   $('clock').textContent = fmtClock(state.clock);
   renderShiftStrip();
   renderQueue();
@@ -4597,15 +4748,24 @@ function render(){
   renderBoard();
 }
 
+function mountShiftStrip(inOffice){
+  const strip = $('shift-strip');
+  const slot = $(inOffice ? 'office-shift-slot' : 'topbar-shift-slot');
+  if (strip && slot && strip.parentElement !== slot) slot.appendChild(strip);
+}
+
 function metrics(){
   const finished = state.tickets.filter(t => t.result);
   const answered = finished.filter(t => t.result.kind !== 'abandoned');
-  const abandoned = finished.filter(t => t.result.kind === 'abandoned').length;
+  const abandoned = state.tickets.reduce((sum, t) => sum + (Number.isInteger(t.abandonedCalls)
+    ? t.abandonedCalls
+    : (t.result && t.result.kind === 'abandoned' ? 1 : 0)), 0);
   const csats = answered.map(t => t.result.csat);
   const csat = csats.length ? csats.reduce((a,b) => a+b, 0) / csats.length : null;
   const fcrCount = answered.filter(t => t.result.firstCallResolved).length;
   const fcr = answered.length ? fcrCount / answered.length : null;
-  const answerRate = (state.tickets.length - abandoned) / state.tickets.length;
+  const answerAttempts = answered.length + abandoned;
+  const answerRate = answerAttempts ? answered.length / answerAttempts : 1;
   const handled = state.tickets.filter(t => t.callMinutes > 0);
   const aht = handled.length ? handled.reduce((n,t) => n + t.callMinutes, 0) / handled.length : null;
   return { finished, answered, abandoned, csat, fcrCount, fcr, answerRate, aht };
@@ -4615,20 +4775,32 @@ function renderShiftStrip(){
   const strip = $('shift-strip');
   if (!strip) return;
 
+  const pinRecords = [];
+  state.tickets.forEach(t => {
+    const attempts = Array.isArray(t.attempts) ? t.attempts : [];
+    attempts.forEach((attempt, index) => {
+      const isCurrentAbandon = t.result && t.result.kind === 'abandoned' && index === attempts.length - 1;
+      if (attempt.kind === 'abandoned' && !isCurrentAbandon && attempt.arrivedTurn <= state.turn){
+        pinRecords.push({ t, arrivedTurn:attempt.arrivedTurn, cls:'abandoned', status:'放棄呼' });
+      }
+    });
+    if (t.arrivedTurn <= state.turn){
+      let cls = 'closed';
+      if (t.state === 'waiting') cls = 'waiting';
+      else if (t.state === 'open') cls = 'active';
+      else if (t.state === 'callback') cls = 'callback';
+      else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
+      const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '現地キャリア照会中' : cls === 'abandoned' ? '放棄呼' : '完了';
+      pinRecords.push({ t, arrivedTurn:t.arrivedTurn, cls, status });
+    }
+  });
+
   const seen = new Map();
-  const pins = state.tickets.filter(t => t.arrivedTurn <= state.turn).map(t => {
-    const pos = clamp(t.arrivedTurn / SHIFT_DURATION * 100, 0, 100);
+  const pins = pinRecords.map(({ t, arrivedTurn, cls, status }) => {
+    const pos = clamp(arrivedTurn / SHIFT_DURATION * 100, 0, 100);
     const key = pos.toFixed(3);
     const stack = seen.get(key) || 0;
     seen.set(key, stack + 1);
-
-    let cls = 'closed';
-    if (t.state === 'waiting') cls = 'waiting';
-    else if (t.state === 'open') cls = 'active';
-    else if (t.state === 'callback') cls = 'callback';
-    else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
-
-    const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '現地キャリア照会中' : cls === 'abandoned' ? '放棄呼' : '完了';
     return '<span class="shift-pin ' + cls + '" style="left:' + pos.toFixed(2) + '%;--stack:' + stack + '" ' +
       'title="' + esc(t.s.city) + ' ' + esc(localClock(t)) + ' ' + status + '" aria-label="' + esc(t.s.city) + ' ' + status + '">' +
       '<i class="shift-pin-dot"></i><span class="shift-pin-label">' + esc(t.s.id) + '</span></span>';
@@ -4852,6 +5024,7 @@ function syncOfficeRing(ringing){
 function renderOffice(){
   document.body.classList.add('office-view');
   document.body.classList.remove('call-view');
+  mountShiftStrip(true);
   $('clock').textContent = fmtClock(state.clock);
   $('office-clock').textContent = fmtClock(state.clock);
   $('office-slogan').textContent = state.slogan;
@@ -4911,6 +5084,7 @@ function enterDesk(){
 
 /* 折り返し待ちの案件を、通話をつながずにデスク端末だけで調べる画面。 */
 function renderDesk(){
+  mountShiftStrip(false);
   $('clock').textContent = fmtClock(state.clock);
   renderShiftStrip();
   renderQueue();
@@ -5039,7 +5213,8 @@ function renderStressPanel(t){
 function recentTranscriptLines(t){
   const pending = pendingTypedLine(t);
   const end = pending ? t.transcript.indexOf(pending) + 1 : t.transcript.length;
-  const delivered = t.transcript.slice(0, end);
+  const start = Number.isInteger(t.callTranscriptStart) ? t.callTranscriptStart : 0;
+  const delivered = t.transcript.slice(start, end);
   let latestLookupIndex = -1;
   for (let i = delivered.length - 1; i >= 0; i--){
     if (delivered[i].who === 'sys' && delivered[i].lookupTitle){ latestLookupIndex = i; break; }
@@ -5050,7 +5225,7 @@ function recentTranscriptLines(t){
     const playerAfter = afterLookup.slice().reverse().find(line => line.who === 'me');
     if (!customerAfter && playerAfter) return [delivered[latestLookupIndex], playerAfter];
   }
-  const spoken = t.transcript.slice(0, end).filter(line => line.who === 'cust' || line.who === 'front' || line.who === 'me');
+  const spoken = delivered.filter(line => line.who === 'cust' || line.who === 'front' || line.who === 'me');
   if (spoken.length && spoken[spoken.length - 1].who === 'me'){
     const player = spoken[spoken.length - 1];
     const customer = spoken.slice(0, -1).reverse().find(line => line.who === 'cust' || line.who === 'front');
@@ -5146,12 +5321,8 @@ function renderHangupButton(note, label = '電話を切る'){
 
 function unresolvedHangupGuide(t){
   if (t.callbackPromised){
-    const lines = [];
-    if (!t.asked.has('q_stay') || !t.stayAddress) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoAddress);
-    else {
-      lines.push(CALL_FLOW_LINES.callbackPromise.guideReady);
-      if (!t.returnTimeKnown) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoReturn);
-    }
+    const lines = [CALL_FLOW_LINES.callbackPromise.guide];
+    if (!t.returnTimeKnown) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoReturn);
     return '<b>' + lines[0] + '</b>' + (lines[1] ? '<p>' + lines[1] + '</p>' : '');
   }
   const causeNarrowed = hotCauses(t).size === 1;
@@ -5660,6 +5831,12 @@ function careerBriefingHtml(){
     storageNote + '</section>';
 }
 
+function audioDiagnosticHtml(){
+  return '<section class="audio-diagnostic" aria-label="iPhone音声の確認">' +
+    '<b>iPhoneの音を確認</b><p data-audio-status="1">' + esc(audioStatusText()) + '</p>' +
+    '<button class="btn-ghost" data-audio-unlock="1">音をテスト／再有効化</button></section>';
+}
+
 function showBriefing(){
   $('sheet').innerHTML =
     '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +
@@ -5670,13 +5847,14 @@ function showBriefing(){
       '<div class="artifact-qr-copy"><b>iPhoneで遊ぶ</b><p>カメラでQRコードを読み取ると、このページが開きます。</p>' +
       '<code class="artifact-qr-url">' + esc(ARTIFACT_URL) + '</code></div>' +
     '</div>' +
-
+    audioDiagnosticHtml() +
     '<button class="btn-primary" id="btn-start">シフトを始める</button>';
 
   openSheet();
   drawArtifactQr();
   $('btn-start').onclick = () => {
     initAudio();
+    unlockAudioFromGesture();
     closeSheet();
     advance(0);
     enterOffice();
@@ -5827,6 +6005,7 @@ function showBalanceConsole(){
       '<label>音量 <input type="range" id="balance-volume" min="0" max="1" step="0.05" value="' + GAME_FLAGS.soundVolume + '"></label>' +
       '<p>OFFにすると従来の決定論的な挙動へ戻ります。抽選結果はプレイ画面や会話記録には表示されません。</p>' +
     '</div>' +
+    audioDiagnosticHtml() +
     '<h2>キャリア記録</h2><div class="balance-career-actions">' +
       '<button class="btn-ghost" id="balance-replay-ending">表エンディング（翌朝の全体朝礼）を再生する</button>' +
       '<button class="btn-ghost" id="balance-replay-secret-ending">裏エンディングを再生する</button>' +
@@ -5848,6 +6027,7 @@ function showBalanceConsole(){
   };
   $('balance-sound').onchange = event => {
     GAME_FLAGS.soundEnabled = event.target.checked;
+    setAudioUnlockStatus(event.target.checked ? 'idle' : 'disabled');
   };
   $('balance-volume').oninput = event => {
     GAME_FLAGS.soundVolume = clamp(Number(event.target.value), 0, 1);
@@ -5914,10 +6094,10 @@ function careerShiftContext(){
   return {
     maxStresses:tickets.map(ticket => ticket.maxStress),
     redials:tickets.reduce((sum, ticket) => sum + ticket.redialCount, 0),
-    abandoned:tickets.filter(ticket => ticket.result && ticket.result.kind === 'abandoned').length,
+    abandoned:tickets.reduce((sum, ticket) => sum + (ticket.abandonedCalls || 0), 0),
     resultKinds:tickets.map(ticket => ticket.result && ticket.result.kind).filter(Boolean),
     noRefundsOrShipments:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind !== 'refunded' && !ticket.shipment),
-    allResolved:tickets.length > 0 && tickets.every(ticket => ticket.result && ['closed','refunded'].includes(ticket.result.kind)),
+    allResolved:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind === 'closed'),
     allRefunded:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind === 'refunded'),
     solvedScenarioIds:solvedScenarioIdsFromTickets(tickets),
   };
@@ -6167,6 +6347,7 @@ function renderDebrief(){
     else judge = '原因は当たっていましたが、対処が噛み合っていませんでした。';
 
     const misses = reportMissForTicket(t);
+    const abandonmentNote = t.abandonedCalls ? '<br>応答前の放棄呼：' + t.abandonedCalls + '回（履歴に保持）' : '';
     return '<div class="review ' + cls + '">' +
       '<div class="rh"><span class="rn">' + esc(t.s.name) + '</span>' +
       '<span class="rp">' + esc(t.s.cityEn) + '</span>' +
@@ -6174,7 +6355,7 @@ function renderDebrief(){
       '<div class="review-csat" aria-label="CSAT ' + r.csat.toFixed(1) + ' / 5"><i style="width:' + clamp(r.csat / 5 * 100, 0, 100) + '%"></i></div>' +
       '<div class="rb"><b style="color:var(--text);font-weight:500">真の原因：' + esc(causeName(t.s.trueCause)) + '</b><br>' +
       /* §51-2: 記録に残すのは名前。免除は置かない——解決したあとなら伺えるので。 */
-      esc(judge) + '<br>' + (r.identityRecordMissing
+      esc(judge) + abandonmentNote + '<br>' + (r.identityRecordMissing
         ? 'お名前を伺えなかったため、社内システムへ記録を残せず、評価を下げました。<br>'
         : '') + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
   }).join('');
@@ -6188,6 +6369,8 @@ function renderDebrief(){
   };
   const complaintEmails = ts.filter(t => t.complaintEmail).map(t => t.misdiagnosisEmail
     ? dayAfterMail(t, MISDIAGNOSIS_EMAIL_TEMPLATES, '再発のご連絡', 'complaint-email')
+    : t.refundComplaint
+    ? dayAfterMail(t, BLIND_REFUND_EMAIL_TEMPLATES, '苦情メール', 'complaint-email')
     : dayAfterMail(t, COMPLAINT_EMAIL_TEMPLATES, '苦情メール', 'complaint-email')).join('');
   const complaintMailbox = complaintEmails
     ? '<section class="complaint-mailbox"><h2>翌日、次の苦情が届いています</h2><p>' + ts.filter(t => t.complaintEmail).length + '件</p>' + complaintEmails + '</section>'
@@ -6238,11 +6421,20 @@ function cell(k, v, n){
 
 document.addEventListener('click', (e) => {
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name],[data-board-excluded]');
+  const el = e.target.closest('[data-audio-unlock],[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name],[data-board-excluded]');
   if (!el || el.disabled) return;
-  playCommandSound();
+  const audioReady = unlockAudioFromGesture();
+  if (el.dataset.audioUnlock){ audioReady.then(ready => { if (ready) playAudioTestSound(); }); return; }
+  audioReady.then(ready => { if (ready) playCommandSound(); });
   routeAction(el.dataset);
 });
+
+function noteAudioInterruption(){
+  if (audioContext && audioContext.state !== 'running') setAudioUnlockStatus('needs_gesture');
+}
+
+document.addEventListener('visibilitychange', noteAudioInterruption);
+window.addEventListener('pageshow', noteAudioInterruption);
 
 function firstTicketIn(stateName, orderKey){
   return state.tickets

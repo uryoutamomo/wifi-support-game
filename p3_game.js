@@ -280,7 +280,7 @@ function careerWithFlags(record, flags = GAME_FLAGS){
 function solvedScenarioIdsFromTickets(tickets){
   return [...new Set(tickets.filter(ticket => {
     const result = ticket && ticket.result;
-    return result && (result.kind === 'closed' || (result.kind === 'refunded' && result.satisfied === true));
+    return result && result.kind === 'closed';
   }).map(ticket => ticket.s.id))];
 }
 
@@ -367,7 +367,9 @@ function newTicket(s){
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
     stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
-    complaintEmail:false, misdiagnosisEmail:false, gratitudeEmail:false, redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
+    complaintEmail:false, misdiagnosisEmail:false, gratitudeEmail:false, refundComplaint:false,
+    attempts:[], abandonedCalls:0, abandonRedialScheduled:false,
+    redialCount:0, redialOpening:null, redialSpoken:false, redialGreeting:false, escUsed:false,
   };
 }
 
@@ -431,12 +433,47 @@ function activateDueInbound(){
   return activated;
 }
 
+function inboundSlotAvailable(candidate, tickets = state.tickets){
+  return candidate <= LAST_INBOUND_TURN && tickets.every(other =>
+    !Number.isFinite(other.arrivedTurn) || Math.abs(candidate - other.arrivedTurn) >= MIN_INBOUND_GAP
+  );
+}
+
+function scheduleAbandonRedial(t){
+  if (t.abandonRedialScheduled || t.abandonedCalls > ABANDON_REDIAL_LIMIT || state.clock >= SHIFT_END) return false;
+  let candidate = state.turn + ABANDON_REDIAL_MIN_DELAY;
+  while (candidate <= LAST_INBOUND_TURN && !inboundSlotAvailable(candidate)) candidate++;
+  if (candidate > LAST_INBOUND_TURN) return false;
+
+  t.abandonRedialScheduled = true;
+  t.redialCount++;
+  t.state = 'inbound';
+  t.result = null;
+  t.arrivedTurn = candidate;
+  t.patience = 100;
+  t.greeted = false;
+  t.redialOpening = CALL_FLOW_LINES.abandonedRedialOpenings[t.s.type];
+  t.redialSpoken = false;
+  t.redialGreeting = true;
+  t.stress = clamp(t.stress + ABANDON_REDIAL_STRESS, 0, 100);
+  t.maxStress = Math.max(t.maxStress, t.stress);
+  recordOfficeEvent('redial', t.s.id + '：放棄呼のあと、' + fmtClock(SHIFT_START + candidate) + 'に再着信予定です。');
+  return true;
+}
+
 function abandonTicket(t, note){
   if (t.state === 'closed') return false;
+  const unansweredInbound = t.state === 'waiting';
+  const abandonedAtTurn = state.turn;
+  const abandonedArrival = t.arrivedTurn;
   t.state = 'closed';
   t.result = { kind:'abandoned', csat:0, label:'放棄呼', firstCallResolved:false };
+  t.abandonedCalls = (t.abandonedCalls || 0) + 1;
+  if (!Array.isArray(t.attempts)) t.attempts = [];
+  t.attempts.push({ kind:'abandoned', atTurn:abandonedAtTurn, arrivedTurn:abandonedArrival, note });
   playCloseJingle(t.result);
   recordOfficeEvent('abandoned', t.s.id + '：' + note);
+  if (unansweredInbound) scheduleAbandonRedial(t);
   return true;
 }
 
@@ -569,18 +606,19 @@ function handleFrontDeskChoice(choice){
   t.frontDeskAttempts++;
   if (!spendOnCall(t, late && !direct ? 2 : 1, 0)){ render(); return; }
   const frontReply = late && !direct ? CALL_FLOW_LINES.frontDesk.delayedConnect : CALL_FLOW_LINES.frontDesk.connect;
+  const customerReply = callbackConnectionCustomerReply(t);
   pushFlowLines(t, [
     { who:'front', text:frontReply },
-    { who:'cust', text:callbackCustomerReply(t) },
+    { who:'cust', text:customerReply },
   ]);
-  applyCallbackWaitStress(t);
+  applyCallbackWaitStress(t, false);
   t.callbackStage = 'connected';
   /* §49-2: こちらから指定した客室へ繋がった相手なので、本人確認は済んだものとして扱う。
      フロントには名前か部屋番号を伝えて繋いでもらっており、入電で名乗る前の相手とは
      なりすましの余地がまるで違う。滞在先だけ聞いて折り返すと社内システムを開けない、
      という食い違いはここで解く。入電側の条件（§41）は変えない。 */
   t.identified = true;
-  applyPunctualCallbackRelief(t);
+  applyPunctualCallbackRelief(t, false);
   finishCarrierLookup(t);
   state.ui = defaultUi();
   render();
@@ -593,22 +631,38 @@ function callbackLookupAllowance(t){
    遅れた場合は回復させない（遅れの罰は採点の -1.5 にあり、二重に罰さない）。
    運は入れない。「守っても報われないことがある」形にすると、折り返しを選ぶ判断が
    成り立たなくなる。回復は接続の1回だけで、折り返しを繰り返しても増えない。 */
-function applyPunctualCallbackRelief(t){
+function callbackPunctualReliefAvailable(t){
+  return !t.callbackReliefApplied && !t.callbackLate && Boolean(CALLBACK_PUNCTUAL_RELIEF[t.s.type]);
+}
+
+function applyPunctualCallbackRelief(t, speak = true){
   if (t.callbackReliefApplied || t.callbackLate) return;
   t.callbackReliefApplied = true;
   const delta = CALLBACK_PUNCTUAL_RELIEF[t.s.type];
   if (!delta) return;
-  pushCustomerLine(t, CALLBACK_PUNCTUAL_REPLIES[t.s.type], { plain:true });
+  if (speak) pushCustomerLine(t, CALLBACK_PUNCTUAL_REPLIES[t.s.type], { plain:true });
   changeStress(t, delta, true);
 }
 
-function applyCallbackWaitStress(t){
-  if (t.callbackWaitStressApplied) return;
+function callbackWaitStressDelta(t){
   const over = Math.max(0, (t.callbackLookupCount || 0) - callbackLookupAllowance(t));
   const idle = t.callbackKind === 'scheduled' && !t.callbackLookupCount;
-  const delta = over * CALLBACK_OVER_LOOKUP_STRESS + (idle ? CALLBACK_IDLE_STRESS : 0);
+  return over * CALLBACK_OVER_LOOKUP_STRESS + (idle ? CALLBACK_IDLE_STRESS : 0);
+}
+
+function callbackConnectionCustomerReply(t){
+  const carrierReply = callbackCustomerReply(t);
+  if (t.callbackReason === 'carrier') return carrierReply;
+  if (!t.callbackWaitStressApplied && callbackWaitStressDelta(t)) return CALLBACK_WAIT_REPLIES[t.s.type];
+  if (callbackPunctualReliefAvailable(t)) return CALLBACK_PUNCTUAL_REPLIES[t.s.type];
+  return carrierReply;
+}
+
+function applyCallbackWaitStress(t, speak = true){
+  if (t.callbackWaitStressApplied) return;
+  const delta = callbackWaitStressDelta(t);
   if (delta){
-    pushCustomerLine(t, CALLBACK_WAIT_REPLIES[t.s.type], { plain:true });
+    if (speak) pushCustomerLine(t, CALLBACK_WAIT_REPLIES[t.s.type], { plain:true });
     addStress(t, delta);
   }
   t.callbackWaitStressApplied = true;
@@ -630,6 +684,11 @@ function spendOnCall(t, minutes, holdMinutes){
   else t.inboundMinutes = inboundBefore + minutes;
   t.holdMinutes += holdMinutes || 0;
   advance(minutes);
+  const held = holdMinutes || 0;
+  if (held && t.state === 'open' && !t.pendingResult){
+    const direction = t.callDirection === 'outbound' ? 'outbound' : 'inbound';
+    if (!addStress(t, held * HOLD_STRESS_PER_MINUTE[direction], false, true)) return false;
+  }
   if (!t.callChargeConcerned && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5 && t.state === 'open' && !t.pendingResult){
     t.callChargeConcerned = true;
     pushCustomerLine(t, CALL_FLOW_LINES.callChargeConcern[t.s.type], { plain:true });
@@ -992,10 +1051,20 @@ function refundResponsibility(causeId){
   return ['company','neutral','customer'].find(group => REFUND_POLICY[group].causes.includes(causeId));
 }
 
-function refundSatisfied(causeId){
-  const group = refundResponsibility(causeId);
-  if (GAME_FLAGS.luckRate === 1) return group === 'company';
-  return state.random() < REFUND_POLICY[group].satisfactionRate;
+function refundAssessment(t){
+  const excluded = new Set();
+  t.facts.forEach(fact => (fact.out || []).forEach(cause => excluded.add(cause)));
+  const candidates = CAUSES.map(cause => cause.id).filter(cause => !excluded.has(cause));
+  return {
+    diagnosed:candidates.length === 1 && candidates[0] === t.s.trueCause,
+    group:refundResponsibility(t.s.trueCause),
+  };
+}
+
+function refundSatisfied(t, assessment = refundAssessment(t)){
+  if (!assessment.diagnosed) return false;
+  if (GAME_FLAGS.luckRate === 1) return assessment.group === 'company';
+  return state.random() < REFUND_POLICY[assessment.group].satisfactionRate;
 }
 
 function refundProposalRejected(causeId){
@@ -1017,7 +1086,8 @@ function doRefund(){
     render();
     return;
   }
-  const satisfied = refundSatisfied(t.s.trueCause);
+  const assessment = refundAssessment(t);
+  const satisfied = refundSatisfied(t, assessment);
   state.cost += REFUND_POLICY.amount;
   t.transcript.push({ who:'me', text:'ご不便のお詫びとして、今回のご利用料金から2,400円を返金いたします。' });
   if (satisfied){
@@ -1031,8 +1101,9 @@ function doRefund(){
     text:satisfied ? CALL_FLOW_LINES.ending.refundSatisfied : CALL_FLOW_LINES.ending.refundDissatisfied,
   }]);
   t.pendingResult = {
-    kind:'refunded', satisfied, csat:satisfied ? 3.0 : 1.0,
-    label:satisfied ? '返金で終結（満足）' : '返金で終結（不満）', firstCallResolved:false,
+    kind:'refunded', satisfied, diagnosed:assessment.diagnosed, refundComplaint:!assessment.diagnosed,
+    csat:satisfied ? 2.5 : 1.0,
+    label:satisfied ? '返金で終結（未解決）' : '返金で終結（不満）', firstCallResolved:false,
   };
   state.ui = defaultUi();
   render();
@@ -1173,10 +1244,6 @@ function finishLookup(t, l, minutes, hold){
   if (!continued){ render(); return; }
   // 照会しただけで結果を客へ読み上げない。何をどう伝えるかは「伝える」で選ぶ。
   pushFlowLines(t, [{ who:'me', text:hold ? CALL_FLOW_LINES.lookup.holdComplete : CALL_FLOW_LINES.lookup.talkComplete }]);
-  if (r && r.customerReply){
-    pushCustomerLine(t, r.customerReply);
-    if (!addStress(t, r.stressDelta || 0, false, true)){ render(); return; }
-  }
   state.ui = defaultUi('system_record');
   render();
 }
@@ -1658,8 +1725,11 @@ function closeTicket(t, result){
   t.complaintEmail = complaintEmailArrives(result);
   t.misdiagnosisEmail = t.complaintEmail && misdiagnosisResurfaces(result);
   t.gratitudeEmail = !t.complaintEmail && gratitudeEmailArrives(result);
+  t.refundComplaint = Boolean(result.refundComplaint);
   t.state = 'closed';
   t.result = result;
+  if (!Array.isArray(t.attempts)) t.attempts = [];
+  t.attempts.push({ ...result, atTurn:state.turn, arrivedTurn:t.arrivedTurn });
   playDisconnectSound();
   playCloseJingle(result);
   recordOfficeEvent('closed', t.s.id + '：' + result.label + ' CSAT ' + result.csat.toFixed(1));
@@ -1679,6 +1749,7 @@ function misdiagnosisResurfaces(result){
 
 function complaintEmailArrives(result){
   if (result.kind === 'complaint' || result.kind === 'hangup') return true;
+  if (result.refundComplaint) return true;
   if (misdiagnosisResurfaces(result)) return true;
   return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false;
 }

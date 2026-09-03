@@ -19,10 +19,15 @@ const CALLBACK_IMMEDIATE_LOOKUP_ALLOWANCE = 1;
 const CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE = 2;
 const CALLBACK_OVER_LOOKUP_STRESS = 10;
 const CALLBACK_IDLE_STRESS = 8;
+/* §53: 保留はその場で負担になる。こちらから掛けた電話で再び待たせるほうを重くする。 */
+const HOLD_STRESS_PER_MINUTE = Object.freeze({ inbound:2, outbound:4 });
+const ABANDON_REDIAL_LIMIT = 1;
+const ABANDON_REDIAL_MIN_DELAY = MIN_INBOUND_GAP;
+const ABANDON_REDIAL_STRESS = 24;
 const CALLBACK_WAIT_REPLIES = Object.freeze({
   anxious:'ずっと待っていました…。何か進んだのでしょうか？',
   novice:'すみません、いつ戻るのか分からなくて不安でした。',
-  expert:'約束した時間を超えています。照会の進捗を説明してください。',
+  expert:'照会の進捗を説明してください。これ以上、根拠なく待たせないでください。',
   hurried:'いつまで待たせるんですか。結論を。',
 });
 /* §49-1: 約束の時刻までに折り返して客室へつながったときの、満足度の回復。
@@ -251,8 +256,7 @@ const CALL_FLOW_LINES = Object.freeze({
     note:'折り返しをお約束しました。切る前に、折り返し先とお戻りの時間を確認できます。',
     headImmediate:'折り返し約束済み（すぐに）',
     headScheduled:'折り返し約束済み（1時間後）',
-    guideReady:'折り返し先は確認できています。「電話を切る」で、こちらから掛け直します。',
-    guideNoAddress:'滞在先をまだ伺っていません。このまま切ると、折り返す先がありません。',
+    guide:'折り返しをお約束しました。「電話を切る」で、こちらから掛け直します。',
     guideNoReturn:'お戻りの時間を伺っていません。フロントで確認の手間が増えます。',
   }),
   callback:Object.freeze({
@@ -323,6 +327,12 @@ const CALL_FLOW_LINES = Object.freeze({
   recordStart:'少し記録を確認させてください。',
   interrupt:'申し訳ございません、一度お切りします。',
   redialGreeting:'先ほどは通話が切れてしまい、申し訳ございません。',
+  abandonedRedialOpenings:Object.freeze({
+    anxious:'さっきはつながらなくて…また掛けてしまってすみません。でも、まだ困っています。',
+    novice:'お忙しいところすみません。さっき切れてしまって、どうしたらいいか分からなくて…。',
+    expert:'先ほどは接続できませんでした。継続して利用不能です。今回は対応してください。',
+    hurried:'さっきから掛けています。今度こそ、すぐ結論をお願いします。',
+  }),
   unverifiable:Object.freeze({
     closing:Object.freeze({
       anxious:'分かりました…。では、ご連絡を待っています。どうか早く戻りますように。',
@@ -355,6 +365,14 @@ const COMPLAINT_EMAIL_TEMPLATES = Object.freeze({
   novice:Object.freeze({ lines:Object.freeze(['「{symptom}」と相談しましたが、説明が難しく、何をすればよいのか最後まで分かりませんでした。', '機械に詳しくない人にも分かるよう、一つずつ案内していただきたかったです。']) }),
   expert:Object.freeze({ lines:Object.freeze(['「{symptom}」という事象に対し、仮説と観測結果の対応が示されないまま終話となりました。', 'この切り分け品質は看過できません。対応記録を確認し、根拠を明示して回答してください。']) }),
   hurried:Object.freeze({ lines:Object.freeze(['「{symptom}」と急ぎで伝えたのに、結論が出ないまま大切な予定に間に合いませんでした。', '前置きではなく必要な対応をすぐ示すべきです。失った時間をどう考えているのか回答してください。']) }),
+});
+
+/* §53: 原因を確かめない返金は、金銭より復旧を求めていた顧客から必ず苦情になる。 */
+const BLIND_REFUND_EMAIL_TEMPLATES = Object.freeze({
+  anxious:Object.freeze({ lines:Object.freeze(['通信を使えるようにしてほしかったのに、原因も今後の案内もないまま返金だけで終わりました。', '海外でまだ困っています。お金ではなく、どうすれば使えるのかを説明してください。']) }),
+  novice:Object.freeze({ lines:Object.freeze(['使えるようにしてほしくて相談したのに、何が悪かったのか分からないまま返金だけで終わりました。', '次に何をすればよいのか、私にも分かるように教えてください。']) }),
+  expert:Object.freeze({ lines:Object.freeze(['原因仮説も復旧方針も示されないまま、返金だけで終話されました。', '金銭処理は障害解決ではありません。観測結果に基づく原因と次の対応を回答してください。']) }),
+  hurried:Object.freeze({ lines:Object.freeze(['必要だったのは通信の復旧です。原因も次の手も示さず、返金だけで終わらせないでください。', 'まだ使えません。結論と対応をすぐ連絡してください。']) }),
 });
 
 
@@ -839,8 +857,7 @@ const SCENARIOS = [
   },
   lookups:{
     l_area:{ text:'[エリア照会] {country} ／ 貸出機種: GD-200（旧型）／ 提携: {carrier} ／ 備考: GD-200 は提携キャリアが郊外をカバーする周波数帯に非対応のため、郊外・山間部では圏外となる場合あり。',
-      fact:{ text:'貸出機種が現地の郊外カバー用バンドに非対応。機種を替えないと解決しない', hot:['coverage'], out:['sim','carrier','provision'] },
-      customerReply:'申込地域では郊外利用も想定できたはずです。それに非対応の機種を御社が貸し出したのなら、これは利用者側ではなく手配側の責任ですよね。', stressDelta:35 },
+      fact:{ text:'貸出機種が現地の郊外カバー用バンドに非対応。機種を替えないと解決しない', hot:['coverage'], out:['sim','carrier','provision'] } },
     l_session:{ text:'[セッション] 07:40以降、圏内復帰なし。SIM認識: 正常。',
       fact:{ text:'SIMは認識されている。本体側の故障ではない', out:['sim','hardware'] } },
     l_outage:{ text:'[障害情報] {country} {carrier} 網 正常。障害報告なし。',

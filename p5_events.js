@@ -4,11 +4,20 @@
 
 document.addEventListener('click', (e) => {
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name],[data-board-excluded]');
+  const el = e.target.closest('[data-audio-unlock],[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name],[data-board-excluded]');
   if (!el || el.disabled) return;
-  playCommandSound();
+  const audioReady = unlockAudioFromGesture();
+  if (el.dataset.audioUnlock){ audioReady.then(ready => { if (ready) playAudioTestSound(); }); return; }
+  audioReady.then(ready => { if (ready) playCommandSound(); });
   routeAction(el.dataset);
 });
+
+function noteAudioInterruption(){
+  if (audioContext && audioContext.state !== 'running') setAudioUnlockStatus('needs_gesture');
+}
+
+document.addEventListener('visibilitychange', noteAudioInterruption);
+window.addEventListener('pageshow', noteAudioInterruption);
 
 function firstTicketIn(stateName, orderKey){
   return state.tickets

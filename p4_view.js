@@ -12,19 +12,65 @@ let endingTapGuard = false;
 let officeRingTimer = null;
 let officeRingLit = false;
 let audioContext = null;
+let audioUnlockStatus = 'idle';
+
+function audioStatusText(){
+  if (!GAME_FLAGS.soundEnabled) return '効果音はOFFです。ONにしてから試してください。';
+  if (audioUnlockStatus === 'ready') return '音声機能は利用可能です。試聴音が聞こえなければ、iPhoneの消音モード・メディア音量・Bluetooth出力先を確認してください。';
+  if (audioUnlockStatus === 'needs_gesture') return 'iPhoneが音声を一時停止しました。「音をテスト」をもう一度タップしてください。';
+  if (audioUnlockStatus === 'unavailable') return 'このブラウザでは効果音機能を利用できません。ゲームは音なしで続けられます。';
+  if (audioUnlockStatus === 'error') return '音声を開始できませんでした。「音をテスト」を再度タップしてください。';
+  return '未確認です。「音をテスト」をタップすると、iPhoneで音声が開始できたか確認できます。';
+}
+
+function setAudioUnlockStatus(status){
+  audioUnlockStatus = status;
+  document.querySelectorAll('[data-audio-status]').forEach(node => { node.textContent = audioStatusText(); });
+}
 
 function initAudio(){
   try {
-    if (audioContext) return;
+    if (audioContext && audioContext.state !== 'closed') return audioContext;
+    audioContext = null;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (AudioContextClass) audioContext = new AudioContextClass();
-  } catch (error){ audioContext = null; }
+    else setAudioUnlockStatus('unavailable');
+  } catch (error){
+    audioContext = null;
+    setAudioUnlockStatus('error');
+  }
+  return audioContext;
+}
+
+async function unlockAudioFromGesture(){
+  if (!GAME_FLAGS.soundEnabled){ setAudioUnlockStatus('disabled'); return false; }
+  try {
+    if (typeof navigator !== 'undefined' && navigator.audioSession){
+      try { navigator.audioSession.type = 'playback'; } catch (error){ /* 未対応の値でも再生開始は試す */ }
+    }
+    const ctx = initAudio();
+    if (!ctx) return false;
+    /* suspended 中に予約した極小音は、同じタップで resume された直後に流れて経路を開く。 */
+    try { synthTone(ctx, 0.01, 220, 0, 0.01, { level:0.0001 }); } catch (error){ /* priming非対応でもresumeは続ける */ }
+    if (ctx.state === 'suspended') await ctx.resume();
+    const ready = ctx.state === 'running';
+    setAudioUnlockStatus(ready ? 'ready' : 'needs_gesture');
+    return ready;
+  } catch (error){
+    setAudioUnlockStatus('error');
+    return false;
+  }
 }
 
 function withAudio(makeSound){
   if (!GAME_FLAGS.soundEnabled || !audioContext) return;
   try {
-    if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+    /* 着信タイマーなど、ユーザー操作外からresumeしてもiOSでは解除できない。 */
+    if (audioContext.state !== 'running'){
+      if (audioContext.state === 'closed') audioContext = null;
+      setAudioUnlockStatus('needs_gesture');
+      return;
+    }
     makeSound(audioContext, clamp(GAME_FLAGS.soundVolume, 0, 1));
   } catch (error){ /* 音が出せなくてもゲーム進行は続ける */ }
 }
@@ -49,6 +95,7 @@ function playPickupSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 
 function playDisconnectSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 400, 0, .18, {level:.07}); synthTone(ctx, volume, 400, .28, .18, {level:.07}); }); }
 function playTypeSound(index){ if (index % 4) return; withAudio((ctx, volume) => synthTone(ctx, volume, 760 + (index % 3) * 35, 0, .018, {type:'square',level:.025})); }
 function playCommandSound(){ withAudio((ctx, volume) => synthTone(ctx, volume, 880, 0, .045, {type:'square',level:.055})); }
+function playAudioTestSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 523, 0, .12, {type:'triangle',level:.13}); synthTone(ctx, volume, 784, .15, .2, {type:'triangle',level:.13}); }); }
 function playStressWarning(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 980, 0, .11, {type:'square',level:.12}); synthTone(ctx, volume, 980, .17, .11, {type:'square',level:.12}); }); }
 function playClueSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 660, 0, .07, {level:.06}); synthTone(ctx, volume, 880, .08, .1, {level:.07}); }); }
 function playBadActionSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 155, 0, .42, {type:'sawtooth',level:.1,endFrequency:105}); synthTone(ctx, volume, 164, 0, .36, {type:'square',level:.045,endFrequency:110}); }); }
@@ -128,6 +175,7 @@ function render(){
   if (state.phase === 'office'){ renderOffice(); return; }
   if (state.phase === 'desk'){ renderDesk(); return; }
   if (state.phase !== 'call') return;
+  mountShiftStrip(false);
   $('clock').textContent = fmtClock(state.clock);
   renderShiftStrip();
   renderQueue();
@@ -135,15 +183,24 @@ function render(){
   renderBoard();
 }
 
+function mountShiftStrip(inOffice){
+  const strip = $('shift-strip');
+  const slot = $(inOffice ? 'office-shift-slot' : 'topbar-shift-slot');
+  if (strip && slot && strip.parentElement !== slot) slot.appendChild(strip);
+}
+
 function metrics(){
   const finished = state.tickets.filter(t => t.result);
   const answered = finished.filter(t => t.result.kind !== 'abandoned');
-  const abandoned = finished.filter(t => t.result.kind === 'abandoned').length;
+  const abandoned = state.tickets.reduce((sum, t) => sum + (Number.isInteger(t.abandonedCalls)
+    ? t.abandonedCalls
+    : (t.result && t.result.kind === 'abandoned' ? 1 : 0)), 0);
   const csats = answered.map(t => t.result.csat);
   const csat = csats.length ? csats.reduce((a,b) => a+b, 0) / csats.length : null;
   const fcrCount = answered.filter(t => t.result.firstCallResolved).length;
   const fcr = answered.length ? fcrCount / answered.length : null;
-  const answerRate = (state.tickets.length - abandoned) / state.tickets.length;
+  const answerAttempts = answered.length + abandoned;
+  const answerRate = answerAttempts ? answered.length / answerAttempts : 1;
   const handled = state.tickets.filter(t => t.callMinutes > 0);
   const aht = handled.length ? handled.reduce((n,t) => n + t.callMinutes, 0) / handled.length : null;
   return { finished, answered, abandoned, csat, fcrCount, fcr, answerRate, aht };
@@ -153,20 +210,32 @@ function renderShiftStrip(){
   const strip = $('shift-strip');
   if (!strip) return;
 
+  const pinRecords = [];
+  state.tickets.forEach(t => {
+    const attempts = Array.isArray(t.attempts) ? t.attempts : [];
+    attempts.forEach((attempt, index) => {
+      const isCurrentAbandon = t.result && t.result.kind === 'abandoned' && index === attempts.length - 1;
+      if (attempt.kind === 'abandoned' && !isCurrentAbandon && attempt.arrivedTurn <= state.turn){
+        pinRecords.push({ t, arrivedTurn:attempt.arrivedTurn, cls:'abandoned', status:'放棄呼' });
+      }
+    });
+    if (t.arrivedTurn <= state.turn){
+      let cls = 'closed';
+      if (t.state === 'waiting') cls = 'waiting';
+      else if (t.state === 'open') cls = 'active';
+      else if (t.state === 'callback') cls = 'callback';
+      else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
+      const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '現地キャリア照会中' : cls === 'abandoned' ? '放棄呼' : '完了';
+      pinRecords.push({ t, arrivedTurn:t.arrivedTurn, cls, status });
+    }
+  });
+
   const seen = new Map();
-  const pins = state.tickets.filter(t => t.arrivedTurn <= state.turn).map(t => {
-    const pos = clamp(t.arrivedTurn / SHIFT_DURATION * 100, 0, 100);
+  const pins = pinRecords.map(({ t, arrivedTurn, cls, status }) => {
+    const pos = clamp(arrivedTurn / SHIFT_DURATION * 100, 0, 100);
     const key = pos.toFixed(3);
     const stack = seen.get(key) || 0;
     seen.set(key, stack + 1);
-
-    let cls = 'closed';
-    if (t.state === 'waiting') cls = 'waiting';
-    else if (t.state === 'open') cls = 'active';
-    else if (t.state === 'callback') cls = 'callback';
-    else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
-
-    const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? '現地キャリア照会中' : cls === 'abandoned' ? '放棄呼' : '完了';
     return '<span class="shift-pin ' + cls + '" style="left:' + pos.toFixed(2) + '%;--stack:' + stack + '" ' +
       'title="' + esc(t.s.city) + ' ' + esc(localClock(t)) + ' ' + status + '" aria-label="' + esc(t.s.city) + ' ' + status + '">' +
       '<i class="shift-pin-dot"></i><span class="shift-pin-label">' + esc(t.s.id) + '</span></span>';
@@ -390,6 +459,7 @@ function syncOfficeRing(ringing){
 function renderOffice(){
   document.body.classList.add('office-view');
   document.body.classList.remove('call-view');
+  mountShiftStrip(true);
   $('clock').textContent = fmtClock(state.clock);
   $('office-clock').textContent = fmtClock(state.clock);
   $('office-slogan').textContent = state.slogan;
@@ -449,6 +519,7 @@ function enterDesk(){
 
 /* 折り返し待ちの案件を、通話をつながずにデスク端末だけで調べる画面。 */
 function renderDesk(){
+  mountShiftStrip(false);
   $('clock').textContent = fmtClock(state.clock);
   renderShiftStrip();
   renderQueue();
@@ -577,7 +648,8 @@ function renderStressPanel(t){
 function recentTranscriptLines(t){
   const pending = pendingTypedLine(t);
   const end = pending ? t.transcript.indexOf(pending) + 1 : t.transcript.length;
-  const delivered = t.transcript.slice(0, end);
+  const start = Number.isInteger(t.callTranscriptStart) ? t.callTranscriptStart : 0;
+  const delivered = t.transcript.slice(start, end);
   let latestLookupIndex = -1;
   for (let i = delivered.length - 1; i >= 0; i--){
     if (delivered[i].who === 'sys' && delivered[i].lookupTitle){ latestLookupIndex = i; break; }
@@ -588,7 +660,7 @@ function recentTranscriptLines(t){
     const playerAfter = afterLookup.slice().reverse().find(line => line.who === 'me');
     if (!customerAfter && playerAfter) return [delivered[latestLookupIndex], playerAfter];
   }
-  const spoken = t.transcript.slice(0, end).filter(line => line.who === 'cust' || line.who === 'front' || line.who === 'me');
+  const spoken = delivered.filter(line => line.who === 'cust' || line.who === 'front' || line.who === 'me');
   if (spoken.length && spoken[spoken.length - 1].who === 'me'){
     const player = spoken[spoken.length - 1];
     const customer = spoken.slice(0, -1).reverse().find(line => line.who === 'cust' || line.who === 'front');
@@ -684,12 +756,8 @@ function renderHangupButton(note, label = '電話を切る'){
 
 function unresolvedHangupGuide(t){
   if (t.callbackPromised){
-    const lines = [];
-    if (!t.asked.has('q_stay') || !t.stayAddress) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoAddress);
-    else {
-      lines.push(CALL_FLOW_LINES.callbackPromise.guideReady);
-      if (!t.returnTimeKnown) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoReturn);
-    }
+    const lines = [CALL_FLOW_LINES.callbackPromise.guide];
+    if (!t.returnTimeKnown) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoReturn);
     return '<b>' + lines[0] + '</b>' + (lines[1] ? '<p>' + lines[1] + '</p>' : '');
   }
   const causeNarrowed = hotCauses(t).size === 1;
@@ -1198,6 +1266,12 @@ function careerBriefingHtml(){
     storageNote + '</section>';
 }
 
+function audioDiagnosticHtml(){
+  return '<section class="audio-diagnostic" aria-label="iPhone音声の確認">' +
+    '<b>iPhoneの音を確認</b><p data-audio-status="1">' + esc(audioStatusText()) + '</p>' +
+    '<button class="btn-ghost" data-audio-unlock="1">音をテスト／再有効化</button></section>';
+}
+
 function showBriefing(){
   $('sheet').innerHTML =
     '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +
@@ -1208,13 +1282,14 @@ function showBriefing(){
       '<div class="artifact-qr-copy"><b>iPhoneで遊ぶ</b><p>カメラでQRコードを読み取ると、このページが開きます。</p>' +
       '<code class="artifact-qr-url">' + esc(ARTIFACT_URL) + '</code></div>' +
     '</div>' +
-
+    audioDiagnosticHtml() +
     '<button class="btn-primary" id="btn-start">シフトを始める</button>';
 
   openSheet();
   drawArtifactQr();
   $('btn-start').onclick = () => {
     initAudio();
+    unlockAudioFromGesture();
     closeSheet();
     advance(0);
     enterOffice();
@@ -1365,6 +1440,7 @@ function showBalanceConsole(){
       '<label>音量 <input type="range" id="balance-volume" min="0" max="1" step="0.05" value="' + GAME_FLAGS.soundVolume + '"></label>' +
       '<p>OFFにすると従来の決定論的な挙動へ戻ります。抽選結果はプレイ画面や会話記録には表示されません。</p>' +
     '</div>' +
+    audioDiagnosticHtml() +
     '<h2>キャリア記録</h2><div class="balance-career-actions">' +
       '<button class="btn-ghost" id="balance-replay-ending">表エンディング（翌朝の全体朝礼）を再生する</button>' +
       '<button class="btn-ghost" id="balance-replay-secret-ending">裏エンディングを再生する</button>' +
@@ -1386,6 +1462,7 @@ function showBalanceConsole(){
   };
   $('balance-sound').onchange = event => {
     GAME_FLAGS.soundEnabled = event.target.checked;
+    setAudioUnlockStatus(event.target.checked ? 'idle' : 'disabled');
   };
   $('balance-volume').oninput = event => {
     GAME_FLAGS.soundVolume = clamp(Number(event.target.value), 0, 1);
@@ -1452,10 +1529,10 @@ function careerShiftContext(){
   return {
     maxStresses:tickets.map(ticket => ticket.maxStress),
     redials:tickets.reduce((sum, ticket) => sum + ticket.redialCount, 0),
-    abandoned:tickets.filter(ticket => ticket.result && ticket.result.kind === 'abandoned').length,
+    abandoned:tickets.reduce((sum, ticket) => sum + (ticket.abandonedCalls || 0), 0),
     resultKinds:tickets.map(ticket => ticket.result && ticket.result.kind).filter(Boolean),
     noRefundsOrShipments:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind !== 'refunded' && !ticket.shipment),
-    allResolved:tickets.length > 0 && tickets.every(ticket => ticket.result && ['closed','refunded'].includes(ticket.result.kind)),
+    allResolved:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind === 'closed'),
     allRefunded:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind === 'refunded'),
     solvedScenarioIds:solvedScenarioIdsFromTickets(tickets),
   };
@@ -1705,6 +1782,7 @@ function renderDebrief(){
     else judge = '原因は当たっていましたが、対処が噛み合っていませんでした。';
 
     const misses = reportMissForTicket(t);
+    const abandonmentNote = t.abandonedCalls ? '<br>応答前の放棄呼：' + t.abandonedCalls + '回（履歴に保持）' : '';
     return '<div class="review ' + cls + '">' +
       '<div class="rh"><span class="rn">' + esc(t.s.name) + '</span>' +
       '<span class="rp">' + esc(t.s.cityEn) + '</span>' +
@@ -1712,7 +1790,7 @@ function renderDebrief(){
       '<div class="review-csat" aria-label="CSAT ' + r.csat.toFixed(1) + ' / 5"><i style="width:' + clamp(r.csat / 5 * 100, 0, 100) + '%"></i></div>' +
       '<div class="rb"><b style="color:var(--text);font-weight:500">真の原因：' + esc(causeName(t.s.trueCause)) + '</b><br>' +
       /* §51-2: 記録に残すのは名前。免除は置かない——解決したあとなら伺えるので。 */
-      esc(judge) + '<br>' + (r.identityRecordMissing
+      esc(judge) + abandonmentNote + '<br>' + (r.identityRecordMissing
         ? 'お名前を伺えなかったため、社内システムへ記録を残せず、評価を下げました。<br>'
         : '') + t.s.debrief + (misses.length ? '<div class="report-miss">これは報告すべきでした：' + misses.map(esc).join(' ／ ') + '</div>' : '') + '</div></div>';
   }).join('');
@@ -1726,6 +1804,8 @@ function renderDebrief(){
   };
   const complaintEmails = ts.filter(t => t.complaintEmail).map(t => t.misdiagnosisEmail
     ? dayAfterMail(t, MISDIAGNOSIS_EMAIL_TEMPLATES, '再発のご連絡', 'complaint-email')
+    : t.refundComplaint
+    ? dayAfterMail(t, BLIND_REFUND_EMAIL_TEMPLATES, '苦情メール', 'complaint-email')
     : dayAfterMail(t, COMPLAINT_EMAIL_TEMPLATES, '苦情メール', 'complaint-email')).join('');
   const complaintMailbox = complaintEmails
     ? '<section class="complaint-mailbox"><h2>翌日、次の苦情が届いています</h2><p>' + ts.filter(t => t.complaintEmail).length + '件</p>' + complaintEmails + '</section>'

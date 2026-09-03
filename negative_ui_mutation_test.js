@@ -65,7 +65,7 @@ const mutations = [
   },
   {
     name:'§49 約束どおり折り返しても満足度を回復させない', file:'p3_game.js',
-    from:'  applyPunctualCallbackRelief(t);\n  finishCarrierLookup(t);',
+    from:'  applyPunctualCallbackRelief(t, false);\n  finishCarrierLookup(t);',
     to:'  finishCarrierLookup(t);',
     expected:'§49 検査1: 約束どおり折り返して客室へつながっても満足度が回復しない',
   },
@@ -83,8 +83,8 @@ const mutations = [
   },
   {
     name:'§49 客室へつながっても他人のまま扱う', file:'p3_game.js',
-    from:'  t.identified = true;\n  applyPunctualCallbackRelief(t);',
-    to:'  applyPunctualCallbackRelief(t);',
+    from:'  t.identified = true;\n  applyPunctualCallbackRelief(t, false);',
+    to:'  applyPunctualCallbackRelief(t, false);',
     expected:'§49 検査5: 客室へつながっても本人確認が済んだ扱いにならない',
   },
   {
@@ -296,10 +296,10 @@ const mutations = [
     expected:'§45 戻る時間の質問が約束前から出る',
   },
   {
-    name:'§45 切る前に滞在先未確認を知らせない', file:'p4_view.js',
-    from:'    if (!t.asked.has(\'q_stay\') || !t.stayAddress) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoAddress);',
-    to:'    if (false) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoAddress);',
-    expected:'§45 検査7: 滞在先未確認のまま切る案内が出ない',
+    name:'§53 切る前の案内で滞在先未確認を漏らす', file:'p4_view.js',
+    from:'    const lines = [CALL_FLOW_LINES.callbackPromise.guide];',
+    to:"    const lines = [t.stayAddress ? CALL_FLOW_LINES.callbackPromise.guide : '滞在先は未確認です。'];",
+    expected:'§53 検査: 滞在先の有無で終話前案内が変わり、内部状態を漏らす',
   },
   {
     name:'§41 本人確認前に顧客レコードを開く', file:'p4_view.js',
@@ -525,8 +525,8 @@ const mutations = [
   },
   {
     name:'AudioContextをシフト開始前に作る', file:'p4_view.js',
-    from:"  $('btn-start').onclick = () => {\n    initAudio();", to:"  initAudio();\n  $('btn-start').onclick = () => {",
-    expected:'AudioContextが「シフトを始める」操作の中で生成されない',
+    from:"  $('btn-start').onclick = () => {\n    initAudio();\n    unlockAudioFromGesture();", to:"  unlockAudioFromGesture();\n  $('btn-start').onclick = () => {\n    initAudio();",
+    expected:'シフト開始タップでiPhone音声を解除しない',
   },
   {
     name:'音声例外をゲームへ投げ直す', file:'p4_view.js',
@@ -806,8 +806,8 @@ const mutations = [
   },
   {
     name:'luckRate 1でも中立を満足させる', file:'p3_game.js',
-    from:"if (GAME_FLAGS.luckRate === 1) return group === 'company';", to:"if (GAME_FLAGS.luckRate === 1) return group !== 'customer';",
-    expected:'luckRate 1.0で会社側だけが返金に満足する決定論へ戻らない',
+    from:"if (GAME_FLAGS.luckRate === 1) return assessment.group === 'company';", to:"if (GAME_FLAGS.luckRate === 1) return assessment.group !== 'customer';",
+    expected:'luckRate 1.0で診断済みの会社側だけが返金に満足する決定論へ戻らない',
   },
   {
     name:'返金クリック監視を外す', file:'p5_events.js',
@@ -816,8 +816,8 @@ const mutations = [
   },
   {
     name:'満足返金CSATを4.0へ上げる', file:'p3_game.js',
-    from:'csat:satisfied ? 3.0 : 1.0', to:'csat:satisfied ? 4.0 : 1.0',
-    expected:'満足した返金のkind／satisfied／CSATが違う',
+    from:'csat:satisfied ? 2.5 : 1.0', to:'csat:satisfied ? 4.0 : 1.0',
+    expected:'満足した返金が未解決扱いのCSAT 2.5にならない',
   },
   {
     name:'中立分類からsimを落とす', file:'p2_data.js',
@@ -836,7 +836,7 @@ const mutations = [
   },
   {
     name:'旧refunds回数管理を戻す', file:'p3_game.js',
-    from:'const satisfied = refundSatisfied(t.s.trueCause);', to:'t.refunds = (t.refunds || 0) + 1;\n  const satisfied = refundSatisfied(t.s.trueCause);',
+    from:'const satisfied = refundSatisfied(t, assessment);', to:'t.refunds = (t.refunds || 0) + 1;\n  const satisfied = refundSatisfied(t, assessment);',
     expected:'旧返金の回数管理・CSAT逓減がコードに残っている',
   },
   {
@@ -973,8 +973,8 @@ const mutations = [
   },
   {
     name:'折り返し再接続から顧客発話を消す', file:'p3_game.js',
-    from:"{ who:'cust', text:callbackCustomerReply(t) },",
-    to:"{ who:'note', text:callbackCustomerReply(t) },",
+    from:"{ who:'cust', text:customerReply },",
+    to:"{ who:'note', text:customerReply },",
     expected:'§39 フロント接続後にFront Deskと顧客の発話が揃わない',
   },
   {
@@ -1250,8 +1250,8 @@ const mutations = [
   },
   {
     name:'応答率を11件固定で割る', file:'p4_view.js',
-    from:'const answerRate = (state.tickets.length - abandoned) / state.tickets.length;',
-    to:'const answerRate = (state.tickets.length - abandoned) / 11;',
+    from:'const answerRate = answerAttempts ? answered.length / answerAttempts : 1;',
+    to:'const answerRate = answerAttempts ? answered.length / 11 : 1;',
     expected:'レポート集計がその日の実件数で計算されない',
   },
   {
@@ -1427,14 +1427,14 @@ const mutations = [
   },
   {
     name:'失客と不満返金も解決へ数える', file:'p3_game.js',
-    from:"result.kind === 'closed' || (result.kind === 'refunded' && result.satisfied === true)",
-    to:"['closed','complaint','hangup','abandoned'].includes(result.kind) || result.kind === 'refunded'",
-    expected:'§28 解決・満足返金以外を数える、または同じ案件を重複して数える',
+    from:"return result && result.kind === 'closed';",
+    to:"return result && (result.kind === 'closed' || result.kind === 'refunded');",
+    expected:'§53 返金を解決に数える、または同じ案件を重複して数える',
   },
   {
     name:'同じ案件をシフト内で重複して数える', file:'p3_game.js',
     from:'return [...new Set(tickets.filter(ticket => {', to:'return [...Array.from(tickets.filter(ticket => {',
-    expected:'§28 解決・満足返金以外を数える、または同じ案件を重複して数える',
+    expected:'§53 返金を解決に数える、または同じ案件を重複して数える',
   },
   {
     name:'保存済みの同じ案件を重複して数える', file:'p3_game.js',
@@ -1911,19 +1911,22 @@ const mutations = [
     expected:'§32 検査9: progression_testが通らない',
   },
   {
-    name:'S7照会後の非難発話を消す', file:'p2_data.js',
-    from:",\n      customerReply:'申込地域では郊外利用も想定できたはずです。それに非対応の機種を御社が貸し出したのなら、これは利用者側ではなく手配側の責任ですよね。', stressDelta:35", to:'',
-    expected:'§34 検査7: S7の手配ミス判明後に客の非難発話が出ない',
+    name:'§53 S7照会データへ顧客発話を戻す', file:'p2_data.js',
+    from:"hot:['coverage'], out:['sim','carrier','provision'] } },",
+    to:"hot:['coverage'], out:['sim','carrier','provision'] },\n      customerReply:'照会結果を知りました。' },",
+    expected:'§53 検査: S7照会データに顧客発話または苛立ち増加が残る',
   },
   {
-    name:'S7照会後の苛立ち増加をゼロにする', file:'p2_data.js',
-    from:'stressDelta:35', to:'stressDelta:0',
-    expected:'§34 検査8: S7の非難発話で苛立ちが上がらない',
+    name:'§53 S7照会データへ苛立ち増加を戻す', file:'p2_data.js',
+    from:"hot:['coverage'], out:['sim','carrier','provision'] } },",
+    to:"hot:['coverage'], out:['sim','carrier','provision'] },\n      stressDelta:35 },",
+    expected:'§53 検査: S7照会データに顧客発話または苛立ち増加が残る',
   },
   {
-    name:'S7のexpert非難を感情的な罵声へ変える', file:'p2_data.js',
-    from:'申込地域では郊外利用も想定できたはずです。それに非対応の機種を御社が貸し出したのなら、これは利用者側ではなく手配側の責任ですよね。', to:'ふざけないでください！！ありえない対応です！！',
-    expected:'§34 検査9: S7の非難が事実を並べて責任を問うexpert調ではない',
+    name:'§53 finishLookupへ顧客発話例外を戻す', file:'p3_game.js',
+    from:"  state.ui = defaultUi('system_record');",
+    to:"  if (r && r.customerReply) pushCustomerLine(t, r.customerReply);\n  state.ui = defaultUi('system_record');",
+    expected:'§53 検査: 別案件またはfinishLookupに顧客発話例外が残る',
   },
   {
     name:'S7を市街地でも使えない症状へ変える', file:'p2_data.js',
@@ -1943,7 +1946,7 @@ const mutations = [
   },
   {
     name:'S7照会からprovision除外を消して収束を壊す', file:'p2_data.js',
-    from:"hot:['coverage'], out:['sim','carrier','provision'] },\n      customerReply", to:"hot:['coverage'], out:['coverage','sim','carrier','provision'] },\n      customerReply",
+    from:"hot:['coverage'], out:['sim','carrier','provision'] } },", to:"hot:['coverage'], out:['coverage','sim','carrier','provision'] } },",
     expected:'§32 検査8: verifyが13案件を真因1つへ収束させない',
   },
   {
@@ -2355,14 +2358,14 @@ const mutations = [
   },
   {
     name:'§52 ピンを現在時刻へ寄せる', file:'p4_view.js',
-    from:'const pos = clamp(t.arrivedTurn / SHIFT_DURATION * 100, 0, 100);',
+    from:'const pos = clamp(arrivedTurn / SHIFT_DURATION * 100, 0, 100);',
     to:'const pos = clamp(state.turn / SHIFT_DURATION * 100, 0, 100);',
     expected:'§52 検査14: 案件のピンが着信時刻の位置に立たない',
   },
   {
     name:'§52 未着信ピンを出す', file:'p4_view.js',
-    from:'state.tickets.filter(t => t.arrivedTurn <= state.turn)',
-    to:'state.tickets.filter(t => t.arrivedTurn >= state.turn)',
+    from:'    if (t.arrivedTurn <= state.turn){',
+    to:'    if (t.arrivedTurn >= state.turn){',
     expected:'§52 検査15: まだ着信していない案件のピンが出る',
   },
   {
@@ -2389,7 +2392,106 @@ const mutations = [
     to:'.shift-tick.dark{ color:#5d7185;',
     expected:'§52 検査12: 夜明けの背景で目盛りのコントラストが読めない',
   },
+  {
+    name:'§53 iPhoneで再生用AudioSessionを設定しない', file:'p4_view.js',
+    from:"      try { navigator.audioSession.type = 'playback'; }", to:"      try { navigator.audioSession.type = 'ambient'; }",
+    expected:'iPhoneのユーザー操作内でAudioContextを再開し、再生用AudioSessionへ切り替えない',
+  },
+  {
+    name:'§53 開始タップでAudioContextをresumeしない', file:'p4_view.js',
+    from:"    if (ctx.state === 'suspended') await ctx.resume();", to:"    if (ctx.state === 'suspended') return false;",
+    expected:'iPhoneのユーザー操作内でAudioContextを再開し、再生用AudioSessionへ切り替えない',
+  },
+  {
+    name:'§53 AudioContext生成失敗を診断表示へ出さない', file:'p4_view.js',
+    from:"    audioContext = null;\n    setAudioUnlockStatus('error');", to:"    audioContext = null;\n    setAudioUnlockStatus('idle');",
+    expected:'AudioContext生成失敗がiPhone診断表示へ反映されない',
+  },
+  {
+    name:'§53 着信タイマー側からAudioContextをresumeする', file:'p4_view.js',
+    from:"    if (audioContext.state !== 'running'){", to:"    if (audioContext.state === 'suspended') audioContext.resume();\n    if (audioContext.state !== 'running'){",
+    expected:'着信タイマー等のユーザー操作外からAudioContext.resumeを呼ぶ',
+  },
+  {
+    name:'§53 iPhone音声の試聴ボタンを外す', file:'p4_view.js',
+    from:'data-audio-unlock="1"', to:'data-audio-retry="1"',
+    expected:'iPhoneで解除失敗と端末側無音を切り分ける試聴UIがない',
+  },
+  {
+    name:'§53 前通話の会話を折り返し画面へ戻す', file:'p4_view.js',
+    from:'  const delivered = t.transcript.slice(start, end);', to:'  const delivered = t.transcript.slice(0, end);',
+    expected:'§53 検査3: 折り返し画面に前の通話の顧客発話が混ざる',
+  },
+  {
+    name:'§53 接続時の待機不満を二重発話させる', file:'p3_game.js',
+    from:'  applyCallbackWaitStress(t, false);', to:'  applyCallbackWaitStress(t, true);',
+    expected:'§53 検査3: Front Desk接続時に顧客が複数回発話する',
+  },
+  {
+    name:'§53 expert待機文で時刻超過を断定する', file:'p2_data.js',
+    from:'照会の進捗を説明してください。これ以上、根拠なく待たせないでください。', to:'約束した時間を超えています。照会の進捗を説明してください。',
+    expected:'§53 検査4: 実時間を見ていない不満発話が時刻超過を断定する、または定刻発話まで失われる',
+  },
+  {
+    name:'§53 発信保留を着信保留と同じ重さにする', file:'p2_data.js',
+    from:'const HOLD_STRESS_PER_MINUTE = Object.freeze({ inbound:2, outbound:4 });', to:'const HOLD_STRESS_PER_MINUTE = Object.freeze({ inbound:2, outbound:2 });',
+    expected:'§53 検査6: 保留の即時ストレスが0分にも入り、または発信時が着信時の2倍でない',
+  },
+  {
+    name:'§53 保留ストレスへ運を挟む', file:'p3_game.js',
+    from:'addStress(t, held * HOLD_STRESS_PER_MINUTE[direction], false, true)', to:'addStress(t, held * HOLD_STRESS_PER_MINUTE[direction], false, false)',
+    expected:'§53 検査6: 保留の即時ストレスが0分にも入り、または発信時が着信時の2倍でない',
+  },
+  {
+    name:'§53 見切り返金も満足抽選へ入れる', file:'p3_game.js',
+    from:'  if (!assessment.diagnosed) return false;', to:'  if (!assessment.diagnosed) return state.random() < REFUND_POLICY[assessment.group].satisfactionRate;',
+    expected:'原因を絞らない返金が抽選で満足になる',
+  },
+  {
+    name:'§53 見切り返金の苦情印を消す', file:'p3_game.js',
+    from:'refundComplaint:!assessment.diagnosed,', to:'refundComplaint:false,',
+    expected:'原因を絞らない返金が運を挟まず翌日の苦情にならない',
+  },
+  {
+    name:'§53 見切り返金の苦情に運を戻す', file:'p3_game.js',
+    from:'  if (result.refundComplaint) return true;', to:'  if (result.refundComplaint) return rollLuck();',
+    expected:'§53 検査7: 見切り返金の翌日苦情に運が入り、届かない場合がある',
+  },
+  {
+    name:'§53 放棄後の再着信を二回許す', file:'p3_game.js',
+    from:'if (t.abandonRedialScheduled || t.abandonedCalls > ABANDON_REDIAL_LIMIT || state.clock >= SHIFT_END)', to:'if (t.abandonedCalls > ABANDON_REDIAL_LIMIT + 1 || state.clock >= SHIFT_END)',
+    expected:'§53 検査8: 二度目も再予約する、または一度目の放棄履歴を失う',
+  },
+  {
+    name:'§53 放棄後再着信の20分間隔を外す', file:'p3_game.js',
+    from:'Math.abs(candidate - other.arrivedTurn) >= MIN_INBOUND_GAP', to:'Math.abs(candidate - other.arrivedTurn) > 0',
+    expected:'§53 検査8: 再着信が20分間隔または06:00上限を破る',
+  },
+  {
+    name:'§53 最終着信を07:00へ延ばす', file:'p2_data.js',
+    from:'const LAST_INBOUND_TURN = 7 * 60;', to:'const LAST_INBOUND_TURN = 8 * 60;',
+    expected:'§53 検査8: 最終着信上限が06:00でない',
+  },
+  {
+    name:'§53 最初の放棄履歴を保存しない', file:'p3_game.js',
+    from:"  t.attempts.push({ kind:'abandoned', atTurn:abandonedAtTurn, arrivedTurn:abandonedArrival, note });", to:'',
+    expected:'§53 検査8: 一度目の放棄記録を保持したまま再着信待ちへ戻らない',
+  },
+  {
+    name:'§53 オフィスでシフト帯をトップバーへ残す', file:'p4_view.js',
+    from:'  mountShiftStrip(true);', to:'  mountShiftStrip(false);',
+    expected:'§53 検査9: 画面遷移に応じて単一シフト帯を移動しない',
+  },
+  {
+    name:'§53 オフィスでトップバー時計も表示する', file:'p1_head.html',
+    from:'body.office-view .topbar .clock{ display:none; }', to:'body.office-view .topbar .clock{ display:flex; }',
+    expected:'§53 検査9: オフィス時計・シフト帯が見出し直下でなく、トップバー時計も重複表示される',
+  },
 ];
+
+const selectedMutations = process.env.MUTATION_MATCH
+  ? mutations.filter(mutation => mutation.name.includes(process.env.MUTATION_MATCH))
+  : mutations;
 
 /* 変異の的が現行ソースに当たるかを、走らせる前にまとめて確かめる。
    0箇所なら止める。複数箇所は「意図しないほうを壊している」恐れがあるので一覧に出す。
@@ -2399,7 +2501,7 @@ const mutations = [
   const readOnce = file => cache[file] || (cache[file] = fs.readFileSync(path.join(__dirname, file), 'utf8'));
   const missing = [];
   const ambiguous = [];
-  mutations.forEach((mutation, index) => {
+  selectedMutations.forEach((mutation, index) => {
     if (!mutation || !mutation.file || typeof mutation.from !== 'string') return;
     const hits = readOnce(mutation.file).split(mutation.from).length - 1;
     if (hits === 0) missing.push('[' + (index + 1) + '] ' + mutation.name + ' (' + mutation.file + ')');
@@ -2409,7 +2511,7 @@ const mutations = [
   assert.equal(ambiguous.length, 0, '変異の的が複数箇所に当たります:\n  ' + ambiguous.join('\n  '));
 })();
 
-for (const mutation of mutations){
+for (const mutation of selectedMutations){
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'wifi-support-negative-'));
   try {
     for (const name of projectFiles) fs.cpSync(path.join(__dirname, name), path.join(temp, name), { recursive:true });
@@ -2430,4 +2532,4 @@ for (const mutation of mutations){
   }
 }
 
-console.log('UI negative mutations:', mutations.length + '/' + mutations.length, 'red');
+console.log('UI negative mutations:', selectedMutations.length + '/' + selectedMutations.length, 'red');

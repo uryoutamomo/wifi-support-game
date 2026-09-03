@@ -200,7 +200,7 @@ if (!sourceOf('doLookup').includes('if (l.external) return') || !sourceOf('start
 if (COMMAND_DEFS.length !== 4 || COMMAND_DEFS.some(command => command.id === 'callback')) bad('折り返すが5つ目の主コマンドへ戻っている');
 if (!pageSource.includes('data-office-callback="1"') || !pageSource.includes('id="office-tray-status"')) bad('オフィスの電話をかけるボタンまたは折り返し待ち表示がない');
 if (!sourceOf('resumeCallback').includes("t.callbackStage = 'front_desk'") || !sourceOf('resumeCallback').includes("who:'front'")) bad('ホテル折り返しがFront Deskから始まらない');
-if (!sourceOf('handleFrontDeskChoice').includes("{ who:'front', text:frontReply }") || !sourceOf('handleFrontDeskChoice').includes("{ who:'cust', text:callbackCustomerReply(t) }")) bad('Front Deskから客へ話者が切り替わらない');
+if (!sourceOf('handleFrontDeskChoice').includes("{ who:'front', text:frontReply }") || !sourceOf('handleFrontDeskChoice').includes("{ who:'cust', text:customerReply }")) bad('Front Deskから客へ話者が切り替わらない');
 const s12Carrier25 = SCENARIOS.find(s => s.id === 'S12');
 if (!s12Carrier25 || !s12Carrier25.lookups.l_plan.text.includes('契約: 有効') || !s12Carrier25.lookups.l_carrier.text.includes('00:00 に契約満了として停止') || (s12Carrier25.lookups.l_carrier.fact.hot || []).join(',') !== 'provision' || s12Carrier25.lookups.l_carrier.fact.out.length !== CAUSES.length - 1) bad('S12の自社契約照会と現地キャリア照会の食い違い・provision確定力がない');
 if (/00:00|0時|日付が変わ/.test(s12Carrier25.opening) || !(s12Carrier25.replies.q_when.fact.hot || []).includes('provision')) bad('S12の第一声が正確な日付境界を漏らす、またはq_whenで手がかりを得られない');
@@ -260,7 +260,7 @@ const nextEnding28 = sourceOf('pendingCareerEndingType');
 const balance28 = sourceOf('showBalanceConsole');
 if (!freshCareer28.includes('solvedScenarios:[]') || !freshCareer28.includes('secretEnding:false') || !validCareer28.includes('value.solvedScenarios') || !validCareer28.includes("typeof value.secretEnding !== 'boolean'")) bad('§28 表裏エンディングの保存項目が揃っていない');
 if (!normalizeCareer28.includes('next.solvedScenarios === undefined') || !normalizeCareer28.includes('next.secretEnding === undefined') || !sourceOf('readCareerRecord').includes('normalizeCareerRecord')) bad('§28 旧v1勤務記録を新しい保存形式へ移行できない');
-if (!solvedIds28.includes("result.kind === 'closed'") || !solvedIds28.includes("result.kind === 'refunded' && result.satisfied === true") || !solvedIds28.includes('new Set')) bad('§28 解決・満足返金だけを重複なしで数えない');
+if (!solvedIds28.includes("result.kind === 'closed'") || solvedIds28.includes("result.kind === 'refunded'") || !solvedIds28.includes('new Set')) bad('§53 返金を解決扱いせず、真の解決だけを重複なしで数えない');
 if (!appendCareer28.includes('career.solvedScenarios.concat(context.solvedScenarioIds || [])') || appendCareer28.indexOf('career.shifts = career.shifts.slice(-30)') > appendCareer28.indexOf('career.solvedScenarios =')) bad('§28 solvedScenariosが30日制限と分離されていない');
 if (endingQueue28.indexOf("queue.push('career')") < 0 || endingQueue28.indexOf("queue.push('secret')") < 0 || endingQueue28.indexOf("queue.push('career')") > endingQueue28.indexOf("queue.push('secret')")) bad('§28 表と裏の条件または同時達成時の表示順が違う');
 if (!endingQueue28.includes('career.solvedScenarios.length === SCENARIOS.length') || !endingQueue28.includes('!career.ending') || !endingQueue28.includes('career.badges.length === CAREER_BADGES.length') || !endingQueue28.includes('!career.secretEnding')) bad('§28 表・裏を独立判定できない、または閲覧済みが再発火する');
@@ -570,12 +570,12 @@ if (!gameSource.includes('if (index % 4) return')) bad('タイプ音が1文字�
 if (!gameSource.includes('previousStress <= 80 && t.stress > 80')) bad('苛立ち警告音が状態の80境界を再横断しても鳴らない');
 if (!gameSource.includes('id="balance-sound"') || !gameSource.includes('id="balance-volume"')) bad('ゲーム調整にミュートと音量がない');
 
-// §19／§31: 返金は提案し、拒否なら通話継続、受入後だけ満足3.0／不満足1.0で閉じる。
+// §19／§31／§53: 返金は提案し、拒否なら通話継続、受入後も未解決扱いにする。
 const refund31 = sourceOf('doRefund');
 const refundReject31 = sourceOf('refundProposalRejected');
 const refundConfirm31 = sourceOf('renderRefundConfirmation');
 const refundTell31 = sourceOf('renderTellOptions');
-if (!gameSource.includes("kind:'refunded'") || !gameSource.includes('csat:satisfied ? 3.0 : 1.0')) bad('返金受入が満足3.0／不満足1.0で案件を閉じない');
+if (!gameSource.includes("kind:'refunded'") || !gameSource.includes('csat:satisfied ? 2.5 : 1.0') || !gameSource.includes('refundComplaint:!assessment.diagnosed')) bad('返金受入が未解決2.5以下となり、未診断返金の苦情を記録しない');
 if (!gameSource.includes("defaultUi('refund_confirm')") || !refundConfirm31.includes('返金をご提案します') || !refundConfirm31.includes('受け入れていただければ') || refundConfirm31.includes('この電話はこれで終わります。')) bad('返金確認が提案と条件つき終話を伝えない');
 if (!refundReject31.includes('GAME_FLAGS.luckRate === 1') || !refundReject31.includes('rejectionRate')) bad('返金拒否率またはluckRate 1.0の拒否なし経路がない');
 if (!refund31.includes('t.refundProposalRejected = true') || !refund31.includes('spendOnCall(t, 2, 0)') || !refund31.includes('addStress(t, 18)') || !refundTell31.includes('t.refundProposalRejected') || !refundTell31.includes('data-refund="refund"')) bad('返金拒否後の通話継続・2分・苛立ち・再提案禁止が揃っていない');
@@ -630,11 +630,11 @@ try {
   bad('日次案件の選択ロジックを検査できない: ' + error.message);
 }
 // 5. 非選択案件を参照せず、その日のstate.ticketsだけを表示する。
-if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('renderShiftStrip').includes('state.tickets.filter') || !sourceOf('renderOffice').includes('state.tickets.filter')) bad('未選択案件が待機・タイムシフト表から除外されない');
+if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('renderShiftStrip').includes('state.tickets.forEach') || !sourceOf('renderOffice').includes('state.tickets.filter')) bad('未選択案件が待機・タイムシフト表から除外されない');
 // 6. 夜勤は23:00〜07:00で終了し、残件は放棄呼にする。
 if (SHIFT_START !== 23 * 60 || SHIFT_END - SHIFT_START !== 8 * 60 || !sourceOf('checkShiftEnd').includes('state.clock >= SHIFT_END') || !sourceOf('finishShiftAtTime').includes('abandonTicket(t')) bad('夜勤が23:00〜07:00で終わらない、または残件を放棄呼にしない');
 // 7. 集計と表示が実件数を使い、2件の日の空欄にも表示を持つ。
-if (!sourceOf('metrics').includes('state.tickets.length - abandoned') || !sourceOf('renderReport').includes("state.tickets.length + '件") || !sourceOf('renderReport').includes('該当する特記事項はありません。') || !sourceOf('careerBriefingHtml').includes("state.tickets.length + '件</b>'")) bad('レポート集計・ブリーフィング・空項目が当日の実件数に追従しない');
+if (!sourceOf('metrics').includes('answered.length / answerAttempts') || !sourceOf('renderReport').includes("state.tickets.length + '件") || !sourceOf('renderReport').includes('該当する特記事項はありません。') || !sourceOf('careerBriefingHtml').includes("state.tickets.length + '件</b>'")) bad('レポート集計・ブリーフィング・空項目が当日の実件数に追従しない');
 if (!sourceOf('resetGame').includes('prepareDailyScenarios(SCENARIOS, state.random).map(newTicket)')) bad('resetGameが日次案件選択を使わない');
 
 // §21-7: 会話の継ぎ目に関する12検査。
@@ -721,7 +721,7 @@ const s7Partial34 = REMEDIES.coverage.find(remedy => s7_34.partial.includes(reme
 if (!s7Best34 || s7Best34.label !== '手配の誤りをお詫びし、滞在期間と滞在先を確認したうえで代替機を発送する' || !s7Partial34 || s7Partial34.label !== '手配の誤りをお詫びし、返金する') bad('§34 S7の謝罪・代替機発送／返金が確定対処と違う');
 if (Object.values(REMEDIES).flat().some(remedy => ['r_escalate_band','r_city_only'].includes(remedy.id))) bad('§34 廃止対象のS7対処が残っている');
 if (JSON.stringify(s7Best34 && s7Best34.requiresQuestions) !== JSON.stringify(['q_stay','q_stay_length','q_replacement']) || s7Best34.requiresLongStay !== 3 || s7Best34.requiresConsent !== true || s7_34.stayDays < 3 || !s7_34.wantsReplacement) bad('§34 S7配送の既存3前提または長期滞在設定が違う');
-if (!s7_34.lookups.l_area.customerReply || s7_34.lookups.l_area.stressDelta <= 0 || !sourceOf('finishLookup').includes('pushCustomerLine(t, r.customerReply)')) bad('§34 手配ミス判明後のexpert非難または苛立ち増加がない');
+if (SCENARIOS.some(scenario => Object.values(scenario.lookups || {}).some(result => result.customerReply || result.stressDelta)) || sourceOf('finishLookup').includes('r.customerReply')) bad('§53 照会結果だけで顧客が発話・苛立ち増加する例外が残る');
 const s13_34 = SCENARIOS.find(scenario => scenario.id === 'S13');
 if (s7_34.trueCause !== 'coverage' || s13_34.trueCause !== 'logistics' || !/市街地では正常/.test(s7_34.opening) || !/一度も/.test(s13_34.opening + s13_34.replies.q_when.text)) bad('§34 S7とS13の症状・真因を書き分けていない');
 
@@ -796,7 +796,7 @@ if (!finish45.includes("t.state = 'callback'") || !finish45.includes('leaveCallF
 if (!sourceOf('hotelCallbackOffered').includes('!t.callbackPromised')) bad('§45 約束したあとも「伝える」に折り返しが残る');
 if (!sourceOf('renderCallHeader').includes('callbackPromise.headScheduled') || !sourceOf('renderCallHeader').includes('callbackPromise.headImmediate')) bad('§45 約束したことが通話ヘッダに出ない');
 if (!sourceOf('renderAskOptions').includes('!q.needsCallbackPromise || t.callbackPromised')) bad('§45 戻る時間の質問が約束前から出る');
-if (!sourceOf('unresolvedHangupGuide').includes('callbackPromise.guideNoAddress')) bad('§45 切る前に滞在先未確認であることを知らせない');
+if (!sourceOf('unresolvedHangupGuide').includes('callbackPromise.guide') || sourceOf('unresolvedHangupGuide').includes('stayAddress')) bad('§53 終話前案内が滞在先の有無を漏らす');
 if (!blindCallback40.includes('CALL_FLOW_LINES.callback.blameOpenings[t.s.type]') || !blindCallback40.includes("t.state = 'waiting'") || !blindCallback40.includes('BLIND_CALLBACK_STRESS') || !blindCallback40.includes('BLIND_CALLBACK_CSAT_PENALTY')) bad('§40 折り返せなかった客が非難つきで掛け直してこない');
 if (Object.keys(CALL_FLOW_LINES.callback.blameOpenings).length !== 4 || new Set(Object.values(CALL_FLOW_LINES.callback.blameOpenings)).size !== 4) bad('§40 折り返しなしを責める発話が4タイプ分ない');
 if (BLIND_CALLBACK_STRESS <= REDIAL_STRESS) bad('§40 連絡先なしの切断が、ただの切断より軽い');
@@ -821,8 +821,8 @@ const hint41 = sourceOf('deliverStayHint');
 if (!tell41.includes('data-hotel-callback="immediate"') || !tell41.includes('data-hotel-callback="scheduled"')) bad('§41-1 折り返しの二択がない');
 if (!callback41.includes('CALLBACK_SCHEDULED_MINUTES') || !callback41.includes("kind === 'scheduled'")) bad('§41-2 1時間後の折り返し時刻がない');
 if (!callback41.includes('blindCallbackRedial(t)')) bad('§41-3 滞在先未確認でも失敗できる折り返しでない');
-if (!desk41.includes('callbackLookupCount') || !front41.includes('CALLBACK_OVER_LOOKUP_STRESS') || !front41.includes('CALLBACK_WAIT_REPLIES')) bad('§41-4/5 折り返し中の照会超過ストレスがない');
-if (!front41.includes('CALLBACK_IDLE_STRESS') || !front41.includes('CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE')) bad('§41-6/7 1時間待ちの未照会代償または上限なしがない');
+if (!desk41.includes('callbackLookupCount') || !front41.includes('callbackWaitStressDelta') || !sourceOf('callbackWaitStressDelta').includes('CALLBACK_OVER_LOOKUP_STRESS') || !sourceOf('callbackConnectionCustomerReply').includes('CALLBACK_WAIT_REPLIES')) bad('§41-4/5 折り返し中の照会超過ストレスがない');
+if (!sourceOf('callbackWaitStressDelta').includes('CALLBACK_IDLE_STRESS') || !sourceOf('callbackLookupAllowance').includes('CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE')) bad('§41-6/7 1時間待ちの未照会代償または上限なしがない');
 if (!sourceOf('renderOffice').includes('callbackRemaining') || sourceOf('renderOffice').includes('queueCutoff') || sourceOf('renderOffice').includes('切断')) bad('§41-8/§52 待機時間が見えない、または放棄までの時間を見せている');
 if (!sourceOf('finishLookup').includes("defaultUi('system_record')") || !record41.includes('顧客レコード') || record41.includes('includeLog ? renderRecordLog(t) :') === false) bad('§41-9/13 照会・ログのレコード表示が分かれていない');
 ['l_plan','l_ship','l_area','l_session','l_outage'].forEach(id => { if (!record41.includes("lookupRecordValue(t, '" + id + "')")) bad('§41-10 レコード欄がない: ' + id); });

@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {SHIFT_START,SHIFT_DURATION,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
-const { SHIFT_START, SHIFT_DURATION, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {SHIFT_START,SHIFT_DURATION,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
+const { SHIFT_START, SHIFT_DURATION, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -601,13 +601,14 @@ const refundResponsibilitySource = functionSource('refundResponsibility');
 const refundResponsibility = new Function('REFUND_POLICY', refundResponsibilitySource + '\nreturn refundResponsibility;')(REFUND_POLICY);
 assert.deepEqual(['hardware','sim','fup'].map(refundResponsibility), ['company','neutral','customer'], '返金の責任分類が確定表どおりではない');
 const refundSatisfiedSource = functionSource('refundSatisfied');
-const makeRefundSatisfied = (luckRate, random) => new Function('REFUND_POLICY','GAME_FLAGS','state','refundResponsibility', refundSatisfiedSource + '\nreturn refundSatisfied;')(REFUND_POLICY,{luckRate},{random},refundResponsibility);
+const makeRefundSatisfied = (luckRate, random) => new Function('REFUND_POLICY','GAME_FLAGS','state','refundAssessment', refundSatisfiedSource + '\nreturn refundSatisfied;')(REFUND_POLICY,{luckRate},{random},() => { throw new Error('assessment must be explicit'); });
 assert.deepEqual([
-  makeRefundSatisfied(.9, () => .4999)('hardware'), makeRefundSatisfied(.9, () => .5)('hardware'),
-  makeRefundSatisfied(.9, () => .2499)('sim'), makeRefundSatisfied(.9, () => .25)('sim'),
-  makeRefundSatisfied(.9, () => .0999)('fup'), makeRefundSatisfied(.9, () => .1)('fup'),
+  makeRefundSatisfied(.9, () => .4999)({}, {diagnosed:true,group:'company'}), makeRefundSatisfied(.9, () => .5)({}, {diagnosed:true,group:'company'}),
+  makeRefundSatisfied(.9, () => .2499)({}, {diagnosed:true,group:'neutral'}), makeRefundSatisfied(.9, () => .25)({}, {diagnosed:true,group:'neutral'}),
+  makeRefundSatisfied(.9, () => .0999)({}, {diagnosed:true,group:'customer'}), makeRefundSatisfied(.9, () => .1)({}, {diagnosed:true,group:'customer'}),
 ], [true,false,true,false,true,false], '返金の満足確率が会社50%／中立25%／顧客10%ではない');
-assert.deepEqual(['hardware','sim','fup'].map(cause => makeRefundSatisfied(1, () => 0)(cause)), [true,false,false], 'luckRate 1.0で会社側だけが返金に満足する決定論へ戻らない');
+assert.deepEqual(['company','neutral','customer'].map(group => makeRefundSatisfied(1, () => 0)({}, {diagnosed:true,group})), [true,false,false], 'luckRate 1.0で診断済みの会社側だけが返金に満足する決定論へ戻らない');
+assert.equal(makeRefundSatisfied(.9, () => 0)({}, {diagnosed:false,group:'company'}), false, '原因を絞らない返金が抽選で満足になる');
 
 const refundProposalRejectedSource = functionSource('refundProposalRejected');
 const makeRefundProposalRejected = (luckRate, random) => new Function('REFUND_POLICY','GAME_FLAGS','state','refundResponsibility', refundProposalRejectedSource + '\nreturn refundProposalRejected;')(REFUND_POLICY,{luckRate},{random},refundResponsibility);
@@ -618,11 +619,12 @@ assert.deepEqual([
 ], [true,false,true,false,true,false], '§31 検査5: 返金拒否率が会社5%／中立10%／顧客20%ではない');
 assert.deepEqual(['hardware','sim','fup'].map(cause => makeRefundProposalRejected(1, () => 0)(cause)), [false,false,false], '§31 検査7: luckRate 1.0でも返金拒否が起きる');
 
-function runRefund({rejected=false,satisfied=false,type='expert'}={}){
+function runRefund({rejected=false,satisfied=false,diagnosed=true,type='expert'}={}){
   const ticket = {s:{trueCause:'hardware',type},state:'open',transcript:[],callMinutes:0,holdMinutes:0,stress:10,maxStress:10,refundProposalRejected:false};
   const refundState = {focus:ticket,cost:0,ui:{tab:'refund_confirm'}};
   const deps = {
-    state:refundState, REFUND_POLICY, TYPES, refundProposalRejected:() => rejected, refundSatisfied:() => satisfied,
+    state:refundState, REFUND_POLICY, TYPES, CAUSES, refundProposalRejected:() => rejected,
+    refundAssessment:() => ({diagnosed,group:'company'}), refundSatisfied:() => satisfied,
     pushCustomerLine:(t,text) => t.transcript.push({who:'cust',text}), farewellLine:() => '通常の別れの言葉',
     pushFlowLines:(t,lines) => lines.forEach(line => t.transcript.push({who:line.who,text:line.text})),
     spendOnCall:(t,minutes) => { t.callMinutes += minutes; return true; },
@@ -638,7 +640,7 @@ const dissatisfiedRefund = runRefund({satisfied:false});
 const rejectedRefund = runRefund({rejected:true,type:'anxious'});
 assert.deepEqual([Boolean(satisfiedRefund.result),Boolean(dissatisfiedRefund.result),Boolean(rejectedRefund.result)],[true,true,false], '§31 検査1: 返金が満足受入／不満受入／拒否の3通りにならない');
 assert.equal(satisfiedRefund.ticket.state, 'open', '返金の最後の発話前に案件がclosedになる');
-assert.deepEqual([satisfiedRefund.result.kind,satisfiedRefund.result.satisfied,satisfiedRefund.result.csat], ['refunded',true,3.0], '満足した返金のkind／satisfied／CSATが違う');
+assert.deepEqual([satisfiedRefund.result.kind,satisfiedRefund.result.satisfied,satisfiedRefund.result.csat,satisfiedRefund.result.label], ['refunded',true,2.5,'返金で終結（未解決）'], '満足した返金が未解決扱いのCSAT 2.5にならない');
 assert.deepEqual([dissatisfiedRefund.result.kind,dissatisfiedRefund.result.satisfied,dissatisfiedRefund.result.csat], ['refunded',false,1.0], '不満足な返金のkind／satisfied／CSATが違う');
 assert.equal(satisfiedRefund.state.cost, 2400, '満足した返金で2,400円が加算されない');
 assert.equal(dissatisfiedRefund.state.cost, 2400, '不満足な返金で2,400円が加算されない');
@@ -650,6 +652,10 @@ assert(!dissatisfiedRefund.ticket.transcript.some(line => line.text === '通常�
 assert(satisfiedRefund.result.csat < 4, '返金に満足したCSATが正しく解決した4点台へ届く');
 const refundComplaintArrival = new Function('rollLuck', functionSource('misdiagnosisResurfaces') + '\n' + functionSource('complaintEmailArrives') + '\nreturn complaintEmailArrives;')(() => true);
 assert.equal(refundComplaintArrival({kind:'refunded',csat:1.0}), true, '不満足な返金が後日の苦情メール対象に入らない');
+const blindRefund = runRefund({satisfied:false,diagnosed:false});
+assert(blindRefund.result.refundComplaint && refundComplaintArrival(blindRefund.result), '原因を絞らない返金が運を挟まず翌日の苦情にならない');
+const refundComplaintNoLuck = new Function('rollLuck', functionSource('misdiagnosisResurfaces') + '\n' + functionSource('complaintEmailArrives') + '\nreturn complaintEmailArrives;')(() => false);
+assert(refundComplaintNoLuck(blindRefund.result),'§53 検査7: 見切り返金の翌日苦情に運が入り、届かない場合がある');
 const refundConfirmSource = functionSource('renderRefundConfirmation');
 assert(refundConfirmSource.includes('REFUND_POLICY.amount.toLocaleString') && refundConfirmSource.includes('返金をご提案します') && refundConfirmSource.includes('受け入れていただければ') && !refundConfirmSource.includes('この電話はこれで終わります。') && refundConfirmSource.includes('data-refund-confirm'), '§31 検査9: 返金確認が提案と条件つき終話を伝えない');
 const refundEventSource = functionSource('handleConversationAction');
@@ -702,7 +708,7 @@ const balanceNodes = { sheet:{innerHTML:''}, 'balance-luck':{}, 'balance-shuffle
 const balanceDeps = {
   state:{phase:'briefing'}, GAME_FLAGS, LUCK_RATE, SHIFT_START, LAST_INBOUND_TURN, COMMAND_DEFS, SCENARIOS, TYPES, REMEDIES,
   $:id => balanceNodes[id], esc:value => String(value), causeName:id => id, scenarioRoute:() => [],
-  fmtClock:minute => String(minute), openSheet:() => {}, showBriefing:() => {}, renderDebrief:() => {}, closeSheet:() => {}, render:() => {}, showCareerEnding:() => {}, showSecretEnding:() => {}, clearCareerRecord:() => {},
+  fmtClock:minute => String(minute), audioDiagnosticHtml:() => '<section></section>', setAudioUnlockStatus:() => {}, openSheet:() => {}, showBriefing:() => {}, renderDebrief:() => {}, closeSheet:() => {}, render:() => {}, showCareerEnding:() => {}, showSecretEnding:() => {}, clearCareerRecord:() => {},
 };
 new Function(...Object.keys(balanceDeps), balanceConsoleSource + '\nreturn showBalanceConsole;')(...Object.values(balanceDeps))();
 assert.equal(typeof balanceNodes['balance-luck'].onchange, 'function', '運の切り替えイベントが接続されない');
@@ -757,8 +763,8 @@ assert.throws(() => dailyTicketCount(() => 0, {dailyTickets:1}), /2〜5/, 'daily
 assert(!functionSource('prepareDailyScenarios').includes('scenario.arrive'), '§52 検査4: 案件データの arrive を着信時刻に使っている');
 const endingState52 = { phase:'office', clock:SHIFT_END - 1, turn:SHIFT_DURATION - 1, focus:{}, desk:{}, tickets:[{state:'waiting',s:{id:'S1'}},{state:'open',s:{id:'S2'}},{state:'closed',s:{id:'S3'},result:{kind:'closed'}}] };
 const abandoned52 = [];
-const abandonTicket52 = new Function('playCloseJingle','recordOfficeEvent', functionSource('abandonTicket') + '\nreturn abandonTicket;')(
-  () => {}, (_, text) => abandoned52.push(text)
+const abandonTicket52 = new Function('state','playCloseJingle','recordOfficeEvent','scheduleAbandonRedial', functionSource('abandonTicket') + '\nreturn abandonTicket;')(
+  endingState52, () => {}, (_, text) => abandoned52.push(text), () => false
 );
 const finishShiftAtTime52 = new Function('state','SHIFT_END','SHIFT_DURATION','abandonTicket','playShiftEndSound','renderReport', functionSource('finishShiftAtTime') + '\nreturn finishShiftAtTime;')(
   endingState52, SHIFT_END, SHIFT_DURATION, abandonTicket52, () => {}, () => {}
@@ -788,7 +794,7 @@ assert(verifySource52.includes('drawInboundArrivalTurns') && verifySource52.incl
 // §52-6 検査12〜17: 帯は勤務時間を示し、未来の着信を漏らさず通話中にも残す。
 assert(page.includes('id="shift-strip"') && /aria-label="23時から7時まで/.test(page), '§52 検査12: タイムシフト表が23時から7時の帯として置かれていない');
 assert(shiftSource.includes("[0,'23'], [25,'01'], [50,'03'], [75,'05'], [100,'07']"), '§52 検査12: 帯の目盛りが23時から7時にならない');
-assert(shiftSource.includes('t.arrivedTurn / SHIFT_DURATION * 100'), '§52 検査14: 案件のピンが着信時刻の位置に立たない');
+assert(shiftSource.includes('arrivedTurn / SHIFT_DURATION * 100'), '§52 検査14: 案件のピンが着信時刻の位置に立たない');
 const shiftStrip52 = {innerHTML:''};
 const shiftState52 = {turn:120,clock:SHIFT_START + 120,tickets:[
   {arrivedTurn:60,state:'waiting',s:{id:'S1',city:'バンコク',localOffset:7}},
@@ -811,7 +817,7 @@ assert(page.includes('.shift-tick.light{ color:#eef4f8;') && page.includes('.shi
 
 const queue21Source = functionSource('renderQueue');
 const shift21Source = functionSource('renderShiftStrip');
-assert(queue21Source.includes('state.tickets.filter') && shift21Source.includes('state.tickets.filter') && functionSource('renderOffice').includes('state.tickets.filter'), '未選択案件が待機・タイムシフト表から除外されない');
+assert(queue21Source.includes('state.tickets.filter') && shift21Source.includes('state.tickets.forEach') && functionSource('renderOffice').includes('state.tickets.filter'), '未選択案件が待機・タイムシフト表から除外されない');
 
 assert(functionSource('checkShiftEnd').includes('state.clock >= SHIFT_END') && !functionSource('checkShiftEnd').includes("state.tickets.some(t => t.state !== 'closed')"), '§52 検査2: 全件終了で早くシフトが終わってしまう');
 
@@ -1039,23 +1045,39 @@ assert(functionSource('closeTicket').includes("recordOfficeEvent('closed'") && o
 // §18: Web Audio合成音。聞こえない環境でも、画面情報とゲーム進行は変えない。
 const initAudioSource = functionSource('initAudio');
 const briefingSourceForAudio = functionSource('showBriefing');
-assert(initAudioSource.includes('new AudioContextClass()') && briefingSourceForAudio.includes("$('btn-start').onclick") && briefingSourceForAudio.indexOf('initAudio()') > briefingSourceForAudio.indexOf("$('btn-start').onclick"), 'AudioContextが「シフトを始める」操作の中で生成されない');
-assert.equal((game.match(/initAudio\(\)/g) || []).length, 2, 'AudioContext初期化がシフト開始以外からも呼ばれる');
+const unlockAudioSource = functionSource('unlockAudioFromGesture');
+assert(initAudioSource.includes('new AudioContextClass()') && unlockAudioSource.includes("navigator.audioSession.type = 'playback'") && unlockAudioSource.includes('await ctx.resume()'), 'iPhoneのユーザー操作内でAudioContextを再開し、再生用AudioSessionへ切り替えない');
+assert(briefingSourceForAudio.includes("$('btn-start').onclick") && briefingSourceForAudio.indexOf('unlockAudioFromGesture()') > briefingSourceForAudio.indexOf("$('btn-start').onclick"), 'シフト開始タップでiPhone音声を解除しない');
+assert(functionSource('audioDiagnosticHtml').includes('data-audio-unlock') && functionSource('audioStatusText').includes('消音モード・メディア音量・Bluetooth出力先'), 'iPhoneで解除失敗と端末側無音を切り分ける試聴UIがない');
+let audioInitFailureStatus = null;
+const failingAudioInit = new Function('window','setAudioUnlockStatus','audioContext', initAudioSource + '\nreturn initAudio;')(
+  {AudioContext:class { constructor(){ throw new Error('unavailable'); } }},
+  status => { audioInitFailureStatus = status; },
+  null
+);
+assert.equal(failingAudioInit(),null,'AudioContext生成失敗を音なしで継続できない');
+assert.equal(audioInitFailureStatus,'error','AudioContext生成失敗がiPhone診断表示へ反映されない');
 assert(game.includes('createOscillator()') && game.includes('createGain()') && !/\.(?:mp3|wav|ogg|m4a)\b/i.test(page + game), '効果音がWeb Audioのコード合成だけで作られていない');
 
 const withAudioSource = functionSource('withAudio');
 let failedAudioProgress = 0;
-const safeAudio = new Function('GAME_FLAGS','audioContext','clamp', withAudioSource + '\nreturn withAudio;')(
-  {soundEnabled:true,soundVolume:.5}, {state:'running'}, (value,min,max) => Math.max(min,Math.min(max,value))
+const safeAudio = new Function('GAME_FLAGS','audioContext','clamp','setAudioUnlockStatus', withAudioSource + '\nreturn withAudio;')(
+  {soundEnabled:true,soundVolume:.5}, {state:'running'}, (value,min,max) => Math.max(min,Math.min(max,value)), () => {}
 );
 assert.doesNotThrow(() => safeAudio(() => { failedAudioProgress++; throw new Error('audio unavailable'); }), '音声処理の例外でゲーム進行が止まる');
 assert.equal(failedAudioProgress, 1, '音声処理の失敗ケースを検査できていない');
 let mutedCalls = 0;
-const mutedAudio = new Function('GAME_FLAGS','audioContext','clamp', withAudioSource + '\nreturn withAudio;')(
-  {soundEnabled:false,soundVolume:.5}, {state:'running'}, (value,min,max) => Math.max(min,Math.min(max,value))
+const mutedAudio = new Function('GAME_FLAGS','audioContext','clamp','setAudioUnlockStatus', withAudioSource + '\nreturn withAudio;')(
+  {soundEnabled:false,soundVolume:.5}, {state:'running'}, (value,min,max) => Math.max(min,Math.min(max,value)), () => {}
 );
 mutedAudio(() => { mutedCalls++; });
 assert.equal(mutedCalls, 0, 'soundEnabled:falseでも発音処理が起きる');
+let timerResumeCalls = 0;
+const suspendedAudio = new Function('GAME_FLAGS','audioContext','clamp','setAudioUnlockStatus', withAudioSource + '\nreturn withAudio;')(
+  {soundEnabled:true,soundVolume:.5}, {state:'suspended',resume:() => { timerResumeCalls++; }}, value => value, () => {}
+);
+suspendedAudio(() => { throw new Error('suspended中に発音した'); });
+assert.equal(timerResumeCalls,0,'着信タイマー等のユーザー操作外からAudioContext.resumeを呼ぶ');
 
 assert(officeSource.includes("'再着信 ' + redials.length") && page.includes('.stress-panel.alert') && functionSource('doTest').includes('【まずい対応】') && functionSource('closeTicket').includes("recordOfficeEvent('closed'"), '着信・苛立ち・失敗・クローズ結果に音以外の画面情報がない');
 const soundSceneCalls = [
@@ -1260,7 +1282,7 @@ const surfaceUpdate28 = careerFns.appendCareerShift(surfaceRecord28,baseShift(),
 assert.deepEqual(surfaceUpdate28.endingQueue,['career'],'§28 全案件を解決しても表エンディングへ進まない');
 assert.deepEqual(careerFns.appendCareerShift(surfaceRecord28,baseShift(),neutralContext).endingQueue,[],'§28 1件不足で表エンディングへ進む');
 
-// §28-5 検査3〜5: 失客は数えず、closedと満足返金だけを重複なしで数える。
+// §28-5／§53 検査3〜5: 返金・失客は解決に数えず、closedだけを重複なしで数える。
 const solvedTickets28 = [
   {s:{id:'S1'},result:{kind:'closed'}},
   {s:{id:'S1'},result:{kind:'closed'}},
@@ -1270,7 +1292,7 @@ const solvedTickets28 = [
   {s:{id:'S5'},result:{kind:'hangup'}},
   {s:{id:'S6'},result:{kind:'abandoned'}},
 ];
-assert.deepEqual(careerFns.solvedScenarioIdsFromTickets(solvedTickets28),['S1','S2'],'§28 解決・満足返金以外を数える、または同じ案件を重複して数える');
+assert.deepEqual(careerFns.solvedScenarioIdsFromTickets(solvedTickets28),['S1'],'§53 返金を解決に数える、または同じ案件を重複して数える');
 
 // §28-5 検査6: 直近30シフトを丸めても解決済み集合は捨てない。
 const persistentSolved28 = JSON.parse(JSON.stringify(thirtyOne)); persistentSolved28.solvedScenarios=scenarioIds28.slice(0,4);
@@ -1486,7 +1508,7 @@ const resumeCallback25 = functionSource('resumeCallback');
 assert(resumeCallback25.includes("t.callbackStage = 'front_desk'") && resumeCallback25.includes("who:'front'"), '§39 折り返しがホテルのフロントから始まらない');
 
 // §25-7 検査7は§39でフロント接続後に顧客発話を積む。
-assert(functionSource('handleFrontDeskChoice').includes("{ who:'front', text:frontReply }") && functionSource('handleFrontDeskChoice').includes("{ who:'cust', text:callbackCustomerReply(t) }"), '§39 フロント接続後にFront Deskと顧客の発話が揃わない');
+assert(functionSource('handleFrontDeskChoice').includes("{ who:'front', text:frontReply }") && functionSource('handleFrontDeskChoice').includes("{ who:'cust', text:customerReply }"), '§39 フロント接続後にFront Deskと顧客の発話が揃わない');
 assert.deepEqual(Object.keys(CALL_FLOW_LINES.callback.replies).sort(), ['anxious','expert','hurried','novice'], '§25 折り返し再接続の顧客応答が4タイプ分ない');
 
 // §25-7 検査8: S12は自社では有効、現地では0時失効となり、現地照会でprovisionをほぼ確定する。
@@ -1779,15 +1801,14 @@ assert(!Object.values(REMEDIES).flat().some(remedy => ['r_escalate_band','r_city
 assert.deepEqual(s7Best34.requiresQuestions,['q_stay','q_stay_length','q_replacement'],'§34 検査5: S7代替機が既存requiresQuestionsを使わない');
 assert(s7Best34.requiresLongStay === 3 && s7Best34.requiresConsent === true,'§34 検査5: S7代替機が既存の長期滞在・同意条件を使わない');
 assert(s7Coverage34.stayDays >= 3 && s7Coverage34.wantsReplacement === true && s7Coverage34.callbackTo === 'hotel' && s7Coverage34.replies.q_stay.text.includes('同じホテル'),'§34 検査6: S7が長期滞在・同じホテル・配送希望に設定されていない');
-const finishLookup34 = new Function('state','lookupSystemLine','addFact','triggerOutage','spendOnCall','pushFlowLines','CALL_FLOW_LINES','pushCustomerLine','addStress','render','defaultUi', functionSource('finishLookup') + '\nreturn finishLookup;');
+const finishLookup34 = new Function('state','lookupSystemLine','addFact','triggerOutage','spendOnCall','pushFlowLines','CALL_FLOW_LINES','render','defaultUi', functionSource('finishLookup') + '\nreturn finishLookup;');
 const s7Lookup34 = s7Coverage34.lookups.l_area;
 const s7Ticket34 = {s:s7Coverage34,state:'open',lookedUp:new Set(),transcript:[],stress:8};
 const s7State34 = {focus:s7Ticket34,busy:true,holdVisual:false,ui:null};
-let s7StressDelta34 = 0;
-finishLookup34(s7State34,(lookup,result) => ({who:'sys',text:result.text}),() => {},() => {},() => true,(ticket,lines) => ticket.transcript.push(...lines),CALL_FLOW_LINES,(ticket,text) => ticket.transcript.push({who:'cust',text}),(_ticket,delta) => { s7StressDelta34 += delta; return true; },() => {},() => ({tab:'command'}))(s7Ticket34,{id:'l_area',spoken:'照会結果'},3,0);
-assert(s7Ticket34.transcript.some(line => line.who === 'cust' && line.text === s7Lookup34.customerReply),'§34 検査7: S7の手配ミス判明後に客の非難発話が出ない');
-assert(s7StressDelta34 === 35 && s7Lookup34.stressDelta > 0,'§34 検査8: S7の非難発話で苛立ちが上がらない');
-assert(/申込地域|非対応|御社|手配側の責任/.test(s7Lookup34.customerReply) && !/[!！]{2,}|ふざけ|ありえない/.test(s7Lookup34.customerReply),'§34 検査9: S7の非難が事実を並べて責任を問うexpert調ではない');
+finishLookup34(s7State34,(lookup,result) => ({who:'sys',text:result.text}),() => {},() => {},() => true,(ticket,lines) => ticket.transcript.push(...lines),CALL_FLOW_LINES,() => {},() => ({tab:'command'}))(s7Ticket34,{id:'l_area',spoken:'照会結果'},3,0);
+assert(!Object.prototype.hasOwnProperty.call(s7Lookup34,'customerReply') && !Object.prototype.hasOwnProperty.call(s7Lookup34,'stressDelta'),'§53 検査: S7照会データに顧客発話または苛立ち増加が残る');
+assert(!s7Ticket34.transcript.some(line => line.who === 'cust') && s7Ticket34.stress === 8,'§53 検査: 照会だけで顧客が結果を知る、または苛立ちが増える');
+assert(!SCENARIOS.some(scenario => Object.values(scenario.lookups || {}).some(result => result.customerReply || result.stressDelta)) && !functionSource('finishLookup').includes('r.customerReply'),'§53 検査: 別案件またはfinishLookupに顧客発話例外が残る');
 const s13Symptoms34 = s13Logistics30.opening + s13Logistics30.replies.q_when.text;
 assert(/市街地では正常|郊外.*圏外/.test(s7Coverage34.opening) && !/一度も.*(?:使え|つなが)/.test(s7Coverage34.opening) && /一度も.*(?:使え|つなが)/.test(s13Symptoms34),'§34 検査10: S7の部分利用可とS13の初回から利用不可を書き分けていない');
 assert(s7Coverage34.trueCause === 'coverage' && s13Logistics30.trueCause === 'logistics','§34 検査11: S7とS13の真因が別のままではない');
@@ -2069,12 +2090,14 @@ const angryPlain45 = { s:{type:'hurried'}, transcript:[], callbackPromised:null,
 angryModule45(angryPlain45, 'stress');
 assert(angryPlain45.pendingResult && angryPlain45.pendingResult.kind === 'complaint' && !angryPlain45.finished,'§45 検査8: 約束がない場合の既存の終話が変わっている');
 
-// §45 検査7: 切る前の案内に、何が足りていないかが出る。
+// §45／§53 検査7: 切る前の案内は滞在先の有無を漏らさず、戻る時間だけを補助する。
 const guide45 = functionSource('unresolvedHangupGuide');
 const guideFn45 = new Function('CALL_FLOW_LINES','hotCauses',guide45 + '\nreturn unresolvedHangupGuide;')(CALL_FLOW_LINES,() => new Set());
-assert(guideFn45({callbackPromised:'immediate',asked:new Set(),stayAddress:null}).includes(CALL_FLOW_LINES.callbackPromise.guideNoAddress),'§45 検査7: 滞在先未確認のまま切る案内が出ない');
-assert(guideFn45({callbackPromised:'immediate',asked:new Set(['q_stay']),stayAddress:'ホテル',returnTimeKnown:false}).includes(CALL_FLOW_LINES.callbackPromise.guideNoReturn),'§45 検査7: 戻る時間が未確認であることを知らせない');
-assert(guideFn45({callbackPromised:'immediate',asked:new Set(['q_stay']),stayAddress:'ホテル',returnTimeKnown:true}).includes(CALL_FLOW_LINES.callbackPromise.guideReady),'§45 検査7: 折り返し先が揃っていることを知らせない');
+const noStayGuide45 = guideFn45({callbackPromised:'immediate',asked:new Set(),stayAddress:null,returnTimeKnown:false});
+const stayGuide45 = guideFn45({callbackPromised:'immediate',asked:new Set(['q_stay']),stayAddress:'ホテル',returnTimeKnown:false});
+assert.equal(noStayGuide45,stayGuide45,'§53 検査: 滞在先の有無で終話前案内が変わり、内部状態を漏らす');
+assert(noStayGuide45.includes(CALL_FLOW_LINES.callbackPromise.guide) && noStayGuide45.includes(CALL_FLOW_LINES.callbackPromise.guideNoReturn),'§53 検査: 中立の折り返し案内または戻る時間の補助がない');
+assert(!guideFn45({callbackPromised:'immediate',asked:new Set(),stayAddress:null,returnTimeKnown:true}).includes(CALL_FLOW_LINES.callbackPromise.guideNoReturn),'§53 検査: 戻る時間確認済みでも未確認案内が出る');
 
 // §45 検査9/10: 戻る時間の質問は、約束したあとにだけ出る。聞かなくても折り返しは成立する。
 const returnQ45 = QUESTIONS.find(q => q.id === 'q_return');
@@ -2099,7 +2122,7 @@ const resume39 = functionSource('resumeCallback');
 assert(resume39.includes("t.callbackStage = 'front_desk'") && resume39.includes("who:'front'") && resume39.includes('CALL_FLOW_LINES.frontDesk.greeting'),'§39 検査7: 折り返すと最初にFront Deskへつながらない');
 const frontOptions39 = Object.values(CALL_FLOW_LINES.frontDesk.options);
 assert(frontOptions39.length === 3 && frontOptions39.every(line => /^[\x20-\x7E]+$/.test(line)) && functionSource('renderFrontDeskOptions').includes('Please choose what to say in English.'),'§39 検査8: Front Deskの発話と選択肢が平易な英語で揃わない');
-assert(functionSource('renderTranscript').includes("front:'Front Desk'") && functionSource('handleFrontDeskChoice').includes("{ who:'cust', text:callbackCustomerReply(t) }"),'§39 検査9: 客室接続後に話者がFront Deskから客へ切り替わらない');
+assert(functionSource('renderTranscript').includes("front:'Front Desk'") && functionSource('handleFrontDeskChoice').includes("{ who:'cust', text:customerReply }"),'§39 検査9: 客室接続後に話者がFront Deskから客へ切り替わらない');
 const renderFront39 = new Function('CALL_FLOW_LINES','esc','renderCommandHead',functionSource('hotelRoom') + '\n' + functionSource('renderFrontDeskOptions') + '\nreturn renderFrontDeskOptions;')(
   CALL_FLOW_LINES,value => String(value),() => '<div class="head">Front Desk</div>'
 );
@@ -2120,11 +2143,12 @@ assert(resume39.includes('isLateLocalTime(t)') && resume39.includes('CALL_FLOW_L
 const frontState39 = {clock:22*60,focus:null,ui:{tab:'command'}};
 /* §49 で客室接続が本人確認と満足度の回復も担うようになったので、その2つを本物のまま
    注入して実際に走らせる。changeStress と pushCustomerLine だけ観測用に差し替える。 */
-const frontModule39 = new Function('state','CALL_FLOW_LINES','spendOnCall','pushFlowLines','applyCallbackWaitStress','finishCarrierLookup','defaultUi','render','CALLBACK_PUNCTUAL_RELIEF','CALLBACK_PUNCTUAL_REPLIES','pushCustomerLine','changeStress',[
-  functionSource('ticketLocalMinute'),functionSource('isLateLocalTime'),functionSource('hotelRoom'),functionSource('callbackCustomerReply'),functionSource('applyPunctualCallbackRelief'),functionSource('handleFrontDeskChoice'),
+const frontModule39 = new Function('state','CALL_FLOW_LINES','spendOnCall','pushFlowLines','applyCallbackWaitStress','finishCarrierLookup','defaultUi','render','CALLBACK_PUNCTUAL_RELIEF','CALLBACK_PUNCTUAL_REPLIES','CALLBACK_WAIT_REPLIES','callbackWaitStressDelta','callbackPunctualReliefAvailable','pushCustomerLine','changeStress',[
+  functionSource('ticketLocalMinute'),functionSource('isLateLocalTime'),functionSource('hotelRoom'),functionSource('callbackCustomerReply'),functionSource('callbackConnectionCustomerReply'),functionSource('applyPunctualCallbackRelief'),functionSource('handleFrontDeskChoice'),
 ].join('\n') + '\nreturn handleFrontDeskChoice;')(
   frontState39,CALL_FLOW_LINES,(ticket,minutes) => { ticket.spent = minutes; return true; },(ticket,lines) => ticket.lines = lines,() => {},() => true,() => ({tab:'command'}),() => {},
-  CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,
+  CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,CALLBACK_WAIT_REPLIES,
+  () => 0, ticket => !ticket.callbackReliefApplied && !ticket.callbackLate,
   (ticket,text) => { ticket.reliefLine = text; },
   (ticket,delta) => { ticket.stressDelta = (ticket.stressDelta || 0) + delta; return true; }
 );
@@ -2142,7 +2166,7 @@ assert(functionSource('finishPromisedCallback').includes("t.callbackReason = 'ge
    滞在先だけ聞いて折り返すと社内システムを開けない、という食い違いを解く。 */
 const punctual49 = makeFrontTicket39(); frontState39.focus = punctual49; frontModule39('room');
 assert(punctual49.stressDelta === CALLBACK_PUNCTUAL_RELIEF.novice && punctual49.stressDelta < 0,'§49 検査1: 約束どおり折り返して客室へつながっても満足度が回復しない');
-assert(punctual49.reliefLine === CALLBACK_PUNCTUAL_REPLIES.novice,'§49 検査2: 回復したときの客の反応がタイプ別になっていない');
+assert(punctual49.lines.filter(line => line.who === 'cust').length === 1 && punctual49.lines.some(line => line.text === CALLBACK_PUNCTUAL_REPLIES.novice),'§53 検査: 接続時の顧客発話が1回でなく、定刻反応も選ばれていない');
 assert(punctual49.identified === true,'§49 検査5: 客室へつながっても本人確認が済んだ扱いにならない');
 const lateBack49 = Object.assign(makeFrontTicket39(), { callbackLate:true }); frontState39.focus = lateBack49; frontModule39('room');
 assert(lateBack49.stressDelta === undefined,'§49 検査3: 約束に遅れた折り返しでも満足度が回復してしまう');
@@ -2282,5 +2306,86 @@ const pendingActions51 = functionSource('renderActions');
 assert(pendingActions51.includes('data-late-name') && pendingActions51.includes('社内システムへ記録を残せません'),'§51 検査1: 解決後に名前を伺う導線が出ない');
 assert(pendingActions51.includes("t.nameKnown ? '' :"),'§51 検査2: 名前を伺い済みでも導線が出る');
 assert(eventSource.includes('[data-late-name]') && eventSource.includes('askLateName()'),'§51 検査1: 名前を伺うボタンが繋がっていない');
+
+/* §53: iPhone音声・会話・保留・返金・放棄呼・時刻配置の挙動契約。 */
+const recent53 = new Function('pendingTypedLine', functionSource('recentTranscriptLines') + '\nreturn recentTranscriptLines;')(() => null);
+const oldCustomer53 = {who:'cust',text:'前の通話の顧客'};
+const front53 = {who:'front',text:'Front Desk'};
+const currentCustomer53 = {who:'cust',text:'今回の顧客'};
+const recentTicket53 = {callTranscriptStart:2,transcript:[oldCustomer53,{who:'me',text:'前の応答'},front53,currentCustomer53]};
+assert.deepEqual(recent53(recentTicket53),[front53,currentCustomer53],'§53 検査3: 折り返し画面に前の通話の顧客発話が混ざる');
+
+const callbackEffects53 = {wait:0,relief:0};
+const callbackState53 = {clock:22*60,focus:null,ui:{}};
+const callbackConnect53 = new Function(
+  'state','CALL_FLOW_LINES','CALLBACK_WAIT_REPLIES','CALLBACK_PUNCTUAL_RELIEF','CALLBACK_PUNCTUAL_REPLIES','CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE','CALLBACK_IMMEDIATE_LOOKUP_ALLOWANCE','CALLBACK_OVER_LOOKUP_STRESS','CALLBACK_IDLE_STRESS',
+  'spendOnCall','pushFlowLines','pushCustomerLine','addStress','changeStress','finishCarrierLookup','defaultUi','render',
+  [functionSource('ticketLocalMinute'),functionSource('isLateLocalTime'),functionSource('hotelRoom'),functionSource('callbackCustomerReply'),functionSource('callbackLookupAllowance'),functionSource('callbackPunctualReliefAvailable'),functionSource('callbackWaitStressDelta'),functionSource('callbackConnectionCustomerReply'),functionSource('applyCallbackWaitStress'),functionSource('applyPunctualCallbackRelief'),functionSource('handleFrontDeskChoice')].join('\n') + '\nreturn handleFrontDeskChoice;'
+)(callbackState53,CALL_FLOW_LINES,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,2,1,10,8,
+  () => true,(ticket,lines) => ticket.transcript.push(...lines),(ticket,text) => ticket.transcript.push({who:'cust',text}),(_ticket,delta) => { callbackEffects53.wait += delta; return true; },(_ticket,delta) => { callbackEffects53.relief += delta; return true; },() => {},() => ({}),() => {});
+const callbackTicket53 = {callbackStage:'front_desk',callbackKind:'scheduled',callbackLookupCount:0,callbackWaitStressApplied:false,callbackReliefApplied:false,callbackLate:false,callbackReason:'general',nameKnown:true,stayAddress:'ホテル、101号室',s:{nameEn:'Test Guest',type:'novice',localOffset:9,lookups:{}},transcript:[],frontDeskAttempts:0};
+callbackState53.focus = callbackTicket53;
+callbackConnect53('room');
+assert.equal(callbackTicket53.transcript.filter(line => line.who === 'cust').length,1,'§53 検査3: Front Desk接続時に顧客が複数回発話する');
+assert(callbackEffects53.wait === 8 && callbackEffects53.relief === CALLBACK_PUNCTUAL_RELIEF.novice,'§53 検査3: 顧客発話を1回にした際に待機ペナルティまたは定刻回復が消える');
+assert(!CALLBACK_WAIT_REPLIES.expert.includes('約束した時間を超え') && CALLBACK_PUNCTUAL_REPLIES.expert.includes('時間どおり'),'§53 検査4: 実時間を見ていない不満発話が時刻超過を断定する、または定刻発話まで失われる');
+
+const holdStress53 = [];
+const spend53 = new Function('advance','HOLD_STRESS_PER_MINUTE','CALL_FLOW_LINES','pushCustomerLine','changeStress','addStress',functionSource('spendOnCall') + '\nreturn spendOnCall;')(
+  () => {},HOLD_STRESS_PER_MINUTE,CALL_FLOW_LINES,() => {},() => true,(ticket,base,miss,expected) => { holdStress53.push({direction:ticket.callDirection,base,miss,expected}); return true; }
+);
+const holdTicket53 = direction => ({state:'open',pendingResult:null,callDirection:direction,callMinutes:0,callSegmentMinutes:0,inboundMinutes:0,outboundMinutes:0,holdMinutes:0,callChargeConcerned:false,s:{type:'expert'}});
+spend53(holdTicket53('inbound'),2,2);
+spend53(holdTicket53('outbound'),2,2);
+spend53(holdTicket53('inbound'),1,0);
+assert.deepEqual(holdStress53.map(item => [item.base,item.expected]),[[4,true],[8,true]],'§53 検査6: 保留の即時ストレスが0分にも入り、または発信時が着信時の2倍でない');
+
+const refundAssessment53 = new Function('CAUSES','refundResponsibility',functionSource('refundAssessment') + '\nreturn refundAssessment;')(CAUSES,refundResponsibility);
+const allOtherCauses53 = CAUSES.filter(cause => cause.id !== 'hardware').map(cause => cause.id);
+const diagnosedRefund53 = refundAssessment53({s:{trueCause:'hardware'},facts:[{out:allOtherCauses53}]});
+const blindAssessment53 = refundAssessment53({s:{trueCause:'hardware'},facts:[{out:allOtherCauses53.slice(1)}]});
+assert(diagnosedRefund53.diagnosed === true && blindAssessment53.diagnosed === false,'§53 検査7: 原因を一意に絞った返金と、見切り返金を区別できない');
+assert(functionSource('careerShiftContext').includes("ticket.result.kind === 'closed'") && !functionSource('careerShiftContext').includes("['closed','refunded']"),'§53 検査7: 満足返金が全件解決バッジを進める');
+assert(Object.keys(BLIND_REFUND_EMAIL_TEMPLATES).sort().join(',') === 'anxious,expert,hurried,novice' && functionSource('renderDebrief').includes('BLIND_REFUND_EMAIL_TEMPLATES'),'§53 検査7: 見切り返金の翌日苦情が既存メール箱に4タイプ分ない');
+
+const redialState53 = {turn:100,clock:SHIFT_START+100,tickets:[],officeEvents:[]};
+const redialModule53 = new Function('state','LAST_INBOUND_TURN','MIN_INBOUND_GAP','ABANDON_REDIAL_LIMIT','ABANDON_REDIAL_MIN_DELAY','ABANDON_REDIAL_STRESS','CALL_FLOW_LINES','SHIFT_START','SHIFT_END','clamp','fmtClock','playCloseJingle','recordOfficeEvent',
+  [functionSource('inboundSlotAvailable'),functionSource('scheduleAbandonRedial'),functionSource('abandonTicket')].join('\n') + '\nreturn {abandonTicket,inboundSlotAvailable};'
+)(redialState53,LAST_INBOUND_TURN,MIN_INBOUND_GAP,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,CALL_FLOW_LINES,SHIFT_START,SHIFT_END,(v,a,b) => Math.max(a,Math.min(b,v)),minute => String(minute),() => {},(kind,text) => redialState53.officeEvents.push({kind,text}));
+const redialTicket53 = {state:'waiting',arrivedTurn:80,patience:0,stress:10,maxStress:10,abandonedCalls:0,attempts:[],abandonRedialScheduled:false,redialCount:0,s:{id:'S1',type:'anxious'}};
+const collisionTicket53 = {state:'inbound',arrivedTurn:130,s:{id:'S2',type:'expert'}};
+redialState53.tickets = [redialTicket53,collisionTicket53];
+redialModule53.abandonTicket(redialTicket53,'一度目');
+assert(redialTicket53.state === 'inbound' && redialTicket53.result === null && redialTicket53.attempts.length === 1 && redialTicket53.attempts[0].kind === 'abandoned','§53 検査8: 一度目の放棄記録を保持したまま再着信待ちへ戻らない');
+assert(redialTicket53.arrivedTurn >= 120 && redialTicket53.arrivedTurn <= LAST_INBOUND_TURN && Math.abs(redialTicket53.arrivedTurn-collisionTicket53.arrivedTurn) >= MIN_INBOUND_GAP,'§53 検査8: 再着信が20分間隔または06:00上限を破る');
+assert(redialTicket53.redialOpening === CALL_FLOW_LINES.abandonedRedialOpenings.anxious && redialTicket53.redialGreeting && redialTicket53.stress === 10 + ABANDON_REDIAL_STRESS,'§53 検査8: 放棄後の再着信が専用第一声・既存挨拶・高いストレスで始まらない');
+redialState53.turn = redialTicket53.arrivedTurn + 10; redialState53.clock = SHIFT_START + redialState53.turn; redialTicket53.state = 'waiting';
+redialModule53.abandonTicket(redialTicket53,'二度目');
+assert(redialTicket53.state === 'closed' && redialTicket53.result.kind === 'abandoned' && redialTicket53.abandonedCalls === 2 && redialTicket53.attempts.length === 2 && redialTicket53.redialCount === 1,'§53 検査8: 二度目も再予約する、または一度目の放棄履歴を失う');
+assert(new Set(Object.values(CALL_FLOW_LINES.abandonedRedialOpenings)).size === 4,'§53 検査8: 放棄後の第一声が4タイプ分に分かれていない');
+const lateRedialState53 = {turn:LAST_INBOUND_TURN-10,clock:SHIFT_START+LAST_INBOUND_TURN-10,tickets:[],officeEvents:[]};
+assert.equal(LAST_INBOUND_TURN,7*60,'§53 検査8: 最終着信上限が06:00でない');
+const lateRedial53 = new Function('state','LAST_INBOUND_TURN','MIN_INBOUND_GAP','ABANDON_REDIAL_LIMIT','ABANDON_REDIAL_MIN_DELAY','ABANDON_REDIAL_STRESS','CALL_FLOW_LINES','SHIFT_START','SHIFT_END','clamp','fmtClock','playCloseJingle','recordOfficeEvent',
+  [functionSource('inboundSlotAvailable'),functionSource('scheduleAbandonRedial'),functionSource('abandonTicket')].join('\n') + '\nreturn abandonTicket;'
+)(lateRedialState53,LAST_INBOUND_TURN,MIN_INBOUND_GAP,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,CALL_FLOW_LINES,SHIFT_START,SHIFT_END,(v,a,b) => Math.max(a,Math.min(b,v)),String,() => {},() => {});
+const tooLateTicket53 = {state:'waiting',arrivedTurn:380,stress:0,maxStress:0,abandonedCalls:0,attempts:[],redialCount:0,s:{id:'S3',type:'novice'}};
+lateRedialState53.tickets=[tooLateTicket53]; lateRedial53(tooLateTicket53,'遅い放棄');
+assert(tooLateTicket53.state === 'closed' && tooLateTicket53.redialCount === 0,'§53 検査8: 06:00より後へ放棄後の再着信を予約する');
+const recoveredMetrics53 = new Function('state',functionSource('metrics') + '\nreturn metrics;')({tickets:[
+  {result:{kind:'closed',csat:4,firstCallResolved:false},abandonedCalls:1,callMinutes:5},
+  {result:{kind:'closed',csat:5,firstCallResolved:true},abandonedCalls:0,callMinutes:3},
+]})();
+assert(recoveredMetrics53.abandoned === 1 && recoveredMetrics53.answerRate === 2/3,'§53 検査8: 再着信を取った後に最初の放棄呼が応答率から消える');
+
+const stripNode53 = {parentElement:null};
+const topSlot53 = {appendChild(node){ node.parentElement=this; }};
+const officeSlot53 = {appendChild(node){ node.parentElement=this; }};
+const mount53 = new Function('$',functionSource('mountShiftStrip') + '\nreturn mountShiftStrip;')(id => ({'shift-strip':stripNode53,'topbar-shift-slot':topSlot53,'office-shift-slot':officeSlot53})[id]);
+mount53(true); assert.equal(stripNode53.parentElement,officeSlot53,'§53 検査9: オフィスでシフト帯が見出し直下へ移らない');
+mount53(false); assert.equal(stripNode53.parentElement,topSlot53,'§53 検査9: 通話画面でシフト帯がトップバーへ戻らない');
+assert((page.match(/id="shift-strip"/g)||[]).length === 1 && (page.match(/id="office-clock"/g)||[]).length === 1,'§53 検査9: 同一画面用のシフト帯またはオフィス時計が複製されている');
+const officeHeading53 = page.indexOf('<h1>深夜のグローバルデスク</h1>');
+assert(officeHeading53 >= 0 && page.indexOf('id="office-clock"',officeHeading53) < page.indexOf('</div>\n    <p>新しい電話',officeHeading53) && page.includes('body.office-view .topbar .clock{ display:none; }'),'§53 検査9: オフィス時計・シフト帯が見出し直下でなく、トップバー時計も重複表示される');
+assert(functionSource('renderOffice').includes('mountShiftStrip(true)') && functionSource('render').includes('mountShiftStrip(false)') && functionSource('renderDesk').includes('mountShiftStrip(false)'),'§53 検査9: 画面遷移に応じて単一シフト帯を移動しない');
 
 console.log('UI契約・素材同期・SIM清掃仕様: 問題なし');
