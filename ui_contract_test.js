@@ -313,7 +313,7 @@ assert.deepEqual(logHeadings, ['顧客情報','日勤引き継ぎ','会話の全
 assert(recordSource.includes('renderRecordTranscript(t)'), 'ログで全履歴を表示しない');
 assert(!/残っている原因の候補|次にできること|集まった手がかり|この案件のここまで/.test(game), '§56 診断ボードの候補数・手がかり・次の一手を別画面へ移している');
 assert(functionSource('renderCloseFlow').includes('CAUSES.map') && !functionSource('renderCloseFlow').includes('filter('), '§56 原因選択で14原因を絞り込んでいる');
-assert(functionSource('hotCauses').includes('f.hot') && functionSource('unresolvedHangupGuide').includes('hotCauses(t).size === 1'), '§56 内部の原因絞り込み状態が失われている');
+assert(functionSource('hotCauses').includes('f.hot'), '§56 内部の原因絞り込み状態が失われている');
 ['trueCause','REMEDIES','scenarioRoute','bestRemedy','correctRemedy'].forEach(secret => assert(!recordSource.includes(secret), 'ログが真因または正解対処を参照している: ' + secret));
 const openRecordSource = functionSource('openRecord');
 assert(openRecordSource.includes('addStress(t, 4)'), 'ログを読んでもストレス+4×係数にならない');
@@ -332,7 +332,7 @@ const shiftSource = functionSource('renderShiftStrip');
 assert(page.includes('.stress-panel'), '大きな苛立ちメーターCSSがない');
 
 const tellSource = functionSource('renderTellOptions');
-['data-tell="close"','data-tell="try"','data-tell="soothe"','data-tell="apologize"'].forEach(marker => assert(tellSource.includes(marker), '「伝える」の項目から ' + marker + ' が欠けている'));
+['data-end-call="1"','data-tell="close"','data-tell="try"','data-tell="soothe"','data-tell="apologize"'].forEach(marker => assert(tellSource.includes(marker), '「伝える」の項目から ' + marker + ' が欠けている'));
 assert(tellSource.includes('data-refund="refund"'), '「伝える」にrefund項目がない');
 const escForTell = text => String(text).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 const hotelCallbackOffered = new Function(functionSource('hotelCallbackOffered') + '\nreturn hotelCallbackOffered;')();
@@ -342,9 +342,10 @@ const renderTellOptions = new Function('REFUND_POLICY', 'hotelCallbackOffered', 
 const tellTicket = { refundProposalRejected:false, s:{ deviceInHand:true }, callDirection:'inbound', asked:new Set(), stayAddress:null, callChargeConcerned:false };
 const tellHtml = renderTellOptions(tellTicket);
 assert(!/hardware|provision|logistics|carrier|coverage|fup|devices|heavy|device_side|device_net|power|location|geo_block|sim|会社側|顧客側|中立/.test(tellHtml), '返金の責任所在一覧が画面・ログ・ラベルに漏れる');
-const tellEntries = [...tellHtml.matchAll(/data-(tell|refund|hotel-callback)="([^"]+)"[\s\S]*?<span class="opt-label">([^<]+)(?:<span class="opt-sub">([^<]+)<\/span>)?/g)]
-  .map(match => ({ id:match[1] === 'hotel-callback' ? 'hotel-callback' : match[2], label:match[3], note:match[4] || '' }));
+const tellEntries = [...tellHtml.matchAll(/data-(end-call|tell|refund|hotel-callback)="([^"]+)"[\s\S]*?<span class="opt-label">([^<]+)(?:<span class="opt-sub">([^<]+)<\/span>)?/g)]
+  .map(match => ({ id:['end-call','hotel-callback'].includes(match[1]) ? match[1] : match[2], label:match[3], note:match[4] || '' }));
 assert.deepEqual(tellEntries, [
+  { id:'end-call', label:'電話を切る', note:'' },
   { id:'close', label:'原因と対処を伝える', note:'原因を見立てて、対処をご案内します。' },
   { id:'try', label:'やってみてもらう', note:'機器や端末で試していただくことを選びます。' },
   { id:'refund', label:'返金をご案内する', note:'' },
@@ -356,7 +357,7 @@ assert.deepEqual(tellEntries, [
 ], '「伝える」のID・項目名・注意書きが完全一致しない');
 // §40: 折り返しはこちらから掛け直している最中には出さない。
 assert(!renderTellOptions({ ...tellTicket, callDirection:'outbound' }).includes('data-hotel-callback'), '折り返し中の通話にも折り返しの選択肢が出る');
-assert(!/終わります|締めます/.test(tellHtml + functionSource('commandPrompt') + functionSource('renderCloseFlow')), '「伝える」の項目に終話・締めを示す文言が残っている');
+assert(tellHtml.indexOf('data-end-call="1"') < tellHtml.indexOf('data-tell="close"'), '「電話を切る」が「伝える」の先頭ではない');
 const actionsAskBranch = actionsSource.slice(actionsSource.indexOf("if (tab === 'ask')"), actionsSource.indexOf("if (tab === 'tell')"));
 assert(actionsAskBranch.includes('renderAskGroups(t)') && actionsAskBranch.includes('renderAskOptions(t, group)'), '「聞く」の区分選択と質問一覧が2段階で接続されていない');
 
@@ -881,23 +882,37 @@ assert.equal(REDIAL_STRESS, 25, '途中切断の基本ストレスが+25では�
 const closeSource = functionSource('doClose') + functionSource('finishSuccessfulClose');
 assert(closeSource.includes('pushCustomerLine(t, farewellLine(s, grade), { plain:true })'), '別れの言葉にストレス前置きが混ざる');
 assert(closeSource.includes('t.pendingResult = result') && !closeSource.includes('closeTicket(t, result)'), '解決判定と同時に電話が切れてしまう');
-const pendingBranch = actionsSource.slice(actionsSource.indexOf('if (t.pendingResult)'), actionsSource.indexOf("if (state.ui.tab === 'hangup_confirm')"));
+const pendingBranch = actionsSource.slice(actionsSource.indexOf('if (t.pendingResult)'), actionsSource.indexOf("if (state.ui.tab === 'refund_confirm')"));
 assert(pendingBranch.includes('pendingTypedLine(t)') && pendingBranch.includes('pendingResultButtonLabel(t.pendingResult)'), '解決後に顧客発話待ちと経路別終話ボタンだけが残らない');
 assert(!/data-command|data-greet|renderCommandMenu|renderCallback/.test(pendingBranch), '解決後も別の操作ができる');
-const hangupConfirmSource = functionSource('renderHangupConfirmation');
-assert(hangupConfirmSource.includes('unresolvedHangupGuide(t)'), '未解決終話の確認が次の一手ガイドを表示しない');
 const routeHangup = functionSource('handleCallNavigation');
-const hangupBranch = routeHangup.slice(routeHangup.indexOf('if (d.hangup){'), routeHangup.indexOf('if (d.hangupConfirm)'));
-assert(hangupBranch.includes("defaultUi('hangup_confirm')") && !hangupBranch.includes('interruptCall('), '未解決の電話を確認なしで切れる');
+assert(routeHangup.includes('if (d.endCall)') && routeHangup.includes('endCurrentCall(t)') && !/hangupConfirm|hangupCancel|hangup_confirm/.test(routeHangup), '「伝える」の終話が確認なしの即時処理へ接続されない');
+assert(eventSource.includes('[data-end-call]') && eventSource.includes('[data-finish-call]') && !/data-hangup(?:=|-)/.test(eventSource), '廃止したdata-hangup経路が残るか新しい終話経路がない');
+const endCurrentCallSource = functionSource('endCurrentCall');
+const endCalls = [];
+const endCurrentCall = new Function('CALL_FLOW_LINES','pushFlowLines','finishPromisedCallback','interruptCall', endCurrentCallSource + '\nreturn endCurrentCall;')(
+  CALL_FLOW_LINES,
+  (ticket, lines) => { ticket.transcript.push(...lines); },
+  ticket => endCalls.push(['promised',ticket]),
+  ticket => endCalls.push(['interrupted',ticket])
+);
+const immediateTicket = {state:'open',pendingResult:null,callbackPromised:null,transcript:[]};
+endCurrentCall(immediateTicket);
+const promisedEndTicket = {state:'open',pendingResult:null,callbackPromised:'immediate',transcript:[]};
+endCurrentCall(promisedEndTicket);
+assert.deepEqual(endCalls.map(call => call[0]), ['interrupted','promised'], '通常切断と折り返し約束の即時終話を分けられない');
+assert.deepEqual(promisedEndTicket.transcript, [{who:'me',text:'失礼します。'}], '折り返し約束の終話で「失礼します」が会話ログに残らない');
 const interruptSource = functionSource('interruptCall');
 const finishInterruptedSource = functionSource('finishInterruptedCall');
 assert(interruptSource.includes('addStress(t, REDIAL_STRESS)'), '途中切断で+25×顧客係数のストレスが加算されない');
+assert(interruptSource.includes('finishInterruptedCall(t)') && interruptSource.indexOf('finishInterruptedCall(t)') < interruptSource.indexOf('addStress(t, REDIAL_STRESS)') && !interruptSource.includes('state.ui = defaultUi()'), '通常切断が確認画面や怒り終話を挟まず再入電へ進まない');
 assert(finishInterruptedSource.includes("t.state = 'waiting'") && finishInterruptedSource.includes('t.arrivedTurn = state.turn'), '途中切断した顧客がすぐ再着信しない');
 assert(finishInterruptedSource.includes('t.greeted = false') && finishInterruptedSource.includes('t.redialOpening = redialOpening(t)'), '再着信の名乗りと専用第一声がリセットされない');
 assert(!/\.facts\s*=|identified\s*=\s*false|asked\s*=/.test(interruptSource + finishInterruptedSource), '途中切断で収集済みの事実・本人特定・質問履歴を消している');
 assert.equal((game.match(/farewellLine\(/g) || []).length, 3, '通常解決と満足した返金以外にも別れの言葉を追加している');
-assert(menuSource.indexOf('renderHangupButton()') > menuSource.indexOf('</div></div>'), '「電話を切る」が8コマンドのグリッド内に入っている');
-assert(page.includes('.hangup-button') && page.includes('.hangup-confirm'), '終話操作の見た目がない');
+assert(!/renderHangupButton|renderHangupConfirmation|unresolvedHangupGuide/.test(game), '廃止した独立終話または終話確認の描画が残っている');
+assert(!/hangup-box|hangup-button|hangup-confirm|data-hangup(?:=|-)/.test(generatedPage), '生成HTMLに廃止した終話案内・確認が残っている');
+assert(page.includes('.refund-confirm') && functionSource('renderRefundConfirmation').includes('data-refund-confirm'), '返金確認まで削除されている');
 
 // オフィス画面: 画像を埋め込まず、16色以内のCanvasドット絵で描く。
 const officeStart = page.indexOf('<div class="office-floor">');
@@ -1244,7 +1259,7 @@ assert(functionSource('finishShiftAtTime').includes('playShiftEndSound()') && !f
 // §21: 会話の継ぎ目は、終話・照会・途中切断を発話でつなぐ。
 const endingTickets = [correctExpected, satisfiedRefund.ticket, dissatisfiedRefund.ticket, complaintEnd.ticket, hangupEnd.ticket];
 assert(endingTickets.every(ticket => ticket.state === 'open' && ticket.pendingResult), '5経路のいずれかが顧客の最後の台詞より先に終話する');
-assert(pendingBranch.includes("if (pendingTypedLine(t))") && pendingBranch.indexOf("if (pendingTypedLine(t))") < pendingBranch.indexOf('renderHangupButton('), '顧客の最後の台詞が表示され切る前に終話ボタンが出る');
+assert(pendingBranch.includes("if (pendingTypedLine(t))") && pendingBranch.indexOf("if (pendingTypedLine(t))") < pendingBranch.indexOf('renderCallCompletionButton('), '顧客の最後の台詞が表示され切る前に終話ボタンが出る');
 
 const pendingLabelSource = functionSource('pendingResultButtonLabel');
 const pendingResultButtonLabel = new Function(pendingLabelSource + '\nreturn pendingResultButtonLabel;')();
@@ -1607,8 +1622,8 @@ assert(Object.values(REMEDIES).flat().every(remedy => !riskyIds24.has(remedy.nee
 assert(actionsSource.includes('if (!t.greeted && !customerHasSpoken(t)) return') && openingDeliverySource.includes('customerSpeaksBeforeGreeting(t)'), '§24 客が先に話した場合だけ名乗りを任意にできない');
 assert(Object.keys(TYPES).every(type => customerSpeaksBeforeGreeting({s:{type}}) === (type === 'hurried')), '§24 hurried以外まで名乗らずコマンドへ進める');
 const customerHasSpoken24 = new Function(functionSource('customerHasSpoken') + '\nreturn customerHasSpoken;')();
-const renderActions24 = new Function('state','customerHasSpoken','renderCommandMenu','pendingTypedLine','renderHangupButton', actionsSource + '\nreturn renderActions;')(
-  {busy:false,ui:{tab:'command'}}, customerHasSpoken24, () => 'COMMANDS', () => null, () => 'HANGUP'
+const renderActions24 = new Function('state','customerHasSpoken','renderCommandMenu','pendingTypedLine', actionsSource + '\nreturn renderActions;')(
+  {busy:false,ui:{tab:'command'}}, customerHasSpoken24, () => 'COMMANDS', () => null
 );
 assert.equal(renderActions24({greeted:false,transcript:[{who:'cust',typed:true}],callTranscriptStart:0}), 'COMMANDS', '§24 hurriedの受話直後に名乗らずコマンド一覧を使えない');
 assert(renderActions24({greeted:false,transcript:[],callTranscriptStart:0}).includes('まず名乗ってください'), '§24 hurried以外でも名乗らずコマンド一覧を使える');
@@ -1741,7 +1756,7 @@ const externalScreen26 = renderScreen26({lookupId:'l_carrier',lookupTitle:'現�
 assert(externalScreen26.includes('lookup-system-screen external') && externalScreen26.includes('外部照会'), '§26 l_carrierが外部照会として見分けられない');
 
 // §27-3 検査1〜10: 調べる・ログは常時押せ、共通の本人確認ガードで時間無消費の案内へ分岐する。
-const renderMenu27 = new Function('COMMAND_DEFS','esc','hotelCallbackOffered','renderHangupButton', menuSource + '\nreturn renderCommandMenu;')(COMMAND_DEFS,esc26,hotelCallbackOffered,() => '');
+const renderMenu27 = new Function('COMMAND_DEFS','esc','hotelCallbackOffered', menuSource + '\nreturn renderCommandMenu;')(COMMAND_DEFS,esc26,hotelCallbackOffered);
 const menuBefore27 = renderMenu27({greeted:true,identified:false,nameKnown:false,destinationKnown:false,callDirection:'inbound'}, 'actions');
 const recordButton27 = html => (html.match(/<button class="command-choice" data-command="record"[^>]*>[\s\S]*?<\/button>/) || [''])[0];
 assert(recordButton27(menuBefore27) && !recordButton27(menuBefore27).includes('disabled'), '§27 本人特定前のログが押せない');
@@ -1846,8 +1861,9 @@ assert(secondBriefing29.includes('<b>2日目 ／ 試用期間 ／ 入電 4件 �
 // §29-5 検査3: 開始操作を残す。
 assert(briefingSource29.includes('id="btn-start">シフトを始める</button>') && briefingSource29.includes("$('btn-start').onclick"), '§29 ブリーフィングにシフト開始ボタンがない');
 assert(briefingSource29.includes('briefing-scroll') && briefingSource29.includes('briefing-actions') && /\.sheet\.briefing-sheet\{[^}]*height:\s*100dvh/.test(page), '小さい画面で開始操作を下端に残すブリーフィング構造がない');
-assert(/@media \(max-height:760px\)[\s\S]*?body\.office-view \.office-call-actions\{[^}]*position:\s*fixed/.test(page), '小さい画面でオフィス4操作が固定されない');
-assert(/@media \(max-height:760px\)[\s\S]*?body\.call-view \.actions\{[^}]*position:\s*fixed/.test(page), '小さい画面で通話操作が固定されない');
+assert(!/body\.office-view \.office-call-actions\{[^}]*position:\s*fixed/.test(page), '§66 小さい画面のオフィス4操作が固定配置のまま');
+assert(!/body\.call-view (?:\.actions|\.transcript\.recent)\{[^}]*position:\s*fixed/.test(page), '§66 小さい画面の会話または通話操作が固定配置のまま');
+assert(!/--short-call-|short-call-flow-reserve/.test(page) && /body\.playing \.stress-panel\{[^}]*position:static/.test(page), '§66 高さ予約が残るか満足度メーターが通常フローにない');
 
 // §29-5 検査5: 公開していた採点基準をマニュアルへ移す。
 const scoreWeights29 = ['顧客満足（CSAT）35%','一次解決率 25%','応答率 20%','費用 10%','業務報告 10%'];
@@ -1952,16 +1968,9 @@ assert.equal(progression32.status,0,'§32 検査9: progression_testが通らな�
 const allCustomerUtterances32 = SCENARIOS.flatMap(scenarioCustomerUtterances32).concat(typeNames.flatMap(type => [TYPES[type].solvedReply,TYPES[type].refundRejectReply]));
 assert(allCustomerUtterances32.every(text => dialogueDuration(text) <= 4000), '§32 検査10: 改稿後の顧客台詞がtyping_budgetの4秒を超える');
 
-// §33-5: 未解決で切ろうとしたとき、止めるだけでなく次の一手を示す。
-const unresolvedGuide33 = new Function('hotCauses','esc', functionSource('unresolvedHangupGuide') + '\nreturn unresolvedHangupGuide;')(
-  ticket => ticket.hot, String
-);
-const notNarrowedGuide33 = unresolvedGuide33({hot:new Set(['sim','hardware'])});
-const narrowedGuide33 = unresolvedGuide33({hot:new Set(['hardware'])});
-assert(notNarrowedGuide33.includes('「聞く」「調べる」で手がかりを集める') && notNarrowedGuide33.includes('対処を案内できるようになります'), '§33 検査1: 原因未絞り込みの終話確認が次の質問・照会を案内しない');
-assert(narrowedGuide33.includes('「伝える」→「原因と対処を伝える」') && narrowedGuide33.includes('原因と対処を案内すると、この電話を終われます'), '§33 検査2: 原因絞り込み後の終話確認が対処案内を次手にしない');
-assert([notNarrowedGuide33,narrowedGuide33].every(html => html.includes('このまま切ると、お客様から再入電になります')), '§33 検査3: 未解決切断で再入電になる説明が欠けている');
-assert(functionSource('unresolvedHangupGuide').includes('hotCauses(t).size === 1'), '§33 検査4: 終話ガイドが真因ではなく現在の絞り込み状態で分岐しない');
+// §66: 未解決終話の先回り案内と確認は、古い§33の契約ごと廃止する。
+assert(!functionSource('unresolvedHangupGuide') && !functionSource('renderHangupConfirmation'), '§66 検査: 廃止した終話案内・確認関数が残っている');
+assert(!/まだ原因を絞れていません|このまま切ると、お客様から再入電になります|折り返しをお約束しました。「電話を切る」で/.test(game), '§66 検査: 廃止した終話案内文が残っている');
 assert(functionSource('renderCloseFlow').includes('has-block-reason') && functionSource('renderCloseFlow').includes('remedy-block-reason') && page.includes('.opt:disabled.has-block-reason') && page.includes('.remedy-block-reason'), '§33 検査5: 前提不足の対処と理由が通常説明とは違う見た目にならない');
 const unchangedBlockReason33 = remedyBlockReason30({asked:new Set(),testCounts:new Map([['t_simout',0]])},{kind:'resolve',needsTest:'t_simout',needsTestCount:2});
 assert.equal(unchangedBlockReason33,'先に「伝える」→「やってみてもらう」を 2回行ってください（現在 0回）','§33 検査6: 前提不足の理由文そのものが変わっている');
@@ -2009,12 +2018,12 @@ const renderTestOptions35 = new Function('simCleaningRecommended','TESTS','RISKY
 assert(!renderTellOptions35(tellTicket35({s:s9Device35,refundProposalRejected:false})).includes('data-tell="try"') && !renderTestOptions35({s:s9Device35,testCounts:new Map()}).includes('data-test='),'§35 検査4: 機器未所持のS9に機器操作が出る');
 const tellNumbers35 = html => [...html.matchAll(/class="command-no">(\d+)<\/span>/g)].map(match => Number(match[1]));
 [
-  { ticket:tellTicket35({s:s9Device35,refundProposalRejected:false}), expected:[1,2,3,4,5,6,7] },
-  { ticket:tellTicket35({s:s9Device35,refundProposalRejected:true}), expected:[1,2,3,4,5,6] },
-  { ticket:tellTicket35({s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:false}), expected:[1,2,3,4,5,6,7,8] },
-  { ticket:tellTicket35({s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:true}), expected:[1,2,3,4,5,6,7] },
+  { ticket:tellTicket35({s:s9Device35,refundProposalRejected:false}), expected:[1,2,3,4,5,6,7,8] },
+  { ticket:tellTicket35({s:s9Device35,refundProposalRejected:true}), expected:[1,2,3,4,5,6,7] },
+  { ticket:tellTicket35({s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:false}), expected:[1,2,3,4,5,6,7,8,9] },
+  { ticket:tellTicket35({s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:true}), expected:[1,2,3,4,5,6,7,8] },
   // §40: 折り返し中の通話では折り返しの行が消え、番号が詰まる。
-  { ticket:tellTicket35({s:s9Device35,refundProposalRejected:true,callDirection:'outbound'}), expected:[1,2,3,4] },
+  { ticket:tellTicket35({s:s9Device35,refundProposalRejected:true,callDirection:'outbound'}), expected:[1,2,3,4,5] },
 ].forEach(({ticket,expected}) => assert.deepEqual(tellNumbers35(renderTellOptions35(ticket)),expected,'§35 追加検査: 「伝える」の表示項目が1からの連番ではない'));
 const replacementQuestion35 = QUESTIONS.find(question => question.id === 'q_replacement');
 assert(!replacementQuestion35.label.includes('直らない場合') && replacementQuestion35.label === '代替機の配送をご希望ですか','§35 検査5: q_replacementに「直らない場合」が残っている');
@@ -2038,8 +2047,8 @@ assert(doTest36.includes('pushCustomerLine(t, def.solves ? TYPES[t.s.type].solve
 assert(doTest36.includes('TYPES[t.s.type].solvedReply') && doTest36.includes('t.symptomResolved = true'),'§36 検査2: 復旧が客の発話ではなくオペレーター宣言になっている');
 const solvedReplies36 = typeNames.map(type => TYPES[type].solvedReply);
 assert(solvedReplies36.every(Boolean) && new Set(solvedReplies36).size === typeNames.length && solvedReplies36.every(reply => /つなが|復旧/.test(reply)),'§36 検査3: 復旧発話が4タイプ分書き分けられていない');
-const resolvedGuide36 = unresolvedGuide33({hot:new Set(['sim']),symptomResolved:true});
-assert(resolvedGuide36.includes('症状は復旧しました') && resolvedGuide36.includes('「伝える」→「原因を伝える」') && resolvedGuide36.includes('原因をご説明すると、この電話を終われます'),'§36 検査4: 復旧済み未案内の終話確認に第三の次手が出ない');
+const resolvedTell36 = renderTellOptions35(tellTicket35({s:SCENARIOS.find(scenario => scenario.deviceInHand),refundProposalRejected:false,symptomResolved:true}));
+assert(resolvedTell36.includes('原因を伝える') && !resolvedTell36.includes('原因と対処を伝える'),'§36 検査4: 復旧後に原因説明の選択肢へ変わらない');
 const simClean36 = REMEDIES.sim.find(remedy => remedy.id === 'r_sim_clean');
 assert.equal(simClean36.label,'接点の一時的な接触不良だったことをご説明し、そのままご利用いただく','§36 検査5: r_sim_cleanが手順記録のままで原因説明になっていない');
 const explanationRemedies36 = ['r_topup','r_slow_ok','r_disconnect','r_vpn_plan','r_throttle_talk','r_forget_guide','r_vpn_off','r_move_guide','r_charge_guide'].map(id => Object.values(REMEDIES).flat().find(remedy => remedy.id === id));
@@ -2271,15 +2280,9 @@ const angryPlain45 = { s:{type:'hurried'}, transcript:[], callbackPromised:null,
 angryModule45(angryPlain45, 'stress');
 assert(angryPlain45.pendingResult && angryPlain45.pendingResult.kind === 'complaint' && !angryPlain45.finished,'§45 検査8: 約束がない場合の既存の終話が変わっている');
 
-// §62: 切る前の案内は滞在先や戻る時間の有無を漏らさず、中立の1文だけにする。
-const guide45 = functionSource('unresolvedHangupGuide');
-const guideFn45 = new Function('CALL_FLOW_LINES','hotCauses',guide45 + '\nreturn unresolvedHangupGuide;')(CALL_FLOW_LINES,() => new Set());
-const noStayGuide45 = guideFn45({callbackPromised:'immediate',asked:new Set(),stayAddress:null,returnTimeKnown:false});
-const stayGuide45 = guideFn45({callbackPromised:'immediate',asked:new Set(['q_stay']),stayAddress:'ホテル',returnTimeKnown:false});
-assert.equal(noStayGuide45,stayGuide45,'§53 検査: 滞在先の有無で終話前案内が変わり、内部状態を漏らす');
-assert.equal(noStayGuide45,'<b>' + CALL_FLOW_LINES.callbackPromise.guide + '</b>','§62 検査: 中立の折り返し案内1文だけになっていない');
-assert.equal(guideFn45({callbackPromised:'immediate',asked:new Set(),stayAddress:null,returnTimeKnown:true}),noStayGuide45,'§62 検査: 戻る時間の確認有無で終話案内が変わる');
-assert(!Object.prototype.hasOwnProperty.call(CALL_FLOW_LINES.callbackPromise,'guideNoReturn') && !game.includes('お戻りの時間を伺っていません'),'§62 検査: 不要な戻る時刻の警告が残っている');
+// §66: §62で残した中立の1文も、終話確認とともに撤去する。
+assert(!Object.prototype.hasOwnProperty.call(CALL_FLOW_LINES.callbackPromise,'guide') && !Object.prototype.hasOwnProperty.call(CALL_FLOW_LINES.callbackPromise,'guideNoReturn'),'§66 検査: 廃止した折り返し終話案内データが残っている');
+assert(!game.includes('お戻りの時間を伺っていません'),'§62 検査: 不要な戻る時刻の警告が残っている');
 
 // §45 検査9/10: 戻る時間の質問は、約束したあとにだけ出る。聞かなくても折り返しは成立する。
 const returnQ45 = QUESTIONS.find(q => q.id === 'q_return');

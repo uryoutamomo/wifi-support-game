@@ -856,7 +856,7 @@ function renderActions(t){
   if (state.busy){
     return '<div class="actions"><div class="pending-note">社内照会中です。通話はつながったまま、時間が自動で進みます。</div></div>';
   }
-  if (state.ui.shipping) return '<div class="actions">' + renderCommandHead('国際配送の手配', '配送方法を選んでください。') + renderShipping(t) + renderHangupButton() + '</div>';
+  if (state.ui.shipping) return '<div class="actions">' + renderCommandHead('国際配送の手配', '配送方法を選んでください。') + renderShipping(t) + '</div>';
 
   if (t.pendingResult){
     if (pendingTypedLine(t)) return '<div class="actions"><div class="pending-note">お客様の最後の言葉を聞いています。</div></div>';
@@ -866,14 +866,12 @@ function renderActions(t){
       '<div class="record-gap"><b>お名前を伺えていないため、社内システムへ記録を残せません。</b>' +
       '<button class="opt" data-late-name="1"><span class="opt-label">お名前を確認する' +
       '<span class="opt-sub">解決したいま伺えば、記録を残せます。</span></span></button></div>';
-    return '<div class="actions">' + recordGap + renderHangupButton('お客様との会話が終わりました。終話してください。', pendingResultButtonLabel(t.pendingResult)) + '</div>';
+    return '<div class="actions">' + recordGap + renderCallCompletionButton('お客様との会話が終わりました。終話してください。', pendingResultButtonLabel(t.pendingResult)) + '</div>';
   }
-  if (t.pendingInterruption) return '<div class="actions">' + renderHangupButton('こちらから通話を切ります。', 'オフィスへ戻る') + '</div>';
-  if (state.ui.tab === 'hangup_confirm') return '<div class="actions">' + renderHangupConfirmation(t) + '</div>';
   if (state.ui.tab === 'refund_confirm') return '<div class="actions">' + renderRefundConfirmation() + '</div>';
   if (t.callbackStage === 'front_desk') return '<div class="actions">' + renderFrontDeskOptions(t) + '</div>';
 
-  if (!t.greeted && !customerHasSpoken(t)) return '<div class="actions"><div class="command-box"><div class="command-title"><span>CALL</span><b>まず名乗ってください</b></div><button class="command-choice" data-greet="1"><span class="command-no">1</span><span class="command-copy"><b>名乗る</b><small>お電話ありがとうございます。グローバルデスクでございます</small></span></button></div>' + renderHangupButton() + '</div>';
+  if (!t.greeted && !customerHasSpoken(t)) return '<div class="actions"><div class="command-box"><div class="command-title"><span>CALL</span><b>まず名乗ってください</b></div><button class="command-choice" data-greet="1"><span class="command-no">1</span><span class="command-copy"><b>名乗る</b><small>お電話ありがとうございます。グローバルデスクでございます</small></span></button></div></div>';
 
   const tab = state.ui.tab || 'command';
   const actionClass = 'actions' + (pendingTypedLine(t) ? ' is-typing' : '');
@@ -882,10 +880,10 @@ function renderActions(t){
     const group = QUESTION_GROUPS.find(item => item.id === state.ui.askGroup);
     return '<div class="' + actionClass + '">' +
       renderCommandHead('聞く', group ? group.label : '何について聞きますか？', group ? 'ask' : 'command') +
-      (group ? renderAskOptions(t, group) : renderAskGroups(t)) + renderHangupButton() + '</div>';
+      (group ? renderAskOptions(t, group) : renderAskGroups(t)) + '</div>';
   }
   if (tab === 'tell'){
-    return '<div class="' + actionClass + '">' + renderCommandHead('伝える', '何を伝えますか？') + renderTellOptions(t) + renderHangupButton() + '</div>';
+    return '<div class="' + actionClass + '">' + renderCommandHead('伝える', '何を伝えますか？') + renderTellOptions(t) + '</div>';
   }
 
   const bodyByCommand = {
@@ -902,36 +900,19 @@ function renderActions(t){
   const renderBody = bodyByCommand[tab] || bodyByCommand.close;
   const [command, prompt] = commandPrompt(tab);
   const backTarget = ['close','try','soothe','apologize'].includes(tab) ? 'tell' : 'command';
-  return '<div class="' + actionClass + '">' + renderCommandHead(command, prompt, backTarget) + renderBody() + renderHangupButton() + '</div>';
+  return '<div class="' + actionClass + '">' + renderCommandHead(command, prompt, backTarget) + renderBody() + '</div>';
 }
 
 function pendingResultButtonLabel(result){
   return result.kind === 'complaint' || result.kind === 'hangup' ? 'オフィスへ戻る' : '電話を切る';
 }
 
-function renderHangupButton(note, label = '電話を切る'){
-  return '<div class="hangup-box">' + (note ? '<p>' + esc(note) + '</p>' : '') + '<button class="hangup-button" data-hangup="1">' + esc(label) + '</button></div>';
-}
-
-function unresolvedHangupGuide(t){
-  if (t.callbackPromised){
-    return '<b>' + CALL_FLOW_LINES.callbackPromise.guide + '</b>';
-  }
-  const causeNarrowed = hotCauses(t).size === 1;
-  const next = t.symptomResolved
-    ? '症状は復旧しました。「伝える」→「原因を伝える」で原因をご説明すると、この電話を終われます。'
-    : causeNarrowed
-    ? 'まだ対処をお伝えしていません。「伝える」→「原因と対処を伝える」で原因と対処を案内すると、この電話を終われます。'
-    : 'まだ原因を絞れていません。「聞く」「調べる」で手がかりを集めると、対処を案内できるようになります。';
-  return '<b>' + next + '</b><p>このまま切ると、お客様から再入電になります。</p>';
-}
-
-function renderHangupConfirmation(t){
-  return '<div class="hangup-confirm">' + unresolvedHangupGuide(t) + '<div><button class="hangup-button" data-hangup-confirm="1">電話を切る</button><button class="command-back" data-hangup-cancel="1">対応に戻る</button></div></div>';
+function renderCallCompletionButton(note, label){
+  return '<div class="call-completion"><p>' + esc(note) + '</p><button class="call-completion-button" data-finish-call="1">' + esc(label) + '</button></div>';
 }
 
 function renderRefundConfirmation(){
-  return '<div class="hangup-confirm"><b>¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + 'の返金をご提案します。受け入れていただければ、この電話は終わります。よろしいですか？</b><div><button class="hangup-button" data-refund-confirm="1">返金を提案する</button><button class="command-back" data-refund-cancel="1">対応に戻る</button></div></div>';
+  return '<div class="refund-confirm"><b>¥' + REFUND_POLICY.amount.toLocaleString('ja-JP') + 'の返金をご提案します。受け入れていただければ、この電話は終わります。よろしいですか？</b><div><button class="refund-confirm-button" data-refund-confirm="1">返金を提案する</button><button class="command-back" data-refund-cancel="1">対応に戻る</button></div></div>';
 }
 
 function renderCommandMenu(t, actionClass){
@@ -946,7 +927,7 @@ function renderCommandMenu(t, actionClass){
   const chargeHint = hotelCallbackOffered(t) && t.callChargeConcerned
     ? '<p class="hint-bar">お客様が国際通話料を気にしています。「伝える」→「ホテルへ折り返す」で通話料を止められます。</p>'
     : '';
-  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div>' + optionalGreeting + '<div class="command-grid">' + choices + '</div></div>' + chargeHint + renderHangupButton() + '</div>';
+  return '<div class="' + actionClass + '"><div class="command-box"><div class="command-title"><span>COMMAND</span><b>コマンドを選んでください</b></div>' + optionalGreeting + '<div class="command-grid">' + choices + '</div></div>' + chargeHint + '</div>';
 }
 
 /* 折り返しはこちらから掛け直す行為なので、折り返し中の通話には出さない。 */
@@ -1004,6 +985,7 @@ function renderAskOptions(t, group){
 
 function renderTellOptions(t){
   const entries = [
+    { attrs:'data-end-call="1"', body:'<span class="opt-label">電話を切る</span>' },
     { attrs:'data-tell="close"', body:'<span class="opt-label">' + (t.symptomResolved ? '原因を伝える' : '原因と対処を伝える') + '<span class="opt-sub">' + (t.symptomResolved ? '復旧した原因をご説明します。' : '原因を見立てて、対処をご案内します。') + '</span></span>' },
     t.s.deviceInHand
       ? { attrs:'data-tell="try"', body:'<span class="opt-label">やってみてもらう<span class="opt-sub">機器や端末で試していただくことを選びます。</span></span>' }

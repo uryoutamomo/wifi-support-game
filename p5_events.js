@@ -11,7 +11,7 @@ document.addEventListener('click', (e) => {
     if (!answerDuringPassage) return;
   }
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-audio-unlock],[data-office-answer],[data-office-callback],[data-office-desk],[data-office-verify],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
+  const el = e.target.closest('[data-audio-unlock],[data-office-answer],[data-office-callback],[data-office-desk],[data-office-verify],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-end-call],[data-finish-call],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
   if (!el || el.disabled) return;
   const audioReady = unlockAudioFromGesture();
   if (el.dataset.audioUnlock){ audioReady.then(ready => { if (ready) playAudioTestSound(); }); return; }
@@ -59,22 +59,17 @@ function handleCallNavigation(d){
   if (d.callbackDestination){ startCarrierCallback(d.callbackDestination); return true; }
   if (d.hotelCallback){ startHotelCallback(d.hotelCallback); return true; }
   if (d.frontDesk){ handleFrontDeskChoice(d.frontDesk); return true; }
-  if (d.hangup){
+  if (d.finishCall){
     const t = state.focus;
     if (!t) return true;
     if (t.pendingResult) finishResolvedCall(t);
-    else if (t.pendingInterruption) finishInterruptedCall(t);
-    else { state.ui = defaultUi('hangup_confirm'); render(); }
     return true;
   }
-  if (d.hangupConfirm){
-    // §45: 折り返しを約束していれば、未解決終話ではなく折り返し待ちへ入る。
+  if (d.endCall){
     const t = state.focus;
-    if (t && t.callbackPromised) finishPromisedCallback(t);
-    else interruptCall(t);
+    if (t) endCurrentCall(t);
     return true;
   }
-  if (d.hangupCancel){ state.ui = defaultUi(); render(); return true; }
   if (d.greet){ greetCurrentCustomer(); return true; }
   if (d.command){
     if (d.command === 'record') openRecord();

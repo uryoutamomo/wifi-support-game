@@ -1,4 +1,4 @@
-/* 実効表示高が低いスマホで、最初に必要な操作の中心が画面内にあることを測る。 */
+/* 実効表示高が低いスマホで、情報と操作が一つの文書フローに並び、スクロールで届くことを測る。 */
 const assert = require('assert');
 const path = require('path');
 const VIEWPORTS = [
@@ -89,6 +89,14 @@ function visibleCenters(label, rects, height){
   rects.forEach(rect => assert(rect.hit, label + ' の中心が別要素に覆われている: ' + JSON.stringify(rect)));
 }
 
+function verticalFlow(label, rects){
+  assert(rects.length, label + ' の要素がない');
+  rects.forEach(rect => assert(rect.width > 0 && rect.height > 0, label + ' の要素が描画されていない: ' + JSON.stringify(rect)));
+  for (let i = 1; i < rects.length; i++){
+    assert(rects[i].top >= rects[i - 1].bottom - 1, label + ' の順序または領域が重なっている: ' + JSON.stringify({ before:rects[i - 1], after:rects[i] }));
+  }
+}
+
 function noTopbarOverlap(label, rects){
   const visible = rects.filter(rect => rect.width > 0 && rect.height > 0);
   for (let i = 0; i < visible.length; i++){
@@ -101,14 +109,25 @@ function noTopbarOverlap(label, rects){
   }
 }
 
-function noFixedContentOverlap(label, fixedRects, contentRects){
-  const fixed = fixedRects.filter(rect => rect.width > 0 && rect.height > 0);
-  const content = contentRects.filter(rect => rect.width > 0 && rect.height > 0);
-  fixed.forEach(a => content.forEach(b => {
-    const overlaps = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-    assert(!overlaps, '固定領域と本文情報が重なっている: ' + JSON.stringify({ label, a, b }));
-  }));
+async function assertScrollReachable(cdp, label, selector){
+  const count = await evaluate(cdp, `document.querySelectorAll(${JSON.stringify(selector)}).length`);
+  assert(count > 0, label + ' が描画されていない');
+  for (let index = 0; index < count; index++){
+    const result = await evaluate(cdp, `(() => {
+      const node=document.querySelectorAll(${JSON.stringify(selector)})[${index}];
+      node.scrollIntoView({ block:'center' });
+      const r=node.getBoundingClientRect();
+      const x=Math.max(0,Math.min(innerWidth-1,r.left+r.width/2));
+      const y=Math.max(0,Math.min(innerHeight-1,r.top+r.height/2));
+      const hit=document.elementFromPoint(x,y);
+      return { text:node.textContent.trim(), top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit) };
+    })()`);
+    assert(result.width > 0 && result.height > 0 && result.top >= 0 && result.bottom <= viewportHeight, label + ' へスクロールしても画面内に届かない: ' + JSON.stringify(result));
+    assert(result.hit, label + ' が別要素に覆われている: ' + JSON.stringify(result));
+  }
 }
+
+let viewportHeight = 0;
 
 async function assertTopbarClear(cdp, label){
   const rects = await evaluate(cdp, `(() => {
@@ -120,6 +139,7 @@ async function assertTopbarClear(cdp, label){
 }
 
 async function verifyViewport(cdp, viewport){
+  viewportHeight = viewport.height;
   await cdp.send('Emulation.setDeviceMetricsOverride', { width:viewport.width, height:viewport.height, deviceScaleFactor:1, mobile:false });
   await cdp.send('Page.navigate', { url:pageUrl });
   await pause(180);
@@ -130,11 +150,12 @@ async function verifyViewport(cdp, viewport){
   await evaluate(cdp, 'closeSheet(); enterOffice(); null');
   await pause(80);
 
-  const office = await evaluate(cdp, `(() => ({ scrollY, rects:[...document.querySelectorAll('.office-call-action')].map(node => { const r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { text:node.textContent.trim(), center:r.top+r.height/2, top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit) }; }) }))()`);
+  const office = await evaluate(cdp, `(() => ({ scrollY, positions:[...document.querySelectorAll('.office-call-actions')].map(node => getComputedStyle(node).position), count:document.querySelectorAll('.office-call-action').length }))()`);
   assert.equal(office.scrollY, 0, 'オフィスが初期表示でスクロールしている');
   await assertTopbarClear(cdp, 'オフィス');
-  assert.equal(office.rects.length, 4, 'オフィス操作が4つではない');
-  visibleCenters('オフィス4操作', office.rects, viewport.height);
+  assert.equal(office.count, 4, 'オフィス操作が4つではない');
+  assert(office.positions.every(position => position !== 'fixed'), 'オフィス操作が固定配置のまま: ' + office.positions.join(','));
+  await assertScrollReachable(cdp, 'オフィス4操作', '.office-call-action');
 
   /* 入電の時刻・案件は日ごとに変わるので、ここだけは画面の操作ではなく既存の
      通話開始関数を直接呼ぶ。表示後の矩形を固定し、日程の偶然で検査を揺らさない。 */
@@ -145,24 +166,36 @@ async function verifyViewport(cdp, viewport){
     return null;
   })()`);
   await pause(80);
-  const call = await evaluate(cdp, `(() => { const rectFor = node => { const r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { text:node.textContent.trim(), center:r.top+r.height/2, top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit), hitClass:hit && hit.className }; }; const rect = node => { const r=node.getBoundingClientRect(); return { text:node.textContent.trim(), top:r.top, bottom:r.bottom, left:r.left, right:r.right, width:r.width, height:r.height }; }; const customerLines=[...document.querySelectorAll('.transcript.recent .line.cust .say')]; return { scrollY, customer:customerLines.length ? rectFor(customerLines.at(-1)) : null, commands:[...document.querySelectorAll('.command-grid .command-choice')].map(rectFor), hangup:rectFor(document.querySelector('.hangup-button')), fixed:[...document.querySelectorAll('.transcript.recent, body.call-view .actions')].map(rect), content:[...document.querySelectorAll('.call-head, .stress-panel, #call-summary, .pane-title')].map(rect) }; })()`);
+  const call = await evaluate(cdp, `(() => {
+    const rect = (name,node) => { const r=node.getBoundingClientRect(); return { name, top:r.top+scrollY, bottom:r.bottom+scrollY, width:r.width, height:r.height }; };
+    const selectors = [['上部バー','.topbar-inner'],['シフト帯','.shift-strip'],['チケット情報','.call-head'],['満足度メーター','.stress-panel'],['顧客との会話','.transcript.recent'],['操作','.actions']];
+    const flow=selectors.map(([name,selector]) => rect(name,document.querySelector(selector)));
+    const positions=selectors.slice(2).map(([name,selector]) => ({ name, position:getComputedStyle(document.querySelector(selector)).position }));
+    const transcriptStyle=getComputedStyle(document.querySelector('.transcript.recent'));
+    return { scrollY, flow, positions, transcriptOverflow:transcriptStyle.overflowY, commands:document.querySelectorAll('.command-grid .command-choice').length, independentHangups:document.querySelectorAll('.hangup-box,.hangup-button,[data-hangup]').length };
+  })()`);
   assert.equal(call.scrollY, 0, '通話が初期表示でスクロールしている');
   await assertTopbarClear(cdp, '通話');
-  noFixedContentOverlap('通話', call.fixed, call.content);
-  assert(call.customer, '直近の顧客発話が描画されていない');
-  visibleCenters('直近の顧客発話', [call.customer], viewport.height);
-  assert.equal(call.commands.length, 4, '通話の主コマンドが4つではない');
-  visibleCenters('通話4コマンド', call.commands, viewport.height);
-  visibleCenters('電話を切る', [call.hangup], viewport.height);
-  await evaluate(cdp, `(() => { document.querySelector('[data-command="ask"]').click(); return null; })()`);
+  verticalFlow('通話の縦一列', call.flow);
+  assert(call.positions.every(item => item.position !== 'fixed' && item.position !== 'sticky'), '通話要素が通常フローから外れている: ' + JSON.stringify(call.positions));
+  assert(call.transcriptOverflow === 'visible', '顧客との会話が内部スクロール窓のまま: ' + call.transcriptOverflow);
+  assert.equal(call.commands, 4, '通話の主コマンドが4つではない');
+  assert.equal(call.independentHangups, 0, '独立した「電話を切る」が残っている');
+  await assertScrollReachable(cdp, '通話4コマンド', '.command-grid .command-choice');
+  await evaluate(cdp, `(() => { document.querySelector('[data-command="tell"]').click(); return null; })()`);
   await pause(40);
-  const askGroup = await evaluate(cdp, `(() => { const node=document.querySelector('[data-ask-group]'), r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { center:r.top+r.height/2, top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit) }; })()`);
-  visibleCenters('質問カテゴリの先頭', [askGroup], viewport.height);
+  const tell = await evaluate(cdp, `(() => { const first=document.querySelector('.actions .opts .opt'), box=document.querySelector('.actions .opts'), r=box.getBoundingClientRect(); return { text:first && first.textContent.trim(), endCall:first && first.hasAttribute('data-end-call'), box:{width:r.width,height:r.height} }; })()`);
+  assert(tell.endCall && tell.text === '1電話を切る', '「伝える」の先頭が「電話を切る」ではない: ' + JSON.stringify(tell));
+  assert(tell.box.width > 0 && tell.box.height > 0, '「伝える」の選択肢が高さ0に潰れている');
+  await assertScrollReachable(cdp, '「伝える」の全操作', '.actions .opts .opt');
+  await evaluate(cdp, `(() => { state.ui=defaultUi(); render(); document.querySelector('[data-command="ask"]').click(); return null; })()`);
+  await pause(40);
+  await assertScrollReachable(cdp, '質問カテゴリ', '[data-ask-group]');
   await evaluate(cdp, `(() => { document.querySelector('[data-ask-group]').click(); return null; })()`);
   await pause(40);
-  const askOption = await evaluate(cdp, `(() => { const node=document.querySelector('.actions .opts .opt'), box=document.querySelector('.actions .opts'), r=node.getBoundingClientRect(), b=box.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { option:{ center:r.top+r.height/2, top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit) }, box:{ width:b.width, height:b.height } }; })()`);
-  assert(askOption.box.height > 0, '質問選択肢のスクロール箱が描画されていない');
-  visibleCenters('質問選択肢の先頭', [askOption.option], viewport.height);
+  const askBox = await evaluate(cdp, `(() => { const r=document.querySelector('.actions .opts').getBoundingClientRect(); return { width:r.width, height:r.height }; })()`);
+  assert(askBox.width > 0 && askBox.height > 0, '質問選択肢が高さ0に潰れている');
+  await assertScrollReachable(cdp, '質問選択肢', '.actions .opts .opt');
 }
 
 (async () => {

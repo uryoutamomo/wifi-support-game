@@ -277,7 +277,6 @@ const CALL_FLOW_LINES = Object.freeze({
     headScheduled:'折り返し約束済み（1時間後）',
     headThreeHours:'折り返し約束済み（3時間後）',
     headTomorrow:'折り返し約束済み（翌日・日勤へ引き継ぎ）',
-    guide:'折り返しをお約束しました。「電話を切る」で、こちらから掛け直します。',
   }),
   callback:Object.freeze({
     normal:'お待たせしました。先ほどの件でお電話しました。',
@@ -345,7 +344,7 @@ const CALL_FLOW_LINES = Object.freeze({
     talkComplete:'ありがとうございます。こちらでも確認が取れました。',
   }),
   recordStart:'少し記録を確認させてください。',
-  interrupt:'申し訳ございません、一度お切りします。',
+  interrupt:'失礼します。',
   redialGreeting:'先ほどは通話が切れてしまい、申し訳ございません。',
   abandonedRedialOpenings:Object.freeze({
     anxious:'さっきはつながらなくて…また掛けてしまってすみません。でも、まだ困っています。',

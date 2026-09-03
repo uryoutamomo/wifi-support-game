@@ -1507,7 +1507,7 @@ function startCarrierCallback(destination){
   leaveCallForOffice();
 }
 
-/* §45: 折り返しの申し出。ここでは切らない。折り返し先を確認してから「電話を切る」で終話する。 */
+/* §45: 折り返しの申し出。ここでは切らない。折り返し先を確認してから「伝える」の「電話を切る」で終話する。 */
 function startHotelCallback(kind = 'immediate'){
   const t = state.focus;
   if (!t || t.pendingResult || t.pendingInterruption || t.callbackStage === 'front_desk' || t.callbackPromised) return;
@@ -1870,6 +1870,17 @@ function finishResolvedCall(t){
   render();
 }
 
+/* §66: 「伝える」の先頭から確認なしで終話する。折り返し約束だけは専用の待機状態へ進める。 */
+function endCurrentCall(t){
+  if (!t || t.state !== 'open' || t.pendingResult) return;
+  if (t.callbackPromised){
+    pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.interrupt }]);
+    finishPromisedCallback(t);
+    return;
+  }
+  interruptCall(t);
+}
+
 function redialOpening(t){
   return (t.s.type === 'anxious' || t.s.type === 'novice') ? REDIAL_OPENINGS.calm : REDIAL_OPENINGS.direct;
 }
@@ -1877,11 +1888,12 @@ function redialOpening(t){
 function interruptCall(t){
   if (!t || t.state !== 'open' || t.pendingResult) return;
   pushFlowLines(t, [{ who:'me', text:CALL_FLOW_LINES.interrupt }]);
-  if (!addStress(t, REDIAL_STRESS)){ render(); return; }
   t.transcript.push({ who:'note', text:'オペレーターが対応途中で切断しました。' });
   t.pendingInterruption = true;
-  state.ui = defaultUi();
-  render();
+  finishInterruptedCall(t);
+  /* 先に回線を切って再入電へ移す。苛立ち加算を先に行うと100到達時だけ
+     顧客側の怒り終話画面を挟み、§66の即時終話ではなくなる。 */
+  addStress(t, REDIAL_STRESS);
 }
 
 function finishInterruptedCall(t){

@@ -533,7 +533,7 @@ const logHeadings = [...logSource.matchAll(/<h3>([^<]+)<\/h3>/g)].map(match => m
 if (JSON.stringify(logHeadings) !== JSON.stringify(['会話の全履歴'])) bad('§56 ログに全履歴以外の要約が残っている');
 if (/残っている原因の候補|次にできること|集まった手がかり|この案件のここまで/.test(gameSource)) bad('§56 診断ボードの候補数・手がかり・次の一手を別画面へ移している');
 if (!sourceOf('renderCloseFlow').includes('CAUSES.map') || sourceOf('renderCloseFlow').includes('filter(')) bad('§56 原因選択で14原因を絞り込んでいる');
-if (!sourceOf('hotCauses').includes('f.hot') || !sourceOf('unresolvedHangupGuide').includes('hotCauses(t).size === 1')) bad('§56 内部の原因絞り込み状態が失われている');
+if (!sourceOf('hotCauses').includes('f.hot')) bad('§56 内部の原因絞り込み状態が失われている');
 ['trueCause','REMEDIES','scenarioRoute','bestRemedy','correctRemedy'].forEach(secret => {
   if (logSource.includes(secret)) bad('ログが真因または正解対処を参照している: ' + secret);
 });
@@ -733,9 +733,12 @@ if (MORNING_STAFF.some(staff => staff.facing !== 'back') || /eye|mouth|face/.tes
 if (new Set(MORNING_STAFF.map(staff => staff.hair)).size < 3 || new Set(MORNING_STAFF.map(staff => staff.hairColor)).size < 3 || new Set(MORNING_STAFF.map(staff => staff.coat)).size < 5 || new Set(MORNING_STAFF.map(staff => staff.shoulders)).size < 3 || !staffMember23.includes('p[staff.hairColor]') || !staffMember23.includes('p[staff.coat]')) bad('社員の髪型・髪色・服色・肩幅が描き分けられていない');
 if (MORNING_STAFF.some(staff => Object.keys(staff).some(key => /player|highlight|arrow|label/i.test(key))) || /staff\.(?:player|highlight|arrow|label)/i.test(staffMember23)) bad('プレイヤーだけを示す強調表示がある');
 
-// §33: 未解決終話は現在の絞り込み状態に応じた次の一手と再入電を示す。
-const hangupGuide33 = sourceOf('unresolvedHangupGuide');
-if (!hangupGuide33.includes('hotCauses(t).size === 1') || !hangupGuide33.includes('「聞く」「調べる」で手がかりを集める') || !hangupGuide33.includes('「伝える」→「原因と対処を伝える」') || !hangupGuide33.includes('お客様から再入電になります')) bad('§33 未解決終話の次手分岐・再入電説明が揃わない');
+// §66: 未解決終話の案内と確認を廃止し、「伝える」の先頭から即時に切る。
+const tell66 = sourceOf('renderTellOptions');
+const endCall66 = sourceOf('endCurrentCall');
+if (!tell66.includes("{ attrs:'data-end-call=\"1\"', body:'<span class=\"opt-label\">電話を切る</span>' }") || tell66.indexOf('data-end-call') > tell66.indexOf('data-tell="close"')) bad('§66 「電話を切る」が「伝える」の先頭にない');
+if (!endCall66.includes('CALL_FLOW_LINES.interrupt') || !endCall66.includes('finishPromisedCallback(t)') || !endCall66.includes('interruptCall(t)')) bad('§66 即時終話が通常切断と折り返し約束を分けていない');
+if (sourceOf('unresolvedHangupGuide') || sourceOf('renderHangupConfirmation') || /data-hangup(?:=|-)/.test(gameSource) || gameSource.includes('hangup-confirm')) bad('§66 廃止した終話案内・確認が残っている');
 if (!sourceOf('renderCloseFlow').includes('remedy-block-reason') || !pageSource.includes('.opt:disabled.has-block-reason') || !pageSource.includes('.remedy-block-reason')) bad('§33 前提不足の理由が通常説明と違う見た目にならない');
 if (!sourceOf('remedyBlockReason').includes('先に「伝える」→「やってみてもらう」を ')) bad('§33 前提不足の従来理由文が変わっている');
 
@@ -762,7 +765,6 @@ if (QUESTIONS.find(question => question.id === 'q_replacement').label.includes('
 const doTest36 = sourceOf('doTest');
 if (!doTest36.includes('TYPES[t.s.type].solvedReply') || !doTest36.includes('t.symptomResolved = true') || doTest36.includes("who:'note', text:'この操作で症状が解消しました")) bad('§36 復旧が客のタイプ別発話で通話画面に出ない');
 if (!Object.values(TYPES).every(type => type.solvedReply) || new Set(Object.values(TYPES).map(type => type.solvedReply)).size !== 4) bad('§36 復旧発話が4タイプ分書き分けられていない');
-if (!hangupGuide33.includes('t.symptomResolved') || !hangupGuide33.includes('症状は復旧しました') || !hangupGuide33.includes('原因をご説明すると、この電話を終われます')) bad('§36 復旧済み未案内の終話ガイドがない');
 const simClean36 = REMEDIES.sim.find(remedy => remedy.id === 'r_sim_clean');
 if (!simClean36 || simClean36.label !== '接点の一時的な接触不良だったことをご説明し、そのままご利用いただく' || simClean36.kind !== 'resolve' || simClean36.needsTest !== 't_simout' || simClean36.needsTestCount !== 2) bad('§36 r_sim_cleanの説明文または構造が違う');
 if (sourceOf('doApologize').includes('pendingResult') || sourceOf('doApologize').includes('closeTicket')) bad('§36 謝罪だけで終話できる');
@@ -817,11 +819,11 @@ if (!sourceOf('finishPromisedCallback').includes('!hotelContactKnown(t)') || !so
 const promise45 = sourceOf('startHotelCallback');
 const finish45 = sourceOf('finishPromisedCallback');
 if (!promise45.includes('t.callbackPromised = preferredKind') || promise45.includes("t.state = 'callback'") || promise45.includes('state.focus = null')) bad('§45 折り返しの申し出がその場で通話を終わらせている');
-if (!finish45.includes("t.state = 'callback'") || !finish45.includes('leaveCallForOffice()')) bad('§45 「電話を切る」で折り返し待ちへ入らない');
+if (!finish45.includes("t.state = 'callback'") || !finish45.includes('leaveCallForOffice()') || !sourceOf('endCurrentCall').includes('finishPromisedCallback(t)')) bad('§45 「電話を切る」で折り返し待ちへ入らない');
 if (!sourceOf('hotelCallbackOffered').includes('!t.callbackPromised')) bad('§45 約束したあとも「伝える」に折り返しが残る');
 if (!sourceOf('renderCallHeader').includes('callbackPromise.headScheduled') || !sourceOf('renderCallHeader').includes('callbackPromise.headImmediate')) bad('§45 約束したことが通話ヘッダに出ない');
 if (!sourceOf('renderAskOptions').includes('!q.needsCallbackPromise || t.callbackPromised')) bad('§45 戻る時間の質問が約束前から出る');
-if (!sourceOf('unresolvedHangupGuide').includes('callbackPromise.guide') || sourceOf('unresolvedHangupGuide').includes('stayAddress')) bad('§53 終話前案内が滞在先の有無を漏らす');
+if (Object.prototype.hasOwnProperty.call(CALL_FLOW_LINES.callbackPromise,'guide') || /まだ原因を絞れていません|このまま切ると、お客様から再入電になります/.test(gameSource)) bad('§66 廃止した終話前案内文が残っている');
 if (!blindCallback40.includes('CALL_FLOW_LINES.callback.blameOpenings[t.s.type]') || !blindCallback40.includes("t.state = 'waiting'") || !blindCallback40.includes('BLIND_CALLBACK_STRESS') || !blindCallback40.includes('BLIND_CALLBACK_CSAT_PENALTY')) bad('§40 折り返せなかった客が非難つきで掛け直してこない');
 if (Object.keys(CALL_FLOW_LINES.callback.blameOpenings).length !== 4 || new Set(Object.values(CALL_FLOW_LINES.callback.blameOpenings)).size !== 4) bad('§40 折り返しなしを責める発話が4タイプ分ない');
 if (BLIND_CALLBACK_STRESS <= REDIAL_STRESS) bad('§40 連絡先なしの切断が、ただの切断より軽い');

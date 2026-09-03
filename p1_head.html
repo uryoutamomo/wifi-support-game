@@ -571,13 +571,13 @@ body.sheet-open .console{ display: none; }
   flex-direction: column;
   gap: 10px;
 }
-.hangup-box{ display:flex; align-items:center; justify-content:flex-end; gap:12px; padding-top:10px; border-top:1px solid var(--line-soft); }
-.hangup-box p{ flex:1; margin:0; color:var(--text-2); font-size:12px; line-height:1.5; }
-.hangup-button{ min-height:44px; padding:9px 16px; border:2px solid var(--crit); border-radius:8px; background:transparent; color:var(--crit); font-weight:800; }
-.hangup-button:hover{ background:var(--crit); color:#fff; }
-.hangup-confirm{ padding:14px; border:2px solid var(--crit); border-radius:10px; background:var(--surface-2); }
-.hangup-confirm > b{ display:block; margin-bottom:12px; color:var(--crit); font-size:16px; }
-.hangup-confirm > div{ display:flex; justify-content:flex-end; gap:10px; }
+.call-completion{ display:flex; align-items:center; justify-content:flex-end; gap:12px; padding-top:10px; border-top:1px solid var(--line-soft); }
+.call-completion p{ flex:1; margin:0; color:var(--text-2); font-size:12px; line-height:1.5; }
+.call-completion-button,.refund-confirm-button{ min-height:44px; padding:9px 16px; border:2px solid var(--crit); border-radius:8px; background:transparent; color:var(--crit); font-weight:800; }
+.call-completion-button:hover,.refund-confirm-button:hover{ background:var(--crit); color:#fff; }
+.refund-confirm{ padding:14px; border:2px solid var(--crit); border-radius:10px; background:var(--surface-2); }
+.refund-confirm > b{ display:block; margin-bottom:12px; color:var(--crit); font-size:16px; }
+.refund-confirm > div{ display:flex; justify-content:flex-end; gap:10px; }
 
 /* コマンド選択式。主コマンドを選び、その先で対象を選ぶ二段階構造。 */
 .command-box{
@@ -1225,8 +1225,8 @@ body.playing .transcript{
   padding:12px;
   gap:12px;
 }
-body.playing .transcript.recent{ min-height:150px; max-height:31dvh; overflow:auto; }
-.stress-panel{ top:0; z-index:23; margin:12px; padding:15px; }
+body.playing .transcript.recent{ min-height:150px; max-height:none; overflow:visible; }
+body.playing .stress-panel{ position:static; top:auto; z-index:auto; margin:12px; padding:15px; }
 .stress-panel-head span{ font-size:16px; }.stress-panel-head b{ font-size:36px; }.stress-panel-head strong{ font-size:15px; }
 .stress-track{ height:20px; }
 .record-transcript{ max-height:56dvh; }
@@ -1314,76 +1314,6 @@ body.office-view .office-scene{ gap:14px; }
 .briefing-actions{ flex:none; padding:12px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--surface); border-top:1px solid var(--line); box-shadow:0 -8px 18px rgba(21,32,43,.08); }
 .briefing-actions .btn-primary{ margin:0; }
 
-/* オフィスと通話では、現在の会話や設備より先に、次の操作を小画面の下端に置く。
-   ただし通話では直近の顧客発話も判断材料なので、操作のすぐ上に必ず残す。 */
-@media (max-height:760px){
-  /* transform を持つアニメーション祖先は fixed の基準面を本文に変えるため、
-     縮んだ画面では入場アニメーションを使わない。 */
-  body.office-view .office-scene,body.call-view .console{ animation:none; }
-  body.office-view .office-call-actions{
-    position:fixed; z-index:45; left:0; right:0; bottom:0;
-    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
-    background:var(--surface); border-top:1px solid var(--line);
-    box-shadow:0 -8px 20px rgba(21,32,43,.16);
-  }
-  body.office-view .office-call-action{ min-height:58px; padding:7px 10px; font-size:16px; }
-  body.office-view .office-call-action span{ margin-top:2px; font-size:11px; line-height:1.25; }
-  body.call-view .call{ isolation:isolate; }
-  /* コマンド4つと終話を収める高さを予約する。会話はこの領域の上に出すので、
-     553px級でも症状を読んでから次の手を選べる。 */
-  body.call-view{
-    --short-call-actions-height:calc(212px + env(safe-area-inset-bottom));
-    --short-call-transcript-height:clamp(84px,18dvh,120px);
-    --short-call-fixed-height:calc(var(--short-call-actions-height) + var(--short-call-transcript-height));
-    --short-call-flow-reserve:calc(var(--short-call-fixed-height) + 128px);
-  }
-  /* fixed の会話・操作より後のカードを文書フロー上でも下へ送る。
-     初期位置では見出しと満足度を読め、続きは普通にスクロールして読める。 */
-  body.call-view .call{ padding-bottom:var(--short-call-flow-reserve); }
-  /* 最後の待機状況も、最下部まで送ったとき固定操作の下に潜らないようにする。 */
-  body.call-view .console{ padding-bottom:var(--short-call-fixed-height); }
-  body.call-view .call-head{ flex-wrap:nowrap; gap:4px; overflow:auto; padding:4px 12px; }
-  body.call-view .call-head > span{ flex:none; font-size:11px; white-space:nowrap; }
-  body.call-view .stress-panel{ margin:4px 12px 0; padding:4px 8px; }
-  body.call-view .stress-panel-head{ gap:5px; }
-  body.call-view .stress-panel-head span{ font-size:10px; }
-  body.call-view .stress-panel-head b{ font-size:20px; }
-  body.call-view .stress-panel-head strong{ padding:2px 5px; font-size:10px; }
-  body.call-view .stress-track{ height:6px; margin-top:4px; }
-  body.call-view .transcript.recent{
-    position:fixed; z-index:101; isolation:isolate; left:0; right:0;
-    bottom:var(--short-call-actions-height);
-    display:flex; height:var(--short-call-transcript-height); min-height:0; max-height:none;
-    overflow:auto; padding:8px 12px; gap:6px;
-    background:var(--surface); border-top:1px solid var(--line);
-    box-shadow:0 -8px 20px rgba(21,32,43,.12);
-  }
-  body.call-view .transcript.recent .line{ max-width:100%; }
-  body.call-view .transcript.recent .line .who{ font-size:11px; }
-  body.call-view .transcript.recent .line .say{ padding:7px 9px; font-size:15px; line-height:1.4; }
-  body.call-view .actions{
-    position:fixed; z-index:100; isolation:isolate; left:0; right:0; bottom:0;
-    height:var(--short-call-actions-height); max-height:calc(100dvh - 106px); overflow:auto;
-    padding:8px 12px calc(10px + env(safe-area-inset-bottom));
-    background:var(--surface); border-top:1px solid var(--line);
-    box-shadow:0 -8px 20px rgba(21,32,43,.16);
-  }
-  body.call-view .command-box{ padding:8px; }
-  body.call-view .command-title{ display:none; }
-  body.call-view .command-choice{ min-height:52px; padding:7px 8px; }
-  /* 深い質問では選択肢自身を操作領域内のスクロール箱にする。外へあふれさせず、
-     先頭を常に押せる状態に保つ。 */
-  body.call-view .actions .opts{ flex:none; height:96px; min-height:96px; max-height:96px; overflow-y:auto; }
-  body.call-view .actions .ask-group-choice{ min-height:52px; }
-  body.call-view .actions:has(.opts) .hint-bar{ display:none; }
-  body.call-view .command-copy b{ font-size:17px; }
-  body.call-view .hangup-box{ padding-top:7px; }
-  body.call-view .hangup-button{ min-height:42px; }
-}
-@media (max-height:600px){
-  /* 553px級では満足度の直後に会話を置く。最新発話は中でスクロールして読める。 */
-  body.call-view{ --short-call-transcript-height:56px; }
-}
 @media (max-width:480px){
   body{ width:100%; box-shadow:none; }
   .artifact-qr-card{ display:none; }
