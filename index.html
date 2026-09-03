@@ -141,7 +141,7 @@ button:focus-visible, [tabindex]:focus-visible{
 }
 .clock .z{ font-size: 11px; color: var(--faint); letter-spacing: .04em; }
 
-.btn-help,.btn-balance{
+.btn-help,.btn-balance,.btn-sound{
   background: transparent;
   border: 1px solid var(--line);
   color: var(--dim);
@@ -150,7 +150,7 @@ button:focus-visible, [tabindex]:focus-visible{
   border-radius: 2px;
   transition: border-color .15s, color .15s;
 }
-.btn-help:hover,.btn-balance:hover{ border-color: var(--amber-deep); color: var(--amber); }
+.btn-help:hover,.btn-balance:hover,.btn-sound:hover{ border-color: var(--amber-deep); color: var(--amber); }
 
 /* ---------- 23:00〜07:00 タイムシフト表 ---------- */
 
@@ -1083,8 +1083,14 @@ body.sheet-open .console{ display: none; }
 .audio-diagnostic b{ display:block; color:var(--text); font:800 16px/1.4 var(--display); }
 .audio-diagnostic p{ margin:6px 0 10px; color:var(--text-2); font-size:13px; line-height:1.6; }
 .audio-diagnostic .btn-ghost{ margin:0; }
+.sound-quick-control{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
+.sound-quick-control span{ color:var(--text-2); font-size:14px; }
+.sound-quick-control b{ color:var(--accent); }
+.sound-quick-control .btn-ghost{ width:auto; margin:0; }
 .handover-speaker{ margin:14px 0 16px; padding:12px 14px; border-left:3px solid var(--accent); background:var(--accent-soft); color:var(--text-2); }
 .handover-speaker b{ color:var(--accent); }
+.handover-figure{ margin:16px 0; overflow:hidden; border:3px solid var(--line); border-radius:8px; background:#07111c; }
+.handover-figure canvas{ display:block; width:100%; height:auto; image-rendering:crisp-edges; image-rendering:pixelated; }
 .handover-list{ display:grid; gap:12px; margin:14px 0 22px; }
 .handover-card{ padding:14px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
 .handover-card p{ margin:0; color:var(--text-2); font-size:15px; line-height:1.75; }
@@ -1147,7 +1153,7 @@ body.sheet-open .console{ display: none; }
 .system-screen .log-customer b{ color:#78B8B3; }
 .system-screen .record-denied-message b{ color:#F6C56A; }
 .system-screen .record-denied-message p{ color:#E4F6F4; }
-.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover{ border-color:var(--accent-line); color:var(--accent); }
+.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover,.btn-sound:hover{ border-color:var(--accent-line); color:var(--accent); }
 
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -1173,7 +1179,7 @@ body.playing{ display:block; height:auto; min-height:100dvh; overflow:auto; }
 .topbar-inner{
   position:relative;
   display:grid;
-  grid-template-columns:minmax(0,1fr) auto auto auto;
+  grid-template-columns:minmax(0,1fr) auto auto auto auto;
   gap:10px;
   padding:calc(12px + env(safe-area-inset-top)) 14px 12px;
 }
@@ -1183,11 +1189,14 @@ body.playing{ display:block; height:auto; min-height:100dvh; overflow:auto; }
 .clock{ gap:4px; }
 .clock .t{ font-size:24px; }
 .clock .z{ font-size:12px; }
-.btn-help,.btn-balance{ width:44px; height:44px; min-width:44px; padding:0; border-radius:50%; font-size:0; }
+.btn-help,.btn-balance,.btn-sound{ width:44px; height:44px; min-width:44px; padding:0; border-radius:50%; font-size:0; }
 .btn-help::after{ content:"?"; font:700 22px/1 var(--display); }
 .btn-balance::after{ content:"調"; font:700 17px/1 var(--display); }
-.topbar-inner > .btn-balance{ grid-row:1; grid-column:3; align-self:center; justify-self:end; z-index:2; }
-.topbar-inner > .btn-help{ grid-row:1; grid-column:4; align-self:center; justify-self:end; z-index:2; }
+.btn-sound::after{ content:"音"; font:700 17px/1 var(--display); }
+.btn-sound[aria-pressed="false"]{ border-color:var(--crit); color:var(--crit); }
+.topbar-inner > .btn-sound{ grid-row:1; grid-column:3; align-self:center; justify-self:end; z-index:2; }
+.topbar-inner > .btn-balance{ grid-row:1; grid-column:4; align-self:center; justify-self:end; z-index:2; }
+.topbar-inner > .btn-help{ grid-row:1; grid-column:5; align-self:center; justify-self:end; z-index:2; }
 .shift-strip{ height:52px; }
 .shift-axis{ inset-inline:14px; }
 .shift-tick{ font-size:12px; }
@@ -1297,6 +1306,45 @@ body.office-view .office-scene{ gap:14px; }
 .sheet h2{ margin-top:32px; font-size:23px; letter-spacing:.07em; }
 .sheet .lead,.sheet p,.sheet li{ max-width:none; font-size:20px; line-height:1.8; }
 .sheet ul{ max-width:none; padding-left:24px; }
+
+/* 小さい実効高では、本文をスクロールさせても開始操作だけは画面の下端に残す。
+   初回のシフト開始で指を動かすことを要求しない。 */
+.sheet.briefing-sheet{ display:flex; flex-direction:column; height:100dvh; min-height:0; overflow:hidden; padding-bottom:0; }
+.briefing-scroll{ min-height:0; overflow-y:auto; padding-bottom:18px; }
+.briefing-actions{ flex:none; padding:12px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--surface); border-top:1px solid var(--line); box-shadow:0 -8px 18px rgba(21,32,43,.08); }
+.briefing-actions .btn-primary{ margin:0; }
+
+/* オフィスと通話では、現在の会話や設備より先に、次の操作を小画面の下端に置く。
+   背後の情報は必要に応じてスクロールして読めるが、電話・4コマンド・終話は常に押せる。 */
+@media (max-height:760px){
+  /* transform を持つアニメーション祖先は fixed の基準面を本文に変えるため、
+     縮んだ画面では入場アニメーションを使わない。 */
+  body.office-view .office-scene,body.call-view .console{ animation:none; }
+  body.office-view .office-call-actions{
+    position:fixed; z-index:45; left:0; right:0; bottom:0;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    background:var(--surface); border-top:1px solid var(--line);
+    box-shadow:0 -8px 20px rgba(21,32,43,.16);
+  }
+  body.office-view .office-call-action{ min-height:58px; padding:7px 10px; font-size:16px; }
+  body.office-view .office-call-action span{ margin-top:2px; font-size:11px; line-height:1.25; }
+  body.call-view .call{ isolation:isolate; }
+  /* 553px級では会話履歴より次の一手を優先し、初期表示から外す。 */
+  body.call-view .transcript.recent{ display:none; }
+  body.call-view .actions{
+    position:fixed; z-index:100; isolation:isolate; left:0; right:0; bottom:0;
+    max-height:calc(100dvh - 106px); overflow:auto;
+    padding:8px 12px calc(10px + env(safe-area-inset-bottom));
+    background:var(--surface); border-top:1px solid var(--line);
+    box-shadow:0 -8px 20px rgba(21,32,43,.16);
+  }
+  body.call-view .command-box{ padding:8px; }
+  body.call-view .command-title{ display:none; }
+  body.call-view .command-choice{ min-height:52px; padding:7px 8px; }
+  body.call-view .command-copy b{ font-size:17px; }
+  body.call-view .hangup-box{ padding-top:7px; }
+  body.call-view .hangup-button{ min-height:42px; }
+}
 @media (max-width:480px){
   body{ width:100%; box-shadow:none; }
   .artifact-qr-card{ display:none; }
@@ -1317,6 +1365,7 @@ body.office-view .office-scene{ gap:14px; }
       <span class="t" id="clock">23:00</span>
       <span class="z">JST</span>
     </div>
+    <button class="btn-sound" data-sound-toggle="1" data-sound-compact="1" aria-label="効果音をOFFにする" aria-pressed="true">音 ON</button>
     <button class="btn-balance" id="btn-balance" aria-label="ゲーム調整コンソール">ゲーム調整</button>
     <button class="btn-help" id="btn-manual">対応マニュアル</button>
   </div>
@@ -1346,6 +1395,7 @@ body.office-view .office-scene{ gap:14px; }
       <button class="office-call-action" id="office-answer" data-office-answer="1"><b>電話を取る</b><span id="office-answer-status">待ち 0件</span></button>
       <button class="office-call-action" id="office-callback" data-office-callback="1"><b>電話をかける</b><span id="office-callback-status">折り返し 0件</span></button>
       <button class="office-call-action" id="office-desk" data-office-desk="1"><b>端末で調べる</b><span id="office-desk-status">調査可能 0件</span></button>
+      <button class="office-call-action" id="office-verify" data-office-verify="1"><b>機器検証</b><span id="office-verify-status">完了 0台 ／ 作業 0 / 60分</span></button>
     </div>
     <div class="office-status-grid">
       <div class="office-object office-board"><b>全社ホワイトボード</b><div id="office-notice"></div></div>
@@ -1399,8 +1449,13 @@ const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
 const DESK_LOOKUP_MINUTES = 2;  // 折り返し待ちのあいだ、デスク端末で1件調べるのにかかる時間
+const DEVICE_VERIFICATION_MINUTES = 60; // 返却機1台の検証に必要な作業時間
+/* §65: 直接、国際通話料を訴えるのは14案件中7件になる2タイプだけ。 */
+const CALL_CHARGE_COMPLAINT_TYPES = Object.freeze(['hurried','expert']);
 /* §41: 通しプレイで調整できる、折り返しの約束と待機の基準。 */
 const CALLBACK_SCHEDULED_MINUTES = 60;
+const CALLBACK_THREE_HOURS_MINUTES = 180;
+const CALLBACK_TOMORROW_DUE = SHIFT_END + 1;
 const CALLBACK_IMMEDIATE_LOOKUP_ALLOWANCE = 1;
 const CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE = 2;
 const CALLBACK_OVER_LOOKUP_STRESS = 10;
@@ -1426,6 +1481,13 @@ const CALLBACK_PUNCTUAL_REPLIES = Object.freeze({
   expert:'時間どおりですね。では続けてください。',
   hurried:'お、ちゃんと掛かってきた。じゃあ続き、頼みます。',
 });
+/* §59: 個々の効果音の比率は保ち、この共通倍率だけで全体音量を調整する。 */
+const SOUND_SETTINGS = Object.freeze({
+  storageKey:'wifi-support-game:audio:v1',
+  defaultEnabled:true,
+  defaultVolume:0.75,
+  outputGain:3,
+});
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
   shuffleArrival: true,
@@ -1435,8 +1497,8 @@ const GAME_FLAGS = {
   careerStage: null,
   unlockedBadges: null,
   solvedScenarios: null,
-  soundEnabled: true,
-  soundVolume: 0.55,
+  soundEnabled: SOUND_SETTINGS.defaultEnabled,
+  soundVolume: SOUND_SETTINGS.defaultVolume,
 };
 
 const REFUND_POLICY = Object.freeze({
@@ -1640,11 +1702,15 @@ const CALL_FLOW_LINES = Object.freeze({
     immediate:'すぐにこちらから掛け直します。いまの通話はいったん切らせてください。',
     scheduled:'1時間ほどお時間をいただいて、確認のうえ掛け直します。',
     consent:'分かりました。では、お待ちしています。',
-    note:'折り返しをお約束しました。切る前に、折り返し先とお戻りの時間を確認できます。',
+    hurriedRefusal:'折り返しを待つ時間はありません。この電話で、今すぐ解決してください。',
+    threeHours:'1時間後は外出しています。3時間後にしてください。',
+    tomorrow:'今夜はもう休みたいので、明日にしていただけますか。',
+    note:'折り返しをお約束しました。切る前に、折り返し先を確認できます。',
     headImmediate:'折り返し約束済み（すぐに）',
     headScheduled:'折り返し約束済み（1時間後）',
+    headThreeHours:'折り返し約束済み（3時間後）',
+    headTomorrow:'折り返し約束済み（翌日・日勤へ引き継ぎ）',
     guide:'折り返しをお約束しました。「電話を切る」で、こちらから掛け直します。',
-    guideNoReturn:'お戻りの時間を伺っていません。フロントで確認の手間が増えます。',
   }),
   callback:Object.freeze({
     normal:'お待たせしました。先ほどの件でお電話しました。',
@@ -2021,7 +2087,7 @@ const SCENARIOS = [
       fact:{ text:'接続は2台のみ', out:['devices'] } },
     q_what_fails:{ text:'全部です。ずっとくるくる回って…。何も開かなくなるんじゃないかって。',
       fact:{ text:'特定サービスではなく全体が低速', out:['geo_block'] } },
-    q_stay:{ text:'{city}のホテル、1208号室です。ここまで来ていただけるんですか？' },
+    q_stay:{ text:'{hotel}、1208号室です。ここまで来ていただけるんですか？' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] プラン: 500MB/日 ／ 本日の使用量: 512MB（上限到達）／ 現在 速度制限中（最大128kbps）／ 前日使用量: 4.2GB',
@@ -2098,7 +2164,7 @@ const SCENARIOS = [
       fact:{ text:'SSIDは見えているが参加できない', out:['location','power','device_net'] } },
     q_what_fails:{ text:'Wi-Fi自体に入れない。サイト以前。次。',
       fact:{ text:'接続自体ができていない', out:['geo_block'] } },
-    q_stay:{ text:'{city}市内のホテル。未到着だから部屋番号はまだ。' },
+    q_stay:{ text:'{hotel}。未到着だから部屋番号はまだ。' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] プラン: 無制限 ／ 使用量: 2.1GB ／ 速度制限なし',
@@ -2117,7 +2183,7 @@ const SCENARIOS = [
 
 /* === 4. 上海：渡航先の通信規制。技術に明るい客 === */
 {
-  id:'S4', arrive:18, name:'森 達彦', nameEn:'Tatsuhiko Mori', age:39, ageRange:[30,50], type:'expert', abandonAfter:35, callbackTo:'hotel', stayDays:4,
+  id:'S4', arrive:18, name:'森 達彦', nameEn:'Tatsuhiko Mori', age:39, ageRange:[30,50], type:'expert', abandonAfter:35, callbackTo:'hotel', stayDays:4, callbackPreference:'three_hours',
   deviceInHand:true,
   contractId:{ minutes:1, text:'GDW-118350です。控えてあります。' },
   country:'中国本土', city:'上海', cityEn:'SHANGHAI', localOffset:-1, carrierName:'China Unicom', device:'GD-500', plan:'{country} ／ 1GBプラン',
@@ -2136,7 +2202,7 @@ const SCENARIOS = [
       fact:{ text:'現地キャリアを正常に掴んでいる', out:['sim','hardware','coverage','provision'] } },
     q_when:{ text:'現地チームとの技術打ち合わせで到着した初日から再現しています。経時劣化ではありません。',
       fact:{ text:'渡航当初から一貫して同じ症状', out:['heavy'] } },
-    q_stay:{ text:'{city}市内のホテル、1506号室です。この情報は配送判断用ですか？' },
+    q_stay:{ text:'{hotel}、1506号室です。この情報は配送判断用ですか？' },
   },
   lookups:{
     l_area:{ text:'[エリア照会] {country} ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: {carrier} ✓ ／ 備考: 通常のデータプランには現地の通信規制を回避する経路が含まれない。規制対象サービスの利用には「VPN付きオプション」の追加が必要。',
@@ -2168,7 +2234,7 @@ const SCENARIOS = [
       fact:{ text:'複数の場所で試しても圏外のまま', out:['location'] } },
     q_when:{ text:'30分前です。急に切れて…。明朝に大事な提案があるのに、それまで普通だったから、余計に怖くて。',
       fact:{ text:'突発的に発生。前兆なし', out:['power'] } },
-    q_stay:{ text:'{city}中心部のホテル、816号室です。ここで待っていて大丈夫でしょうか？' },
+    q_stay:{ text:'{hotel}、816号室です。ここで待っていて大丈夫でしょうか？' },
   },
   lookups:{
     l_outage:{ text:'[障害情報] {region} {carrier}: 現時点で報告なし（更新待ち）',
@@ -2243,7 +2309,7 @@ const SCENARIOS = [
       fact:{ text:'複数地点で試しても圏外のまま', out:['location'] } },
     q_lamp:{ text:'圏外表示で回線名なし。市内では現地回線名が表示されていました。',
       fact:{ text:'市内では接続実績あり。郊外でのみ圏外', hot:['coverage'], out:['sim','provision','fup','devices','geo_block','heavy'] } },
-    q_stay:{ text:'{city}近郊のホテル、312号室です。帰国まで同じホテルに滞在します。' },
+    q_stay:{ text:'{hotel}、312号室です。帰国まで同じホテルに滞在します。' },
     q_stay_length:{ text:'今日を含めてあと6泊です。郊外へ出る予定が続くので、対応機なら受け取る意味があります。',
       fact:{ text:'残り6泊、同じホテルに滞在するため代替機を使える期間が十分にある', hot:['coverage'] } },
     q_replacement:{ text:'はい、郊外でも使える対応機を同じホテルへ送ってください。受け取ります。',
@@ -2287,7 +2353,7 @@ const SCENARIOS = [
       fact:{ text:'場所を変えても変化なし', out:['location'] } },
     q_battery:{ text:'電池は8割です。充電の印はありません。見る所、合っていますか？',
       fact:{ text:'バッテリーは十分', out:['power'] } },
-    q_stay:{ text:'ジュメイラのホテル、1204です。すみません、これで足りますか？' },
+    q_stay:{ text:'{hotel}、1204号室です。すみません、これで足りますか？' },
   },
   lookups:{
     l_session:{ text:'[セッション] 本体からのSIM認識イベントなし。最終認識は出荷検品時（8/28 11:20）。接点の汚れまたは装着不良の可能性あり。',
@@ -2328,7 +2394,7 @@ const SCENARIOS = [
     q_return:{ text:'これから市内へ向かう。部屋に入るのは30分後くらいだ。' },
     q_when:{ text:'予約時刻を過ぎて到着したら無人でした。担当者も不在です。タクシーを待たせてます。',
       fact:{ text:'予約時刻を過ぎ、カウンターは臨時閉鎖。担当者も不在', hot:['logistics'] } },
-    q_stay:{ text:'{city}市内のホテルへ向かいます。名称は予約票にあります。そこへ配送できますか。' },
+    q_stay:{ text:'{hotel}へ向かいます。未到着なので部屋番号はまだですが、そこへ配送できますか。' },
   },
   lookups:{
     l_ship:{ text:'[貸出記録] {city}国際空港 受取予約 ／ 予約時刻経過後にカウンター臨時閉鎖・担当者不在 ／ ステータス: 未受取 ／ 市内デポからの宿泊先配送: 当日手配可（到着目安 90分）',
@@ -2356,7 +2422,7 @@ const SCENARIOS = [
       fact:{ text:'正常利用3日後に突然発生。落下・水濡れなし', hot:['hardware'], out:['logistics','power'] } },
     q_battery:{ text:'76%です。充電もできます。電源まで止まることはないですよね…？',
       fact:{ text:'電源と充電は正常', out:['power'] } },
-    q_stay:{ text:'オペラ地区のホテル、704号室です。ここで待っていれば届きますか？' },
+    q_stay:{ text:'{hotel}、704号室です。ここで待っていれば届きますか？' },
     q_stay_length:{ text:'今日を含めてあと6泊です。6日全部、使えないままにはなりませんよね？',
       fact:{ text:'残り6泊で、交換機を受け取って使う期間が十分にある', hot:['hardware'] } },
     q_replacement:{ text:'はい、直らないなら交換機を送ってください。ホテルで受け取ります。どうか間に合わせてください…。',
@@ -2415,7 +2481,7 @@ const SCENARIOS = [
 
 /* === 12. シドニー：日付境界で回線停止。契約終了日の登録不備 === */
 {
-  id:'S12', arrive:68, name:'吉田 和子', nameEn:'Kazuko Yoshida', age:64, ageRange:[56,72], type:'novice', abandonAfter:28, callbackTo:'hotel', stayDays:3,
+  id:'S12', arrive:68, name:'吉田 和子', nameEn:'Kazuko Yoshida', age:64, ageRange:[56,72], type:'novice', abandonAfter:28, callbackTo:'hotel', stayDays:3, callbackPreference:'tomorrow',
   deviceInHand:true,
   contractId:{ minutes:3, text:'予約番号ですね…。箱の裏に、GDW-348621とあります。これで合っていますか？' },
   country:'オーストラリア', city:'シドニー', cityEn:'SYDNEY', localOffset:1, carrierName:'Telstra', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -2437,7 +2503,7 @@ const SCENARIOS = [
     q_moved:{ text:'ロビーとホテルの外でも試しましたが、圏外のままです。',
       fact:{ text:'ホテル内外へ移動しても圏外のまま', out:['location'] } },
     q_battery:{ text:'73%あります。充電もできています。', fact:{ text:'電源と充電は正常', out:['power'] } },
-    q_stay:{ text:'{city}中心部のホテル、512号室です。折り返しでしたら、こちらへお願いします。' },
+    q_stay:{ text:'{hotel}、512号室です。折り返しでしたら、こちらへお願いします。' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] 契約: 有効 ／ 利用終了予定: 9/4 ／ 使用量: 制限内 ／ 速度制限なし',
@@ -2478,7 +2544,7 @@ const SCENARIOS = [
     q_where:{ text:'{city}中心部のホテルです。部屋でもロビーでも、外へ出ても同じでした。',
       fact:{ text:'市内ホテルの内外で圏外が続く', out:['location'] } },
     q_battery:{ text:'82%です。充電もできています。電池は足りていますよね…？', fact:{ text:'電源と充電は正常', out:['power'] } },
-    q_stay:{ text:'{city}中心部のホテル、608号室です。滞在中はずっとこちらにいます。' },
+    q_stay:{ text:'{hotel}、608号室です。滞在中はずっとこちらにいます。' },
     q_stay_length:{ text:'今日を含めてあと7泊です。帰国まで同じホテルに滞在します。',
       fact:{ text:'残り7泊、同じホテルに滞在するため代替機を使える期間が十分にある', hot:['logistics'] } },
     q_replacement:{ text:'はい、使えるものが届くなら代替機を送ってください。ホテルで受け取ります。',
@@ -2525,7 +2591,7 @@ const SCENARIOS = [
       fact:{ text:'接続は1台のみ', out:['devices'] } },
     q_what_fails:{ text:'全部です。特定のサービスだけということはありません。とにかく全体が重い。',
       fact:{ text:'特定サービスではなく全体が低速', out:['geo_block'] } },
-    q_stay:{ text:'{city}駅前のホテル、704号室です。ただ日中は外に出ています。' },
+    q_stay:{ text:'{hotel}、704号室です。ただ日中は外に出ています。' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] プラン: 1GB/日 ／ 本日の使用量: 1,024MB（上限到達）／ 現在 速度制限中（最大128kbps）／ 追加購入: 未適用',
@@ -2553,7 +2619,7 @@ const SCENARIO_RECORD_META = Object.freeze([
   {gender:'female',tripDay:4,tripDays:10,stayHint:'出張はまだ続くので、このまま使えないと本当に困ります。'},
   {gender:'male',tripDay:2,tripDays:4,stayHint:'会議は明日までで、地下でも連絡を取りたいです。'},
   {gender:'female',tripDay:2,tripDays:5,stayHint:'旅行の序盤なので、帰国前に連絡が取れないと困ります。'},
-  {gender:'female',tripDay:1,tripDays:8,stayHint:'長い滞在の初日から、ずっと不安なんです。',deliveryAddress:'次のホテル、214号室'},
+  {gender:'female',tripDay:1,tripDays:8,stayHint:'長い滞在の初日から、ずっと不安なんです。',deliveryAddress:'{alternateHotel}、214号室'},
   {gender:'male',tripDay:2,tripDays:4,stayHint:'明日の移動までに、必要な連絡を済ませたいです。'},
 ]);
 SCENARIOS.forEach((scenario, index) => {
@@ -2616,17 +2682,40 @@ const NAME_POOL = Object.freeze([
   Object.freeze({ name:'白石 大介',   nameEn:'Daisuke Shiraishi',  gender:'male',   ageBand:[28,52] }),
 ]);
 
-/* キャリア名と地域も土地に従属する。sourceScenarioId は shuffleIdentity:false の復元に使う。 */
-const PLACE_POOL = Object.freeze(SCENARIOS.map(scenario => Object.freeze({
-  sourceScenarioId:scenario.id,
-  country:scenario.country,
-  city:scenario.city,
-  cityEn:scenario.cityEn,
-  localOffset:scenario.localOffset,
-  regionGroup:scenario.regionGroup || null,
-  regionName:scenario.regionName || scenario.country,
-  carrier:scenario.carrierName,
-})));
+/* §61: 実在施設を指さない架空名。ホテル名は土地と一緒に動き、末尾を都市名にする。 */
+const PLACE_HOTEL_STEMS = Object.freeze({
+  BANGKOK:'サイアム・ロータス・ホテル',
+  LONDON:'アルビオン・クレセント・ホテル',
+  HONOLULU:'レイラニ・ショア・ホテル',
+  SHANGHAI:'海雲グランドホテル',
+  'NEW YORK':'ハドソン・ランタン・ホテル',
+  BOSTON:'コモンウェルス・ハーバー・ホテル',
+  BARCELONA:'ランブラス・ソル・ホテル',
+  DUBAI:'アル・ヌール・ゲート・ホテル',
+  HANOI:'ロータス・レイク・ホテル',
+  PARIS:'ルミエール・リヴ・ホテル',
+  ROME:'アウレリア・フォロ・ホテル',
+  SYDNEY:'サザン・ハーバー・ホテル',
+  LISBON:'テージョ・アズール・ホテル',
+  TAIPEI:'玉山ガーデンホテル',
+});
+
+/* キャリア名・地域・ホテル名も土地に従属する。sourceScenarioId は shuffleIdentity:false の復元に使う。 */
+const PLACE_POOL = Object.freeze(SCENARIOS.map(scenario => {
+  const hotelStem = PLACE_HOTEL_STEMS[scenario.cityEn];
+  return Object.freeze({
+    sourceScenarioId:scenario.id,
+    country:scenario.country,
+    city:scenario.city,
+    cityEn:scenario.cityEn,
+    localOffset:scenario.localOffset,
+    regionGroup:scenario.regionGroup || null,
+    regionName:scenario.regionName || scenario.country,
+    carrier:scenario.carrierName,
+    hotelName:hotelStem + ' ' + scenario.city,
+    alternateHotelName:hotelStem + '・アネックス ' + scenario.city,
+  });
+}));
 
 const PLACE_CONSTRAINTS = Object.freeze({
   geo_block:'china_only',
@@ -2671,6 +2760,10 @@ function hotelRoom(t){
   return match ? match[1] : null;
 }
 
+function hotelContactKnown(t){
+  return Boolean(t && t.asked && t.asked.has('q_stay') && t.stayAddress && t.stayHotelName);
+}
+
 function defaultUi(tab = 'command'){
   return { tab, cause:null, remedy:null, lookup:null, askGroup:null };
 }
@@ -2697,6 +2790,8 @@ const state = {
   endingType: 'career',
   officeEvents: [],
   handoverMeetingComplete: false,
+  deviceVerificationMinutes: 0,
+  verifiedDevices: 0,
   random: Math.random,
 };
 
@@ -2789,7 +2884,7 @@ function assignScenarioPlaces(scenarios, random){
 }
 
 function replaceScenarioTemplates(value, replacements){
-  if (typeof value === 'string') return value.replace(/\{(city|country|carrier|region|wrongCountry|spouse)\}/g, (_, key) => replacements[key]);
+  if (typeof value === 'string') return value.replace(/\{(city|country|carrier|region|wrongCountry|spouse|hotel|alternateHotel)\}/g, (_, key) => replacements[key]);
   if (Array.isArray(value)) return value.map(item => replaceScenarioTemplates(item, replacements));
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(Object.entries(value).map(([key,item]) => [key,replaceScenarioTemplates(item,replacements)]));
@@ -2802,6 +2897,8 @@ function scenarioWithIdentityAndPlace(scenario, identity, place, wrongCountry){
     carrier:place.carrier,
     region:place.regionName,
     wrongCountry,
+    hotel:place.hotelName,
+    alternateHotel:place.alternateHotelName,
     /* §47: 配偶者の呼び方は客の性別で決まる。女性客なら「夫」、男性客なら「妻」。 */
     spouse:identity.gender === 'female' ? '夫' : '妻',
   };
@@ -2814,6 +2911,8 @@ function scenarioWithIdentityAndPlace(scenario, identity, place, wrongCountry){
     carrierName:place.carrier,
     regionGroup:place.regionGroup,
     regionName:place.regionName,
+    hotelName:place.hotelName,
+    alternateHotelName:place.alternateHotelName,
     placeSourceScenarioId:place.sourceScenarioId,
     wrongCountry,
   });
@@ -3039,11 +3138,11 @@ function newTicket(s){
     transcript:[], callTranscriptStart:0, greeted:handover, identified:handover, nameKnown:handover, destinationKnown:handover,
     stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, inboundMinutes:0, outboundMinutes:0, callSegmentMinutes:0, callDirection:'inbound', holdMinutes:0,
-    callChargeConcerned:false,
+    callChargeConcerned:false, callChargeThresholdPassed:false,
     callbackCount:0, callbackDue:handover ? SHIFT_START + callbackTurn : null, callbackLate:false, callbackKind:handover ? 'handover' : null, callbackDestination:handover ? 'direct' : null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, callbackReliefApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
     callbackReason:handover ? 'handover' : null, callbackStage:handover ? 'scheduled' : null, callbackPromised:handover ? 'day_shift' : null, returnTimeKnown:handover, frontDeskAttempts:0,
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
-    stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
+    stayAddress:null, stayHotelName:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
     complaintEmail:false, misdiagnosisEmail:false, gratitudeEmail:false, refundComplaint:false,
     attempts:[], abandonedCalls:0, abandonRedialScheduled:false,
@@ -3071,6 +3170,8 @@ function resetGame(){
   state.careerUpdate = null;
   state.officeEvents = [];
   state.handoverMeetingComplete = false;
+  state.deviceVerificationMinutes = 0;
+  state.verifiedDevices = 0;
 }
 
 function recordOfficeEvent(kind, text){
@@ -3161,16 +3262,20 @@ function unscoredOutcome(t){
 }
 
 function handoffActiveTicket(t){
-  if (!t || t.state !== 'open') return false;
+  const deferredCustomerRequest = t && t.state === 'callback' && t.callbackDue > SHIFT_END && ['three_hours','tomorrow'].includes(t.callbackKind);
+  if (!t || (t.state !== 'open' && !deferredCustomerRequest)) return false;
   t.state = 'closed';
   t.pendingResult = null;
   t.pendingInterruption = false;
   t.pendingConversation = null;
-  t.result = { kind:'handed_off', csat:null, label:'日勤へ引き継ぎ', firstCallResolved:false };
+  t.result = { kind:'handed_off', csat:null, label:deferredCustomerRequest ? '希望時刻の折り返しを日勤へ引き継ぎ' : '日勤へ引き継ぎ', firstCallResolved:false };
   if (!Array.isArray(t.attempts)) t.attempts = [];
-  t.attempts.push({ ...t.result, atTurn:SHIFT_DURATION, arrivedTurn:t.arrivedTurn, note:'07:00時点で通話中のため日勤担当へ引き継ぎました。' });
-  t.transcript.push({ who:'note', text:'07:00になったため、通話中の対応を日勤担当へ引き継ぎました。' });
-  recordOfficeEvent('handoff', t.s.id + '：通話中の対応を日勤担当へ引き継ぎました。');
+  const note = deferredCustomerRequest
+    ? 'お客様が希望した折り返し時刻が夜勤終了後のため、日勤担当へ引き継ぎました。'
+    : '07:00時点で通話中のため日勤担当へ引き継ぎました。';
+  t.attempts.push({ ...t.result, atTurn:SHIFT_DURATION, arrivedTurn:t.arrivedTurn, note });
+  t.transcript.push({ who:'note', text:note });
+  recordOfficeEvent('handoff', t.s.id + '：' + note);
   return true;
 }
 
@@ -3180,6 +3285,7 @@ function finishShiftAtTime(){
   state.turn = SHIFT_DURATION;
   state.tickets.forEach(t => {
     if (t.state === 'open') handoffActiveTicket(t);
+    else if (t.state === 'callback' && t.callbackDue > SHIFT_END && ['three_hours','tomorrow'].includes(t.callbackKind)) handoffActiveTicket(t);
     else abandonTicket(t, '07:00の勤務終了で放棄呼になりました。');
   });
   state.focus = null;
@@ -3215,6 +3321,35 @@ function advance(turns){
     // この分に到着した呼は、次の1分から待ち時間を消費する
     activateDueInbound();
   }
+}
+
+/* §64: 待機そのものでは時刻を進めない。返却機1台を60分かけて検証し、
+   着信した分で止める。途中までの作業は、通話後に同じ台から再開できる。 */
+function runDeviceVerification(){
+  const alreadyWaiting = state.tickets.some(t => t.state === 'waiting');
+  if (state.phase !== 'office' || state.focus || alreadyWaiting) return { advanced:0, interrupted:alreadyWaiting, completed:false };
+  const remaining = DEVICE_VERIFICATION_MINUTES - state.deviceVerificationMinutes;
+  let advanced = 0;
+  let completed = false;
+  while (advanced < remaining && state.phase !== 'report'){
+    state.deviceVerificationMinutes++;
+    advance(1);
+    advanced++;
+    if (state.deviceVerificationMinutes >= DEVICE_VERIFICATION_MINUTES){
+      state.verifiedDevices++;
+      state.deviceVerificationMinutes = 0;
+      completed = true;
+      recordOfficeEvent('verification', '返却機の検証を1台完了しました（累計 ' + state.verifiedDevices + '台）。');
+      break;
+    }
+    if (state.tickets.some(t => t.state === 'waiting')) break;
+  }
+  const interrupted = state.phase !== 'report' && state.tickets.some(t => t.state === 'waiting');
+  if (interrupted && !completed){
+    recordOfficeEvent('verification', '着信のため機器検証を中断しました（' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分）。');
+  }
+  if (state.phase === 'office') renderOffice();
+  return { advanced, interrupted, completed };
 }
 
 function addFact(t, fact, src){
@@ -3433,10 +3568,13 @@ function spendOnCall(t, minutes, holdMinutes){
     const direction = t.callDirection === 'outbound' ? 'outbound' : 'inbound';
     if (!addStress(t, held * HOLD_STRESS_PER_MINUTE[direction], false, true)) return false;
   }
-  if (!t.callChargeConcerned && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5 && t.state === 'open' && !t.pendingResult){
-    t.callChargeConcerned = true;
-    pushCustomerLine(t, CALL_FLOW_LINES.callChargeConcern[t.s.type], { plain:true });
-    if (!changeStress(t, 4, true)) return false;
+  if (!t.callChargeThresholdPassed && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5 && t.state === 'open' && !t.pendingResult){
+    t.callChargeThresholdPassed = true;
+    if (CALL_CHARGE_COMPLAINT_TYPES.includes(t.s.type)){
+      t.callChargeConcerned = true;
+      pushCustomerLine(t, CALL_FLOW_LINES.callChargeConcern[t.s.type], { plain:true });
+      if (!changeStress(t, 4, true)) return false;
+    }
   }
   const longMinutes = Math.max(0, t.callMinutes - 10) - Math.max(0, before - 10);
   if (longMinutes && t.state === 'open') addStress(t, longMinutes * 2);
@@ -3855,7 +3993,12 @@ function doRefund(){
 
 function replacementAddressConfirmation(t, qid){
   if (qid === 'q_stay' && t.s.deliveryAddress){
-    return { anxious:'到着する頃には次のホテルへ移っています。そちらの214号室へお願いします…。', novice:'届く頃は別のホテルへ移っています。次のホテル214号室で受け取れます。', expert:'到着時点の滞在先は次のホテル214号室です。配送先を更新してください。', hurried:'届く頃は次のホテル214号室。そっちへ送って。' }[t.s.type];
+    return {
+      anxious:'到着する頃には次のホテルへ移っています。' + t.s.deliveryAddress + 'へお願いします…。',
+      novice:'届く頃は別のホテルへ移っています。' + t.s.deliveryAddress + 'で受け取れます。',
+      expert:'到着時点の滞在先は' + t.s.deliveryAddress + 'です。配送先を更新してください。',
+      hurried:'届く頃は' + t.s.deliveryAddress + '。そっちへ送って。',
+    }[t.s.type];
   }
   return {
     anxious:{ q_stay:'届く頃も同じホテルにいます。部屋番号も確認しておきます…。', q_stay_length:'あと' + t.s.stayDays + '泊あります。明日なら、まだ十分使えますよね…？' },
@@ -3870,13 +4013,14 @@ function doAsk(qid){
   const q = QUESTIONS.find(x => x.id === qid);
   if (!t || !q || (q.needsDevice && !t.s.deviceInHand)) return;
   const previous = t.askCounts.get(qid) || 0;
+  const necessaryCallbackStay = qid === 'q_stay' && Boolean(t.callbackPromised) && previous === 0;
   t.askCounts.set(qid, previous + 1);
   t.questionCount++;
   t.asked.add(qid);
   t.transcript.push({ who:'me', text:q.label });
   const replacementAddressCheck = previous > 0 && ['q_stay','q_stay_length'].includes(qid) && t.asked.has('q_stay') && t.asked.has('q_replacement') && t.s.wantsReplacement;
   if (replacementAddressCheck){
-    if (qid === 'q_stay' && t.s.deliveryAddress){ t.stayAddress = t.s.deliveryAddress; t.deliveryAddressConfirmed = true; }
+    if (qid === 'q_stay' && t.s.deliveryAddress){ t.stayAddress = t.s.deliveryAddress; t.stayHotelName = t.s.alternateHotelName; t.deliveryAddressConfirmed = true; }
     pushCustomerLine(t, replacementAddressConfirmation(t, qid));
     if (qid === 'q_stay_length') t.stayDaysKnown = true;
     if (!spendOnCall(t, 1, 0)) return;
@@ -3913,14 +4057,14 @@ function doAsk(qid){
   if (r){
     pushCustomerLine(t, r.text);
     if (r.fact) addFact(t, r.fact, '聞き取り');
-    if (qid === 'q_stay') t.stayAddress = r.text;
+    if (qid === 'q_stay'){ t.stayAddress = r.text; t.stayHotelName = t.s.hotelName; }
     if (qid === 'q_stay_length') t.stayDaysKnown = true;
     if (qid === 'q_replacement') t.replacementConsentKnown = true;
   } else {
     pushCustomerLine(t, q.miss);
     t.wasted++;
   }
-    if (!addStress(t, askStressBase(t, r ? 3 : 9), !r)) return;
+    if ((!necessaryCallbackStay || !r) && !addStress(t, askStressBase(t, r ? 3 : 9), !r)) return;
     if (t.s.techPenalty && !r) t.wasted++;
   }
   t.identified = identificationReady(t);
@@ -4066,7 +4210,7 @@ function startCarrierCallback(destination){
   const t = state.focus;
   const lookup = LOOKUPS.find(item => item.id === 'l_carrier');
   if (!t || !lookup || state.ui.tab !== 'lookup' || state.ui.lookup !== lookup.id || t.carrierLookupStarted || t.lookedUp.has(lookup.id)) return;
-  if (destination !== 'hotel' || !t.asked.has('q_stay')){ render(); return; }
+  if (destination !== 'hotel' || !hotelContactKnown(t)){ render(); return; }
   pushFlowLines(t, [
     { who:'me', text:CALL_FLOW_LINES.carrier.promise },
     { who:'cust', text:CALL_FLOW_LINES.carrier.consent },
@@ -4091,11 +4235,26 @@ function startCarrierCallback(destination){
 function startHotelCallback(kind = 'immediate'){
   const t = state.focus;
   if (!t || t.pendingResult || t.pendingInterruption || t.callbackStage === 'front_desk' || t.callbackPromised) return;
+  if (t.s && t.s.type === 'hurried'){
+    pushFlowLines(t, [
+      { who:'me', text:kind === 'scheduled' ? CALL_FLOW_LINES.callbackPromise.scheduled : CALL_FLOW_LINES.callbackPromise.immediate },
+      { who:'cust', text:CALL_FLOW_LINES.callbackPromise.hurriedRefusal },
+    ]);
+    if (!spendOnCall(t, 1, 0)) return;
+    if (!changeStress(t, 6, true)) return;
+    state.ui = defaultUi();
+    render();
+    return;
+  }
+  const preferredKind = kind === 'scheduled' && t.s && ['three_hours','tomorrow'].includes(t.s.callbackPreference) ? t.s.callbackPreference : kind;
+  const customerReply = preferredKind === 'three_hours' ? CALL_FLOW_LINES.callbackPromise.threeHours
+    : preferredKind === 'tomorrow' ? CALL_FLOW_LINES.callbackPromise.tomorrow
+    : CALL_FLOW_LINES.callbackPromise.consent;
   pushFlowLines(t, [
     { who:'me', text:kind === 'scheduled' ? CALL_FLOW_LINES.callbackPromise.scheduled : CALL_FLOW_LINES.callbackPromise.immediate },
-    { who:'cust', text:CALL_FLOW_LINES.callbackPromise.consent },
+    { who:'cust', text:customerReply },
   ]);
-  t.callbackPromised = kind;
+  t.callbackPromised = preferredKind;
   t.transcript.push({ who:'note', text:CALL_FLOW_LINES.callbackPromise.note });
   if (!spendOnCall(t, 1, 0)) return;
   state.ui = defaultUi();
@@ -4108,7 +4267,7 @@ function finishPromisedCallback(t, charge = true){
   const kind = t.callbackPromised;
   t.callbackPromised = null;
   // 滞在先を聞かずに切ると、折り返す先がない。客が自分から掛け直してきて責める（§40-4）。
-  if (!t.asked.has('q_stay') || !t.stayAddress){ blindCallbackRedial(t); return; }
+  if (!hotelContactKnown(t)){ blindCallbackRedial(t); return; }
   t.transcript.push({ who:'note', text:'お客様の国際通話料を止め、ホテルへ折り返す約束を記録しました。' });
   t.callbackCount++;
   t.callbackLookupCount = 0;
@@ -4118,7 +4277,8 @@ function finishPromisedCallback(t, charge = true){
   t.callbackKind = kind;
   t.callbackStage = null;
   if (charge && !spendOnCall(t, 1, 0)) return;
-  t.callbackDue = state.clock + (kind === 'scheduled' ? CALLBACK_SCHEDULED_MINUTES : 0);
+  t.callbackDue = kind === 'tomorrow' ? CALLBACK_TOMORROW_DUE
+    : state.clock + (kind === 'three_hours' ? CALLBACK_THREE_HOURS_MINUTES : kind === 'scheduled' ? CALLBACK_SCHEDULED_MINUTES : 0);
   t.state = 'callback';
   leaveCallForOffice();
 }
@@ -4157,7 +4317,7 @@ function remedyBlockReason(t, remedy){
   }
   const missing = (remedy.requiresQuestions || []).filter(id => !t.asked.has(id));
   if (missing.length) return '配送判断に必要な聞き取りが不足しています';
-  if (remedyNeedsShipping(remedy.id) && !t.stayAddress) return '配送先が未確認です。先に滞在先を確認してください';
+  if (remedyNeedsShipping(remedy.id) && !hotelContactKnown(t)) return '配送先が未確認です。先にホテル名と滞在先を確認してください';
   if (remedy.requiresLongStay && (!t.stayDaysKnown || t.s.stayDays < remedy.requiresLongStay)) return '残り滞在期間が短く、到着後に使える期間が足りません';
   if (remedy.requiresConsent && (!t.replacementConsentKnown || !t.s.wantsReplacement)) return 'お客様の代替機配送希望を確認できていません';
   return '';
@@ -4181,8 +4341,8 @@ function startShipping(remedyId){
     render();
     return;
   }
-  if (!t.stayAddress){
-    t.transcript.push({ who:'note', text:'配送先が未確認です。手配を中断して滞在先を確認します。' });
+  if (!hotelContactKnown(t)){
+    t.transcript.push({ who:'note', text:'配送先が未確認です。手配を中断してホテル名と滞在先を確認します。' });
     if (!spendOnCall(t, 2, 0)) return;
     state.ui = defaultUi('ask');
     render();
@@ -4517,26 +4677,6 @@ function checkShiftEnd(){
   else enterOffice();
 }
 
-function nextInboundDelta(tickets, turn){
-  const future = tickets.filter(t => t.state === 'inbound').map(t => t.arrivedTurn);
-  if (!future.length) return null;
-  return Math.max(0, Math.min(...future) - turn);
-}
-
-function advanceIdleOffice(){
-  if (state.focus) return 0;
-  activateDueInbound();
-  const actionable = state.tickets.some(t => t.state === 'waiting' || (t.state === 'callback' && t.callbackDue <= state.clock));
-  if (actionable) return 0;
-  const inboundDelta = nextInboundDelta(state.tickets, state.turn);
-  const callbackDeltas = state.tickets.filter(t => t.state === 'callback' && t.callbackDue > state.clock).map(t => t.callbackDue - state.clock);
-  const callbackDelta = callbackDeltas.length ? Math.min(...callbackDeltas) : null;
-  const shiftEndDelta = SHIFT_END - state.clock;
-  const delta = [inboundDelta, callbackDelta, shiftEndDelta].filter(value => value !== null && value > 0).sort((a,b) => a - b)[0] || null;
-  if (delta && delta > 0) advance(delta);
-  return delta || 0;
-}
-
 /* ============================================================
    描画
    ============================================================ */
@@ -4554,14 +4694,20 @@ let officeRingTimer = null;
 let officeRingLit = false;
 let audioContext = null;
 let audioUnlockStatus = 'idle';
+const TYPE_SOUND_BASE_HZ = Object.freeze({ male:660, neutral:760, female:860 });
+
+function currentAudioContextState(){
+  return audioContext && audioContext.state ? audioContext.state : 'not-created';
+}
 
 function audioStatusText(){
-  if (!GAME_FLAGS.soundEnabled) return '効果音はOFFです。ONにしてから試してください。';
-  if (audioUnlockStatus === 'ready') return '音声機能は利用可能です。試聴音が聞こえなければ、iPhoneの消音モード・メディア音量・Bluetooth出力先を確認してください。';
-  if (audioUnlockStatus === 'needs_gesture') return 'iPhoneが音声を一時停止しました。「音をテスト」をもう一度タップしてください。';
-  if (audioUnlockStatus === 'unavailable') return 'このブラウザでは効果音機能を利用できません。ゲームは音なしで続けられます。';
-  if (audioUnlockStatus === 'error') return '音声を開始できませんでした。「音をテスト」を再度タップしてください。';
-  return '未確認です。「音をテスト」をタップすると、iPhoneで音声が開始できたか確認できます。';
+  const context = ' AudioContext: ' + currentAudioContextState() + '。';
+  if (!GAME_FLAGS.soundEnabled) return '効果音はOFFです。ONにしてから試してください。' + context;
+  if (audioUnlockStatus === 'ready') return '音声機能は利用可能です。試聴音が聞こえなければ、iPhoneのメディア音量・Bluetooth出力先を確認してください。' + context;
+  if (audioUnlockStatus === 'needs_gesture') return '音声が中断されています。画面をタップするか「音をテスト」を押して再開してください。' + context;
+  if (audioUnlockStatus === 'unavailable') return 'このブラウザでは効果音機能を利用できません。ゲームは音なしで続けられます。' + context;
+  if (audioUnlockStatus === 'error') return '音声を開始できませんでした。「音をテスト」を再度タップしてください。' + context;
+  return '未確認です。「音をテスト」をタップすると、iPhoneで音声が開始できたか確認できます。' + context;
 }
 
 function setAudioUnlockStatus(status){
@@ -4569,12 +4715,24 @@ function setAudioUnlockStatus(status){
   document.querySelectorAll('[data-audio-status]').forEach(node => { node.textContent = audioStatusText(); });
 }
 
-function initAudio(){
+function initAudio(force = false){
   try {
-    if (audioContext && audioContext.state !== 'closed') return audioContext;
+    if (!force && audioContext && audioContext.state !== 'closed') return audioContext;
+    if (force && audioContext){
+      const stale = audioContext;
+      audioContext = null;
+      try { if (stale.state !== 'closed' && typeof stale.close === 'function') stale.close(); } catch (error){ /* 新規作成は続ける */ }
+    }
     audioContext = null;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (AudioContextClass) audioContext = new AudioContextClass();
+    if (AudioContextClass){
+      const created = new AudioContextClass();
+      audioContext = created;
+      created.onstatechange = () => {
+        if (audioContext !== created) return;
+        setAudioUnlockStatus(created.state === 'running' ? 'ready' : 'needs_gesture');
+      };
+    }
     else setAudioUnlockStatus('unavailable');
   } catch (error){
     audioContext = null;
@@ -4583,18 +4741,40 @@ function initAudio(){
   return audioContext;
 }
 
+function primeAudioContext(ctx){
+  try { synthTone(ctx, 0.01, 220, 0, 0.01, { level:0.0001 }); }
+  catch (error){ /* priming非対応でもresumeは続ける */ }
+}
+
+async function recreateAudioContextFromGesture(stale){
+  try {
+    if (stale && stale.state !== 'closed' && typeof stale.close === 'function') await stale.close();
+  } catch (error){ /* 閉じられなくても参照を外して作り直す */ }
+  if (audioContext === stale) audioContext = null;
+  const fresh = initAudio(true);
+  if (!fresh) return null;
+  primeAudioContext(fresh);
+  try {
+    if (fresh.state !== 'running' && typeof fresh.resume === 'function') await fresh.resume();
+  } catch (error){ /* 下の状態判定で失敗を表示する */ }
+  return fresh;
+}
+
 async function unlockAudioFromGesture(){
   if (!GAME_FLAGS.soundEnabled){ setAudioUnlockStatus('disabled'); return false; }
   try {
     if (typeof navigator !== 'undefined' && navigator.audioSession){
       try { navigator.audioSession.type = 'playback'; } catch (error){ /* 未対応の値でも再生開始は試す */ }
     }
-    const ctx = initAudio();
+    let ctx = initAudio();
     if (!ctx) return false;
-    /* suspended 中に予約した極小音は、同じタップで resume された直後に流れて経路を開く。 */
-    try { synthTone(ctx, 0.01, 220, 0, 0.01, { level:0.0001 }); } catch (error){ /* priming非対応でもresumeは続ける */ }
-    if (ctx.state === 'suspended') await ctx.resume();
-    const ready = ctx.state === 'running';
+    /* 状態名を限定しない。iOS独自の interrupted なども、次のタップでまず再開を試す。 */
+    primeAudioContext(ctx);
+    try {
+      if (ctx.state !== 'running' && typeof ctx.resume === 'function') await ctx.resume();
+    } catch (error){ /* 戻らなければ下で文脈を作り直す */ }
+    if (ctx.state !== 'running') ctx = await recreateAudioContextFromGesture(ctx);
+    const ready = Boolean(ctx && ctx.state === 'running');
     setAudioUnlockStatus(ready ? 'ready' : 'needs_gesture');
     return ready;
   } catch (error){
@@ -4624,8 +4804,9 @@ function synthTone(ctx, volume, frequency, delay, duration, options = {}){
   oscillator.type = options.type || 'sine';
   oscillator.frequency.setValueAtTime(frequency, start);
   if (options.endFrequency) oscillator.frequency.exponentialRampToValueAtTime(options.endFrequency, end);
+  const audibleGain = Math.min(1, Math.max(0.0001, volume * SOUND_SETTINGS.outputGain * (options.level || 0.12)));
   gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume * (options.level || 0.12)), start + Math.min(0.02, duration / 3));
+  gain.gain.exponentialRampToValueAtTime(audibleGain, start + Math.min(0.02, duration / 3));
   gain.gain.exponentialRampToValueAtTime(0.0001, end);
   oscillator.connect(gain); gain.connect(ctx.destination);
   oscillator.start(start); oscillator.stop(end + 0.02);
@@ -4634,7 +4815,18 @@ function synthTone(ctx, volume, frequency, delay, duration, options = {}){
 function playOfficeRing(){ withAudio((ctx, volume) => synthTone(ctx, volume, 400, 0, .22, {type:'sine',level:.1})); }
 function playPickupSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 1150, 0, .035, {type:'square',level:.08}); synthTone(ctx, volume, 520, .04, .045, {type:'square',level:.07}); }); }
 function playDisconnectSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 400, 0, .18, {level:.07}); synthTone(ctx, volume, 400, .28, .18, {level:.07}); }); }
-function playTypeSound(index){ if (index % 4) return; withAudio((ctx, volume) => synthTone(ctx, volume, 760 + (index % 3) * 35, 0, .018, {type:'square',level:.025})); }
+function typeSoundFrequency(index, line, ticket){
+  const gender = line && line.who === 'cust' && ticket && ticket.s ? ticket.s.gender : null;
+  const base = gender === 'male' ? TYPE_SOUND_BASE_HZ.male
+    : gender === 'female' ? TYPE_SOUND_BASE_HZ.female
+    : TYPE_SOUND_BASE_HZ.neutral;
+  return base + (index % 3) * 35;
+}
+function playTypeSound(index, line, ticket){
+  if (index % 4) return;
+  const frequency = typeSoundFrequency(index, line, ticket);
+  withAudio((ctx, volume) => synthTone(ctx, volume, frequency, 0, .018, {type:'square',level:.025}));
+}
 function playCommandSound(){ withAudio((ctx, volume) => synthTone(ctx, volume, 880, 0, .045, {type:'square',level:.055})); }
 function playAudioTestSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 523, 0, .12, {type:'triangle',level:.13}); synthTone(ctx, volume, 784, .15, .2, {type:'triangle',level:.13}); }); }
 function playStressWarning(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 980, 0, .11, {type:'square',level:.12}); synthTone(ctx, volume, 980, .17, .11, {type:'square',level:.12}); }); }
@@ -4773,7 +4965,7 @@ function startTyping(t){
     if (typingLine !== line) return;
     pos++;
     say.textContent = line.text.slice(0, pos);
-    playTypeSound(pos);
+    playTypeSound(pos, line, t);
     if (pos >= line.text.length){ finishTyping(false); return; }
     typeTimer = setTimeout(step, /[、。！？!?]/.test(line.text[pos - 1]) ? 175 : 25);
   };
@@ -5018,6 +5210,31 @@ function drawMorningStaff(ctx, p){
   MORNING_STAFF.forEach(staff => drawMorningStaffMember(ctx, p, staff));
 }
 
+function drawHandoverMeeting(){
+  const canvas = $('handover-office-canvas');
+  if (!canvas) return;
+  drawOfficePixelArt(false, 'handover-office-canvas', OFFICE_PALETTE);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const p = OFFICE_PALETTE;
+  // 奥の設備を隠し切らない大きさで、申し送り用ホワイトボードを重ねる。
+  pixelRect(ctx, p.black, 43, 20, 106, 62);
+  pixelRect(ctx, p.silver, 45, 22, 102, 58);
+  pixelRect(ctx, p.white, 49, 26, 94, 48);
+  pixelRect(ctx, p.blue, 56, 32, 32, 3);
+  pixelRect(ctx, p.carpet, 56, 39, 61, 2);
+  pixelRect(ctx, p.carpet, 56, 45, 48, 2);
+  pixelRect(ctx, p.amber, 119, 31, 14, 11);
+  pixelRect(ctx, p.red, 123, 47, 10, 9);
+  pixelRect(ctx, p.charcoal, 94, 79, 5, 12);
+  pixelRect(ctx, p.black, 76, 89, 42, 3);
+  const meetingStaff = [
+    { x:78, y:120, facing:'back', hair:'short', hairColor:'black', coat:'blue', shoulders:12 },
+    { x:115, y:120, facing:'back', hair:'bob', hairColor:'charcoal', coat:'silver', shoulders:11 },
+  ];
+  meetingStaff.forEach(staff => drawMorningStaffMember(ctx, p, staff));
+}
+
 function drawCompanyPresident(ctx, p){
   const x = 160, y = 82;
   // 明るい頭頂部と、左右に分かれた濃い側頭部。上をつながないことで小さくても形を読む。
@@ -5066,6 +5283,10 @@ function syncOfficeRing(ringing){
   }, 420);
 }
 
+function callbackTimeLabel(t){
+  return t && t.callbackKind === 'tomorrow' ? '翌日（日勤へ引き継ぎ）' : fmtClock(t.callbackDue);
+}
+
 function renderOffice(){
   document.body.classList.add('office-view');
   document.body.classList.remove('call-view');
@@ -5088,7 +5309,9 @@ function renderOffice(){
   $('office-sv-status').textContent = state.escLeft ? 'ESC枠 ' + state.escLeft + ' / ' + ESCALATIONS : '別件対応中';
   $('office-ship-status').textContent = '手配 ' + shipments + '件 ／ 費用 ¥' + state.tickets.reduce((n,t) => n + (t.shipment ? t.shipment.fee : 0), 0).toLocaleString('ja-JP');
   const callbackRemaining = callbacks.length ? Math.max(0, callbacks[0].callbackDue - state.clock) : 0;
-  $('office-tray-status').textContent = callbacks.length ? '折り返し待ち ' + callbacks.length + '件 ／ ' + callbacks[0].s.id + 'まであと ' + callbackRemaining + '分' : '折り返し待ち 0件';
+  $('office-tray-status').textContent = callbacks.length
+    ? '折り返し待ち ' + callbacks.length + '件 ／ ' + callbacks[0].s.id + (callbacks[0].callbackKind === 'tomorrow' ? 'は翌日（日勤へ引き継ぎ）' : 'まであと ' + callbackRemaining + '分')
+    : '折り返し待ち 0件';
   const officeNotices = [];
   if (state.outageKnown) officeNotices.push(esc(state.outageRegion) + '：提携キャリアの広域障害<br>復旧見込み 未定');
   state.officeEvents.slice(-3).forEach(event => officeNotices.push(esc(event.text)));
@@ -5099,17 +5322,19 @@ function renderOffice(){
   $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
   $('office-callback').disabled = !readyCallbacks.length;
   $('office-callback-status').textContent = callbacks.length
-    ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '折り返し予定 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
+    ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '折り返し予定 ' + callbacks.length + '件 ／ ' + callbackTimeLabel(callbacks[0]))
     : '折り返し 0件';
   $('office-desk').disabled = !callbacks.length;
   $('office-desk-status').textContent = callbacks.length ? '調査可能 ' + callbacks.length + '件' : '調査可能 0件';
+  $('office-verify').disabled = waiting.length > 0;
+  $('office-verify-status').textContent = '完了 ' + state.verifiedDevices + '台 ／ 作業 ' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分';
   startTimePassageIfNeeded();
 }
 
 function enterOffice(){
   if (state.phase === 'report') return;
   state.phase = 'office';
-  advanceIdleOffice();
+  activateDueInbound();
   if (state.phase === 'report') return;
   renderOffice();
   window.scrollTo(0, 0);
@@ -5158,14 +5383,14 @@ function renderDeskHeader(t){
   return '<div class="call-head">' +
       '<span class="call-ticket"><b>チケット</b> ' + esc(t.s.id) + '</span>' +
       '<span class="call-time">通話は切断中</span>' +
-      '<span class="call-cost">折り返し ' + fmtClock(t.callbackDue) + '</span>' +
+      '<span class="call-cost">折り返し ' + callbackTimeLabel(t) + '</span>' +
     '</div>';
 }
 
 function renderDeskTicketChoice(list){
   return '<div class="opts">' + list.map(t =>
     '<button class="opt" data-desk-ticket="' + t.s.id + '"><span class="opt-label">' + esc(customerLabel(t, true)) +
-    '<span class="opt-sub">折り返しの約束 ' + fmtClock(t.callbackDue) + '</span></span></button>'
+    '<span class="opt-sub">折り返しの約束 ' + callbackTimeLabel(t) + '</span></span></button>'
   ).join('') + '</div><p class="hint-bar">折り返しを待っているあいだ、通話をつながずに社内システムだけを調べられます。</p>';
 }
 
@@ -5207,11 +5432,13 @@ function renderCallHeader(t){
   const outbound = t.callDirection === 'outbound';
   const payer = outbound ? '当社負担' : 'お客様負担';
   const cost = (t.callSegmentMinutes || 0) * CALL_RATE_PER_MIN;
-  const promised = t.callbackPromised
-    ? '<span class="call-promise">' + (t.callbackPromised === 'scheduled'
-        ? CALL_FLOW_LINES.callbackPromise.headScheduled
-        : CALL_FLOW_LINES.callbackPromise.headImmediate) + '</span>'
-    : '';
+  const promiseHeads = {
+    immediate:CALL_FLOW_LINES.callbackPromise.headImmediate,
+    scheduled:CALL_FLOW_LINES.callbackPromise.headScheduled,
+    three_hours:CALL_FLOW_LINES.callbackPromise.headThreeHours,
+    tomorrow:CALL_FLOW_LINES.callbackPromise.headTomorrow,
+  };
+  const promised = t.callbackPromised ? '<span class="call-promise">' + promiseHeads[t.callbackPromised] + '</span>' : '';
   /* §48-7: 電話の状態を1か所へ集める。保留の累計はこれまで業務報告でしか見えず、
      通話中に「どれだけ待たせているか」が分からなかった。待ち件数は、他の客を
      待たせている自覚のために要る。
@@ -5367,9 +5594,7 @@ function renderHangupButton(note, label = '電話を切る'){
 
 function unresolvedHangupGuide(t){
   if (t.callbackPromised){
-    const lines = [CALL_FLOW_LINES.callbackPromise.guide];
-    if (!t.returnTimeKnown) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoReturn);
-    return '<b>' + lines[0] + '</b>' + (lines[1] ? '<p>' + lines[1] + '</p>' : '');
+    return '<b>' + CALL_FLOW_LINES.callbackPromise.guide + '</b>';
   }
   const causeNarrowed = hotCauses(t).size === 1;
   const next = t.symptomResolved
@@ -5409,8 +5634,9 @@ function hotelCallbackOffered(t){
 }
 
 function hotelCallbackSub(t){
-  if (!t.asked.has('q_stay') || !t.stayAddress) return '滞在先はまだ伺っていません。';
-  return t.callChargeConcerned ? 'お客様が国際通話料を気にしています。' : '5分を超えそうなら、お客様の通話料を止められます。';
+  if (!hotelContactKnown(t)) return 'ホテル名と滞在先はまだ伺っていません。';
+  const destination = '折り返し先：' + t.stayHotelName + '。';
+  return destination + (t.callChargeConcerned ? 'お客様が国際通話料を気にしています。' : '5分を超えそうなら、お客様の通話料を止められます。');
 }
 
 function renderFrontDeskOptions(t){
@@ -5423,7 +5649,7 @@ function renderFrontDeskOptions(t){
   const roomChoice = room
     ? '<button class="opt" data-front-desk="room"><span class="opt-label">' + esc(options.room.replace('{room}', room)) + '</span></button>'
     : '';
-  return frontContext + renderCommandHead('Front Desk', 'Please choose what to say in English.') + '<div class="opts front-desk-options">' +
+  return '<p class="hint-bar"><b>発信先：' + esc(t.stayHotelName) + '</b></p>' + frontContext + renderCommandHead('Front Desk', 'Please choose what to say in English.') + '<div class="opts front-desk-options">' +
     '<button class="opt" data-front-desk="guest" ' + (t.nameKnown ? '' : 'disabled') + '><span class="opt-label">' + esc(options.guest.replace('{name}', t.s.nameEn)) + '</span></button>' +
     roomChoice +
     '<button class="opt" data-front-desk="callback"><span class="opt-label">' + esc(options.callback) + '</span></button></div>';
@@ -5508,13 +5734,13 @@ function renderLookupOptions(t){
 }
 
 function renderCarrierLookupOptions(t, lookup){
-  const hotelReady = t.asked.has('q_stay');
+  const hotelReady = hotelContactKnown(t);
   return '<div class="opts"><button class="opt" data-lookup-back="1"><span class="opt-label">← 照会項目の選び直し</span></button>' +
     '<button class="opt" disabled><span class="opt-label">保留にして調べる<span class="opt-sub">30分かかるため、通話をつないだままでは実行できません</span></span><span class="cost">不可</span></button>' +
     '<button class="opt" disabled><span class="opt-label">話しながら調べる<span class="opt-sub">社外への再開通依頼のため、通話継続では実行できません</span></span><span class="cost">不可</span></button></div>' +
     '<p class="hint-bar"><b>現地キャリアへ再開通を依頼します。30分ほどお時間をいただき、完了状況が分かり次第折り返します。</b><br>折り返し先を選ぶと、通話を終えて再開通依頼を始めます。</p>' +
-    '<div class="opts"><button class="opt" data-callback-destination="hotel" ' + (hotelReady ? '' : 'disabled') + '><span class="opt-label">ホテルへ折り返す<span class="opt-sub">滞在先へ電話し、フロントを通して客室につないでもらいます</span></span><span class="cost">' + lookup.minutes + '分</span></button></div>' +
-    (hotelReady ? '' : '<p class="hint-bar">ホテル客室は滞在先が未確認です。「聞く」で確認してください。</p>');
+    '<div class="opts"><button class="opt" data-callback-destination="hotel" ' + (hotelReady ? '' : 'disabled') + '><span class="opt-label">ホテルへ折り返す<span class="opt-sub">' + (hotelReady ? esc(t.stayHotelName) : 'ホテル名と滞在先を未確認') + 'のフロントを通して客室につないでもらいます</span></span><span class="cost">' + lookup.minutes + '分</span></button></div>' +
+    (hotelReady ? '' : '<p class="hint-bar">ホテル客室はホテル名と滞在先が未確認です。「聞く」で確認してください。</p>');
 }
 
 function simCleaningRecommended(t){
@@ -5714,7 +5940,8 @@ function renderLookupSystemScreen(line){
    ============================================================ */
 
 /* シートの開閉。開いている間はコンソールを隠し、通常のスクロールに戻す */
-function openSheet(){
+function openSheet(kind = ''){
+  $('sheet').classList.toggle('briefing-sheet', kind === 'briefing');
   $('overlay').classList.add('on');
   document.body.classList.add('sheet-open');
   document.body.classList.remove('playing');
@@ -5749,6 +5976,77 @@ function drawArtifactQr(){
 function getCareerStorage(){
   try { return window.localStorage; }
   catch (error){ return null; }
+}
+
+function defaultSoundSettings(){
+  return { enabled:SOUND_SETTINGS.defaultEnabled, volume:SOUND_SETTINGS.defaultVolume };
+}
+
+function readSoundSettings(storage = getCareerStorage()){
+  const fallback = defaultSoundSettings();
+  try {
+    if (!storage) return fallback;
+    const raw = storage.getItem(SOUND_SETTINGS.storageKey);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return {
+      enabled:typeof parsed.enabled === 'boolean' ? parsed.enabled : fallback.enabled,
+      volume:Number.isFinite(parsed.volume) ? clamp(parsed.volume, 0, 1) : fallback.volume,
+    };
+  } catch (error){ return fallback; }
+}
+
+function writeSoundSettings(storage = getCareerStorage()){
+  try {
+    if (!storage) return false;
+    storage.setItem(SOUND_SETTINGS.storageKey, JSON.stringify({ enabled:GAME_FLAGS.soundEnabled, volume:GAME_FLAGS.soundVolume }));
+    return true;
+  } catch (error){ return false; }
+}
+
+function syncSoundControls(){
+  const enabled = GAME_FLAGS.soundEnabled;
+  document.querySelectorAll('[data-sound-toggle]').forEach(button => {
+    button.textContent = button.dataset.soundCompact ? (enabled ? '音 ON' : '音 OFF') : (enabled ? '音をOFFにする' : '音をONにする');
+    button.setAttribute('aria-label', enabled ? '効果音をOFFにする' : '効果音をONにする');
+    button.setAttribute('aria-pressed', String(enabled));
+  });
+  document.querySelectorAll('[data-sound-state]').forEach(node => { node.textContent = enabled ? 'ON' : 'OFF'; });
+  const balanceSound = $('balance-sound');
+  const balanceVolume = $('balance-volume');
+  if (balanceSound) balanceSound.checked = enabled;
+  if (balanceVolume) balanceVolume.value = String(GAME_FLAGS.soundVolume);
+}
+
+function initializeSoundSettings(storage = getCareerStorage()){
+  const saved = readSoundSettings(storage);
+  GAME_FLAGS.soundEnabled = saved.enabled;
+  GAME_FLAGS.soundVolume = saved.volume;
+  syncSoundControls();
+}
+
+function setSoundEnabled(enabled, storage = getCareerStorage()){
+  GAME_FLAGS.soundEnabled = Boolean(enabled);
+  setAudioUnlockStatus(GAME_FLAGS.soundEnabled ? 'idle' : 'disabled');
+  writeSoundSettings(storage);
+  syncSoundControls();
+}
+
+function setSoundVolume(volume, storage = getCareerStorage()){
+  GAME_FLAGS.soundVolume = clamp(Number(volume), 0, 1);
+  writeSoundSettings(storage);
+  syncSoundControls();
+}
+
+function applySoundEnabledFromGesture(enabled){
+  setSoundEnabled(enabled);
+  if (!enabled){ stopOfficeRing(); return; }
+  initAudio();
+  unlockAudioFromGesture().then(ready => { if (ready) playAudioTestSound(); });
+}
+
+function toggleSoundFromGesture(){
+  applySoundEnabledFromGesture(!GAME_FLAGS.soundEnabled);
 }
 
 function readCareerRecord(storage = getCareerStorage()){
@@ -5793,6 +6091,11 @@ function audioDiagnosticHtml(){
     '<button class="btn-ghost" data-audio-unlock="1">音をテスト／再有効化</button></section>';
 }
 
+function soundQuickControlHtml(){
+  return '<div class="sound-quick-control" aria-label="効果音の設定"><span>効果音 <b data-sound-state="1">' + (GAME_FLAGS.soundEnabled ? 'ON' : 'OFF') + '</b></span>' +
+    '<button class="btn-ghost" data-sound-toggle="1">' + (GAME_FLAGS.soundEnabled ? '音をOFFにする' : '音をONにする') + '</button></div>';
+}
+
 function handoverMeetingTickets(){
   return state.tickets.filter(ticket => ticket.handover).sort((a,b) => a.callbackDue - b.callbackDue);
 }
@@ -5815,10 +6118,13 @@ function showHandoverMeeting(){
   ).join('');
   $('sheet').innerHTML =
     '<p class="eyebrow">HANDOVER MEETING ／ ' + fmtClock(SHIFT_START) + ' JST</p>' +
-    '<h1>23時の引き継ぎ</h1><p class="handover-speaker"><b>日勤担当</b>から、今夜の折り返しを引き継ぎます。</p>' +
+    '<h1>23時の引き継ぎ</h1>' +
+    '<figure class="handover-figure"><canvas id="handover-office-canvas" width="192" height="168" role="img" aria-label="深夜オフィスのホワイトボードの前で、後ろ姿の日勤担当と夜勤担当が申し送りをしている"></canvas></figure>' +
+    '<p class="handover-speaker"><b>日勤担当</b>から、今夜の折り返しを引き継ぎます。</p>' +
     '<div class="handover-list">' + entries + '</div>' +
     '<button class="btn-primary" id="btn-finish-handover">引き継いで夜勤を始める</button>';
   openSheet();
+  drawHandoverMeeting();
   $('btn-finish-handover').onclick = enterShiftAfterMeeting;
 }
 
@@ -5830,18 +6136,22 @@ function startShiftFromBriefing(){
 function showBriefing(){
   resetTimePassage();
   $('sheet').innerHTML =
-    '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +
-    '<h1>深夜のグローバルデスク</h1>' +
-    careerBriefingHtml() +
-    '<div class="artifact-qr-card" aria-label="iPhoneで遊ぶためのQRコード">' +
-      '<canvas class="artifact-qr-canvas" id="artifact-qr-canvas" role="img" aria-label="この公開ページを開くQRコード"></canvas>' +
-      '<div class="artifact-qr-copy"><b>iPhoneで遊ぶ</b><p>カメラでQRコードを読み取ると、このページが開きます。</p>' +
-      '<code class="artifact-qr-url">' + esc(ARTIFACT_URL) + '</code></div>' +
+    '<div class="briefing-scroll">' +
+      '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +
+      '<h1>深夜のグローバルデスク</h1>' +
+      careerBriefingHtml() +
+      '<div class="artifact-qr-card" aria-label="iPhoneで遊ぶためのQRコード">' +
+        '<canvas class="artifact-qr-canvas" id="artifact-qr-canvas" role="img" aria-label="この公開ページを開くQRコード"></canvas>' +
+        '<div class="artifact-qr-copy"><b>iPhoneで遊ぶ</b><p>カメラでQRコードを読み取ると、このページが開きます。</p>' +
+        '<code class="artifact-qr-url">' + esc(ARTIFACT_URL) + '</code></div>' +
+      '</div>' +
+      soundQuickControlHtml() +
+      audioDiagnosticHtml() +
     '</div>' +
-    audioDiagnosticHtml() +
-    '<button class="btn-primary" id="btn-start">シフトを始める</button>';
+    '<div class="briefing-actions"><button class="btn-primary" id="btn-start">シフトを始める</button></div>';
 
-  openSheet();
+  openSheet('briefing');
+  syncSoundControls();
   drawArtifactQr();
   $('btn-start').onclick = () => {
     initAudio();
@@ -6015,12 +6325,12 @@ function showBalanceConsole(){
     GAME_FLAGS.shuffleIdentity = event.target.checked;
   };
   $('balance-sound').onchange = event => {
-    GAME_FLAGS.soundEnabled = event.target.checked;
-    setAudioUnlockStatus(event.target.checked ? 'idle' : 'disabled');
+    applySoundEnabledFromGesture(event.target.checked);
   };
   $('balance-volume').oninput = event => {
-    GAME_FLAGS.soundVolume = clamp(Number(event.target.value), 0, 1);
+    setSoundVolume(event.target.value);
   };
+  syncSoundControls();
   $('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };
   $('balance-replay-secret-ending').onclick = event => { event.stopImmediatePropagation(); showSecretEnding(true); };
   $('balance-clear-career').onclick = () => clearCareerRecord();
@@ -6132,7 +6442,7 @@ function renderReport(){
   const checks = (items, chosen, attr) => items.map(x => '<label class="report-check"><input type="checkbox" data-' + attr + '="' + x.id + '" ' + (chosen.includes(x.id) ? 'checked' : '') + '><span>' + escaped(x) + '</span></label>').join('') || '<p class="empty-note">該当する特記事項はありません。</p>';
   $('sheet').innerHTML =
     '<p class="eyebrow">DAILY REPORT ／ ' + fmtClock(state.clock) + ' JST</p><h1>業務報告 ／ 深夜シフト</h1>' +
-    '<div class="report-auto">対応件数 ' + state.tickets.length + '件（入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件 ／ 放棄呼 ' + m.abandoned + '件 ／ 評価対象外 ' + m.unscored + '件）／ 平均通話 ' + (m.aht === null ? '—' : m.aht.toFixed(1)) + '分 ／ エスカレーション ' + state.tickets.filter(t => t.escUsed).length + '件 ／ 発生費用 ¥' + totalCost().toLocaleString('ja-JP') + '</div>' +
+    '<div class="report-auto">対応件数 ' + state.tickets.length + '件（入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件 ／ 放棄呼 ' + m.abandoned + '件 ／ 評価対象外 ' + m.unscored + '件）／ 機器検証 ' + state.verifiedDevices + '台完了 ／ 平均通話 ' + (m.aht === null ? '—' : m.aht.toFixed(1)) + '分 ／ エスカレーション ' + state.tickets.filter(t => t.escUsed).length + '件 ／ 発生費用 ¥' + totalCost().toLocaleString('ja-JP') + '</div>' +
     '<h2>特記事項</h2><p class="hint-bar">実際に起きたことで、次の担当が知るべきものを選びます。必須と日常対応が混ざっています。</p><div class="report-list">' + checks(o.special, state.report.special, 'report-special') + '</div>' +
     '<h2>申し送り</h2><p class="hint-bar">翌シフトへの引き継ぎです。必須がある夜に「特になし」は誤りです。</p><div class="report-list">' + checks(o.handoff, state.report.handoff, 'report-handoff') + '<label class="report-check"><input type="checkbox" data-report-handoff="none" ' + (state.report.handoff.includes('none') ? 'checked' : '') + '><span>特になし<i>引き継ぎ不要</i></span></label></div>' +
     '<button class="btn-primary" id="report-submit" data-report-submit="1">業務報告を提出する</button>';
@@ -6423,9 +6733,15 @@ function cell(k, v, n){
    ============================================================ */
 
 document.addEventListener('click', (e) => {
-  if (timePassage){ finishTimePassage(); return; }
+  const soundToggle = e.target.closest('[data-sound-toggle]');
+  if (soundToggle){ toggleSoundFromGesture(); return; }
+  if (timePassage){
+    const answerDuringPassage = e.target.closest('[data-office-answer]');
+    finishTimePassage();
+    if (!answerDuringPassage) return;
+  }
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-audio-unlock],[data-office-answer],[data-office-callback],[data-office-desk],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
+  const el = e.target.closest('[data-audio-unlock],[data-office-answer],[data-office-callback],[data-office-desk],[data-office-verify],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-hangup],[data-hangup-confirm],[data-hangup-cancel],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
   if (!el || el.disabled) return;
   const audioReady = unlockAudioFromGesture();
   if (el.dataset.audioUnlock){ audioReady.then(ready => { if (ready) playAudioTestSound(); }); return; }
@@ -6458,6 +6774,7 @@ function handleOfficeAction(d){
     return true;
   }
   if (d.officeDesk){ openDeskLookup(); return true; }
+  if (d.officeVerify){ runDeviceVerification(); return true; }
   return false;
 }
 
@@ -6553,6 +6870,7 @@ $('btn-balance').onclick = showBalanceWarning;
 
 /* ---------- 起動 ---------- */
 
+initializeSoundSettings();
 initializeCareer();
 resetGame();
 showBriefing();

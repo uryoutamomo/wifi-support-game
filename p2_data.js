@@ -16,8 +16,13 @@ const ESCALATIONS = 3;       // 1シフトのエスカレーション枠
 const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
 const DESK_LOOKUP_MINUTES = 2;  // 折り返し待ちのあいだ、デスク端末で1件調べるのにかかる時間
+const DEVICE_VERIFICATION_MINUTES = 60; // 返却機1台の検証に必要な作業時間
+/* §65: 直接、国際通話料を訴えるのは14案件中7件になる2タイプだけ。 */
+const CALL_CHARGE_COMPLAINT_TYPES = Object.freeze(['hurried','expert']);
 /* §41: 通しプレイで調整できる、折り返しの約束と待機の基準。 */
 const CALLBACK_SCHEDULED_MINUTES = 60;
+const CALLBACK_THREE_HOURS_MINUTES = 180;
+const CALLBACK_TOMORROW_DUE = SHIFT_END + 1;
 const CALLBACK_IMMEDIATE_LOOKUP_ALLOWANCE = 1;
 const CALLBACK_SCHEDULED_LOOKUP_ALLOWANCE = 2;
 const CALLBACK_OVER_LOOKUP_STRESS = 10;
@@ -43,6 +48,13 @@ const CALLBACK_PUNCTUAL_REPLIES = Object.freeze({
   expert:'時間どおりですね。では続けてください。',
   hurried:'お、ちゃんと掛かってきた。じゃあ続き、頼みます。',
 });
+/* §59: 個々の効果音の比率は保ち、この共通倍率だけで全体音量を調整する。 */
+const SOUND_SETTINGS = Object.freeze({
+  storageKey:'wifi-support-game:audio:v1',
+  defaultEnabled:true,
+  defaultVolume:0.75,
+  outputGain:3,
+});
 const GAME_FLAGS = {
   luckRate: LUCK_RATE,
   shuffleArrival: true,
@@ -52,8 +64,8 @@ const GAME_FLAGS = {
   careerStage: null,
   unlockedBadges: null,
   solvedScenarios: null,
-  soundEnabled: true,
-  soundVolume: 0.55,
+  soundEnabled: SOUND_SETTINGS.defaultEnabled,
+  soundVolume: SOUND_SETTINGS.defaultVolume,
 };
 
 const REFUND_POLICY = Object.freeze({
@@ -257,11 +269,15 @@ const CALL_FLOW_LINES = Object.freeze({
     immediate:'すぐにこちらから掛け直します。いまの通話はいったん切らせてください。',
     scheduled:'1時間ほどお時間をいただいて、確認のうえ掛け直します。',
     consent:'分かりました。では、お待ちしています。',
-    note:'折り返しをお約束しました。切る前に、折り返し先とお戻りの時間を確認できます。',
+    hurriedRefusal:'折り返しを待つ時間はありません。この電話で、今すぐ解決してください。',
+    threeHours:'1時間後は外出しています。3時間後にしてください。',
+    tomorrow:'今夜はもう休みたいので、明日にしていただけますか。',
+    note:'折り返しをお約束しました。切る前に、折り返し先を確認できます。',
     headImmediate:'折り返し約束済み（すぐに）',
     headScheduled:'折り返し約束済み（1時間後）',
+    headThreeHours:'折り返し約束済み（3時間後）',
+    headTomorrow:'折り返し約束済み（翌日・日勤へ引き継ぎ）',
     guide:'折り返しをお約束しました。「電話を切る」で、こちらから掛け直します。',
-    guideNoReturn:'お戻りの時間を伺っていません。フロントで確認の手間が増えます。',
   }),
   callback:Object.freeze({
     normal:'お待たせしました。先ほどの件でお電話しました。',
@@ -638,7 +654,7 @@ const SCENARIOS = [
       fact:{ text:'接続は2台のみ', out:['devices'] } },
     q_what_fails:{ text:'全部です。ずっとくるくる回って…。何も開かなくなるんじゃないかって。',
       fact:{ text:'特定サービスではなく全体が低速', out:['geo_block'] } },
-    q_stay:{ text:'{city}のホテル、1208号室です。ここまで来ていただけるんですか？' },
+    q_stay:{ text:'{hotel}、1208号室です。ここまで来ていただけるんですか？' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] プラン: 500MB/日 ／ 本日の使用量: 512MB（上限到達）／ 現在 速度制限中（最大128kbps）／ 前日使用量: 4.2GB',
@@ -715,7 +731,7 @@ const SCENARIOS = [
       fact:{ text:'SSIDは見えているが参加できない', out:['location','power','device_net'] } },
     q_what_fails:{ text:'Wi-Fi自体に入れない。サイト以前。次。',
       fact:{ text:'接続自体ができていない', out:['geo_block'] } },
-    q_stay:{ text:'{city}市内のホテル。未到着だから部屋番号はまだ。' },
+    q_stay:{ text:'{hotel}。未到着だから部屋番号はまだ。' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] プラン: 無制限 ／ 使用量: 2.1GB ／ 速度制限なし',
@@ -734,7 +750,7 @@ const SCENARIOS = [
 
 /* === 4. 上海：渡航先の通信規制。技術に明るい客 === */
 {
-  id:'S4', arrive:18, name:'森 達彦', nameEn:'Tatsuhiko Mori', age:39, ageRange:[30,50], type:'expert', abandonAfter:35, callbackTo:'hotel', stayDays:4,
+  id:'S4', arrive:18, name:'森 達彦', nameEn:'Tatsuhiko Mori', age:39, ageRange:[30,50], type:'expert', abandonAfter:35, callbackTo:'hotel', stayDays:4, callbackPreference:'three_hours',
   deviceInHand:true,
   contractId:{ minutes:1, text:'GDW-118350です。控えてあります。' },
   country:'中国本土', city:'上海', cityEn:'SHANGHAI', localOffset:-1, carrierName:'China Unicom', device:'GD-500', plan:'{country} ／ 1GBプラン',
@@ -753,7 +769,7 @@ const SCENARIOS = [
       fact:{ text:'現地キャリアを正常に掴んでいる', out:['sim','hardware','coverage','provision'] } },
     q_when:{ text:'現地チームとの技術打ち合わせで到着した初日から再現しています。経時劣化ではありません。',
       fact:{ text:'渡航当初から一貫して同じ症状', out:['heavy'] } },
-    q_stay:{ text:'{city}市内のホテル、1506号室です。この情報は配送判断用ですか？' },
+    q_stay:{ text:'{hotel}、1506号室です。この情報は配送判断用ですか？' },
   },
   lookups:{
     l_area:{ text:'[エリア照会] {country} ／ 貸出機種 GD-500: 対応 ✓ ／ 提携: {carrier} ✓ ／ 備考: 通常のデータプランには現地の通信規制を回避する経路が含まれない。規制対象サービスの利用には「VPN付きオプション」の追加が必要。',
@@ -785,7 +801,7 @@ const SCENARIOS = [
       fact:{ text:'複数の場所で試しても圏外のまま', out:['location'] } },
     q_when:{ text:'30分前です。急に切れて…。明朝に大事な提案があるのに、それまで普通だったから、余計に怖くて。',
       fact:{ text:'突発的に発生。前兆なし', out:['power'] } },
-    q_stay:{ text:'{city}中心部のホテル、816号室です。ここで待っていて大丈夫でしょうか？' },
+    q_stay:{ text:'{hotel}、816号室です。ここで待っていて大丈夫でしょうか？' },
   },
   lookups:{
     l_outage:{ text:'[障害情報] {region} {carrier}: 現時点で報告なし（更新待ち）',
@@ -860,7 +876,7 @@ const SCENARIOS = [
       fact:{ text:'複数地点で試しても圏外のまま', out:['location'] } },
     q_lamp:{ text:'圏外表示で回線名なし。市内では現地回線名が表示されていました。',
       fact:{ text:'市内では接続実績あり。郊外でのみ圏外', hot:['coverage'], out:['sim','provision','fup','devices','geo_block','heavy'] } },
-    q_stay:{ text:'{city}近郊のホテル、312号室です。帰国まで同じホテルに滞在します。' },
+    q_stay:{ text:'{hotel}、312号室です。帰国まで同じホテルに滞在します。' },
     q_stay_length:{ text:'今日を含めてあと6泊です。郊外へ出る予定が続くので、対応機なら受け取る意味があります。',
       fact:{ text:'残り6泊、同じホテルに滞在するため代替機を使える期間が十分にある', hot:['coverage'] } },
     q_replacement:{ text:'はい、郊外でも使える対応機を同じホテルへ送ってください。受け取ります。',
@@ -904,7 +920,7 @@ const SCENARIOS = [
       fact:{ text:'場所を変えても変化なし', out:['location'] } },
     q_battery:{ text:'電池は8割です。充電の印はありません。見る所、合っていますか？',
       fact:{ text:'バッテリーは十分', out:['power'] } },
-    q_stay:{ text:'ジュメイラのホテル、1204です。すみません、これで足りますか？' },
+    q_stay:{ text:'{hotel}、1204号室です。すみません、これで足りますか？' },
   },
   lookups:{
     l_session:{ text:'[セッション] 本体からのSIM認識イベントなし。最終認識は出荷検品時（8/28 11:20）。接点の汚れまたは装着不良の可能性あり。',
@@ -945,7 +961,7 @@ const SCENARIOS = [
     q_return:{ text:'これから市内へ向かう。部屋に入るのは30分後くらいだ。' },
     q_when:{ text:'予約時刻を過ぎて到着したら無人でした。担当者も不在です。タクシーを待たせてます。',
       fact:{ text:'予約時刻を過ぎ、カウンターは臨時閉鎖。担当者も不在', hot:['logistics'] } },
-    q_stay:{ text:'{city}市内のホテルへ向かいます。名称は予約票にあります。そこへ配送できますか。' },
+    q_stay:{ text:'{hotel}へ向かいます。未到着なので部屋番号はまだですが、そこへ配送できますか。' },
   },
   lookups:{
     l_ship:{ text:'[貸出記録] {city}国際空港 受取予約 ／ 予約時刻経過後にカウンター臨時閉鎖・担当者不在 ／ ステータス: 未受取 ／ 市内デポからの宿泊先配送: 当日手配可（到着目安 90分）',
@@ -973,7 +989,7 @@ const SCENARIOS = [
       fact:{ text:'正常利用3日後に突然発生。落下・水濡れなし', hot:['hardware'], out:['logistics','power'] } },
     q_battery:{ text:'76%です。充電もできます。電源まで止まることはないですよね…？',
       fact:{ text:'電源と充電は正常', out:['power'] } },
-    q_stay:{ text:'オペラ地区のホテル、704号室です。ここで待っていれば届きますか？' },
+    q_stay:{ text:'{hotel}、704号室です。ここで待っていれば届きますか？' },
     q_stay_length:{ text:'今日を含めてあと6泊です。6日全部、使えないままにはなりませんよね？',
       fact:{ text:'残り6泊で、交換機を受け取って使う期間が十分にある', hot:['hardware'] } },
     q_replacement:{ text:'はい、直らないなら交換機を送ってください。ホテルで受け取ります。どうか間に合わせてください…。',
@@ -1032,7 +1048,7 @@ const SCENARIOS = [
 
 /* === 12. シドニー：日付境界で回線停止。契約終了日の登録不備 === */
 {
-  id:'S12', arrive:68, name:'吉田 和子', nameEn:'Kazuko Yoshida', age:64, ageRange:[56,72], type:'novice', abandonAfter:28, callbackTo:'hotel', stayDays:3,
+  id:'S12', arrive:68, name:'吉田 和子', nameEn:'Kazuko Yoshida', age:64, ageRange:[56,72], type:'novice', abandonAfter:28, callbackTo:'hotel', stayDays:3, callbackPreference:'tomorrow',
   deviceInHand:true,
   contractId:{ minutes:3, text:'予約番号ですね…。箱の裏に、GDW-348621とあります。これで合っていますか？' },
   country:'オーストラリア', city:'シドニー', cityEn:'SYDNEY', localOffset:1, carrierName:'Telstra', device:'GD-500', plan:'{country} ／ 無制限プラン',
@@ -1054,7 +1070,7 @@ const SCENARIOS = [
     q_moved:{ text:'ロビーとホテルの外でも試しましたが、圏外のままです。',
       fact:{ text:'ホテル内外へ移動しても圏外のまま', out:['location'] } },
     q_battery:{ text:'73%あります。充電もできています。', fact:{ text:'電源と充電は正常', out:['power'] } },
-    q_stay:{ text:'{city}中心部のホテル、512号室です。折り返しでしたら、こちらへお願いします。' },
+    q_stay:{ text:'{hotel}、512号室です。折り返しでしたら、こちらへお願いします。' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] 契約: 有効 ／ 利用終了予定: 9/4 ／ 使用量: 制限内 ／ 速度制限なし',
@@ -1095,7 +1111,7 @@ const SCENARIOS = [
     q_where:{ text:'{city}中心部のホテルです。部屋でもロビーでも、外へ出ても同じでした。',
       fact:{ text:'市内ホテルの内外で圏外が続く', out:['location'] } },
     q_battery:{ text:'82%です。充電もできています。電池は足りていますよね…？', fact:{ text:'電源と充電は正常', out:['power'] } },
-    q_stay:{ text:'{city}中心部のホテル、608号室です。滞在中はずっとこちらにいます。' },
+    q_stay:{ text:'{hotel}、608号室です。滞在中はずっとこちらにいます。' },
     q_stay_length:{ text:'今日を含めてあと7泊です。帰国まで同じホテルに滞在します。',
       fact:{ text:'残り7泊、同じホテルに滞在するため代替機を使える期間が十分にある', hot:['logistics'] } },
     q_replacement:{ text:'はい、使えるものが届くなら代替機を送ってください。ホテルで受け取ります。',
@@ -1142,7 +1158,7 @@ const SCENARIOS = [
       fact:{ text:'接続は1台のみ', out:['devices'] } },
     q_what_fails:{ text:'全部です。特定のサービスだけということはありません。とにかく全体が重い。',
       fact:{ text:'特定サービスではなく全体が低速', out:['geo_block'] } },
-    q_stay:{ text:'{city}駅前のホテル、704号室です。ただ日中は外に出ています。' },
+    q_stay:{ text:'{hotel}、704号室です。ただ日中は外に出ています。' },
   },
   lookups:{
     l_plan:{ text:'[契約照会] プラン: 1GB/日 ／ 本日の使用量: 1,024MB（上限到達）／ 現在 速度制限中（最大128kbps）／ 追加購入: 未適用',
@@ -1170,7 +1186,7 @@ const SCENARIO_RECORD_META = Object.freeze([
   {gender:'female',tripDay:4,tripDays:10,stayHint:'出張はまだ続くので、このまま使えないと本当に困ります。'},
   {gender:'male',tripDay:2,tripDays:4,stayHint:'会議は明日までで、地下でも連絡を取りたいです。'},
   {gender:'female',tripDay:2,tripDays:5,stayHint:'旅行の序盤なので、帰国前に連絡が取れないと困ります。'},
-  {gender:'female',tripDay:1,tripDays:8,stayHint:'長い滞在の初日から、ずっと不安なんです。',deliveryAddress:'次のホテル、214号室'},
+  {gender:'female',tripDay:1,tripDays:8,stayHint:'長い滞在の初日から、ずっと不安なんです。',deliveryAddress:'{alternateHotel}、214号室'},
   {gender:'male',tripDay:2,tripDays:4,stayHint:'明日の移動までに、必要な連絡を済ませたいです。'},
 ]);
 SCENARIOS.forEach((scenario, index) => {
@@ -1233,17 +1249,40 @@ const NAME_POOL = Object.freeze([
   Object.freeze({ name:'白石 大介',   nameEn:'Daisuke Shiraishi',  gender:'male',   ageBand:[28,52] }),
 ]);
 
-/* キャリア名と地域も土地に従属する。sourceScenarioId は shuffleIdentity:false の復元に使う。 */
-const PLACE_POOL = Object.freeze(SCENARIOS.map(scenario => Object.freeze({
-  sourceScenarioId:scenario.id,
-  country:scenario.country,
-  city:scenario.city,
-  cityEn:scenario.cityEn,
-  localOffset:scenario.localOffset,
-  regionGroup:scenario.regionGroup || null,
-  regionName:scenario.regionName || scenario.country,
-  carrier:scenario.carrierName,
-})));
+/* §61: 実在施設を指さない架空名。ホテル名は土地と一緒に動き、末尾を都市名にする。 */
+const PLACE_HOTEL_STEMS = Object.freeze({
+  BANGKOK:'サイアム・ロータス・ホテル',
+  LONDON:'アルビオン・クレセント・ホテル',
+  HONOLULU:'レイラニ・ショア・ホテル',
+  SHANGHAI:'海雲グランドホテル',
+  'NEW YORK':'ハドソン・ランタン・ホテル',
+  BOSTON:'コモンウェルス・ハーバー・ホテル',
+  BARCELONA:'ランブラス・ソル・ホテル',
+  DUBAI:'アル・ヌール・ゲート・ホテル',
+  HANOI:'ロータス・レイク・ホテル',
+  PARIS:'ルミエール・リヴ・ホテル',
+  ROME:'アウレリア・フォロ・ホテル',
+  SYDNEY:'サザン・ハーバー・ホテル',
+  LISBON:'テージョ・アズール・ホテル',
+  TAIPEI:'玉山ガーデンホテル',
+});
+
+/* キャリア名・地域・ホテル名も土地に従属する。sourceScenarioId は shuffleIdentity:false の復元に使う。 */
+const PLACE_POOL = Object.freeze(SCENARIOS.map(scenario => {
+  const hotelStem = PLACE_HOTEL_STEMS[scenario.cityEn];
+  return Object.freeze({
+    sourceScenarioId:scenario.id,
+    country:scenario.country,
+    city:scenario.city,
+    cityEn:scenario.cityEn,
+    localOffset:scenario.localOffset,
+    regionGroup:scenario.regionGroup || null,
+    regionName:scenario.regionName || scenario.country,
+    carrier:scenario.carrierName,
+    hotelName:hotelStem + ' ' + scenario.city,
+    alternateHotelName:hotelStem + '・アネックス ' + scenario.city,
+  });
+}));
 
 const PLACE_CONSTRAINTS = Object.freeze({
   geo_block:'china_only',

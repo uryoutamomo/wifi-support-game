@@ -2,9 +2,9 @@
 const fs = require('fs');
 const { readGameSource, functionSource: extractFunctionSource } = require('./test_helpers');
 const src = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {SHIFT_START,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,CALL_FLOW_LINES};';
+  '\nreturn {SHIFT_START,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,TYPES,QUESTIONS,QUESTION_GROUPS,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,SOOTHES,SOOTHE_EFFECTS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,DESK_LOOKUP_MINUTES,DEVICE_VERIFICATION_MINUTES,CALL_CHARGE_COMPLAINT_TYPES,COMMAND_DEFS,SLOGANS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,ARTIFACT_QR_QUIET_ZONE,LUCK_RATE,CARRIER_REPLY_RATE,SOUND_SETTINGS,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,CALL_FLOW_LINES};';
 const D = new Function(src)();
-const { SHIFT_START, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, TYPES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE, CALL_FLOW_LINES } = D;
+const { SHIFT_START, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, TYPES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, LOOKUPS, QUESTIONS, QUESTION_GROUPS, REMEDIES, SOOTHES, SOOTHE_EFFECTS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, DESK_LOOKUP_MINUTES, DEVICE_VERIFICATION_MINUTES, CALL_CHARGE_COMPLAINT_TYPES, COMMAND_DEFS, SLOGANS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_QR, ARTIFACT_QR_QUIET_ZONE, LUCK_RATE, CARRIER_REPLY_RATE, SOUND_SETTINGS, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE, CALL_FLOW_LINES } = D;
 
 const EXPECTED_SLOGANS = [
   '凡事徹底',
@@ -57,7 +57,7 @@ const bad = (m) => { console.log('  NG  ' + m); ng++; };
 if (JSON.stringify(SLOGANS) !== JSON.stringify(EXPECTED_SLOGANS)) bad('SLOGANS が確定6文言・順番と一致しない');
 if (SLOGANS.some(slogan => !slogan)) bad('SLOGANS に空文字がある');
 if (LUCK_RATE !== 0.9) bad('運の本来どおり率が0.9ではない');
-if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55})) bad('運・音・1日件数・引き継ぎ件数・キャリアの初期GAME_FLAGSが確定値と違う');
+if (JSON.stringify(GAME_FLAGS) !== JSON.stringify({luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.75})) bad('運・音・1日件数・引き継ぎ件数・キャリアの初期GAME_FLAGSが確定値と違う');
 if (JSON.stringify(REFUND_POLICY) !== JSON.stringify({
   amount:2400,
   company:{causes:['hardware','provision','logistics','carrier','coverage'],rejectionRate:0.05,satisfactionRate:0.5},
@@ -204,7 +204,7 @@ if (!sourceOf('handleFrontDeskChoice').includes("{ who:'front', text:frontReply 
 const s12Carrier25 = SCENARIOS.find(s => s.id === 'S12');
 if (!s12Carrier25 || !s12Carrier25.lookups.l_plan.text.includes('契約: 有効') || !s12Carrier25.lookups.l_carrier.text.includes('00:00 に契約満了として停止') || (s12Carrier25.lookups.l_carrier.fact.hot || []).join(',') !== 'provision' || s12Carrier25.lookups.l_carrier.fact.out.length !== CAUSES.length - 1) bad('S12の自社契約照会と現地キャリア照会の食い違い・provision確定力がない');
 if (/00:00|0時|日付が変わ/.test(s12Carrier25.opening) || !(s12Carrier25.replies.q_when.fact.hot || []).includes('provision')) bad('S12の第一声が正確な日付境界を漏らす、またはq_whenで手がかりを得られない');
-if (!sourceOf('advanceIdleOffice').includes("t.state === 'waiting'") || !sourceOf('advanceIdleOffice').includes("t.state === 'callback'") || !sourceOf('handleOfficeAction').includes("firstTicketIn('waiting', 'arrivedTurn')")) bad('折り返し中にほかの電話を取れない');
+if (!sourceOf('enterOffice').includes('activateDueInbound()') || !sourceOf('handleOfficeAction').includes("firstTicketIn('waiting', 'arrivedTurn')")) bad('折り返し中にほかの電話を取れない');
 const fiveNightBadge25 = CAREER_BADGES.find(badge => badge.id === 'ten_nights');
 if (!fiveNightBadge25 || fiveNightBadge25.label !== '五夜勤' || fiveNightBadge25.condition !== '通算5シフトを完了') bad('ten_nightsのID互換を保った「五夜勤」表示になっていない');
 
@@ -565,13 +565,35 @@ if (!gameSource.includes('new AudioContextClass()') || !gameSource.includes('cre
 if (/\.(?:mp3|wav|ogg|m4a)\b/i.test(pageSource + gameSource)) bad('外部の音声ファイルを参照している');
 if (!gameSource.includes("$('btn-start').onclick = () => {\n    initAudio();")) bad('AudioContextがシフト開始操作の中で初期化されない');
 if (!gameSource.includes("if (!GAME_FLAGS.soundEnabled || !audioContext) return") || !gameSource.includes('catch (error){ /* 音が出せなくてもゲーム進行は続ける */ }')) bad('ミュートまたは音声例外の安全経路がない');
-['playOfficeRing()','playPickupSound()','playDisconnectSound()','playTypeSound(pos)','playCommandSound()','playStressWarning()','playClueSound()','playBadActionSound()','playCloseJingle(','playShiftEndSound()'].forEach(call => {
+['playOfficeRing()','playPickupSound()','playDisconnectSound()','playTypeSound(pos, line, t)','playCommandSound()','playStressWarning()','playClueSound()','playBadActionSound()','playCloseJingle(','playShiftEndSound()'].forEach(call => {
   if (!gameSource.includes(call)) bad('効果音10場面の呼び出しが欠けている: ' + call);
 });
 if (!gameSource.includes("result.kind === 'complaint' || result.kind === 'hangup') return 'accident'") || !gameSource.includes("result.kind === 'abandoned' || result.csat < 2") || !gameSource.includes("result.csat >= 4") || !gameSource.includes("result.csat >= 3")) bad('案件クローズ音の5段階分類がない');
 if (!gameSource.includes('if (index % 4) return')) bad('タイプ音が1文字ごとに鳴る');
 if (!gameSource.includes('previousStress <= 80 && t.stress > 80')) bad('苛立ち警告音が状態の80境界を再横断しても鳴らない');
 if (!gameSource.includes('id="balance-sound"') || !gameSource.includes('id="balance-volume"')) bad('ゲーム調整にミュートと音量がない');
+
+// §58: 顧客の打鍵音だけを性別で穏やかに分け、性別不明は中間音へ戻す。
+const pitch58 = sourceOf('typeSoundFrequency');
+const typeSound58 = sourceOf('playTypeSound');
+if (!gameSource.includes("const TYPE_SOUND_BASE_HZ = Object.freeze({ male:660, neutral:760, female:860 })") || !pitch58.includes("line.who === 'cust'") || !pitch58.includes('ticket.s.gender') || !pitch58.includes('TYPE_SOUND_BASE_HZ.neutral')) bad('§58 顧客の男女と性別不明の打鍵音を3つの高さに分けていない');
+if (/trueCause|handoverSymptom|\.opening|\.type\b/.test(pitch58 + typeSound58)) bad('§58 声の高さが性別以外の症状・真因・顧客タイプを漏らしている');
+if (!typeSound58.includes(".018, {type:'square',level:.025}") || !sourceOf('startTyping').includes('playTypeSound(pos, line, t)')) bad('§58 打鍵音の音量・長さを維持して話し手を渡していない');
+if (sourceOf('pendingTypedLine').includes("x.who === 'me'")) bad('§58 オペレーター発話に顧客と同じ文字送り音を付けている');
+
+// §59: 共通倍率で音量を持ち上げ、通常画面の切替をブラウザ内へ保存する。
+if (JSON.stringify(SOUND_SETTINGS) !== JSON.stringify({storageKey:'wifi-support-game:audio:v1',defaultEnabled:true,defaultVolume:0.75,outputGain:3}) || !sourceOf('synthTone').includes('volume * SOUND_SETTINGS.outputGain *')) bad('§59 音全体の既定値と共通出力倍率が1か所にまとまっていない');
+if (!pageSource.includes('data-sound-toggle="1"') || !sourceOf('showBriefing').includes('soundQuickControlHtml()') || !sourceOf('soundQuickControlHtml').includes('data-sound-toggle="1"')) bad('§59 音のON/OFFが上部バーとブリーフィングの届く場所にない');
+if (!sourceOf('readSoundSettings').includes('SOUND_SETTINGS.storageKey') || !sourceOf('writeSoundSettings').includes('SOUND_SETTINGS.storageKey') || !sourceOf('setSoundEnabled').includes('writeSoundSettings(storage)') || !sourceOf('setSoundVolume').includes('writeSoundSettings(storage)')) bad('§59 音のON/OFFと音量をブラウザへ保存できない');
+if (!gameSource.includes('initializeSoundSettings();\ninitializeCareer();') || sourceOf('clearCareerRecord').includes('SOUND_SETTINGS.storageKey')) bad('§59 音設定を起動時に復元できない、または勤務記録の消去で失う');
+if (sourceOf('toggleSoundFromGesture').includes('GAME_FLAGS.soundVolume') || !sourceOf('applySoundEnabledFromGesture').includes('stopOfficeRing()')) bad('§59 音のON/OFFが音量を壊す、または鳴っている着信音を止めない');
+
+// §60: iOS独自状態を含むrunning以外をタップでresumeし、失敗時だけ文脈を作り直す。
+const unlock60 = sourceOf('unlockAudioFromGesture');
+const recreate60 = sourceOf('recreateAudioContextFromGesture');
+if (!unlock60.includes("ctx.state !== 'running'") || /ctx\.state === ['\"](?:suspended|interrupted)['\"]/.test(unlock60)) bad('§60 running以外のAudioContextをすべて再開対象にしていない');
+if (!unlock60.includes("if (ctx.state !== 'running') ctx = await recreateAudioContextFromGesture(ctx)") || !recreate60.includes('await stale.close()') || !recreate60.includes('initAudio(true)')) bad('§60 resumeで戻らないAudioContextを閉じて作り直せない');
+if (!sourceOf('audioStatusText').includes("' AudioContext: ' + currentAudioContextState()") || !sourceOf('currentAudioContextState').includes('audioContext.state')) bad('§60 現在のAudioContext状態を診断表示へ出していない');
 
 // §19／§31／§53: 返金は提案し、拒否なら通話継続、受入後も未解決扱いにする。
 const refund31 = sourceOf('doRefund');
@@ -784,17 +806,17 @@ if (SCENARIOS.some(scenario => Object.prototype.hasOwnProperty.call(scenario,'ti
 
 // §39: 入電は客負担、ホテル折り返しは当社負担。Front Deskを英語で通す。
 if (!sourceOf('callCost').includes('t.outboundMinutes') || !sourceOf('customerCallCost').includes('t.inboundMinutes') || sourceOf('callCost').includes('t.callMinutes')) bad('§39 入電と折り返しの通話料負担が分離されていない');
-if (!sourceOf('spendOnCall').includes("t.callDirection === 'outbound'") || !sourceOf('spendOnCall').includes('t.callChargeConcerned = true') || !sourceOf('spendOnCall').includes('CALL_FLOW_LINES.callChargeConcern[t.s.type]')) bad('§39 方向別分数または5分超の一度きり発話がない');
+if (!sourceOf('spendOnCall').includes("t.callDirection === 'outbound'") || !sourceOf('spendOnCall').includes('t.callChargeThresholdPassed = true') || !sourceOf('spendOnCall').includes('t.callChargeConcerned = true') || !sourceOf('spendOnCall').includes('CALL_FLOW_LINES.callChargeConcern[t.s.type]')) bad('§39 方向別分数または5分超の一度きり発話がない');
 if (Object.keys(CALL_FLOW_LINES.callChargeConcern).length !== 4 || new Set(Object.values(CALL_FLOW_LINES.callChargeConcern)).size !== 4) bad('§39 通話料を気にする発話が4タイプ分ない');
 if (!sourceOf('renderCallHeader').includes("outbound ? '当社負担' : 'お客様負担'") || !sourceOf('renderCallHeader').includes('t.callSegmentMinutes')) bad('§39 通話ヘッダに負担者と区間時間が出ない');
 // §40: 折り返しは「伝える」の中の一手。滞在先を聞かずに切ることもでき、その場合は折り返せず客から掛かってくる。
 if (!sourceOf('renderTellOptions').includes('data-hotel-callback') || sourceOf('renderCommandMenu').includes('data-hotel-callback')) bad('§40 ホテルへの折り返しが「伝える」の中にない');
 const blindCallback40 = sourceOf('blindCallbackRedial');
-if (!sourceOf('finishPromisedCallback').includes("!t.asked.has('q_stay')") || !sourceOf('finishPromisedCallback').includes('blindCallbackRedial(t)')) bad('§40 滞在先未確認の折り返しを取り違えずに分けていない');
+if (!sourceOf('finishPromisedCallback').includes('!hotelContactKnown(t)') || !sourceOf('finishPromisedCallback').includes('blindCallbackRedial(t)')) bad('§40 滞在先未確認の折り返しを取り違えずに分けていない');
 // §45: 折り返しは「約束」と「切る」に分かれた。約束した時点では通話を終わらせない。
 const promise45 = sourceOf('startHotelCallback');
 const finish45 = sourceOf('finishPromisedCallback');
-if (!promise45.includes('t.callbackPromised = kind') || promise45.includes("t.state = 'callback'") || promise45.includes('state.focus = null')) bad('§45 折り返しの申し出がその場で通話を終わらせている');
+if (!promise45.includes('t.callbackPromised = preferredKind') || promise45.includes("t.state = 'callback'") || promise45.includes('state.focus = null')) bad('§45 折り返しの申し出がその場で通話を終わらせている');
 if (!finish45.includes("t.state = 'callback'") || !finish45.includes('leaveCallForOffice()')) bad('§45 「電話を切る」で折り返し待ちへ入らない');
 if (!sourceOf('hotelCallbackOffered').includes('!t.callbackPromised')) bad('§45 約束したあとも「伝える」に折り返しが残る');
 if (!sourceOf('renderCallHeader').includes('callbackPromise.headScheduled') || !sourceOf('renderCallHeader').includes('callbackPromise.headImmediate')) bad('§45 約束したことが通話ヘッダに出ない');
@@ -906,7 +928,7 @@ if (!display57.includes("$('clock')") || !display57.includes("$('office-clock')"
 if (!strip57.includes('(displayClock - SHIFT_START)')) bad('§57 現在線が補間中の表示時刻を使わない');
 if (!passage57.includes('typewriterOff()') || !passage57.includes('requestAnimationFrame(step)')) bad('§57 reduced-motion即着地またはフレーム補間がない');
 if (/state\.(?:clock|turn)\s*=|\badvance\(|activateDueInbound|abandonTicket|resolveCarrierRequest/.test(passage57 + display57)) bad('§57 演出の途中でゲーム時刻または判定を動かしている');
-if (!gameSource.includes('if (timePassage){ finishTimePassage(); return; }') || !gameSource.includes("if (timePassage && (e.key === ' ' || e.key === 'Enter'))")) bad('§57 時間経過演出を飛ばせない');
+if (!gameSource.includes('if (timePassage){') || !gameSource.includes('finishTimePassage();') || !gameSource.includes("if (timePassage && (e.key === ' ' || e.key === 'Enter'))")) bad('§57 時間経過演出を飛ばせない');
 if (!sourceOf('renderReport').includes('startTimePassageIfNeeded(() => renderReport())')) bad('§57 07:00の着地前に業務報告へ飛ぶ');
 
 // S2/S3 に q_lamp が入ったか

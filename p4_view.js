@@ -15,14 +15,20 @@ let officeRingTimer = null;
 let officeRingLit = false;
 let audioContext = null;
 let audioUnlockStatus = 'idle';
+const TYPE_SOUND_BASE_HZ = Object.freeze({ male:660, neutral:760, female:860 });
+
+function currentAudioContextState(){
+  return audioContext && audioContext.state ? audioContext.state : 'not-created';
+}
 
 function audioStatusText(){
-  if (!GAME_FLAGS.soundEnabled) return '効果音はOFFです。ONにしてから試してください。';
-  if (audioUnlockStatus === 'ready') return '音声機能は利用可能です。試聴音が聞こえなければ、iPhoneの消音モード・メディア音量・Bluetooth出力先を確認してください。';
-  if (audioUnlockStatus === 'needs_gesture') return 'iPhoneが音声を一時停止しました。「音をテスト」をもう一度タップしてください。';
-  if (audioUnlockStatus === 'unavailable') return 'このブラウザでは効果音機能を利用できません。ゲームは音なしで続けられます。';
-  if (audioUnlockStatus === 'error') return '音声を開始できませんでした。「音をテスト」を再度タップしてください。';
-  return '未確認です。「音をテスト」をタップすると、iPhoneで音声が開始できたか確認できます。';
+  const context = ' AudioContext: ' + currentAudioContextState() + '。';
+  if (!GAME_FLAGS.soundEnabled) return '効果音はOFFです。ONにしてから試してください。' + context;
+  if (audioUnlockStatus === 'ready') return '音声機能は利用可能です。試聴音が聞こえなければ、iPhoneのメディア音量・Bluetooth出力先を確認してください。' + context;
+  if (audioUnlockStatus === 'needs_gesture') return '音声が中断されています。画面をタップするか「音をテスト」を押して再開してください。' + context;
+  if (audioUnlockStatus === 'unavailable') return 'このブラウザでは効果音機能を利用できません。ゲームは音なしで続けられます。' + context;
+  if (audioUnlockStatus === 'error') return '音声を開始できませんでした。「音をテスト」を再度タップしてください。' + context;
+  return '未確認です。「音をテスト」をタップすると、iPhoneで音声が開始できたか確認できます。' + context;
 }
 
 function setAudioUnlockStatus(status){
@@ -30,12 +36,24 @@ function setAudioUnlockStatus(status){
   document.querySelectorAll('[data-audio-status]').forEach(node => { node.textContent = audioStatusText(); });
 }
 
-function initAudio(){
+function initAudio(force = false){
   try {
-    if (audioContext && audioContext.state !== 'closed') return audioContext;
+    if (!force && audioContext && audioContext.state !== 'closed') return audioContext;
+    if (force && audioContext){
+      const stale = audioContext;
+      audioContext = null;
+      try { if (stale.state !== 'closed' && typeof stale.close === 'function') stale.close(); } catch (error){ /* 新規作成は続ける */ }
+    }
     audioContext = null;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (AudioContextClass) audioContext = new AudioContextClass();
+    if (AudioContextClass){
+      const created = new AudioContextClass();
+      audioContext = created;
+      created.onstatechange = () => {
+        if (audioContext !== created) return;
+        setAudioUnlockStatus(created.state === 'running' ? 'ready' : 'needs_gesture');
+      };
+    }
     else setAudioUnlockStatus('unavailable');
   } catch (error){
     audioContext = null;
@@ -44,18 +62,40 @@ function initAudio(){
   return audioContext;
 }
 
+function primeAudioContext(ctx){
+  try { synthTone(ctx, 0.01, 220, 0, 0.01, { level:0.0001 }); }
+  catch (error){ /* priming非対応でもresumeは続ける */ }
+}
+
+async function recreateAudioContextFromGesture(stale){
+  try {
+    if (stale && stale.state !== 'closed' && typeof stale.close === 'function') await stale.close();
+  } catch (error){ /* 閉じられなくても参照を外して作り直す */ }
+  if (audioContext === stale) audioContext = null;
+  const fresh = initAudio(true);
+  if (!fresh) return null;
+  primeAudioContext(fresh);
+  try {
+    if (fresh.state !== 'running' && typeof fresh.resume === 'function') await fresh.resume();
+  } catch (error){ /* 下の状態判定で失敗を表示する */ }
+  return fresh;
+}
+
 async function unlockAudioFromGesture(){
   if (!GAME_FLAGS.soundEnabled){ setAudioUnlockStatus('disabled'); return false; }
   try {
     if (typeof navigator !== 'undefined' && navigator.audioSession){
       try { navigator.audioSession.type = 'playback'; } catch (error){ /* 未対応の値でも再生開始は試す */ }
     }
-    const ctx = initAudio();
+    let ctx = initAudio();
     if (!ctx) return false;
-    /* suspended 中に予約した極小音は、同じタップで resume された直後に流れて経路を開く。 */
-    try { synthTone(ctx, 0.01, 220, 0, 0.01, { level:0.0001 }); } catch (error){ /* priming非対応でもresumeは続ける */ }
-    if (ctx.state === 'suspended') await ctx.resume();
-    const ready = ctx.state === 'running';
+    /* 状態名を限定しない。iOS独自の interrupted なども、次のタップでまず再開を試す。 */
+    primeAudioContext(ctx);
+    try {
+      if (ctx.state !== 'running' && typeof ctx.resume === 'function') await ctx.resume();
+    } catch (error){ /* 戻らなければ下で文脈を作り直す */ }
+    if (ctx.state !== 'running') ctx = await recreateAudioContextFromGesture(ctx);
+    const ready = Boolean(ctx && ctx.state === 'running');
     setAudioUnlockStatus(ready ? 'ready' : 'needs_gesture');
     return ready;
   } catch (error){
@@ -85,8 +125,9 @@ function synthTone(ctx, volume, frequency, delay, duration, options = {}){
   oscillator.type = options.type || 'sine';
   oscillator.frequency.setValueAtTime(frequency, start);
   if (options.endFrequency) oscillator.frequency.exponentialRampToValueAtTime(options.endFrequency, end);
+  const audibleGain = Math.min(1, Math.max(0.0001, volume * SOUND_SETTINGS.outputGain * (options.level || 0.12)));
   gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume * (options.level || 0.12)), start + Math.min(0.02, duration / 3));
+  gain.gain.exponentialRampToValueAtTime(audibleGain, start + Math.min(0.02, duration / 3));
   gain.gain.exponentialRampToValueAtTime(0.0001, end);
   oscillator.connect(gain); gain.connect(ctx.destination);
   oscillator.start(start); oscillator.stop(end + 0.02);
@@ -95,7 +136,18 @@ function synthTone(ctx, volume, frequency, delay, duration, options = {}){
 function playOfficeRing(){ withAudio((ctx, volume) => synthTone(ctx, volume, 400, 0, .22, {type:'sine',level:.1})); }
 function playPickupSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 1150, 0, .035, {type:'square',level:.08}); synthTone(ctx, volume, 520, .04, .045, {type:'square',level:.07}); }); }
 function playDisconnectSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 400, 0, .18, {level:.07}); synthTone(ctx, volume, 400, .28, .18, {level:.07}); }); }
-function playTypeSound(index){ if (index % 4) return; withAudio((ctx, volume) => synthTone(ctx, volume, 760 + (index % 3) * 35, 0, .018, {type:'square',level:.025})); }
+function typeSoundFrequency(index, line, ticket){
+  const gender = line && line.who === 'cust' && ticket && ticket.s ? ticket.s.gender : null;
+  const base = gender === 'male' ? TYPE_SOUND_BASE_HZ.male
+    : gender === 'female' ? TYPE_SOUND_BASE_HZ.female
+    : TYPE_SOUND_BASE_HZ.neutral;
+  return base + (index % 3) * 35;
+}
+function playTypeSound(index, line, ticket){
+  if (index % 4) return;
+  const frequency = typeSoundFrequency(index, line, ticket);
+  withAudio((ctx, volume) => synthTone(ctx, volume, frequency, 0, .018, {type:'square',level:.025}));
+}
 function playCommandSound(){ withAudio((ctx, volume) => synthTone(ctx, volume, 880, 0, .045, {type:'square',level:.055})); }
 function playAudioTestSound(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 523, 0, .12, {type:'triangle',level:.13}); synthTone(ctx, volume, 784, .15, .2, {type:'triangle',level:.13}); }); }
 function playStressWarning(){ withAudio((ctx, volume) => { synthTone(ctx, volume, 980, 0, .11, {type:'square',level:.12}); synthTone(ctx, volume, 980, .17, .11, {type:'square',level:.12}); }); }
@@ -234,7 +286,7 @@ function startTyping(t){
     if (typingLine !== line) return;
     pos++;
     say.textContent = line.text.slice(0, pos);
-    playTypeSound(pos);
+    playTypeSound(pos, line, t);
     if (pos >= line.text.length){ finishTyping(false); return; }
     typeTimer = setTimeout(step, /[、。！？!?]/.test(line.text[pos - 1]) ? 175 : 25);
   };
@@ -479,6 +531,31 @@ function drawMorningStaff(ctx, p){
   MORNING_STAFF.forEach(staff => drawMorningStaffMember(ctx, p, staff));
 }
 
+function drawHandoverMeeting(){
+  const canvas = $('handover-office-canvas');
+  if (!canvas) return;
+  drawOfficePixelArt(false, 'handover-office-canvas', OFFICE_PALETTE);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const p = OFFICE_PALETTE;
+  // 奥の設備を隠し切らない大きさで、申し送り用ホワイトボードを重ねる。
+  pixelRect(ctx, p.black, 43, 20, 106, 62);
+  pixelRect(ctx, p.silver, 45, 22, 102, 58);
+  pixelRect(ctx, p.white, 49, 26, 94, 48);
+  pixelRect(ctx, p.blue, 56, 32, 32, 3);
+  pixelRect(ctx, p.carpet, 56, 39, 61, 2);
+  pixelRect(ctx, p.carpet, 56, 45, 48, 2);
+  pixelRect(ctx, p.amber, 119, 31, 14, 11);
+  pixelRect(ctx, p.red, 123, 47, 10, 9);
+  pixelRect(ctx, p.charcoal, 94, 79, 5, 12);
+  pixelRect(ctx, p.black, 76, 89, 42, 3);
+  const meetingStaff = [
+    { x:78, y:120, facing:'back', hair:'short', hairColor:'black', coat:'blue', shoulders:12 },
+    { x:115, y:120, facing:'back', hair:'bob', hairColor:'charcoal', coat:'silver', shoulders:11 },
+  ];
+  meetingStaff.forEach(staff => drawMorningStaffMember(ctx, p, staff));
+}
+
 function drawCompanyPresident(ctx, p){
   const x = 160, y = 82;
   // 明るい頭頂部と、左右に分かれた濃い側頭部。上をつながないことで小さくても形を読む。
@@ -527,6 +604,10 @@ function syncOfficeRing(ringing){
   }, 420);
 }
 
+function callbackTimeLabel(t){
+  return t && t.callbackKind === 'tomorrow' ? '翌日（日勤へ引き継ぎ）' : fmtClock(t.callbackDue);
+}
+
 function renderOffice(){
   document.body.classList.add('office-view');
   document.body.classList.remove('call-view');
@@ -549,7 +630,9 @@ function renderOffice(){
   $('office-sv-status').textContent = state.escLeft ? 'ESC枠 ' + state.escLeft + ' / ' + ESCALATIONS : '別件対応中';
   $('office-ship-status').textContent = '手配 ' + shipments + '件 ／ 費用 ¥' + state.tickets.reduce((n,t) => n + (t.shipment ? t.shipment.fee : 0), 0).toLocaleString('ja-JP');
   const callbackRemaining = callbacks.length ? Math.max(0, callbacks[0].callbackDue - state.clock) : 0;
-  $('office-tray-status').textContent = callbacks.length ? '折り返し待ち ' + callbacks.length + '件 ／ ' + callbacks[0].s.id + 'まであと ' + callbackRemaining + '分' : '折り返し待ち 0件';
+  $('office-tray-status').textContent = callbacks.length
+    ? '折り返し待ち ' + callbacks.length + '件 ／ ' + callbacks[0].s.id + (callbacks[0].callbackKind === 'tomorrow' ? 'は翌日（日勤へ引き継ぎ）' : 'まであと ' + callbackRemaining + '分')
+    : '折り返し待ち 0件';
   const officeNotices = [];
   if (state.outageKnown) officeNotices.push(esc(state.outageRegion) + '：提携キャリアの広域障害<br>復旧見込み 未定');
   state.officeEvents.slice(-3).forEach(event => officeNotices.push(esc(event.text)));
@@ -560,17 +643,19 @@ function renderOffice(){
   $('office-answer-status').textContent = '待ち ' + waiting.length + '件';
   $('office-callback').disabled = !readyCallbacks.length;
   $('office-callback-status').textContent = callbacks.length
-    ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '折り返し予定 ' + callbacks.length + '件 ／ ' + fmtClock(callbacks[0].callbackDue))
+    ? (readyCallbacks.length ? '折り返し可能 ' + readyCallbacks.length + '件' : '折り返し予定 ' + callbacks.length + '件 ／ ' + callbackTimeLabel(callbacks[0]))
     : '折り返し 0件';
   $('office-desk').disabled = !callbacks.length;
   $('office-desk-status').textContent = callbacks.length ? '調査可能 ' + callbacks.length + '件' : '調査可能 0件';
+  $('office-verify').disabled = waiting.length > 0;
+  $('office-verify-status').textContent = '完了 ' + state.verifiedDevices + '台 ／ 作業 ' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分';
   startTimePassageIfNeeded();
 }
 
 function enterOffice(){
   if (state.phase === 'report') return;
   state.phase = 'office';
-  advanceIdleOffice();
+  activateDueInbound();
   if (state.phase === 'report') return;
   renderOffice();
   window.scrollTo(0, 0);
@@ -619,14 +704,14 @@ function renderDeskHeader(t){
   return '<div class="call-head">' +
       '<span class="call-ticket"><b>チケット</b> ' + esc(t.s.id) + '</span>' +
       '<span class="call-time">通話は切断中</span>' +
-      '<span class="call-cost">折り返し ' + fmtClock(t.callbackDue) + '</span>' +
+      '<span class="call-cost">折り返し ' + callbackTimeLabel(t) + '</span>' +
     '</div>';
 }
 
 function renderDeskTicketChoice(list){
   return '<div class="opts">' + list.map(t =>
     '<button class="opt" data-desk-ticket="' + t.s.id + '"><span class="opt-label">' + esc(customerLabel(t, true)) +
-    '<span class="opt-sub">折り返しの約束 ' + fmtClock(t.callbackDue) + '</span></span></button>'
+    '<span class="opt-sub">折り返しの約束 ' + callbackTimeLabel(t) + '</span></span></button>'
   ).join('') + '</div><p class="hint-bar">折り返しを待っているあいだ、通話をつながずに社内システムだけを調べられます。</p>';
 }
 
@@ -668,11 +753,13 @@ function renderCallHeader(t){
   const outbound = t.callDirection === 'outbound';
   const payer = outbound ? '当社負担' : 'お客様負担';
   const cost = (t.callSegmentMinutes || 0) * CALL_RATE_PER_MIN;
-  const promised = t.callbackPromised
-    ? '<span class="call-promise">' + (t.callbackPromised === 'scheduled'
-        ? CALL_FLOW_LINES.callbackPromise.headScheduled
-        : CALL_FLOW_LINES.callbackPromise.headImmediate) + '</span>'
-    : '';
+  const promiseHeads = {
+    immediate:CALL_FLOW_LINES.callbackPromise.headImmediate,
+    scheduled:CALL_FLOW_LINES.callbackPromise.headScheduled,
+    three_hours:CALL_FLOW_LINES.callbackPromise.headThreeHours,
+    tomorrow:CALL_FLOW_LINES.callbackPromise.headTomorrow,
+  };
+  const promised = t.callbackPromised ? '<span class="call-promise">' + promiseHeads[t.callbackPromised] + '</span>' : '';
   /* §48-7: 電話の状態を1か所へ集める。保留の累計はこれまで業務報告でしか見えず、
      通話中に「どれだけ待たせているか」が分からなかった。待ち件数は、他の客を
      待たせている自覚のために要る。
@@ -828,9 +915,7 @@ function renderHangupButton(note, label = '電話を切る'){
 
 function unresolvedHangupGuide(t){
   if (t.callbackPromised){
-    const lines = [CALL_FLOW_LINES.callbackPromise.guide];
-    if (!t.returnTimeKnown) lines.push(CALL_FLOW_LINES.callbackPromise.guideNoReturn);
-    return '<b>' + lines[0] + '</b>' + (lines[1] ? '<p>' + lines[1] + '</p>' : '');
+    return '<b>' + CALL_FLOW_LINES.callbackPromise.guide + '</b>';
   }
   const causeNarrowed = hotCauses(t).size === 1;
   const next = t.symptomResolved
@@ -870,8 +955,9 @@ function hotelCallbackOffered(t){
 }
 
 function hotelCallbackSub(t){
-  if (!t.asked.has('q_stay') || !t.stayAddress) return '滞在先はまだ伺っていません。';
-  return t.callChargeConcerned ? 'お客様が国際通話料を気にしています。' : '5分を超えそうなら、お客様の通話料を止められます。';
+  if (!hotelContactKnown(t)) return 'ホテル名と滞在先はまだ伺っていません。';
+  const destination = '折り返し先：' + t.stayHotelName + '。';
+  return destination + (t.callChargeConcerned ? 'お客様が国際通話料を気にしています。' : '5分を超えそうなら、お客様の通話料を止められます。');
 }
 
 function renderFrontDeskOptions(t){
@@ -884,7 +970,7 @@ function renderFrontDeskOptions(t){
   const roomChoice = room
     ? '<button class="opt" data-front-desk="room"><span class="opt-label">' + esc(options.room.replace('{room}', room)) + '</span></button>'
     : '';
-  return frontContext + renderCommandHead('Front Desk', 'Please choose what to say in English.') + '<div class="opts front-desk-options">' +
+  return '<p class="hint-bar"><b>発信先：' + esc(t.stayHotelName) + '</b></p>' + frontContext + renderCommandHead('Front Desk', 'Please choose what to say in English.') + '<div class="opts front-desk-options">' +
     '<button class="opt" data-front-desk="guest" ' + (t.nameKnown ? '' : 'disabled') + '><span class="opt-label">' + esc(options.guest.replace('{name}', t.s.nameEn)) + '</span></button>' +
     roomChoice +
     '<button class="opt" data-front-desk="callback"><span class="opt-label">' + esc(options.callback) + '</span></button></div>';
@@ -969,13 +1055,13 @@ function renderLookupOptions(t){
 }
 
 function renderCarrierLookupOptions(t, lookup){
-  const hotelReady = t.asked.has('q_stay');
+  const hotelReady = hotelContactKnown(t);
   return '<div class="opts"><button class="opt" data-lookup-back="1"><span class="opt-label">← 照会項目の選び直し</span></button>' +
     '<button class="opt" disabled><span class="opt-label">保留にして調べる<span class="opt-sub">30分かかるため、通話をつないだままでは実行できません</span></span><span class="cost">不可</span></button>' +
     '<button class="opt" disabled><span class="opt-label">話しながら調べる<span class="opt-sub">社外への再開通依頼のため、通話継続では実行できません</span></span><span class="cost">不可</span></button></div>' +
     '<p class="hint-bar"><b>現地キャリアへ再開通を依頼します。30分ほどお時間をいただき、完了状況が分かり次第折り返します。</b><br>折り返し先を選ぶと、通話を終えて再開通依頼を始めます。</p>' +
-    '<div class="opts"><button class="opt" data-callback-destination="hotel" ' + (hotelReady ? '' : 'disabled') + '><span class="opt-label">ホテルへ折り返す<span class="opt-sub">滞在先へ電話し、フロントを通して客室につないでもらいます</span></span><span class="cost">' + lookup.minutes + '分</span></button></div>' +
-    (hotelReady ? '' : '<p class="hint-bar">ホテル客室は滞在先が未確認です。「聞く」で確認してください。</p>');
+    '<div class="opts"><button class="opt" data-callback-destination="hotel" ' + (hotelReady ? '' : 'disabled') + '><span class="opt-label">ホテルへ折り返す<span class="opt-sub">' + (hotelReady ? esc(t.stayHotelName) : 'ホテル名と滞在先を未確認') + 'のフロントを通して客室につないでもらいます</span></span><span class="cost">' + lookup.minutes + '分</span></button></div>' +
+    (hotelReady ? '' : '<p class="hint-bar">ホテル客室はホテル名と滞在先が未確認です。「聞く」で確認してください。</p>');
 }
 
 function simCleaningRecommended(t){
@@ -1175,7 +1261,8 @@ function renderLookupSystemScreen(line){
    ============================================================ */
 
 /* シートの開閉。開いている間はコンソールを隠し、通常のスクロールに戻す */
-function openSheet(){
+function openSheet(kind = ''){
+  $('sheet').classList.toggle('briefing-sheet', kind === 'briefing');
   $('overlay').classList.add('on');
   document.body.classList.add('sheet-open');
   document.body.classList.remove('playing');
@@ -1210,6 +1297,77 @@ function drawArtifactQr(){
 function getCareerStorage(){
   try { return window.localStorage; }
   catch (error){ return null; }
+}
+
+function defaultSoundSettings(){
+  return { enabled:SOUND_SETTINGS.defaultEnabled, volume:SOUND_SETTINGS.defaultVolume };
+}
+
+function readSoundSettings(storage = getCareerStorage()){
+  const fallback = defaultSoundSettings();
+  try {
+    if (!storage) return fallback;
+    const raw = storage.getItem(SOUND_SETTINGS.storageKey);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return {
+      enabled:typeof parsed.enabled === 'boolean' ? parsed.enabled : fallback.enabled,
+      volume:Number.isFinite(parsed.volume) ? clamp(parsed.volume, 0, 1) : fallback.volume,
+    };
+  } catch (error){ return fallback; }
+}
+
+function writeSoundSettings(storage = getCareerStorage()){
+  try {
+    if (!storage) return false;
+    storage.setItem(SOUND_SETTINGS.storageKey, JSON.stringify({ enabled:GAME_FLAGS.soundEnabled, volume:GAME_FLAGS.soundVolume }));
+    return true;
+  } catch (error){ return false; }
+}
+
+function syncSoundControls(){
+  const enabled = GAME_FLAGS.soundEnabled;
+  document.querySelectorAll('[data-sound-toggle]').forEach(button => {
+    button.textContent = button.dataset.soundCompact ? (enabled ? '音 ON' : '音 OFF') : (enabled ? '音をOFFにする' : '音をONにする');
+    button.setAttribute('aria-label', enabled ? '効果音をOFFにする' : '効果音をONにする');
+    button.setAttribute('aria-pressed', String(enabled));
+  });
+  document.querySelectorAll('[data-sound-state]').forEach(node => { node.textContent = enabled ? 'ON' : 'OFF'; });
+  const balanceSound = $('balance-sound');
+  const balanceVolume = $('balance-volume');
+  if (balanceSound) balanceSound.checked = enabled;
+  if (balanceVolume) balanceVolume.value = String(GAME_FLAGS.soundVolume);
+}
+
+function initializeSoundSettings(storage = getCareerStorage()){
+  const saved = readSoundSettings(storage);
+  GAME_FLAGS.soundEnabled = saved.enabled;
+  GAME_FLAGS.soundVolume = saved.volume;
+  syncSoundControls();
+}
+
+function setSoundEnabled(enabled, storage = getCareerStorage()){
+  GAME_FLAGS.soundEnabled = Boolean(enabled);
+  setAudioUnlockStatus(GAME_FLAGS.soundEnabled ? 'idle' : 'disabled');
+  writeSoundSettings(storage);
+  syncSoundControls();
+}
+
+function setSoundVolume(volume, storage = getCareerStorage()){
+  GAME_FLAGS.soundVolume = clamp(Number(volume), 0, 1);
+  writeSoundSettings(storage);
+  syncSoundControls();
+}
+
+function applySoundEnabledFromGesture(enabled){
+  setSoundEnabled(enabled);
+  if (!enabled){ stopOfficeRing(); return; }
+  initAudio();
+  unlockAudioFromGesture().then(ready => { if (ready) playAudioTestSound(); });
+}
+
+function toggleSoundFromGesture(){
+  applySoundEnabledFromGesture(!GAME_FLAGS.soundEnabled);
 }
 
 function readCareerRecord(storage = getCareerStorage()){
@@ -1254,6 +1412,11 @@ function audioDiagnosticHtml(){
     '<button class="btn-ghost" data-audio-unlock="1">音をテスト／再有効化</button></section>';
 }
 
+function soundQuickControlHtml(){
+  return '<div class="sound-quick-control" aria-label="効果音の設定"><span>効果音 <b data-sound-state="1">' + (GAME_FLAGS.soundEnabled ? 'ON' : 'OFF') + '</b></span>' +
+    '<button class="btn-ghost" data-sound-toggle="1">' + (GAME_FLAGS.soundEnabled ? '音をOFFにする' : '音をONにする') + '</button></div>';
+}
+
 function handoverMeetingTickets(){
   return state.tickets.filter(ticket => ticket.handover).sort((a,b) => a.callbackDue - b.callbackDue);
 }
@@ -1276,10 +1439,13 @@ function showHandoverMeeting(){
   ).join('');
   $('sheet').innerHTML =
     '<p class="eyebrow">HANDOVER MEETING ／ ' + fmtClock(SHIFT_START) + ' JST</p>' +
-    '<h1>23時の引き継ぎ</h1><p class="handover-speaker"><b>日勤担当</b>から、今夜の折り返しを引き継ぎます。</p>' +
+    '<h1>23時の引き継ぎ</h1>' +
+    '<figure class="handover-figure"><canvas id="handover-office-canvas" width="192" height="168" role="img" aria-label="深夜オフィスのホワイトボードの前で、後ろ姿の日勤担当と夜勤担当が申し送りをしている"></canvas></figure>' +
+    '<p class="handover-speaker"><b>日勤担当</b>から、今夜の折り返しを引き継ぎます。</p>' +
     '<div class="handover-list">' + entries + '</div>' +
     '<button class="btn-primary" id="btn-finish-handover">引き継いで夜勤を始める</button>';
   openSheet();
+  drawHandoverMeeting();
   $('btn-finish-handover').onclick = enterShiftAfterMeeting;
 }
 
@@ -1291,18 +1457,22 @@ function startShiftFromBriefing(){
 function showBriefing(){
   resetTimePassage();
   $('sheet').innerHTML =
-    '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +
-    '<h1>深夜のグローバルデスク</h1>' +
-    careerBriefingHtml() +
-    '<div class="artifact-qr-card" aria-label="iPhoneで遊ぶためのQRコード">' +
-      '<canvas class="artifact-qr-canvas" id="artifact-qr-canvas" role="img" aria-label="この公開ページを開くQRコード"></canvas>' +
-      '<div class="artifact-qr-copy"><b>iPhoneで遊ぶ</b><p>カメラでQRコードを読み取ると、このページが開きます。</p>' +
-      '<code class="artifact-qr-url">' + esc(ARTIFACT_URL) + '</code></div>' +
+    '<div class="briefing-scroll">' +
+      '<p class="eyebrow">SHIFT BRIEFING ／ 08月31日 ' + fmtClock(SHIFT_START) + ' JST</p>' +
+      '<h1>深夜のグローバルデスク</h1>' +
+      careerBriefingHtml() +
+      '<div class="artifact-qr-card" aria-label="iPhoneで遊ぶためのQRコード">' +
+        '<canvas class="artifact-qr-canvas" id="artifact-qr-canvas" role="img" aria-label="この公開ページを開くQRコード"></canvas>' +
+        '<div class="artifact-qr-copy"><b>iPhoneで遊ぶ</b><p>カメラでQRコードを読み取ると、このページが開きます。</p>' +
+        '<code class="artifact-qr-url">' + esc(ARTIFACT_URL) + '</code></div>' +
+      '</div>' +
+      soundQuickControlHtml() +
+      audioDiagnosticHtml() +
     '</div>' +
-    audioDiagnosticHtml() +
-    '<button class="btn-primary" id="btn-start">シフトを始める</button>';
+    '<div class="briefing-actions"><button class="btn-primary" id="btn-start">シフトを始める</button></div>';
 
-  openSheet();
+  openSheet('briefing');
+  syncSoundControls();
   drawArtifactQr();
   $('btn-start').onclick = () => {
     initAudio();
@@ -1476,12 +1646,12 @@ function showBalanceConsole(){
     GAME_FLAGS.shuffleIdentity = event.target.checked;
   };
   $('balance-sound').onchange = event => {
-    GAME_FLAGS.soundEnabled = event.target.checked;
-    setAudioUnlockStatus(event.target.checked ? 'idle' : 'disabled');
+    applySoundEnabledFromGesture(event.target.checked);
   };
   $('balance-volume').oninput = event => {
-    GAME_FLAGS.soundVolume = clamp(Number(event.target.value), 0, 1);
+    setSoundVolume(event.target.value);
   };
+  syncSoundControls();
   $('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };
   $('balance-replay-secret-ending').onclick = event => { event.stopImmediatePropagation(); showSecretEnding(true); };
   $('balance-clear-career').onclick = () => clearCareerRecord();
@@ -1593,7 +1763,7 @@ function renderReport(){
   const checks = (items, chosen, attr) => items.map(x => '<label class="report-check"><input type="checkbox" data-' + attr + '="' + x.id + '" ' + (chosen.includes(x.id) ? 'checked' : '') + '><span>' + escaped(x) + '</span></label>').join('') || '<p class="empty-note">該当する特記事項はありません。</p>';
   $('sheet').innerHTML =
     '<p class="eyebrow">DAILY REPORT ／ ' + fmtClock(state.clock) + ' JST</p><h1>業務報告 ／ 深夜シフト</h1>' +
-    '<div class="report-auto">対応件数 ' + state.tickets.length + '件（入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件 ／ 放棄呼 ' + m.abandoned + '件 ／ 評価対象外 ' + m.unscored + '件）／ 平均通話 ' + (m.aht === null ? '—' : m.aht.toFixed(1)) + '分 ／ エスカレーション ' + state.tickets.filter(t => t.escUsed).length + '件 ／ 発生費用 ¥' + totalCost().toLocaleString('ja-JP') + '</div>' +
+    '<div class="report-auto">対応件数 ' + state.tickets.length + '件（入電 ' + inboundCount + '件 ／ 引き継ぎ ' + handoverCount + '件 ／ 放棄呼 ' + m.abandoned + '件 ／ 評価対象外 ' + m.unscored + '件）／ 機器検証 ' + state.verifiedDevices + '台完了 ／ 平均通話 ' + (m.aht === null ? '—' : m.aht.toFixed(1)) + '分 ／ エスカレーション ' + state.tickets.filter(t => t.escUsed).length + '件 ／ 発生費用 ¥' + totalCost().toLocaleString('ja-JP') + '</div>' +
     '<h2>特記事項</h2><p class="hint-bar">実際に起きたことで、次の担当が知るべきものを選びます。必須と日常対応が混ざっています。</p><div class="report-list">' + checks(o.special, state.report.special, 'report-special') + '</div>' +
     '<h2>申し送り</h2><p class="hint-bar">翌シフトへの引き継ぎです。必須がある夜に「特になし」は誤りです。</p><div class="report-list">' + checks(o.handoff, state.report.handoff, 'report-handoff') + '<label class="report-check"><input type="checkbox" data-report-handoff="none" ' + (state.report.handoff.includes('none') ? 'checked' : '') + '><span>特になし<i>引き継ぎ不要</i></span></label></div>' +
     '<button class="btn-primary" id="report-submit" data-report-submit="1">業務報告を提出する</button>';

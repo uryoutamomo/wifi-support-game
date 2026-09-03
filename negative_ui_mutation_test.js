@@ -283,7 +283,7 @@ const mutations = [
   },
   {
     name:'§45 折り返しの申し出でその場で切る', file:'p3_game.js',
-    from:'  t.callbackPromised = kind;', to:"  t.callbackPromised = kind;\n  t.state = 'callback';\n  state.focus = null;",
+    from:'  t.callbackPromised = preferredKind;', to:"  t.callbackPromised = preferredKind;\n  t.state = 'callback';\n  state.focus = null;",
     expected:'§45 検査1: 折り返しの申し出がその場で通話を終わらせる',
   },
   {
@@ -299,8 +299,8 @@ const mutations = [
   },
   {
     name:'§53 切る前の案内で滞在先未確認を漏らす', file:'p4_view.js',
-    from:'    const lines = [CALL_FLOW_LINES.callbackPromise.guide];',
-    to:"    const lines = [t.stayAddress ? CALL_FLOW_LINES.callbackPromise.guide : '滞在先は未確認です。'];",
+    from:"    return '<b>' + CALL_FLOW_LINES.callbackPromise.guide + '</b>';",
+    to:"    return '<b>' + (t.stayAddress ? CALL_FLOW_LINES.callbackPromise.guide : '滞在先は未確認です。') + '</b>';",
     expected:'§53 検査: 滞在先の有無で終話前案内が変わり、内部状態を漏らす',
   },
   {
@@ -463,13 +463,13 @@ const mutations = [
     name:'オフィスの電話をかけるボタンを消す', file:'p1_head.html',
     from:'      <button class="office-call-action" id="office-callback" data-office-callback="1"><b>電話をかける</b><span id="office-callback-status">折り返し 0件</span></button>\n',
     to:'',
-    expected:'オフィスの操作が受話・折り返し・端末調査の3ボタンではない',
+    expected:'オフィスの操作が受話・折り返し・端末調査・機器検証の4ボタンではない',
   },
   {
     name:'折り返し待ちの端末調査を消す', file:'p1_head.html',
     from:'      <button class="office-call-action" id="office-desk" data-office-desk="1"><b>端末で調べる</b><span id="office-desk-status">調査可能 0件</span></button>\n',
     to:'',
-    expected:'オフィスの操作が受話・折り返し・端末調査の3ボタンではない',
+    expected:'オフィスの操作が受話・折り返し・端末調査・機器検証の4ボタンではない',
   },
   {
     name:'端末調査を通話中と同じストレス付きにする', file:'p3_game.js',
@@ -497,8 +497,8 @@ const mutations = [
   },
   {
     name:'滞在先未確認の折り返しを黙って握り潰す', file:'p3_game.js',
-    from:"  if (!t.asked.has('q_stay') || !t.stayAddress){ blindCallbackRedial(t); return; }",
-    to:"  if (!t.asked.has('q_stay') || !t.stayAddress){ render(); return; }",
+    from:'  if (!hotelContactKnown(t)){ blindCallbackRedial(t); return; }',
+    to:'  if (!hotelContactKnown(t)){ render(); return; }',
     expected:'滞在先未確認の折り返しを別扱いにしていない',
   },
   {
@@ -576,8 +576,98 @@ const mutations = [
   },
   {
     name:'タイプ音を毎文字鳴らす', file:'p4_view.js',
-    from:'function playTypeSound(index){ if (index % 4) return;', to:'function playTypeSound(index){',
+    from:'function playTypeSound(index, line, ticket){\n  if (index % 4) return;', to:'function playTypeSound(index, line, ticket){',
     expected:'タイプ音が1文字ごとではなく間引かれていない',
+  },
+  {
+    name:'§58 男性の声を中間音へ戻す', file:'p4_view.js',
+    from:'const TYPE_SOUND_BASE_HZ = Object.freeze({ male:660, neutral:760, female:860 });',
+    to:'const TYPE_SOUND_BASE_HZ = Object.freeze({ male:760, neutral:760, female:860 });',
+    expected:'§58 男性・性別なし・女性の打鍵音が低・中・高に分かれない',
+  },
+  {
+    name:'§58 性別不明で顧客データを直接参照する', file:'p4_view.js',
+    from:"  const gender = line && line.who === 'cust' && ticket && ticket.s ? ticket.s.gender : null;",
+    to:"  const gender = line.who === 'cust' ? ticket.s.gender : null;",
+    expected:'§58 性別のない話し手または案件で打鍵音が落ちる',
+  },
+  {
+    name:'§58 症状で声を高くして答えを漏らす', file:'p4_view.js',
+    from:"  const base = gender === 'male' ? TYPE_SOUND_BASE_HZ.male",
+    to:"  if (ticket && ticket.s && String(ticket.s.opening || '').includes('圏外')) return 1040;\n  const base = gender === 'male' ? TYPE_SOUND_BASE_HZ.male",
+    expected:'§58 声の高さが性別以外の症状・真因・顧客タイプを参照する',
+  },
+  {
+    name:'§58 文字送りから話し手を渡さない', file:'p4_view.js',
+    from:'    playTypeSound(pos, line, t);',
+    to:'    playTypeSound(pos);',
+    expected:'顧客発話で対応する効果音関数が呼ばれない',
+  },
+  {
+    name:'§58 打鍵音を長くする', file:'p4_view.js',
+    from:"  withAudio((ctx, volume) => synthTone(ctx, volume, frequency, 0, .018, {type:'square',level:.025}));",
+    to:"  withAudio((ctx, volume) => synthTone(ctx, volume, frequency, 0, .08, {type:'square',level:.025}));",
+    expected:'§58 打鍵音の高さだけを変え、長さと音量を維持できない',
+  },
+  {
+    name:'§58 オペレーター発話にも顧客の文字送り音を付ける', file:'p3_game.js',
+    from:"(x.who === 'cust' || x.who === 'front' || x.who === 'sys')",
+    to:"(x.who === 'cust' || x.who === 'front' || x.who === 'sys' || x.who === 'me')",
+    expected:'未表示行を会話順に選んでいない',
+  },
+  {
+    name:'§59 共通出力倍率を1へ戻す', file:'p2_data.js',
+    from:'  outputGain:3,',
+    to:'  outputGain:1,',
+    expected:'§59 共通倍率3と既定音量0.75で全効果音が十分に増幅されない',
+  },
+  {
+    name:'§59 プレイ中の音ボタンを外す', file:'p1_head.html',
+    from:'data-sound-toggle="1" data-sound-compact="1"',
+    to:'data-sound-topbar="1" data-sound-compact="1"',
+    expected:'§59 プレイ中と開始前の両方に音のON/OFFがない',
+  },
+  {
+    name:'§59 開始前の音ボタンを外す', file:'p4_view.js',
+    from:'      soundQuickControlHtml() +\n      audioDiagnosticHtml() +',
+    to:'      audioDiagnosticHtml() +',
+    expected:'§59 プレイ中と開始前の両方に音のON/OFFがない',
+  },
+  {
+    name:'§59 音のON/OFFを保存しない', file:'p4_view.js',
+    from:"function setSoundEnabled(enabled, storage = getCareerStorage()){\n  GAME_FLAGS.soundEnabled = Boolean(enabled);\n  setAudioUnlockStatus(GAME_FLAGS.soundEnabled ? 'idle' : 'disabled');\n  writeSoundSettings(storage);",
+    to:"function setSoundEnabled(enabled, storage = getCareerStorage()){\n  GAME_FLAGS.soundEnabled = Boolean(enabled);\n  setAudioUnlockStatus(GAME_FLAGS.soundEnabled ? 'idle' : 'disabled');",
+    expected:'§59 音のON/OFFまたは音量変更が保存されない',
+  },
+  {
+    name:'§59 音ボタンを演出スキップより後に処理する', file:'p5_events.js',
+    from:"  const soundToggle = e.target.closest('[data-sound-toggle]');\n  if (soundToggle){ toggleSoundFromGesture(); return; }\n  if (timePassage){\n    const answerDuringPassage = e.target.closest('[data-office-answer]');\n    finishTimePassage();\n    if (!answerDuringPassage) return;\n  }",
+    to:"  if (timePassage){\n    const answerDuringPassage = e.target.closest('[data-office-answer]');\n    finishTimePassage();\n    if (!answerDuringPassage) return;\n  }\n  const soundToggle = e.target.closest('[data-sound-toggle]');\n  if (soundToggle){ toggleSoundFromGesture(); return; }",
+    expected:'§59 音のON/OFFが文字送り・時間経過のスキップより先に反応しない',
+  },
+  {
+    name:'§59 起動時に保存した音設定を読まない', file:'p5_events.js',
+    from:'initializeSoundSettings();\ninitializeCareer();',
+    to:'initializeCareer();',
+    expected:'§59 ゲーム起動前に保存済みの音設定を復元しない',
+  },
+  {
+    name:'§60 resume失敗後もAudioContextを作り直さない', file:'p4_view.js',
+    from:"    if (ctx.state !== 'running') ctx = await recreateAudioContextFromGesture(ctx);",
+    to:"    if (ctx.state !== 'running') return false;",
+    expected:'§60 interruptedからresumeし、戻らなければ作り直す実挙動がない',
+  },
+  {
+    name:'§60 古いAudioContextを閉じても強制作り直しをしない', file:'p4_view.js',
+    from:'  const fresh = initAudio(true);',
+    to:'  const fresh = initAudio(false);',
+    expected:'§60 古いAudioContextを閉じ、新規作成して再開する実挙動がない',
+  },
+  {
+    name:'§60 診断表示のAudioContext状態を固定する', file:'p4_view.js',
+    from:"  const context = ' AudioContext: ' + currentAudioContextState() + '。';",
+    to:"  const context = ' AudioContext: running。';",
+    expected:'§60 現在のAudioContext状態が診断表示に出ない',
   },
   {
     name:'通話開始時に着信音を止めない', file:'p4_view.js',
@@ -1000,8 +1090,8 @@ const mutations = [
   },
   {
     name:'折り返し再接続から顧客発話を消す', file:'p3_game.js',
-    from:"{ who:'cust', text:customerReply },",
-    to:"{ who:'note', text:customerReply },",
+    from:"    { who:'front', text:frontReply },\n    { who:'cust', text:customerReply },",
+    to:"    { who:'front', text:frontReply },\n    { who:'note', text:customerReply },",
     expected:'§39 フロント接続後にFront Deskと顧客の発話が揃わない',
   },
   {
@@ -1531,8 +1621,8 @@ const mutations = [
   },
   {
     name:'毎夜のブリーフィングへ舞台説明を戻す', file:'p4_view.js',
-    from:"    careerBriefingHtml() +\n    '<div class=\"artifact-qr-card\"",
-    to:"    careerBriefingHtml() +\n    '<p class=\"lead\">海外用モバイルWiFiレンタルのテクニカルサポート</p>' +\n    '<div class=\"artifact-qr-card\"",
+    from:"      careerBriefingHtml() +\n      '<div class=\"artifact-qr-card\"",
+    to:"      careerBriefingHtml() +\n      '<p class=\"lead\">海外用モバイルWiFiレンタルのテクニカルサポート</p>' +\n      '<div class=\"artifact-qr-card\"",
     expected:'§29 ブリーフィングに毎夜不要な説明が残っている',
   },
   {
@@ -1860,7 +1950,7 @@ const mutations = [
   },
   {
     name:'S10から配送先回答を消して進行を止める', file:'p2_data.js',
-    from:"    q_stay:{ text:'オペラ地区のホテル、704号室です。ここで待っていれば届きますか？' },\n",
+    from:"    q_stay:{ text:'{hotel}、704号室です。ここで待っていれば届きますか？' },\n",
     to:'',
     expected:'§32 検査9: progression_testが通らない',
   },
@@ -2037,7 +2127,7 @@ const mutations = [
   },
   {
     name:'S10から配送先回答を消して進行を止める（§35）', file:'p2_data.js',
-    from:"    q_stay:{ text:'オペラ地区のホテル、704号室です。ここで待っていれば届きますか？' },\n", to:'',
+    from:"    q_stay:{ text:'{hotel}、704号室です。ここで待っていれば届きますか？' },\n", to:'',
     expected:'§32 検査9: progression_testが通らない',
   },
   {
@@ -2205,15 +2295,15 @@ const mutations = [
   },
   {
     name:'5分超の通話料発話を毎分繰り返す', file:'p3_game.js',
-    from:"!t.callChargeConcerned && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5",
+    from:"!t.callChargeThresholdPassed && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5",
     to:"t.callDirection === 'inbound' && t.inboundMinutes > 5",
-    expected:'§39 検査5: 通話料を気にする発話を繰り返す',
+    expected:'§39 検査5: 通話料判定後に発話を繰り返す',
   },
   {
     // §40: 連絡先を持たないまま、ふつうの折り返しとして成立させてしまう変異。
     name:'滞在先未確認でも一般折り返しを開始する', file:'p3_game.js',
-    from:"if (!t.asked.has('q_stay') || !t.stayAddress){ blindCallbackRedial(t); return; }",
-    to:"if (false && (!t.asked.has('q_stay') || !t.stayAddress)){ blindCallbackRedial(t); return; }",
+    from:'if (!hotelContactKnown(t)){ blindCallbackRedial(t); return; }',
+    to:'if (false && !hotelContactKnown(t)){ blindCallbackRedial(t); return; }',
     expected:'§40 滞在先未確認の折り返しが、折り返せなかった扱いにならない',
   },
   {
@@ -2259,8 +2349,8 @@ const mutations = [
   },
   {
     name:'Front Deskの発話を選択画面から隠す', file:'p4_view.js',
-    from:"return frontContext + renderCommandHead('Front Desk'",
-    to:"return renderCommandHead('Front Desk'",
+    from:" + frontContext + renderCommandHead('Front Desk'",
+    to:" + renderCommandHead('Front Desk'",
     expected:'§39 検査7: Front Deskの発話が選択画面に表示されない',
   },
   {
@@ -2553,9 +2643,9 @@ const mutations = [
   },
   {
     name:'§57 タップで時間経過を飛ばせなくする', file:'p5_events.js',
-    from:'  if (timePassage){ finishTimePassage(); return; }\n',
-    to:'',
-    expected:'§57 検査8: タップ・キーで時間経過演出を飛ばせない',
+    from:"  if (timePassage){\n    const answerDuringPassage = e.target.closest('[data-office-answer]');\n    finishTimePassage();\n    if (!answerDuringPassage) return;\n  }\n",
+    to:"  if (timePassage){\n    const answerDuringPassage = e.target.closest('[data-office-answer]');\n    if (!answerDuringPassage) return;\n  }\n",
+    expected:'§57 検査8: タップで時間経過演出を飛ばせない',
   },
   {
     name:'§57 演出中にゲーム時刻を書き換える', file:'p4_view.js',
@@ -2575,9 +2665,9 @@ const mutations = [
     expected:'iPhoneのユーザー操作内でAudioContextを再開し、再生用AudioSessionへ切り替えない',
   },
   {
-    name:'§53 開始タップでAudioContextをresumeしない', file:'p4_view.js',
-    from:"    if (ctx.state === 'suspended') await ctx.resume();", to:"    if (ctx.state === 'suspended') return false;",
-    expected:'iPhoneのユーザー操作内でAudioContextを再開し、再生用AudioSessionへ切り替えない',
+    name:'§60 interruptedのAudioContextをresumeしない', file:'p4_view.js',
+    from:"      if (ctx.state !== 'running' && typeof ctx.resume === 'function') await ctx.resume();", to:"      if (ctx.state === 'suspended' && typeof ctx.resume === 'function') await ctx.resume();",
+    expected:'§60 interruptedからresumeし、戻らなければ作り直す実挙動がない',
   },
   {
     name:'§53 AudioContext生成失敗を診断表示へ出さない', file:'p4_view.js',
@@ -2663,6 +2753,66 @@ const mutations = [
     name:'§53 オフィスでトップバー時計も表示する', file:'p1_head.html',
     from:'body.office-view .topbar .clock{ display:none; }', to:'body.office-view .topbar .clock{ display:flex; }',
     expected:'§53 検査9: オフィス時計・シフト帯が見出し直下でなく、トップバー時計も重複表示される',
+  },
+  {
+    name:'§61 ホテル名から都市名を外す', file:'p2_data.js',
+    from:"    hotelName:hotelStem + ' ' + scenario.city,",
+    to:'    hotelName:hotelStem,',
+    expected:'§61 検査1: ホテル名の末尾が割り当て土地の都市名でない',
+  },
+  {
+    name:'§61 住所だけでホテル折り返しを許す', file:'p3_game.js',
+    from:"return Boolean(t && t.asked && t.asked.has('q_stay') && t.stayAddress && t.stayHotelName);",
+    to:"return Boolean(t && t.asked && t.asked.has('q_stay') && t.stayAddress);",
+    expected:'§61 検査4/5: 住所だけで折り返せる、またはホテル名を聞いても折り返せない',
+  },
+  {
+    name:'§63 約束後の必要なホテル確認でも怒らせる', file:'p3_game.js',
+    from:"    if ((!necessaryCallbackStay || !r) && !addStress(t, askStressBase(t, r ? 3 : 9), !r)) return;",
+    to:"    if (!addStress(t, askStressBase(t, r ? 3 : 9), !r)) return;",
+    expected:'§63 検査1: 折り返し約束後の初回ホテル確認が名前を返す、怒らない、1分進むの3点を満たさない',
+  },
+  {
+    name:'§63 S4の3時間後希望を消す', file:'p2_data.js',
+    from:"stayDays:4, callbackPreference:'three_hours',",
+    to:'stayDays:4,',
+    expected:'§63 検査4/5: S4とS12に3時間後・翌日の希望が付いていない',
+  },
+  {
+    name:'§64 オフィスへ戻るだけで1分進める', file:'p4_view.js',
+    from:"  state.phase = 'office';\n  activateDueInbound();\n  if (state.phase === 'report') return;",
+    to:"  state.phase = 'office';\n  advance(1);\n  activateDueInbound();\n  if (state.phase === 'report') return;",
+    expected:'§64 検査1: オフィスへ戻るだけで時刻を進める',
+  },
+  {
+    name:'§64 機器検証を1分ずつ進めない', file:'p3_game.js',
+    from:'    state.deviceVerificationMinutes++;\n    advance(1);',
+    to:'    state.deviceVerificationMinutes += remaining;\n    advance(remaining);',
+    expected:'§25 機器検証中の着信と折り返し期限の進行を両立できない',
+  },
+  {
+    name:'§64 着信しても機器検証を止めない', file:'p3_game.js',
+    from:"    if (state.tickets.some(t => t.state === 'waiting')) break;",
+    to:'',
+    expected:'機器検証が着信した分で中断し、途中時間を保存できない',
+  },
+  {
+    name:'§65 通話料を訴える客を半分以外にする', file:'p2_data.js',
+    from:"const CALL_CHARGE_COMPLAINT_TYPES = Object.freeze(['hurried','expert']);",
+    to:"const CALL_CHARGE_COMPLAINT_TYPES = Object.freeze(['hurried','expert','anxious']);",
+    expected:'§65 検査1: 通話料を直接訴えるタイプが半分でない',
+  },
+  {
+    name:'§65 急ぐ客も一般折り返しを承諾する', file:'p3_game.js',
+    from:"  if (t.s && t.s.type === 'hurried'){",
+    to:"  if (false && t.s && t.s.type === 'hurried'){",
+    expected:'§65 検査4/5: 急ぐ客が一般折り返しを断って同じ通話で解決を続けられない',
+  },
+  {
+    name:'§9 引き継ぎ会議の人物を1人にする', file:'p4_view.js',
+    from:"    { x:115, y:120, facing:'back', hair:'bob', hairColor:'charcoal', coat:'silver', shoulders:11 },\n",
+    to:'',
+    expected:'§9 検査2: 既存オフィス背景と人物部品で2人の申し送りを描かない',
   },
 ];
 

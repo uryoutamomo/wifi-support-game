@@ -141,7 +141,7 @@ button:focus-visible, [tabindex]:focus-visible{
 }
 .clock .z{ font-size: 11px; color: var(--faint); letter-spacing: .04em; }
 
-.btn-help,.btn-balance{
+.btn-help,.btn-balance,.btn-sound{
   background: transparent;
   border: 1px solid var(--line);
   color: var(--dim);
@@ -150,7 +150,7 @@ button:focus-visible, [tabindex]:focus-visible{
   border-radius: 2px;
   transition: border-color .15s, color .15s;
 }
-.btn-help:hover,.btn-balance:hover{ border-color: var(--amber-deep); color: var(--amber); }
+.btn-help:hover,.btn-balance:hover,.btn-sound:hover{ border-color: var(--amber-deep); color: var(--amber); }
 
 /* ---------- 23:00〜07:00 タイムシフト表 ---------- */
 
@@ -1083,8 +1083,14 @@ body.sheet-open .console{ display: none; }
 .audio-diagnostic b{ display:block; color:var(--text); font:800 16px/1.4 var(--display); }
 .audio-diagnostic p{ margin:6px 0 10px; color:var(--text-2); font-size:13px; line-height:1.6; }
 .audio-diagnostic .btn-ghost{ margin:0; }
+.sound-quick-control{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
+.sound-quick-control span{ color:var(--text-2); font-size:14px; }
+.sound-quick-control b{ color:var(--accent); }
+.sound-quick-control .btn-ghost{ width:auto; margin:0; }
 .handover-speaker{ margin:14px 0 16px; padding:12px 14px; border-left:3px solid var(--accent); background:var(--accent-soft); color:var(--text-2); }
 .handover-speaker b{ color:var(--accent); }
+.handover-figure{ margin:16px 0; overflow:hidden; border:3px solid var(--line); border-radius:8px; background:#07111c; }
+.handover-figure canvas{ display:block; width:100%; height:auto; image-rendering:crisp-edges; image-rendering:pixelated; }
 .handover-list{ display:grid; gap:12px; margin:14px 0 22px; }
 .handover-card{ padding:14px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
 .handover-card p{ margin:0; color:var(--text-2); font-size:15px; line-height:1.75; }
@@ -1147,7 +1153,7 @@ body.sheet-open .console{ display: none; }
 .system-screen .log-customer b{ color:#78B8B3; }
 .system-screen .record-denied-message b{ color:#F6C56A; }
 .system-screen .record-denied-message p{ color:#E4F6F4; }
-.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover{ border-color:var(--accent-line); color:var(--accent); }
+.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover,.btn-sound:hover{ border-color:var(--accent-line); color:var(--accent); }
 
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -1173,7 +1179,7 @@ body.playing{ display:block; height:auto; min-height:100dvh; overflow:auto; }
 .topbar-inner{
   position:relative;
   display:grid;
-  grid-template-columns:minmax(0,1fr) auto auto auto;
+  grid-template-columns:minmax(0,1fr) auto auto auto auto;
   gap:10px;
   padding:calc(12px + env(safe-area-inset-top)) 14px 12px;
 }
@@ -1183,11 +1189,14 @@ body.playing{ display:block; height:auto; min-height:100dvh; overflow:auto; }
 .clock{ gap:4px; }
 .clock .t{ font-size:24px; }
 .clock .z{ font-size:12px; }
-.btn-help,.btn-balance{ width:44px; height:44px; min-width:44px; padding:0; border-radius:50%; font-size:0; }
+.btn-help,.btn-balance,.btn-sound{ width:44px; height:44px; min-width:44px; padding:0; border-radius:50%; font-size:0; }
 .btn-help::after{ content:"?"; font:700 22px/1 var(--display); }
 .btn-balance::after{ content:"調"; font:700 17px/1 var(--display); }
-.topbar-inner > .btn-balance{ grid-row:1; grid-column:3; align-self:center; justify-self:end; z-index:2; }
-.topbar-inner > .btn-help{ grid-row:1; grid-column:4; align-self:center; justify-self:end; z-index:2; }
+.btn-sound::after{ content:"音"; font:700 17px/1 var(--display); }
+.btn-sound[aria-pressed="false"]{ border-color:var(--crit); color:var(--crit); }
+.topbar-inner > .btn-sound{ grid-row:1; grid-column:3; align-self:center; justify-self:end; z-index:2; }
+.topbar-inner > .btn-balance{ grid-row:1; grid-column:4; align-self:center; justify-self:end; z-index:2; }
+.topbar-inner > .btn-help{ grid-row:1; grid-column:5; align-self:center; justify-self:end; z-index:2; }
 .shift-strip{ height:52px; }
 .shift-axis{ inset-inline:14px; }
 .shift-tick{ font-size:12px; }
@@ -1297,6 +1306,45 @@ body.office-view .office-scene{ gap:14px; }
 .sheet h2{ margin-top:32px; font-size:23px; letter-spacing:.07em; }
 .sheet .lead,.sheet p,.sheet li{ max-width:none; font-size:20px; line-height:1.8; }
 .sheet ul{ max-width:none; padding-left:24px; }
+
+/* 小さい実効高では、本文をスクロールさせても開始操作だけは画面の下端に残す。
+   初回のシフト開始で指を動かすことを要求しない。 */
+.sheet.briefing-sheet{ display:flex; flex-direction:column; height:100dvh; min-height:0; overflow:hidden; padding-bottom:0; }
+.briefing-scroll{ min-height:0; overflow-y:auto; padding-bottom:18px; }
+.briefing-actions{ flex:none; padding:12px 0 calc(16px + env(safe-area-inset-bottom)); background:var(--surface); border-top:1px solid var(--line); box-shadow:0 -8px 18px rgba(21,32,43,.08); }
+.briefing-actions .btn-primary{ margin:0; }
+
+/* オフィスと通話では、現在の会話や設備より先に、次の操作を小画面の下端に置く。
+   背後の情報は必要に応じてスクロールして読めるが、電話・4コマンド・終話は常に押せる。 */
+@media (max-height:760px){
+  /* transform を持つアニメーション祖先は fixed の基準面を本文に変えるため、
+     縮んだ画面では入場アニメーションを使わない。 */
+  body.office-view .office-scene,body.call-view .console{ animation:none; }
+  body.office-view .office-call-actions{
+    position:fixed; z-index:45; left:0; right:0; bottom:0;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    background:var(--surface); border-top:1px solid var(--line);
+    box-shadow:0 -8px 20px rgba(21,32,43,.16);
+  }
+  body.office-view .office-call-action{ min-height:58px; padding:7px 10px; font-size:16px; }
+  body.office-view .office-call-action span{ margin-top:2px; font-size:11px; line-height:1.25; }
+  body.call-view .call{ isolation:isolate; }
+  /* 553px級では会話履歴より次の一手を優先し、初期表示から外す。 */
+  body.call-view .transcript.recent{ display:none; }
+  body.call-view .actions{
+    position:fixed; z-index:100; isolation:isolate; left:0; right:0; bottom:0;
+    max-height:calc(100dvh - 106px); overflow:auto;
+    padding:8px 12px calc(10px + env(safe-area-inset-bottom));
+    background:var(--surface); border-top:1px solid var(--line);
+    box-shadow:0 -8px 20px rgba(21,32,43,.16);
+  }
+  body.call-view .command-box{ padding:8px; }
+  body.call-view .command-title{ display:none; }
+  body.call-view .command-choice{ min-height:52px; padding:7px 8px; }
+  body.call-view .command-copy b{ font-size:17px; }
+  body.call-view .hangup-box{ padding-top:7px; }
+  body.call-view .hangup-button{ min-height:42px; }
+}
 @media (max-width:480px){
   body{ width:100%; box-shadow:none; }
   .artifact-qr-card{ display:none; }
@@ -1317,6 +1365,7 @@ body.office-view .office-scene{ gap:14px; }
       <span class="t" id="clock">23:00</span>
       <span class="z">JST</span>
     </div>
+    <button class="btn-sound" data-sound-toggle="1" data-sound-compact="1" aria-label="効果音をOFFにする" aria-pressed="true">音 ON</button>
     <button class="btn-balance" id="btn-balance" aria-label="ゲーム調整コンソール">ゲーム調整</button>
     <button class="btn-help" id="btn-manual">対応マニュアル</button>
   </div>
@@ -1346,6 +1395,7 @@ body.office-view .office-scene{ gap:14px; }
       <button class="office-call-action" id="office-answer" data-office-answer="1"><b>電話を取る</b><span id="office-answer-status">待ち 0件</span></button>
       <button class="office-call-action" id="office-callback" data-office-callback="1"><b>電話をかける</b><span id="office-callback-status">折り返し 0件</span></button>
       <button class="office-call-action" id="office-desk" data-office-desk="1"><b>端末で調べる</b><span id="office-desk-status">調査可能 0件</span></button>
+      <button class="office-call-action" id="office-verify" data-office-verify="1"><b>機器検証</b><span id="office-verify-status">完了 0台 ／ 作業 0 / 60分</span></button>
     </div>
     <div class="office-status-grid">
       <div class="office-object office-board"><b>全社ホワイトボード</b><div id="office-notice"></div></div>

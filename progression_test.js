@@ -5,27 +5,41 @@ const { readGameSource, functionSource: extractFunctionSource } = require('./tes
 
 const game = readGameSource(__dirname);
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,QUESTIONS,LOOKUPS,TESTS,REMEDIES,SCENARIOS,COMMAND_DEFS};';
-const { CAUSES, QUESTIONS, LOOKUPS, TESTS, REMEDIES, SCENARIOS, COMMAND_DEFS } = new Function(dataSource)();
+  '\nreturn {CAUSES,QUESTIONS,LOOKUPS,TESTS,REMEDIES,SCENARIOS,COMMAND_DEFS,DEVICE_VERIFICATION_MINUTES};';
+const { CAUSES, QUESTIONS, LOOKUPS, TESTS, REMEDIES, SCENARIOS, COMMAND_DEFS, DEVICE_VERIFICATION_MINUTES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
 };
 
-const nextInboundDelta = new Function(functionSource('nextInboundDelta') + '\nreturn nextInboundDelta;')();
-assert.equal(nextInboundDelta([
-  { state:'closed', arrivedTurn:0 },
-  { state:'inbound', arrivedTurn:5 },
-  { state:'inbound', arrivedTurn:11 },
-], 2), 3, 'S1を早く解決した後、S2の着信まで3分進められない');
-assert.equal(nextInboundDelta([{ state:'waiting', arrivedTurn:0 }], 2), null, '未来の着信がないのに待機時間を作る');
-
-const idleSource = functionSource('advanceIdleOffice');
-assert(idleSource.includes("t.state === 'waiting'") && idleSource.includes("t.state === 'callback'") && idleSource.includes('t.callbackDue <= state.clock'), '応答可能な着信または折り返しがあるのに時刻を飛ばす');
-assert(idleSource.includes('activateDueInbound()'), '到着時刻と現在時刻が同じ電話を待機中へ移せない');
-assert(idleSource.includes('nextInboundDelta(state.tickets, state.turn)'), '次の着信まで進める処理がない');
-assert(functionSource('enterOffice').includes('advanceIdleOffice()'), 'オフィスへ戻る際に次の着信を起こしていない');
+assert(!game.includes('function advanceIdleOffice') && !game.includes('function nextInboundDelta'), 'オフィスへ戻るだけで次の事象まで時間を飛ばす処理が残っている');
+assert(functionSource('enterOffice').includes('activateDueInbound()') && !functionSource('enterOffice').includes('advance('), '§64 検査1: オフィスへ戻るだけで時刻を進める');
 assert(functionSource('activateDueInbound').includes('t.arrivedTurn <= state.turn'), '到着済み着信の判定がない');
+
+const verificationState = {
+  phase:'office', focus:null, turn:0, clock:23*60, deviceVerificationMinutes:0, verifiedDevices:0,
+  tickets:[{state:'inbound',arrivedTurn:7}], officeEvents:[],
+};
+const verificationAdvance = minutes => {
+  for (let i=0; i<minutes; i++){
+    verificationState.turn++;
+    verificationState.clock++;
+    verificationState.tickets.forEach(ticket => {
+      if (ticket.state === 'inbound' && ticket.arrivedTurn <= verificationState.turn) ticket.state = 'waiting';
+    });
+  }
+};
+let verificationRenders = 0;
+const runVerification = new Function('state','DEVICE_VERIFICATION_MINUTES','advance','recordOfficeEvent','renderOffice', functionSource('runDeviceVerification') + '\nreturn runDeviceVerification;')(
+  verificationState,DEVICE_VERIFICATION_MINUTES,verificationAdvance,(kind,text) => verificationState.officeEvents.push({kind,text}),() => { verificationRenders++; }
+);
+const interruptedVerification = runVerification();
+assert(interruptedVerification.advanced === 7 && interruptedVerification.interrupted && !interruptedVerification.completed && verificationState.deviceVerificationMinutes === 7 && verificationState.tickets[0].state === 'waiting', '機器検証が着信した分で中断し、途中時間を保存できない');
+const blockedTurn = verificationState.turn;
+assert(runVerification().advanced === 0 && verificationState.turn === blockedTurn, '着信中にも機器検証で時間を進められる');
+verificationState.tickets[0].state = 'closed';
+const completedVerification = runVerification();
+assert(completedVerification.advanced === DEVICE_VERIFICATION_MINUTES - 7 && completedVerification.completed && verificationState.verifiedDevices === 1 && verificationState.deviceVerificationMinutes === 0 && verificationRenders === 2, '中断した機器検証を再開して合計60分で1台完了できない');
 
 const closeSource = functionSource('doClose') + functionSource('finishSuccessfulClose');
 assert(closeSource.includes('t.pendingResult = result'), '解決後に終話待ち状態へ入らない');
@@ -73,12 +87,12 @@ assert(carrierFinishSource.includes('t.carrierLookupStarted = false') && !carrie
 assert(functionSource('remedyBlockReason').includes('remedy.needsCarrierRestored && !t.carrierRestored'), 'S12が現地キャリアの再開通前に最適対処で閉じられる');
 
 // §39: 一般のホテル折り返しでも、英語選択肢の違いで進行不能にならない。
-assert(functionSource('startHotelCallback').includes('t.callbackPromised = kind') && functionSource('finishPromisedCallback').includes("t.callbackReason = 'general'") && functionSource('finishPromisedCallback').includes("t.state = 'callback'"), 'l_carrier以外のホテル折り返しを開始できない');
+assert(functionSource('startHotelCallback').includes('t.callbackPromised = preferredKind') && functionSource('finishPromisedCallback').includes("t.callbackReason = 'general'") && functionSource('finishPromisedCallback').includes("t.state = 'callback'"), 'l_carrier以外のホテル折り返しを開始できない');
 assert(functionSource('resumeCallback').includes("t.callbackStage = 'front_desk'") && functionSource('resumeCallback').includes("who:'front'"), '折り返しがFront Deskから始まらない');
 const frontChoiceSource = functionSource('handleFrontDeskChoice');
 assert(frontChoiceSource.includes("['guest','room','callback'].includes(choice)") && frontChoiceSource.includes("t.callbackStage = 'connected'") && !frontChoiceSource.includes("t.callbackStage = 'blocked'"), 'Front Deskの英語選択肢に詰み経路がある');
 // §40: 滞在先を聞かずに折り返しても詰まない。折り返せないまま客が掛け直してきて、対応を続けられる。
-assert(functionSource('finishPromisedCallback').includes("!t.asked.has('q_stay')") && functionSource('finishPromisedCallback').includes('blindCallbackRedial(t)'), '滞在先未確認の折り返しを別扱いにしていない');
+assert(functionSource('finishPromisedCallback').includes('!hotelContactKnown(t)') && functionSource('finishPromisedCallback').includes('blindCallbackRedial(t)'), 'ホテル名・滞在先未確認の折り返しを別扱いにしていない');
 const blindRedialSource = functionSource('blindCallbackRedial');
 assert(blindRedialSource.includes("t.state = 'waiting'") && blindRedialSource.includes('t.arrivedTurn = state.turn') && blindRedialSource.includes('leaveCallForOffice()'), '折り返せなかった案件が待ち行列へ戻らず進行不能になる');
 assert(blindRedialSource.includes('t.redialOpening = CALL_FLOW_LINES.callback.blameOpenings[t.s.type]'), '折り返せなかった客が理由を言わずに掛け直してくる');
@@ -105,12 +119,11 @@ while (simulated.some(ticket => ticket.state !== 'closed')){
     .forEach(ticket => { ticket.state = 'waiting'; });
   let waiting = simulated.filter(ticket => ticket.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
   if (!waiting.length){
-    const delta = nextInboundDelta(simulated, simulatedTurn);
-    assert(delta !== null && delta > 0, '未完了案件があるのに次の着信へ進めない');
-    simulatedTurn += delta;
+    simulatedTurn++;
     simulated.filter(ticket => ticket.state === 'inbound' && ticket.arrivedTurn <= simulatedTurn)
       .forEach(ticket => { ticket.state = 'waiting'; });
     waiting = simulated.filter(ticket => ticket.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
+    if (!waiting.length) continue;
   }
   assert(waiting.length, '待ち電話を作れず進行が止まった');
   waiting[0].state = 'closed';

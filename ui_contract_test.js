@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {SHIFT_START,SHIFT_DURATION,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
-const { SHIFT_START, SHIFT_DURATION, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, CALLBACK_SCHEDULED_MINUTES,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {SHIFT_START,SHIFT_DURATION,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,DEVICE_VERIFICATION_MINUTES,CALL_CHARGE_COMPLAINT_TYPES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_THREE_HOURS_MINUTES,CALLBACK_TOMORROW_DUE,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,SOUND_SETTINGS,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_END_LINES,COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
+const { SHIFT_START, SHIFT_DURATION, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, DEVICE_VERIFICATION_MINUTES, CALL_CHARGE_COMPLAINT_TYPES, CALLBACK_SCHEDULED_MINUTES, CALLBACK_THREE_HOURS_MINUTES, CALLBACK_TOMORROW_DUE,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, SOUND_SETTINGS, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_END_LINES, COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -187,9 +187,10 @@ assert.equal(functionSource('queueCard'), '', '廃止した着信一覧の queue
   assert(!publicSource.includes(removed), '廃止した着信一覧要素 ' + removed + ' が残っている');
 });
 const officeActionButtons = page.match(/class="office-call-action"/g) || [];
-assert.equal(officeActionButtons.length, 3, 'オフィスの操作が受話・折り返し・端末調査の3ボタンではない');
+assert.equal(officeActionButtons.length, 4, 'オフィスの操作が受話・折り返し・端末調査・機器検証の4ボタンではない');
 assert(page.includes('data-office-answer="1"') && page.includes('>電話を取る<'), '「電話を取る」ボタンがない');
 assert(page.includes('data-office-callback="1"') && page.includes('>電話をかける<') && page.includes('折り返し待ち'), 'オフィスに電話をかけるボタンまたは折り返し待ち表示がない');
+assert(page.includes('data-office-verify="1"') && page.includes('>機器検証<') && page.includes('id="office-verify-status"'), 'オフィスに機器検証ボタンまたは進捗表示がない');
 // §40: 選択肢は縦に潰さない。潰れると「前提不足」の理由や対処の説明が読めず、
 //      押せる選択肢が1つだけ残って詰んだように見える。
 assert(/\.opt\{[^}]*flex:\s*none/.test(page.replace(/\s*\n\s*/g, '')), '選択肢ボタンが縦に潰れて説明文が切れる');
@@ -335,7 +336,8 @@ const tellSource = functionSource('renderTellOptions');
 assert(tellSource.includes('data-refund="refund"'), '「伝える」にrefund項目がない');
 const escForTell = text => String(text).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 const hotelCallbackOffered = new Function(functionSource('hotelCallbackOffered') + '\nreturn hotelCallbackOffered;')();
-const hotelCallbackSub = new Function(functionSource('hotelCallbackSub') + '\nreturn hotelCallbackSub;')();
+const hotelContactKnown = new Function(functionSource('hotelContactKnown') + '\nreturn hotelContactKnown;')();
+const hotelCallbackSub = new Function('hotelContactKnown', functionSource('hotelCallbackSub') + '\nreturn hotelCallbackSub;')(hotelContactKnown);
 const renderTellOptions = new Function('REFUND_POLICY', 'hotelCallbackOffered', 'hotelCallbackSub', 'esc', tellSource + '\nreturn renderTellOptions;')(REFUND_POLICY, hotelCallbackOffered, hotelCallbackSub, escForTell);
 const tellTicket = { refundProposalRejected:false, s:{ deviceInHand:true }, callDirection:'inbound', asked:new Set(), stayAddress:null, callChargeConcerned:false };
 const tellHtml = renderTellOptions(tellTicket);
@@ -347,7 +349,7 @@ assert.deepEqual(tellEntries, [
   { id:'try', label:'やってみてもらう', note:'機器や端末で試していただくことを選びます。' },
   { id:'refund', label:'返金をご案内する', note:'' },
   { id:'hotel-callback', label:'いますぐ折り返す', note:'すぐにこちらから掛け直します' },
-  { id:'hotel-callback', label:'1時間後に折り返す', note:'確認のうえ掛け直します。滞在先はまだ伺っていません。' },
+  { id:'hotel-callback', label:'1時間後に折り返す', note:'確認のうえ掛け直します。ホテル名と滞在先はまだ伺っていません。' },
   { id:'soothe', label:'気持ちを落ち着ける', note:'' },
   { id:'apologize', label:'お詫びする', note:'' },
   { id:'smalltalk', label:'一言かける', note:'' },
@@ -425,7 +427,7 @@ assert(close43.includes('s.contradicts[causeId]') && close43.includes("t.state =
 
 // §9: 90/10の運、反応と対処だけの揺れ、登場順シャッフル、旧挙動への復帰。
 assert.equal(LUCK_RATE, 0.9, '運の本来どおり率が0.9ではない');
-assert.deepEqual(GAME_FLAGS, { luckRate:0.9, shuffleArrival:true, shuffleIdentity:true, dailyTickets:null, handoverTickets:null, careerStage:null, unlockedBadges:null, solvedScenarios:null, soundEnabled:true, soundVolume:0.55 }, '運・音・1日件数・引き継ぎ件数・キャリアの初期GAME_FLAGSが確定値と違う');
+assert.deepEqual(GAME_FLAGS, { luckRate:0.9, shuffleArrival:true, shuffleIdentity:true, dailyTickets:null, handoverTickets:null, careerStage:null, unlockedBadges:null, solvedScenarios:null, soundEnabled:true, soundVolume:0.75 }, '運・音・1日件数・引き継ぎ件数・キャリアの初期GAME_FLAGSが確定値と違う');
 const rollLuckSource = functionSource('rollLuck');
 assert(rollLuckSource.includes('state.random() < GAME_FLAGS.luckRate'), 'rollLuckが注入可能な乱数源とGAME_FLAGSを使わない');
 assert.equal((game.match(/Math\.random/g) || []).length, 1, 'Math.randomがstate.random以外でも直接使われている');
@@ -591,7 +593,7 @@ assert.deepEqual(typeNames.map(type => [type,TYPES[type].stressStart,TYPES[type]
   ['anxious',20,1.2,1.0], ['novice',5,0.9,1.0], ['hurried',15,1.6,1.3], ['expert',5,1.0,2.0],
 ], '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
 assert.equal(LUCK_RATE, 0.9, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
-assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
+assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.75}, '顧客会話改稿で苛立ち数値・運・判定ロジックが変わっている');
 
 // §19／§31: 返金は確認後に提案し、受入後の満足判定とは別に、まれな拒否を持つ。
 assert.equal(REFUND_POLICY.amount, 2400, '返金額が確定値2,400円ではない');
@@ -708,23 +710,34 @@ const balanceConsoleSource = functionSource('showBalanceConsole');
 assert(balanceConsoleSource.includes('id="balance-luck"') && balanceConsoleSource.includes('id="balance-shuffle"'), '調整コンソールに運と登場順の切り替えがない');
 assert(balanceConsoleSource.includes('GAME_FLAGS.luckRate = event.target.checked ? LUCK_RATE : 1.0') && balanceConsoleSource.includes('GAME_FLAGS.shuffleArrival = event.target.checked'), '調整コンソールの切り替えがGAME_FLAGSへ反映されない');
 const balanceNodes = { sheet:{innerHTML:''}, 'balance-luck':{}, 'balance-shuffle':{}, 'balance-identity':{}, 'balance-sound':{}, 'balance-volume':{}, 'balance-replay-ending':{}, 'balance-replay-secret-ending':{}, 'balance-clear-career':{}, 'btn-close-balance':{} };
+let balanceSoundWrites = 0;
 const balanceDeps = {
   state:{phase:'briefing'}, GAME_FLAGS, LUCK_RATE, SHIFT_START, LAST_INBOUND_TURN, COMMAND_DEFS, SCENARIOS, TYPES, REMEDIES,
   $:id => balanceNodes[id], esc:value => String(value), causeName:id => id, scenarioRoute:() => [],
   fmtClock:minute => String(minute), audioDiagnosticHtml:() => '<section></section>', setAudioUnlockStatus:() => {}, openSheet:() => {}, showBriefing:() => {}, renderDebrief:() => {}, closeSheet:() => {}, render:() => {}, showCareerEnding:() => {}, showSecretEnding:() => {}, clearCareerRecord:() => {},
+  applySoundEnabledFromGesture:enabled => { GAME_FLAGS.soundEnabled=enabled; balanceSoundWrites++; },
+  setSoundVolume:volume => { GAME_FLAGS.soundVolume=Number(volume); balanceSoundWrites++; },
+  syncSoundControls:() => {},
 };
 new Function(...Object.keys(balanceDeps), balanceConsoleSource + '\nreturn showBalanceConsole;')(...Object.values(balanceDeps))();
 assert.equal(typeof balanceNodes['balance-luck'].onchange, 'function', '運の切り替えイベントが接続されない');
 assert.equal(typeof balanceNodes['balance-shuffle'].onchange, 'function', '登場順の切り替えイベントが接続されない');
 assert.equal(typeof balanceNodes['balance-identity'].onchange, 'function', '名前・土地シャッフルの切り替えイベントが接続されない');
+assert.equal(typeof balanceNodes['balance-sound'].onchange, 'function', '調整コンソールの音ON/OFFが接続されない');
+assert.equal(typeof balanceNodes['balance-volume'].oninput, 'function', '調整コンソールの音量が接続されない');
+balanceNodes['balance-sound'].onchange({target:{checked:false}});
+balanceNodes['balance-volume'].oninput({target:{value:'0.4'}});
+assert(!GAME_FLAGS.soundEnabled && GAME_FLAGS.soundVolume === .4 && balanceSoundWrites === 2, '§59 調整コンソールの音設定が共通の保存経路を通らない');
+balanceNodes['balance-sound'].onchange({target:{checked:true}});
+balanceNodes['balance-volume'].oninput({target:{value:String(SOUND_SETTINGS.defaultVolume)}});
 balanceNodes['balance-luck'].onchange({target:{checked:false}});
 balanceNodes['balance-shuffle'].onchange({target:{checked:false}});
 balanceNodes['balance-identity'].onchange({target:{checked:false}});
-assert.deepEqual(GAME_FLAGS, {luckRate:1.0,shuffleArrival:false,shuffleIdentity:false,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '調整コンソールから運なし・定義順へ切り替わらない');
+assert.deepEqual(GAME_FLAGS, {luckRate:1.0,shuffleArrival:false,shuffleIdentity:false,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.75}, '調整コンソールから運なし・定義順へ切り替わらない');
 balanceNodes['balance-luck'].onchange({target:{checked:true}});
 balanceNodes['balance-shuffle'].onchange({target:{checked:true}});
 balanceNodes['balance-identity'].onchange({target:{checked:true}});
-assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.55}, '調整コンソールから運あり・シャッフルへ戻せない');
+assert.deepEqual(GAME_FLAGS, {luckRate:0.9,shuffleArrival:true,shuffleIdentity:true,dailyTickets:null,handoverTickets:null,careerStage:null,unlockedBadges:null,solvedScenarios:null,soundEnabled:true,soundVolume:0.75}, '調整コンソールから運あり・シャッフルへ戻せない');
 assert(!functionSource('renderCall').includes('GAME_FLAGS'), '運の設定がプレイ画面に表示される');
 assert(!/GAME_FLAGS\.luckRate\s*===?\s*1|GAME_FLAGS\.luckRate\s*!==?\s*1/.test(rollLuckSource), '運なし専用の特別経路がrollLuckにある');
 const noLuckRoll = makeRollLuck(() => 0.999999999, {luckRate:1.0});
@@ -782,8 +795,8 @@ assert(functionSource('advance').includes("t.patience -= 100 / t.s.abandonAfter"
 assert(!functionSource('renderOffice').includes('queueCutoff') && !functionSource('renderOffice').includes('切断'), '§52 検査7: オフィス画面に切断までの残り時間が出る');
 const enterOffice52State = {phase:'report'};
 let reportOfficeRenders52 = 0;
-const enterOffice52 = new Function('state','advanceIdleOffice','renderOffice','window', functionSource('enterOffice') + '\nreturn enterOffice;')(
-  enterOffice52State, () => {}, () => { reportOfficeRenders52++; }, {scrollTo:() => {}}
+const enterOffice52 = new Function('state','advanceIdleOffice','activateDueInbound','renderOffice','window', functionSource('enterOffice') + '\nreturn enterOffice;')(
+  enterOffice52State, () => {}, () => {}, () => { reportOfficeRenders52++; }, {scrollTo:() => {}}
 );
 const closeDeskLookup52 = new Function('state','enterOffice', functionSource('closeDeskLookup') + '\nreturn closeDeskLookup;')(
   enterOffice52State, enterOffice52
@@ -1030,7 +1043,7 @@ const informationMappings = [
   ['危険操作の悪化', functionSource('doTest'), '【まずい対応】'],
   ['操作結果', functionSource('doTest'), '操作結果：'],
   ['対処の前提不足', functionSource('renderCloseFlow'), "const sub = block || r.sub || ''"],
-  ['配送手配中断', functionSource('startShipping'), '配送先が未確認です。手配を中断して滞在先を確認します。'],
+  ['配送手配中断', functionSource('startShipping'), '配送先が未確認です。手配を中断してホテル名と滞在先を確認します。'],
   ['配送確定', functionSource('confirmShipment'), 'TGX ' + "' + level.label + '" + 'の手配を確定しました。'],
   ['クローズ前提不足', closeSource, 'const blocked = remedyBlockReason(t, remedy)'],
   ['誤診2回目', closeSource, "pendingConversation = { kind:'second_misdiagnosis'"],
@@ -1054,7 +1067,7 @@ const briefingSourceForAudio = functionSource('showBriefing');
 const unlockAudioSource = functionSource('unlockAudioFromGesture');
 assert(initAudioSource.includes('new AudioContextClass()') && unlockAudioSource.includes("navigator.audioSession.type = 'playback'") && unlockAudioSource.includes('await ctx.resume()'), 'iPhoneのユーザー操作内でAudioContextを再開し、再生用AudioSessionへ切り替えない');
 assert(briefingSourceForAudio.includes("$('btn-start').onclick") && briefingSourceForAudio.indexOf('unlockAudioFromGesture()') > briefingSourceForAudio.indexOf("$('btn-start').onclick"), 'シフト開始タップでiPhone音声を解除しない');
-assert(functionSource('audioDiagnosticHtml').includes('data-audio-unlock') && functionSource('audioStatusText').includes('消音モード・メディア音量・Bluetooth出力先'), 'iPhoneで解除失敗と端末側無音を切り分ける試聴UIがない');
+assert(functionSource('audioDiagnosticHtml').includes('data-audio-unlock') && functionSource('audioStatusText').includes('メディア音量・Bluetooth出力先') && !functionSource('audioStatusText').includes('消音モード'), 'iPhoneで解除失敗と端末側無音を切り分ける試聴UIがない');
 let audioInitFailureStatus = null;
 const failingAudioInit = new Function('window','setAudioUnlockStatus','audioContext', initAudioSource + '\nreturn initAudio;')(
   {AudioContext:class { constructor(){ throw new Error('unavailable'); } }},
@@ -1064,6 +1077,62 @@ const failingAudioInit = new Function('window','setAudioUnlockStatus','audioCont
 assert.equal(failingAudioInit(),null,'AudioContext生成失敗を音なしで継続できない');
 assert.equal(audioInitFailureStatus,'error','AudioContext生成失敗がiPhone診断表示へ反映されない');
 assert(game.includes('createOscillator()') && game.includes('createGain()') && !/\.(?:mp3|wav|ogg|m4a)\b/i.test(page + game), '効果音がWeb Audioのコード合成だけで作られていない');
+
+// §60: iOSのinterruptedを含め、running以外はタップ内でresumeし、戻らなければ作り直す。
+const recreateAudioSource60 = functionSource('recreateAudioContextFromGesture');
+const audioRecoveryProbe60 = `
+const assert = require('assert');
+const navigator = {audioSession:{type:'auto'}};
+const GAME_FLAGS = {soundEnabled:true};
+let statuses = [], primeCalls = 0, recreateCalls = 0;
+let interrupted = {state:'interrupted',resume:async function(){ this.state='running'; }};
+let audioContext = interrupted;
+const initAudio = () => audioContext;
+const primeAudioContext = () => { primeCalls++; };
+const setAudioUnlockStatus = status => { statuses.push(status); };
+let recreateAudioContextFromGesture = async () => { recreateCalls++; return null; };
+async ${unlockAudioSource}
+(async () => {
+  assert.equal(await unlockAudioFromGesture(),true);
+  assert.equal(interrupted.state,'running');
+  assert.equal(recreateCalls,0);
+  let stuckResumeCalls = 0;
+  interrupted = {state:'interrupted',resume:async function(){ stuckResumeCalls++; }};
+  audioContext = interrupted;
+  const fresh = {state:'running'};
+  recreateAudioContextFromGesture = async stale => { assert.equal(stale,interrupted); recreateCalls++; audioContext=fresh; return fresh; };
+  assert.equal(await unlockAudioFromGesture(),true);
+  assert.equal(stuckResumeCalls,1);
+  assert.equal(recreateCalls,1);
+  assert(statuses.every(status => status === 'ready'));
+  assert(primeCalls >= 2);
+})().catch(error => { console.error(error); process.exitCode=1; });`;
+const audioRecoveryRun60 = spawnSync(process.execPath,['-e',audioRecoveryProbe60],{encoding:'utf8'});
+assert.equal(audioRecoveryRun60.status,0,'§60 interruptedからresumeし、戻らなければ作り直す実挙動がない: ' + audioRecoveryRun60.stderr);
+const audioRecreateProbe60 = `
+const assert = require('assert');
+let closeCalls = 0, initCalls = 0, primeCalls = 0, resumeCalls = 0;
+const stale = {state:'interrupted',close:async function(){ closeCalls++; this.state='closed'; }};
+const fresh = {state:'suspended',resume:async function(){ resumeCalls++; this.state='running'; }};
+let audioContext = stale;
+const initAudio = force => { assert.equal(force,true); initCalls++; audioContext=fresh; return fresh; };
+const primeAudioContext = ctx => { assert.equal(ctx,fresh); primeCalls++; };
+async ${recreateAudioSource60}
+(async () => {
+  const result = await recreateAudioContextFromGesture(stale);
+  assert.equal(result,fresh);
+  assert.equal(audioContext,fresh);
+  assert.deepEqual([closeCalls,initCalls,primeCalls,resumeCalls],[1,1,1,1]);
+  assert.equal(fresh.state,'running');
+})().catch(error => { console.error(error); process.exitCode=1; });`;
+const audioRecreateRun60 = spawnSync(process.execPath,['-e',audioRecreateProbe60],{encoding:'utf8'});
+assert.equal(audioRecreateRun60.status,0,'§60 古いAudioContextを閉じ、新規作成して再開する実挙動がない: ' + audioRecreateRun60.stderr);
+const audioStateText60 = new Function('GAME_FLAGS','audioUnlockStatus','currentAudioContextState', functionSource('audioStatusText') + '\nreturn audioStatusText;')(
+  {soundEnabled:true},'needs_gesture',() => 'interrupted'
+);
+assert(audioStateText60().includes('AudioContext: interrupted'),'§60 現在のAudioContext状態が診断表示に出ない');
+assert(unlockAudioSource.includes("ctx.state !== 'running'") && !/ctx\.state === ['\"](?:suspended|interrupted)['\"]/.test(unlockAudioSource),'§60 running以外のAudioContextをすべて再開対象にしていない');
+assert(unlockAudioSource.includes("if (ctx.state !== 'running') ctx = await recreateAudioContextFromGesture(ctx)"),'§60 resumeで戻らないAudioContextを作り直さない');
 
 const withAudioSource = functionSource('withAudio');
 let failedAudioProgress = 0;
@@ -1085,12 +1154,71 @@ const suspendedAudio = new Function('GAME_FLAGS','audioContext','clamp','setAudi
 suspendedAudio(() => { throw new Error('suspended中に発音した'); });
 assert.equal(timerResumeCalls,0,'着信タイマー等のユーザー操作外からAudioContext.resumeを呼ぶ');
 
+// §59: 相対バランスを保った共通増幅と、プレイヤーが届く保存付きON/OFF。
+const synthTone59 = new Function('SOUND_SETTINGS', functionSource('synthTone') + '\nreturn synthTone;')(SOUND_SETTINGS);
+const peakGain59 = level => {
+  const ramps = [];
+  const context = {
+    currentTime:0, destination:{},
+    createOscillator:() => ({
+      type:'sine', frequency:{setValueAtTime:()=>{},exponentialRampToValueAtTime:()=>{}},
+      connect:()=>{}, start:()=>{}, stop:()=>{},
+    }),
+    createGain:() => ({gain:{setValueAtTime:()=>{},exponentialRampToValueAtTime:value => { ramps.push(value); }},connect:()=>{}}),
+  };
+  synthTone59(context,SOUND_SETTINGS.defaultVolume,440,0,.1,{level});
+  return ramps[0];
+};
+const loudPeak59 = peakGain59(.13);
+const typingPeak59 = peakGain59(.025);
+assert(Math.abs(loudPeak59 - .2925) < 1e-10 && Math.abs(typingPeak59 - .05625) < 1e-10,'§59 共通倍率3と既定音量0.75で全効果音が十分に増幅されない');
+assert(Math.abs(loudPeak59 / typingPeak59 - (.13 / .025)) < 1e-10,'§59 共通増幅で個々の効果音の相対バランスが変わる');
+
+const defaultSoundSettings59 = new Function('SOUND_SETTINGS', functionSource('defaultSoundSettings') + '\nreturn defaultSoundSettings;')(SOUND_SETTINGS);
+const readSoundSettings59 = new Function('getCareerStorage','defaultSoundSettings','SOUND_SETTINGS','JSON','clamp', functionSource('readSoundSettings') + '\nreturn readSoundSettings;')(
+  () => null, defaultSoundSettings59, SOUND_SETTINGS, JSON, (value,min,max) => Math.max(min,Math.min(max,value))
+);
+const soundStorage59 = {
+  value:null,
+  getItem(key){ assert.equal(key,SOUND_SETTINGS.storageKey); return this.value; },
+  setItem(key,value){ assert.equal(key,SOUND_SETTINGS.storageKey); this.value=value; },
+};
+soundStorage59.value = JSON.stringify({enabled:false,volume:.4});
+assert.deepEqual(readSoundSettings59(soundStorage59),{enabled:false,volume:.4},'§59 保存した音のON/OFFと音量を復元できない');
+soundStorage59.value = '{broken';
+assert.deepEqual(readSoundSettings59(soundStorage59),{enabled:true,volume:.75},'§59 壊れた音設定で安全な既定値へ戻らない');
+const storedFlags59 = {soundEnabled:false,soundVolume:.4};
+const writeSoundSettings59 = new Function('getCareerStorage','SOUND_SETTINGS','GAME_FLAGS','JSON', functionSource('writeSoundSettings') + '\nreturn writeSoundSettings;')(
+  () => null,SOUND_SETTINGS,storedFlags59,JSON
+);
+assert.equal(writeSoundSettings59(soundStorage59),true,'§59 音設定をlocalStorageへ保存できない');
+assert.deepEqual(JSON.parse(soundStorage59.value),{enabled:false,volume:.4},'§59 保存する音設定の内容がON/OFFと音量でない');
+
+const restoredFlags59 = {soundEnabled:true,soundVolume:1};
+let soundSyncs59 = 0;
+const initializeSoundSettings59 = new Function('getCareerStorage','readSoundSettings','GAME_FLAGS','syncSoundControls', functionSource('initializeSoundSettings') + '\nreturn initializeSoundSettings;')(
+  () => soundStorage59,() => ({enabled:false,volume:.4}),restoredFlags59,() => { soundSyncs59++; }
+);
+initializeSoundSettings59(soundStorage59);
+assert.deepEqual(restoredFlags59,{soundEnabled:false,soundVolume:.4},'§59 起動時に保存済みの音設定を適用できない');
+assert.equal(soundSyncs59,1,'§59 復元した音設定を画面の操作部へ同期しない');
+
+const soundReachability59 = functionSource('showBriefing');
+assert(page.includes('data-sound-toggle="1"') && soundReachability59.includes('soundQuickControlHtml()'),'§59 プレイ中と開始前の両方に音のON/OFFがない');
+const timePassageClickIndex59 = eventSource.indexOf('if (timePassage){');
+assert(timePassageClickIndex59 >= 0 && eventSource.indexOf("const soundToggle = e.target.closest('[data-sound-toggle]')") < timePassageClickIndex59,'§59 音のON/OFFが文字送り・時間経過のスキップより先に反応しない');
+const syncSoundSource59 = functionSource('syncSoundControls');
+assert(syncSoundSource59.includes("setAttribute('aria-pressed'") && syncSoundSource59.includes("setAttribute('aria-label'"),'§59 音のON/OFF状態がボタン表示と読み上げへ同期しない');
+assert(eventSource.includes('initializeSoundSettings();\ninitializeCareer();'),'§59 ゲーム起動前に保存済みの音設定を復元しない');
+assert(!functionSource('clearCareerRecord').includes('SOUND_SETTINGS.storageKey'),'§59 勤務記録を消すと音設定まで消える');
+assert(functionSource('setSoundEnabled').includes('writeSoundSettings(storage)') && functionSource('setSoundVolume').includes('writeSoundSettings(storage)'),'§59 音のON/OFFまたは音量変更が保存されない');
+
 assert(officeSource.includes("'再着信 ' + redials.length") && page.includes('.stress-panel.alert') && functionSource('doTest').includes('【まずい対応】') && functionSource('closeTicket').includes("recordOfficeEvent('closed'"), '着信・苛立ち・失敗・クローズ結果に音以外の画面情報がない');
 const soundSceneCalls = [
   ['オフィス着信', functionSource('syncOfficeRing'), 'playOfficeRing()'],
   ['受話', pickupSource, 'playPickupSound()'],
   ['切断', functionSource('closeTicket') + interruptSource + finishInterruptedSource, 'playDisconnectSound()'],
-  ['顧客発話', functionSource('startTyping'), 'playTypeSound(pos)'],
+  ['顧客発話', functionSource('startTyping'), 'playTypeSound(pos, line, t)'],
   ['コマンド選択', eventSource, 'playCommandSound()'],
   ['苛立ち80超', changeStressSource, 'playStressWarning()'],
   ['手がかり／原因確定', functionSource('addFact') + closeSource, 'playClueSound()'],
@@ -1186,6 +1314,46 @@ crossingStress(crossingTicket,-2,true);
 crossingStress(crossingTicket,2,true);
 assert.equal(warningCount, 2, '苛立ち警告音が80超→低下→再上昇で二度鳴らない');
 assert(functionSource('playTypeSound').includes('if (index % 4) return'), 'タイプ音が1文字ごとではなく間引かれていない');
+
+// §58: 顧客の男女は分かるが、性別のない話し手やデータでも落ちない打鍵音。
+const typeSoundBaseMatch58 = viewSource.match(/const TYPE_SOUND_BASE_HZ = Object\.freeze\(\{ male:(\d+), neutral:(\d+), female:(\d+) \}\);/);
+assert(typeSoundBaseMatch58, '§58 打鍵音の男性・中間・女性の基準値を読み取れない');
+const typeSoundBase58 = {male:Number(typeSoundBaseMatch58[1]),neutral:Number(typeSoundBaseMatch58[2]),female:Number(typeSoundBaseMatch58[3])};
+const typeSoundFrequency58 = new Function('TYPE_SOUND_BASE_HZ', functionSource('typeSoundFrequency') + '\nreturn typeSoundFrequency;')(typeSoundBase58);
+const pitchMale58 = typeSoundFrequency58(12,{who:'cust'},{s:{gender:'male',trueCause:'carrier',type:'expert'}});
+const pitchNeutral58 = typeSoundFrequency58(12,{who:'front'},{s:{gender:'female'}});
+const pitchFemale58 = typeSoundFrequency58(12,{who:'cust'},{s:{gender:'female',trueCause:'carrier',type:'expert'}});
+assert.deepEqual([pitchMale58,pitchNeutral58,pitchFemale58],[660,760,860],'§58 男性・性別なし・女性の打鍵音が低・中・高に分かれない');
+const maleWobble58 = [4,8,12].map(index => typeSoundFrequency58(index,{who:'cust'},{s:{gender:'male'}}));
+const neutralWobble58 = [4,8,12].map(index => typeSoundFrequency58(index,{who:'front'},null));
+const femaleWobble58 = [4,8,12].map(index => typeSoundFrequency58(index,{who:'cust'},{s:{gender:'female'}}));
+assert.deepEqual(maleWobble58,[695,730,660],'§58 男性の打鍵音で既存の3段揺れを維持できない');
+assert(Math.max(...maleWobble58) < Math.min(...neutralWobble58) && Math.max(...neutralWobble58) < Math.min(...femaleWobble58),'§58 男性・性別なし・女性の打鍵音域が重なって聞き分けにくい');
+assert.doesNotThrow(() => {
+  assert.equal(typeSoundFrequency58(12,{who:'cust'},null),760);
+  assert.equal(typeSoundFrequency58(12,null,null),760);
+  assert.equal(typeSoundFrequency58(12,{who:'sys'},{s:{}}),760);
+}, '§58 性別のない話し手または案件で打鍵音が落ちる');
+assert.equal(
+  typeSoundFrequency58(12,{who:'cust'},{s:{gender:'male',trueCause:'hardware',type:'novice'}}),
+  pitchMale58,
+  '§58 声の高さが性別以外の症状・真因・顧客タイプで変わる'
+);
+let playedTypeTone58 = null;
+const playTypeSound58 = new Function('withAudio','synthTone','typeSoundFrequency', functionSource('playTypeSound') + '\nreturn playTypeSound;')(
+  makeSound => makeSound({},.5),
+  (_ctx,_volume,frequency,_delay,duration,options) => { playedTypeTone58={frequency,duration,options}; },
+  typeSoundFrequency58
+);
+playTypeSound58(12,{who:'cust'},{s:{gender:'female'}});
+assert.deepEqual(playedTypeTone58,{frequency:860,duration:.018,options:{type:'square',level:.025}},'§58 打鍵音の高さだけを変え、長さと音量を維持できない');
+playedTypeTone58 = null;
+playTypeSound58(13,{who:'cust'},{s:{gender:'female'}});
+assert.equal(playedTypeTone58,null,'§58 打鍵音が従来どおり4文字ごとの間引きにならない');
+const pitchSource58 = functionSource('typeSoundFrequency') + functionSource('playTypeSound');
+assert(!/trueCause|handoverSymptom|\.opening|\.type\b/.test(pitchSource58),'§58 声の高さが性別以外の症状・真因・顧客タイプを参照する');
+assert(functionSource('startTyping').includes('playTypeSound(pos, line, t)'),'§58 文字送りから現在の話し手と顧客性別を渡さない');
+assert(!functionSource('pendingTypedLine').includes("x.who === 'me'"),'§58 オペレーター発話に顧客と同じ文字送り音を付ける');
 assert(balanceConsoleSource.includes('id="balance-sound"') && balanceConsoleSource.includes('id="balance-volume"') && balanceConsoleSource.includes('GAME_FLAGS.soundEnabled') && balanceConsoleSource.includes('GAME_FLAGS.soundVolume'), 'ゲーム調整にミュートと音量がない');
 assert(functionSource('enterCall').includes('stopOfficeRing()') && functionSource('syncOfficeRing').includes("state.phase !== 'office'"), '通話画面へ移ってもオフィス着信音が止まらない');
 
@@ -1485,10 +1653,10 @@ assert(functionSource('doLookup').includes('if (l.external) return'), '§25 l_ca
 const startCarrierSource25 = functionSource('startCarrierCallback');
 assert(startCarrierSource25.includes("state.ui.tab !== 'lookup'") && startCarrierSource25.includes("state.ui.lookup !== lookup.id") && startCarrierSource25.includes('t.carrierLookupStarted = true'), '§25 l_carrier選択前から折り返し照会を開始できる');
 const carrierState25 = {clock:100,focus:null,ui:{tab:'command'},tickets:[]};
-const carrierTicket25 = {s:SCENARIOS.find(scenario => scenario.id === 'S12'),asked:new Set(['q_stay']),lookedUp:new Set(),carrierLookupStarted:false,callbackCount:0,transcript:[]};
+const carrierTicket25 = {s:SCENARIOS.find(scenario => scenario.id === 'S12'),asked:new Set(['q_stay']),stayAddress:'架空ホテル シドニー、512号室',stayHotelName:'架空ホテル シドニー',lookedUp:new Set(),carrierLookupStarted:false,callbackCount:0,transcript:[]};
 carrierState25.focus = carrierTicket25; carrierState25.tickets = [carrierTicket25,{state:'waiting',id:'other'}];
-const startCarrier25 = new Function('LOOKUPS','CALL_FLOW_LINES','state','pushFlowLines','spendOnCall','leaveCallForOffice','render', startCarrierSource25 + '\nreturn startCarrierCallback;')(
-  LOOKUPS,CALL_FLOW_LINES,carrierState25,(ticket,lines) => ticket.transcript.push(...lines),() => true,() => { carrierState25.focus = null; carrierState25.ui = {tab:'command'}; },() => {}
+const startCarrier25 = new Function('LOOKUPS','CALL_FLOW_LINES','state','pushFlowLines','spendOnCall','leaveCallForOffice','render','hotelContactKnown', startCarrierSource25 + '\nreturn startCarrierCallback;')(
+  LOOKUPS,CALL_FLOW_LINES,carrierState25,(ticket,lines) => ticket.transcript.push(...lines),() => true,() => { carrierState25.focus = null; carrierState25.ui = {tab:'command'}; },() => {},hotelContactKnown
 );
 startCarrier25('hotel');
 assert.equal(carrierTicket25.state, undefined, '§25 l_carrier選択前に折り返しを開始できる');
@@ -1509,7 +1677,7 @@ assert(page.includes('data-office-callback="1"') && page.includes('>電話をか
 assert(officeSource.includes('readyCallbacks') && officeSource.includes('callbackDue <= state.clock'), '§25 30分経過前から電話をかけるボタンが有効になる');
 
 // §25-7 検査6は§39でホテル折り返しへ統一した。
-assert(!carrierLookupUi25.includes('data-callback-destination="mobile"') && carrierLookupUi25.includes('data-callback-destination="hotel"') && carrierLookupUi25.includes("t.asked.has('q_stay')"), '§39 現地キャリア折り返しがホテルと滞在先確認へ統一されていない');
+assert(!carrierLookupUi25.includes('data-callback-destination="mobile"') && carrierLookupUi25.includes('data-callback-destination="hotel"') && carrierLookupUi25.includes('hotelContactKnown(t)'), '§39 現地キャリア折り返しがホテルと滞在先確認へ統一されていない');
 const resumeCallback25 = functionSource('resumeCallback');
 assert(resumeCallback25.includes("t.callbackStage = 'front_desk'") && resumeCallback25.includes("who:'front'"), '§39 折り返しがホテルのフロントから始まらない');
 
@@ -1531,8 +1699,8 @@ assert(!Object.values(REMEDIES).flat().some(remedy => remedy.needsLookup === 'l_
 
 // §25-7 検査10: 折り返し中も別の待ち電話はそのまま受話できる。
 assert(carrierState25.tickets[1].state === 'waiting' && functionSource('handleOfficeAction').includes("firstTicketIn('waiting', 'arrivedTurn')"), '§25 折り返し中にほかの電話を取れない');
-const idleSource25 = functionSource('advanceIdleOffice');
-assert(idleSource25.includes("t.state === 'waiting'") && idleSource25.includes("t.state === 'callback'") && idleSource25.includes('t.callbackDue <= state.clock'), '§25 待ち電話と折り返し期限の進行を両立できない');
+const verificationSource25 = functionSource('runDeviceVerification');
+assert(verificationSource25.includes("t.state === 'waiting'") && verificationSource25.includes('advance(1)') && functionSource('renderOffice').includes('t.callbackDue <= state.clock'), '§25 機器検証中の着信と折り返し期限の進行を両立できない');
 
 // §26-3 検査1: 「記録なし」という存在しない結果要約を削除する。
 assert(!Object.prototype.hasOwnProperty.call(CALL_FLOW_LINES.lookup, 'miss') && !game.includes('CALL_FLOW_LINES.lookup.miss'), '§26 CALL_FLOW_LINES.lookup.missが残っている');
@@ -1677,6 +1845,9 @@ assert(secondBriefing29.includes('<b>2日目 ／ 試用期間 ／ 入電 4件 �
 
 // §29-5 検査3: 開始操作を残す。
 assert(briefingSource29.includes('id="btn-start">シフトを始める</button>') && briefingSource29.includes("$('btn-start').onclick"), '§29 ブリーフィングにシフト開始ボタンがない');
+assert(briefingSource29.includes('briefing-scroll') && briefingSource29.includes('briefing-actions') && /\.sheet\.briefing-sheet\{[^}]*height:\s*100dvh/.test(page), '小さい画面で開始操作を下端に残すブリーフィング構造がない');
+assert(/@media \(max-height:760px\)[\s\S]*?body\.office-view \.office-call-actions\{[^}]*position:\s*fixed/.test(page), '小さい画面でオフィス4操作が固定されない');
+assert(/@media \(max-height:760px\)[\s\S]*?body\.call-view \.actions\{[^}]*position:\s*fixed/.test(page), '小さい画面で通話操作が固定されない');
 
 // §29-5 検査5: 公開していた採点基準をマニュアルへ移す。
 const scoreWeights29 = ['顧客満足（CSAT）35%','一次解決率 25%','応答率 20%','費用 10%','業務報告 10%'];
@@ -1714,8 +1885,8 @@ const s13Partial30 = REMEDIES.logistics.find(remedy => (s13Logistics30.partial |
 assert(s13Logistics30.partial.length === 1 && s13Partial30 && s13Partial30.label.includes('手配の誤りをお詫びし') && s13Partial30.label.includes('返金する'), '§30 検査6: 次善対処が謝罪と返金を明記しない');
 
 // §30-6 検査7: 滞在期間と配送先の不足を既存remedyBlockReasonで止める。
-const remedyBlockReason30 = new Function('state','remedyNeedsShipping', functionSource('remedyBlockReason') + '\nreturn remedyBlockReason;')(
-  {escLeft:3,outageKnown:false}, id => id === 'r_logistics_replacement'
+const remedyBlockReason30 = new Function('state','remedyNeedsShipping','hotelContactKnown', functionSource('remedyBlockReason') + '\nreturn remedyBlockReason;')(
+  {escLeft:3,outageKnown:false}, id => id === 'r_logistics_replacement', hotelContactKnown
 );
 const s13Ticket30 = overrides => Object.assign({s:s13Logistics30,asked:new Set(),testCounts:new Map(),stayAddress:null,stayDaysKnown:false,replacementConsentKnown:false},overrides);
 const missingStayPeriod30 = remedyBlockReason30(s13Ticket30({asked:new Set(['q_stay','q_replacement'])}),s13Best30);
@@ -2014,7 +2185,7 @@ assert.equal(totalCost39(),640,'§39 検査1/2: totalCostが入電と折り返�
 
 /* §48-7 で待ち件数が加わったので、state を渡して動かす。 */
 const headerState39 = { tickets:[{state:'waiting'},{state:'waiting'},{state:'callback'}] };
-const renderHeader39 = new Function('esc','CALL_RATE_PER_MIN','state',functionSource('renderCallHeader') + '\nreturn renderCallHeader;')(value => String(value),180,headerState39);
+const renderHeader39 = new Function('esc','CALL_RATE_PER_MIN','state','CALL_FLOW_LINES',functionSource('renderCallHeader') + '\nreturn renderCallHeader;')(value => String(value),180,headerState39,CALL_FLOW_LINES);
 assert(/通話 08分[\s\S]*お客様負担 ¥1,440/.test(renderHeader39({s:{id:'S1'},callDirection:'inbound',callSegmentMinutes:8})) && /通話 03分[\s\S]*当社負担 ¥540/.test(renderHeader39({s:{id:'S1'},callDirection:'outbound',callSegmentMinutes:3})),'§39 検査3: 通話ヘッダに時間・負担者・費用が揃わない');
 /* §48-7: 保留の累計と、他に待たせている件数を通話中に見せる。
    保留はこれまで業務報告でしか見えず、待たせている自覚が通話中に持てなかった。 */
@@ -2024,31 +2195,35 @@ assert(/待ち 2件/.test(renderHeader39({s:{id:'S1'},callDirection:'inbound',ca
 
 assert.deepEqual(Object.keys(CALL_FLOW_LINES.callChargeConcern).sort(),['anxious','expert','hurried','novice'],'§39 検査4: 通話料を気にする発話が4タイプ分ない');
 assert.equal(new Set(Object.values(CALL_FLOW_LINES.callChargeConcern)).size,4,'§39 検査4: 通話料を気にする発話がタイプ別に書き分けられていない');
-const spend39 = new Function('CALL_FLOW_LINES','advance','pushCustomerLine','changeStress','addStress',functionSource('spendOnCall') + '\nreturn spendOnCall;')(
-  CALL_FLOW_LINES,() => {},(ticket,text) => ticket.concerns.push(text),(ticket,delta) => { ticket.stress += delta; return true; },() => true
+const spend39 = new Function('CALL_FLOW_LINES','CALL_CHARGE_COMPLAINT_TYPES','advance','pushCustomerLine','changeStress','addStress',functionSource('spendOnCall') + '\nreturn spendOnCall;')(
+  CALL_FLOW_LINES,CALL_CHARGE_COMPLAINT_TYPES,() => {},(ticket,text) => ticket.concerns.push(text),(ticket,delta) => { ticket.stress += delta; return true; },() => true
 );
 Object.keys(TYPES).forEach(type => {
-  const ticket = {s:{type},state:'open',pendingResult:null,callMinutes:5,inboundMinutes:5,outboundMinutes:0,callSegmentMinutes:5,callDirection:'inbound',holdMinutes:0,callChargeConcerned:false,stress:10,concerns:[]};
-  assert(spend39(ticket,1,0) && ticket.concerns[0] === CALL_FLOW_LINES.callChargeConcern[type] && ticket.stress === 14,'§39 検査4: 5分超でタイプ別発話と小さな苛立ち増が起きない');
+  const ticket = {s:{type},state:'open',pendingResult:null,callMinutes:5,inboundMinutes:5,outboundMinutes:0,callSegmentMinutes:5,callDirection:'inbound',holdMinutes:0,callChargeConcerned:false,callChargeThresholdPassed:false,stress:10,concerns:[]};
+  const complains = CALL_CHARGE_COMPLAINT_TYPES.includes(type);
+  assert(spend39(ticket,1,0) && ticket.callChargeThresholdPassed && ticket.callChargeConcerned === complains && ticket.concerns.length === (complains ? 1 : 0) && ticket.stress === (complains ? 14 : 10),'§65 検査2: 5分超で対象タイプだけに通話料発話と苛立ち増が起きない');
+  if (complains) assert(ticket.concerns[0] === CALL_FLOW_LINES.callChargeConcern[type],'§65 検査2: 通話料の発話が顧客タイプと一致しない');
   spend39(ticket,1,0);
-  assert.equal(ticket.concerns.length,1,'§39 検査5: 通話料を気にする発話を繰り返す');
+  assert.equal(ticket.concerns.length,complains ? 1 : 0,'§39 検査5: 通話料判定後に発話を繰り返す');
 });
+assert.deepEqual([...CALL_CHARGE_COMPLAINT_TYPES].sort(),['expert','hurried'],'§65 検査1: 通話料を直接訴えるタイプが半分でない');
+assert.equal(SCENARIOS.filter(scenario => CALL_CHARGE_COMPLAINT_TYPES.includes(scenario.type)).length,7,'§65 検査1: 14案件のうち直接訴える客が7件でない');
 
 // §40: 折り返しは滞在先の有無にかかわらず選べる。未確認なら注意書きが変わる。
-assert(hotelCallbackSub({asked:new Set(),stayAddress:null,callChargeConcerned:true}) === '滞在先はまだ伺っていません。','§40 滞在先未確認の折り返しに注意書きが出ない');
-assert(hotelCallbackSub({asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',callChargeConcerned:true}).includes('国際通話料'),'§40 通話料を気にしている客への折り返し案内が出ない');
+assert(hotelCallbackSub({asked:new Set(),stayAddress:null,stayHotelName:null,callChargeConcerned:true}) === 'ホテル名と滞在先はまだ伺っていません。','§40 ホテル名・滞在先未確認の折り返しに注意書きが出ない');
+assert(hotelCallbackSub({asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',stayHotelName:'試験ホテル 東京',callChargeConcerned:true}).includes('国際通話料'),'§40 通話料を気にしている客への折り返し案内が出ない');
 assert(hotelCallbackOffered({callDirection:'inbound'}) && !hotelCallbackOffered({callDirection:'outbound'}),'§40 折り返し中の通話にも折り返しが出る');
 assert(!hotelCallbackOffered({callDirection:'inbound',callbackPromised:'immediate'}),'§45 約束したあとも「伝える」に折り返しが残る');
 const startState39 = {clock:100,turn:7,focus:null,ui:{tab:'command'}};
-const startHotel39 = new Function('CALL_FLOW_LINES','state','spendOnCall','pushFlowLines','defaultUi','render',functionSource('startHotelCallback') + '\nreturn startHotelCallback;')(
-  CALL_FLOW_LINES,startState39,() => true,(ticket,lines) => ticket.transcript.push(...lines),() => ({tab:'command'}),() => {}
+const startHotel39 = new Function('CALL_FLOW_LINES','state','spendOnCall','pushFlowLines','changeStress','defaultUi','render',functionSource('startHotelCallback') + '\nreturn startHotelCallback;')(
+  CALL_FLOW_LINES,startState39,() => true,(ticket,lines) => ticket.transcript.push(...lines),(ticket,delta) => { ticket.stress=(ticket.stress || 0)+delta; return true; },() => ({tab:'command'}),() => {}
 );
-const finishHotel45 = new Function('CALL_FLOW_LINES','state','spendOnCall','leaveCallForOffice','blindCallbackRedial','CALLBACK_SCHEDULED_MINUTES',functionSource('finishPromisedCallback') + '\nreturn finishPromisedCallback;')(
-  CALL_FLOW_LINES,startState39,() => true,() => { startState39.focus = null; startState39.ui = {tab:'command'}; },ticket => { ticket.blind = true; },CALLBACK_SCHEDULED_MINUTES
+const finishHotel45 = new Function('CALL_FLOW_LINES','state','spendOnCall','leaveCallForOffice','blindCallbackRedial','hotelContactKnown','CALLBACK_SCHEDULED_MINUTES','CALLBACK_THREE_HOURS_MINUTES','CALLBACK_TOMORROW_DUE',functionSource('finishPromisedCallback') + '\nreturn finishPromisedCallback;')(
+  CALL_FLOW_LINES,startState39,() => true,() => { startState39.focus = null; startState39.ui = {tab:'command'}; },ticket => { ticket.blind = true; },hotelContactKnown,CALLBACK_SCHEDULED_MINUTES,CALLBACK_THREE_HOURS_MINUTES,CALLBACK_TOMORROW_DUE
 );
 
 // §45 検査1: 折り返しを申し出ても、その場では通話が終わらない。
-const promised45 = {asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',transcript:[],callbackCount:0,state:'open',callbackPromised:null};
+const promised45 = {s:{type:'novice'},asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',stayHotelName:'試験ホテル 東京',transcript:[],callbackCount:0,state:'open',callbackPromised:null};
 startState39.focus = promised45; startHotel39('immediate');
 assert(promised45.callbackPromised === 'immediate' && promised45.state === 'open' && startState39.focus === promised45,'§45 検査1: 折り返しの申し出がその場で通話を終わらせる');
 assert(promised45.callbackCount === 0,'§45 検査1: 申し出だけで折り返し回数が増える');
@@ -2064,13 +2239,13 @@ assert(promised45.state === 'callback' && promised45.callbackCount === 1 && prom
 assert(promised45.callbackDue === startState39.clock,'§45 検査5: いますぐの折り返し時刻が現在時刻でない');
 
 // §45 検査2: 1時間後を選ぶと、折り返し時刻が60分後になる。
-const scheduled45 = {asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',transcript:[],callbackCount:0,state:'open',callbackPromised:null};
+const scheduled45 = {s:{type:'novice'},asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',stayHotelName:'試験ホテル 東京',transcript:[],callbackCount:0,state:'open',callbackPromised:null};
 startState39.focus = scheduled45; startHotel39('scheduled');
 finishHotel45(scheduled45);
 assert(scheduled45.callbackDue === startState39.clock + CALLBACK_SCHEDULED_MINUTES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,'§45 検査2: 1時間後の折り返し時刻が60分後でない');
 
 // §40/§45 検査6: 滞在先を聞かずに切ると、折り返せなかった扱いになる（既存の経路を使う）。
-const noStay39 = {asked:new Set(),stayAddress:null,transcript:[],callbackCount:0,state:'open',callbackPromised:null};
+const noStay39 = {s:{type:'novice'},asked:new Set(),stayAddress:null,stayHotelName:null,transcript:[],callbackCount:0,state:'open',callbackPromised:null};
 startState39.focus = noStay39; startHotel39('immediate');
 assert(!noStay39.blind && noStay39.callbackPromised === 'immediate','§45 検査6: 滞在先未確認でも申し出の時点では失敗にしない');
 finishHotel45(noStay39);
@@ -2096,14 +2271,15 @@ const angryPlain45 = { s:{type:'hurried'}, transcript:[], callbackPromised:null,
 angryModule45(angryPlain45, 'stress');
 assert(angryPlain45.pendingResult && angryPlain45.pendingResult.kind === 'complaint' && !angryPlain45.finished,'§45 検査8: 約束がない場合の既存の終話が変わっている');
 
-// §45／§53 検査7: 切る前の案内は滞在先の有無を漏らさず、戻る時間だけを補助する。
+// §62: 切る前の案内は滞在先や戻る時間の有無を漏らさず、中立の1文だけにする。
 const guide45 = functionSource('unresolvedHangupGuide');
 const guideFn45 = new Function('CALL_FLOW_LINES','hotCauses',guide45 + '\nreturn unresolvedHangupGuide;')(CALL_FLOW_LINES,() => new Set());
 const noStayGuide45 = guideFn45({callbackPromised:'immediate',asked:new Set(),stayAddress:null,returnTimeKnown:false});
 const stayGuide45 = guideFn45({callbackPromised:'immediate',asked:new Set(['q_stay']),stayAddress:'ホテル',returnTimeKnown:false});
 assert.equal(noStayGuide45,stayGuide45,'§53 検査: 滞在先の有無で終話前案内が変わり、内部状態を漏らす');
-assert(noStayGuide45.includes(CALL_FLOW_LINES.callbackPromise.guide) && noStayGuide45.includes(CALL_FLOW_LINES.callbackPromise.guideNoReturn),'§53 検査: 中立の折り返し案内または戻る時間の補助がない');
-assert(!guideFn45({callbackPromised:'immediate',asked:new Set(),stayAddress:null,returnTimeKnown:true}).includes(CALL_FLOW_LINES.callbackPromise.guideNoReturn),'§53 検査: 戻る時間確認済みでも未確認案内が出る');
+assert.equal(noStayGuide45,'<b>' + CALL_FLOW_LINES.callbackPromise.guide + '</b>','§62 検査: 中立の折り返し案内1文だけになっていない');
+assert.equal(guideFn45({callbackPromised:'immediate',asked:new Set(),stayAddress:null,returnTimeKnown:true}),noStayGuide45,'§62 検査: 戻る時間の確認有無で終話案内が変わる');
+assert(!Object.prototype.hasOwnProperty.call(CALL_FLOW_LINES.callbackPromise,'guideNoReturn') && !game.includes('お戻りの時間を伺っていません'),'§62 検査: 不要な戻る時刻の警告が残っている');
 
 // §45 検査9/10: 戻る時間の質問は、約束したあとにだけ出る。聞かなくても折り返しは成立する。
 const returnQ45 = QUESTIONS.find(q => q.id === 'q_return');
@@ -2120,7 +2296,7 @@ startState39.focus = blind39; blindRedial39(blind39);
 assert(blind39.state === 'waiting' && blind39.arrivedTurn === 7 && blind39.redialCount === 1,'§40 折り返せなかった案件が待ち行列へ戻らない');
 assert(blind39.redialOpening === CALL_FLOW_LINES.callback.blameOpenings.hurried && blind39.callbackPenalty === BLIND_CALLBACK_CSAT_PENALTY,'§40 再入電の非難とCSATの重みが付いていない');
 assert(blind39.transcript.some(line => line.who === 'note' && line.text === CALL_FLOW_LINES.callback.noAddressNote),'§40 折り返せない理由が記録に残らない');
-const readyStay39 = {asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',transcript:[],callbackCount:0,state:'open',callbackPromised:null};
+const readyStay39 = {s:{type:'novice'},asked:new Set(['q_stay']),stayAddress:'ホテル、512号室',stayHotelName:'試験ホテル 東京',transcript:[],callbackCount:0,state:'open',callbackPromised:null};
 startState39.focus = readyStay39; startHotel39('immediate'); finishHotel45(readyStay39);
 assert(readyStay39.state === 'callback' && readyStay39.callbackReason === 'general' && readyStay39.callbackDue === 100 && startState39.focus === null,'§39 検査14: l_carrier以外から一般折り返しを開始できない');
 
@@ -2133,11 +2309,11 @@ const renderFront39 = new Function('CALL_FLOW_LINES','esc','renderCommandHead',f
   CALL_FLOW_LINES,value => String(value),() => '<div class="head">Front Desk</div>'
 );
 const frontGreeting39 = CALL_FLOW_LINES.frontDesk.greeting;
-const unknownRoomFront39 = renderFront39({nameKnown:true,stayAddress:'ホテル名のみ',s:{name:'試験 顧客',nameEn:'Test Customer'},transcript:[{who:'front',text:frontGreeting39,typed:true}]});
+const unknownRoomFront39 = renderFront39({nameKnown:true,stayAddress:'ホテル名のみ',stayHotelName:'試験ホテル 東京',s:{name:'試験 顧客',nameEn:'Test Customer'},transcript:[{who:'front',text:frontGreeting39,typed:true}]});
 assert(unknownRoomFront39.includes('front-desk-context') && unknownRoomFront39.includes('Front Desk') && unknownRoomFront39.includes(frontGreeting39),'§39 検査7: Front Deskの発話が選択画面に表示されない');
 assert(unknownRoomFront39.includes('Test Customer') && !unknownRoomFront39.includes('試験 顧客'),'§39 検査8: Front Deskへ伝える顧客名がローマ字になっていない');
 assert(!unknownRoomFront39.includes('data-front-desk="room"') && !unknownRoomFront39.includes('—'),'§39 検査8: 部屋番号不明時にroom選択肢またはダッシュが表示される');
-const knownRoomFront39 = renderFront39({nameKnown:true,stayAddress:'ホテル、512号室',s:{name:'試験 顧客',nameEn:'Test Customer'},transcript:[{who:'front',text:frontGreeting39,typed:true}]});
+const knownRoomFront39 = renderFront39({nameKnown:true,stayAddress:'ホテル、512号室',stayHotelName:'試験ホテル 東京',s:{name:'試験 顧客',nameEn:'Test Customer'},transcript:[{who:'front',text:frontGreeting39,typed:true}]});
 assert(knownRoomFront39.includes('data-front-desk="room"') && knownRoomFront39.includes('512'),'§39 検査8: 部屋番号判明後もroom選択肢が表示されない');
 
 const localModule39 = new Function('state',functionSource('ticketLocalMinute') + '\n' + functionSource('isLateLocalTime') + '\nreturn {ticketLocalMinute,isLateLocalTime};');
@@ -2436,8 +2612,9 @@ assert(recordHtml55.includes('日勤引き継ぎ') && recordHtml55.includes(hand
 
 const meetingNodes55 = {sheet:{innerHTML:''},'btn-finish-handover':{onclick:null}};
 let meetingOpened55 = 0;
-const showMeeting55 = new Function('handoverMeetingTickets','enterShiftAfterMeeting','esc','fmtClock','$','SHIFT_START','openSheet', functionSource('showHandoverMeeting') + '\nreturn showHandoverMeeting;')(
-  () => [handoverTicket55],() => {},value => String(value),minute => 'T' + minute,id => meetingNodes55[id],SHIFT_START,() => { meetingOpened55++; }
+let meetingDrawn55 = 0;
+const showMeeting55 = new Function('handoverMeetingTickets','enterShiftAfterMeeting','esc','fmtClock','$','SHIFT_START','openSheet','drawHandoverMeeting', functionSource('showHandoverMeeting') + '\nreturn showHandoverMeeting;')(
+  () => [handoverTicket55],() => {},value => String(value),minute => 'T' + minute,id => meetingNodes55[id],SHIFT_START,() => { meetingOpened55++; },() => { meetingDrawn55++; }
 );
 showMeeting55();
 const meetingHtml55 = meetingNodes55.sheet.innerHTML;
@@ -2523,10 +2700,76 @@ assert(displayNodes57.clock.textContent === 'T1440' && displayNodes57['office-cl
 const passage57 = functionSource('startTimePassageIfNeeded');
 assert(passage57.includes('typewriterOff()') && passage57.includes('finishTimePassage()'), '§57 検査5: prefers-reduced-motionで即着地しない');
 assert(passage57.includes('requestAnimationFrame(step)') && passage57.includes('timePassageDuration(minutes)'), '§57 検査6: 時間経過をフレーム補間しない');
-const clickSkip57 = eventSource.indexOf('if (timePassage){ finishTimePassage(); return; }');
+const clickSkip57 = eventSource.indexOf('if (timePassage){');
 const typingSkip57 = eventSource.indexOf('if (typingLine){ finishTyping(); return; }');
-assert(clickSkip57 >= 0 && clickSkip57 < typingSkip57 && eventSource.includes("if (timePassage && (e.key === ' ' || e.key === 'Enter'))"), '§57 検査8: タップ・キーで時間経過演出を飛ばせない');
+assert(clickSkip57 >= 0 && clickSkip57 < typingSkip57 && eventSource.includes('finishTimePassage();') && eventSource.includes("if (timePassage && (e.key === ' ' || e.key === 'Enter'))"), '§57 検査8: タップ・キーで時間経過演出を飛ばせない');
+assert(/if \(timePassage\)\{[\s\S]*?finishTimePassage\(\);[\s\S]*?if \(!answerDuringPassage\) return;/.test(eventSource), '§57 検査8: タップで時間経過演出を飛ばせない');
+assert(eventSource.includes("e.target.closest('[data-office-answer]')") && eventSource.includes('if (!answerDuringPassage) return;'), '§64 検査6: 時間経過演出中の受話タップが演出のスキップだけに消費される');
 assert(functionSource('renderReport').startsWith('function renderReport(){\n  if (startTimePassageIfNeeded(() => renderReport())) return;'), '§57 検査9: 07:00の着地前に業務報告へ飛ぶ');
 assert(page.includes('id="time-passage-indicator"') && page.includes('時間が進んでいます ／ タップで進む'), '§57 検査10: 時間経過中とスキップ方法が画面に出ない');
+
+// §61: ホテル名は土地の一部として割り当て、折り返し可能判定では会話文と分けて持つ。
+assert.equal(PLACE_POOL.length,14,'§61 検査1: 14の土地すべてにホテル名を用意していない');
+assert(PLACE_POOL.every(place => place.hotelName && place.hotelName.endsWith(' ' + place.city) && place.alternateHotelName && place.alternateHotelName.endsWith(' ' + place.city)),'§61 検査1: ホテル名の末尾が割り当て土地の都市名でない');
+const qStayScenarios61 = SCENARIOS.filter(scenario => scenario.replies && scenario.replies.q_stay);
+assert.equal(qStayScenarios61.length,11,'§61 検査2: q_stayの答えを持つ案件数が11件でない');
+const assignedAll61 = identityModule38.assignScenarioIdentities(SCENARIOS,() => .37,{shuffleIdentity:true});
+assert(assignedAll61.filter(scenario => scenario.replies && scenario.replies.q_stay).every(scenario => scenario.replies.q_stay.text.includes(scenario.hotelName) && !scenario.replies.q_stay.text.includes('{hotel}')),'§61 検査2/3: q_stayへ同じ土地のホテル名を差し込めない');
+assert(!hotelContactKnown({asked:new Set(['q_stay']),stayAddress:'512号室',stayHotelName:null}) && hotelContactKnown({asked:new Set(['q_stay']),stayAddress:'試験ホテル 東京、512号室',stayHotelName:'試験ホテル 東京'}),'§61 検査4/5: 住所だけで折り返せる、またはホテル名を聞いても折り返せない');
+assert(functionSource('newTicket').includes('stayHotelName:null') && functionSource('doAsk').includes('t.stayHotelName = t.s.hotelName') && functionSource('doAsk').includes('t.stayHotelName = t.s.alternateHotelName'),'§61 検査5/6: 通常滞在先と配送先変更のホテル名をチケットへ記録しない');
+assert(functionSource('renderFrontDeskOptions').includes('t.stayHotelName') && functionSource('renderCarrierLookupOptions').includes('t.stayHotelName'),'§61 検査7: Front Deskまたは現地キャリア画面に発信先ホテル名が出ない');
+
+// §63: 約束成立に必要な初回q_stayだけは怒らず、重複質問は従来どおり怒る。
+const askState63 = {focus:null,ui:null};
+let askStress63 = 0, askMinutes63 = 0;
+const doAsk63 = new Function(
+  'state','QUESTIONS','pushCustomerLine','replacementAddressConfirmation','repeatedQuestionReply','addStress','askStressBase','spendOnCall','defaultUi','render','identityQuestionStress','addFact','identificationReady',
+  functionSource('doAsk') + '\nreturn doAsk;'
+)(askState63,QUESTIONS,(ticket,text) => ticket.transcript.push({who:'cust',text}),() => '',() => '二度聞きです',(_ticket,delta) => { askStress63 += delta; return true; },(_ticket,base) => base,(_ticket,minutes) => { askMinutes63 += minutes; return true; },() => ({}),() => {},() => true,() => {},() => true);
+const promisedStay63 = {s:{deviceInHand:true,type:'novice',hotelName:'試験ホテル 東京',replies:{q_stay:{text:'試験ホテル 東京、512号室です。'}}},callbackPromised:'immediate',asked:new Set(),askCounts:new Map(),questionCount:0,transcript:[],wasted:0};
+askState63.focus = promisedStay63; doAsk63('q_stay');
+assert(promisedStay63.stayHotelName === '試験ホテル 東京' && askStress63 === 0 && askMinutes63 === 1,'§63 検査1: 折り返し約束後の初回ホテル確認が名前を返す、怒らない、1分進むの3点を満たさない');
+doAsk63('q_stay');
+assert(askStress63 > 0 && askMinutes63 === 2 && promisedStay63.transcript.at(-1).text === '二度聞きです','§63 検査2: 二度目のホテル確認が重複質問にならない');
+
+const preferenceTicket63 = (type,preference) => ({s:{type,callbackPreference:preference},asked:new Set(['q_stay']),stayAddress:'試験ホテル 東京、512号室',stayHotelName:'試験ホテル 東京',transcript:[],callbackCount:0,state:'open',callbackPromised:null});
+assert(SCENARIOS.find(scenario => scenario.id === 'S4').callbackPreference === 'three_hours' && SCENARIOS.find(scenario => scenario.id === 'S12').callbackPreference === 'tomorrow','§63 検査4/5: S4とS12に3時間後・翌日の希望が付いていない');
+const threeHours63 = preferenceTicket63('expert','three_hours'); startState39.focus=threeHours63; startHotel39('scheduled'); finishHotel45(threeHours63);
+assert(threeHours63.callbackKind === 'three_hours' && threeHours63.callbackDue === startState39.clock + CALLBACK_THREE_HOURS_MINUTES && threeHours63.transcript.some(line => line.text === CALL_FLOW_LINES.callbackPromise.threeHours),'§63 検査4: 1時間後の提案を3時間後の希望へ変えられない');
+const tomorrow63 = preferenceTicket63('novice','tomorrow'); startState39.focus=tomorrow63; startHotel39('scheduled'); finishHotel45(tomorrow63);
+assert(tomorrow63.callbackKind === 'tomorrow' && tomorrow63.callbackDue === CALLBACK_TOMORROW_DUE && tomorrow63.transcript.some(line => line.text === CALL_FLOW_LINES.callbackPromise.tomorrow),'§63 検査5: 翌日希望の約束時刻が日勤引き継ぎにならない');
+const immediate63 = preferenceTicket63('expert','three_hours'); startState39.focus=immediate63; startHotel39('immediate');
+assert(immediate63.callbackPromised === 'immediate','§63 検査6: いますぐの提案まで3時間後へ変えている');
+
+// §64: 機器検証だけが待機時間を進め、進み方は着信で中断できる。
+assert.equal(DEVICE_VERIFICATION_MINUTES,60,'§64 検査2: 返却機1台の検証時間が60分でない');
+assert(!game.includes('function advanceIdleOffice') && !game.includes('function nextInboundDelta'),'§64 検査1: オフィスへ戻るだけで次の事象へ時刻を飛ばす処理が残っている');
+const enterOffice64 = functionSource('enterOffice');
+assert(enterOffice64.includes('activateDueInbound()') && !enterOffice64.includes('advance('),'§64 検査1: オフィスへ戻るだけで時刻を進める');
+const verify64 = functionSource('runDeviceVerification');
+assert(verify64.includes('advance(1)') && verify64.includes('state.deviceVerificationMinutes++') && verify64.includes("t.state === 'waiting'") && verify64.includes('state.verifiedDevices++'),'§64 検査2/3/4: 機器検証の1分進行・着信中断・完了台数が揃わない');
+assert(functionSource('renderOffice').includes("$('office-verify').disabled = waiting.length > 0") && functionSource('renderOffice').includes('state.deviceVerificationMinutes'),'§64 検査5/7: 着信中の無効化または途中進捗表示がない');
+assert(functionSource('renderReport').includes("機器検証 ' + state.verifiedDevices + '台完了") && !functionSource('metrics').includes('verifiedDevices') && !functionSource('careerShiftContext').includes('verifiedDevices'),'§64 検査7: 機器検証台数が報告に出ない、または電話対応の採点へ混ざる');
+
+// §65: 急ぐ客は一般折り返しを断り、同じ通話で解決を続ける。
+const hurriedState65 = {focus:null,ui:null};
+let hurriedMinutes65 = 0, hurriedStress65 = 0, hurriedRenders65 = 0;
+const startHurried65 = new Function('CALL_FLOW_LINES','state','spendOnCall','pushFlowLines','changeStress','defaultUi','render',functionSource('startHotelCallback') + '\nreturn startHotelCallback;')(
+  CALL_FLOW_LINES,hurriedState65,(_ticket,minutes) => { hurriedMinutes65 += minutes; return true; },(ticket,lines) => ticket.transcript.push(...lines),(_ticket,delta) => { hurriedStress65 += delta; return true; },() => ({tab:'command'}),() => { hurriedRenders65++; }
+);
+const hurried65 = {s:{type:'hurried'},state:'open',transcript:[],callbackPromised:null,pendingResult:null,pendingInterruption:false,callbackStage:null};
+hurriedState65.focus=hurried65; startHurried65('scheduled');
+assert(hurried65.state === 'open' && !hurried65.callbackPromised && hurried65.transcript.some(line => line.text === CALL_FLOW_LINES.callbackPromise.hurriedRefusal) && hurriedMinutes65 === 1 && hurriedStress65 === 6 && hurriedRenders65 === 1,'§65 検査4/5: 急ぐ客が一般折り返しを断って同じ通話で解決を続けられない');
+
+// §9（オフィス情景）: 引き継ぎ会議は既存Canvasと人物部品で2人の後ろ姿を描く。
+assert(meetingDrawn55 === 1 && /<canvas id="handover-office-canvas" width="192" height="168"/.test(meetingHtml55) && /ホワイトボードの前で、後ろ姿の日勤担当と夜勤担当/.test(meetingHtml55),'§9 検査1/3: 引き継ぎ会議のCanvasまたはアクセシブル名がない');
+let handoverBackground65 = 0, handoverStaff65 = 0, handoverPixels65 = 0;
+const handoverCanvas65 = {getContext:() => ({})};
+const drawHandover65 = new Function('$','drawOfficePixelArt','OFFICE_PALETTE','pixelRect','drawMorningStaffMember',functionSource('drawHandoverMeeting') + '\nreturn drawHandoverMeeting;')(
+  id => id === 'handover-office-canvas' ? handoverCanvas65 : null,() => { handoverBackground65++; },OFFICE_PALETTE,() => { handoverPixels65++; },() => { handoverStaff65++; }
+);
+drawHandover65();
+assert(handoverBackground65 === 1 && handoverStaff65 === 2 && handoverPixels65 > 8,'§9 検査2: 既存オフィス背景と人物部品で2人の申し送りを描かない');
+assert(page.includes('.handover-figure canvas') && page.includes('image-rendering:pixelated') && !/<img\b/i.test(functionSource('showHandoverMeeting')),'§9 検査1: 引き継ぎの絵がCanvasのドット絵でない');
 
 console.log('UI契約・素材同期・SIM清掃仕様: 問題なし');

@@ -36,6 +36,10 @@ function hotelRoom(t){
   return match ? match[1] : null;
 }
 
+function hotelContactKnown(t){
+  return Boolean(t && t.asked && t.asked.has('q_stay') && t.stayAddress && t.stayHotelName);
+}
+
 function defaultUi(tab = 'command'){
   return { tab, cause:null, remedy:null, lookup:null, askGroup:null };
 }
@@ -62,6 +66,8 @@ const state = {
   endingType: 'career',
   officeEvents: [],
   handoverMeetingComplete: false,
+  deviceVerificationMinutes: 0,
+  verifiedDevices: 0,
   random: Math.random,
 };
 
@@ -154,7 +160,7 @@ function assignScenarioPlaces(scenarios, random){
 }
 
 function replaceScenarioTemplates(value, replacements){
-  if (typeof value === 'string') return value.replace(/\{(city|country|carrier|region|wrongCountry|spouse)\}/g, (_, key) => replacements[key]);
+  if (typeof value === 'string') return value.replace(/\{(city|country|carrier|region|wrongCountry|spouse|hotel|alternateHotel)\}/g, (_, key) => replacements[key]);
   if (Array.isArray(value)) return value.map(item => replaceScenarioTemplates(item, replacements));
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(Object.entries(value).map(([key,item]) => [key,replaceScenarioTemplates(item,replacements)]));
@@ -167,6 +173,8 @@ function scenarioWithIdentityAndPlace(scenario, identity, place, wrongCountry){
     carrier:place.carrier,
     region:place.regionName,
     wrongCountry,
+    hotel:place.hotelName,
+    alternateHotel:place.alternateHotelName,
     /* §47: 配偶者の呼び方は客の性別で決まる。女性客なら「夫」、男性客なら「妻」。 */
     spouse:identity.gender === 'female' ? '夫' : '妻',
   };
@@ -179,6 +187,8 @@ function scenarioWithIdentityAndPlace(scenario, identity, place, wrongCountry){
     carrierName:place.carrier,
     regionGroup:place.regionGroup,
     regionName:place.regionName,
+    hotelName:place.hotelName,
+    alternateHotelName:place.alternateHotelName,
     placeSourceScenarioId:place.sourceScenarioId,
     wrongCountry,
   });
@@ -404,11 +414,11 @@ function newTicket(s){
     transcript:[], callTranscriptStart:0, greeted:handover, identified:handover, nameKnown:handover, destinationKnown:handover,
     stress:TYPES[s.type].stressStart, maxStress:TYPES[s.type].stressStart, soothed:new Map(), smalltalkCounts:new Map(),
     speechTurns:{ irritated:0, angry:0, furious:0 }, callMinutes:0, inboundMinutes:0, outboundMinutes:0, callSegmentMinutes:0, callDirection:'inbound', holdMinutes:0,
-    callChargeConcerned:false,
+    callChargeConcerned:false, callChargeThresholdPassed:false,
     callbackCount:0, callbackDue:handover ? SHIFT_START + callbackTurn : null, callbackLate:false, callbackKind:handover ? 'handover' : null, callbackDestination:handover ? 'direct' : null, callbackPenalty:0, callbackLookupCount:0, callbackWaitStressApplied:false, callbackReliefApplied:false, stayHintDelivered:false, carrierLookupStarted:false,
     callbackReason:handover ? 'handover' : null, callbackStage:handover ? 'scheduled' : null, callbackPromised:handover ? 'day_shift' : null, returnTimeKnown:handover, frontDeskAttempts:0,
     carrierReplyStatus:null, carrierRestored:false, carrierRequestAttempts:0,
-    stayAddress:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
+    stayAddress:null, stayHotelName:null, stayDaysKnown:false, replacementConsentKnown:false, deliveryAddressConfirmed:false, shipment:null, apologies:new Map(),
     misdiagnoses:0, damage:0, wasted:0, symptomResolved:false, refundProposalRejected:false, result:null, pendingResult:null, pendingInterruption:false, pendingConversation:null,
     complaintEmail:false, misdiagnosisEmail:false, gratitudeEmail:false, refundComplaint:false,
     attempts:[], abandonedCalls:0, abandonRedialScheduled:false,
@@ -436,6 +446,8 @@ function resetGame(){
   state.careerUpdate = null;
   state.officeEvents = [];
   state.handoverMeetingComplete = false;
+  state.deviceVerificationMinutes = 0;
+  state.verifiedDevices = 0;
 }
 
 function recordOfficeEvent(kind, text){
@@ -526,16 +538,20 @@ function unscoredOutcome(t){
 }
 
 function handoffActiveTicket(t){
-  if (!t || t.state !== 'open') return false;
+  const deferredCustomerRequest = t && t.state === 'callback' && t.callbackDue > SHIFT_END && ['three_hours','tomorrow'].includes(t.callbackKind);
+  if (!t || (t.state !== 'open' && !deferredCustomerRequest)) return false;
   t.state = 'closed';
   t.pendingResult = null;
   t.pendingInterruption = false;
   t.pendingConversation = null;
-  t.result = { kind:'handed_off', csat:null, label:'日勤へ引き継ぎ', firstCallResolved:false };
+  t.result = { kind:'handed_off', csat:null, label:deferredCustomerRequest ? '希望時刻の折り返しを日勤へ引き継ぎ' : '日勤へ引き継ぎ', firstCallResolved:false };
   if (!Array.isArray(t.attempts)) t.attempts = [];
-  t.attempts.push({ ...t.result, atTurn:SHIFT_DURATION, arrivedTurn:t.arrivedTurn, note:'07:00時点で通話中のため日勤担当へ引き継ぎました。' });
-  t.transcript.push({ who:'note', text:'07:00になったため、通話中の対応を日勤担当へ引き継ぎました。' });
-  recordOfficeEvent('handoff', t.s.id + '：通話中の対応を日勤担当へ引き継ぎました。');
+  const note = deferredCustomerRequest
+    ? 'お客様が希望した折り返し時刻が夜勤終了後のため、日勤担当へ引き継ぎました。'
+    : '07:00時点で通話中のため日勤担当へ引き継ぎました。';
+  t.attempts.push({ ...t.result, atTurn:SHIFT_DURATION, arrivedTurn:t.arrivedTurn, note });
+  t.transcript.push({ who:'note', text:note });
+  recordOfficeEvent('handoff', t.s.id + '：' + note);
   return true;
 }
 
@@ -545,6 +561,7 @@ function finishShiftAtTime(){
   state.turn = SHIFT_DURATION;
   state.tickets.forEach(t => {
     if (t.state === 'open') handoffActiveTicket(t);
+    else if (t.state === 'callback' && t.callbackDue > SHIFT_END && ['three_hours','tomorrow'].includes(t.callbackKind)) handoffActiveTicket(t);
     else abandonTicket(t, '07:00の勤務終了で放棄呼になりました。');
   });
   state.focus = null;
@@ -580,6 +597,35 @@ function advance(turns){
     // この分に到着した呼は、次の1分から待ち時間を消費する
     activateDueInbound();
   }
+}
+
+/* §64: 待機そのものでは時刻を進めない。返却機1台を60分かけて検証し、
+   着信した分で止める。途中までの作業は、通話後に同じ台から再開できる。 */
+function runDeviceVerification(){
+  const alreadyWaiting = state.tickets.some(t => t.state === 'waiting');
+  if (state.phase !== 'office' || state.focus || alreadyWaiting) return { advanced:0, interrupted:alreadyWaiting, completed:false };
+  const remaining = DEVICE_VERIFICATION_MINUTES - state.deviceVerificationMinutes;
+  let advanced = 0;
+  let completed = false;
+  while (advanced < remaining && state.phase !== 'report'){
+    state.deviceVerificationMinutes++;
+    advance(1);
+    advanced++;
+    if (state.deviceVerificationMinutes >= DEVICE_VERIFICATION_MINUTES){
+      state.verifiedDevices++;
+      state.deviceVerificationMinutes = 0;
+      completed = true;
+      recordOfficeEvent('verification', '返却機の検証を1台完了しました（累計 ' + state.verifiedDevices + '台）。');
+      break;
+    }
+    if (state.tickets.some(t => t.state === 'waiting')) break;
+  }
+  const interrupted = state.phase !== 'report' && state.tickets.some(t => t.state === 'waiting');
+  if (interrupted && !completed){
+    recordOfficeEvent('verification', '着信のため機器検証を中断しました（' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分）。');
+  }
+  if (state.phase === 'office') renderOffice();
+  return { advanced, interrupted, completed };
 }
 
 function addFact(t, fact, src){
@@ -798,10 +844,13 @@ function spendOnCall(t, minutes, holdMinutes){
     const direction = t.callDirection === 'outbound' ? 'outbound' : 'inbound';
     if (!addStress(t, held * HOLD_STRESS_PER_MINUTE[direction], false, true)) return false;
   }
-  if (!t.callChargeConcerned && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5 && t.state === 'open' && !t.pendingResult){
-    t.callChargeConcerned = true;
-    pushCustomerLine(t, CALL_FLOW_LINES.callChargeConcern[t.s.type], { plain:true });
-    if (!changeStress(t, 4, true)) return false;
+  if (!t.callChargeThresholdPassed && t.callDirection === 'inbound' && inboundBefore <= 5 && t.inboundMinutes > 5 && t.state === 'open' && !t.pendingResult){
+    t.callChargeThresholdPassed = true;
+    if (CALL_CHARGE_COMPLAINT_TYPES.includes(t.s.type)){
+      t.callChargeConcerned = true;
+      pushCustomerLine(t, CALL_FLOW_LINES.callChargeConcern[t.s.type], { plain:true });
+      if (!changeStress(t, 4, true)) return false;
+    }
   }
   const longMinutes = Math.max(0, t.callMinutes - 10) - Math.max(0, before - 10);
   if (longMinutes && t.state === 'open') addStress(t, longMinutes * 2);
@@ -1220,7 +1269,12 @@ function doRefund(){
 
 function replacementAddressConfirmation(t, qid){
   if (qid === 'q_stay' && t.s.deliveryAddress){
-    return { anxious:'到着する頃には次のホテルへ移っています。そちらの214号室へお願いします…。', novice:'届く頃は別のホテルへ移っています。次のホテル214号室で受け取れます。', expert:'到着時点の滞在先は次のホテル214号室です。配送先を更新してください。', hurried:'届く頃は次のホテル214号室。そっちへ送って。' }[t.s.type];
+    return {
+      anxious:'到着する頃には次のホテルへ移っています。' + t.s.deliveryAddress + 'へお願いします…。',
+      novice:'届く頃は別のホテルへ移っています。' + t.s.deliveryAddress + 'で受け取れます。',
+      expert:'到着時点の滞在先は' + t.s.deliveryAddress + 'です。配送先を更新してください。',
+      hurried:'届く頃は' + t.s.deliveryAddress + '。そっちへ送って。',
+    }[t.s.type];
   }
   return {
     anxious:{ q_stay:'届く頃も同じホテルにいます。部屋番号も確認しておきます…。', q_stay_length:'あと' + t.s.stayDays + '泊あります。明日なら、まだ十分使えますよね…？' },
@@ -1235,13 +1289,14 @@ function doAsk(qid){
   const q = QUESTIONS.find(x => x.id === qid);
   if (!t || !q || (q.needsDevice && !t.s.deviceInHand)) return;
   const previous = t.askCounts.get(qid) || 0;
+  const necessaryCallbackStay = qid === 'q_stay' && Boolean(t.callbackPromised) && previous === 0;
   t.askCounts.set(qid, previous + 1);
   t.questionCount++;
   t.asked.add(qid);
   t.transcript.push({ who:'me', text:q.label });
   const replacementAddressCheck = previous > 0 && ['q_stay','q_stay_length'].includes(qid) && t.asked.has('q_stay') && t.asked.has('q_replacement') && t.s.wantsReplacement;
   if (replacementAddressCheck){
-    if (qid === 'q_stay' && t.s.deliveryAddress){ t.stayAddress = t.s.deliveryAddress; t.deliveryAddressConfirmed = true; }
+    if (qid === 'q_stay' && t.s.deliveryAddress){ t.stayAddress = t.s.deliveryAddress; t.stayHotelName = t.s.alternateHotelName; t.deliveryAddressConfirmed = true; }
     pushCustomerLine(t, replacementAddressConfirmation(t, qid));
     if (qid === 'q_stay_length') t.stayDaysKnown = true;
     if (!spendOnCall(t, 1, 0)) return;
@@ -1278,14 +1333,14 @@ function doAsk(qid){
   if (r){
     pushCustomerLine(t, r.text);
     if (r.fact) addFact(t, r.fact, '聞き取り');
-    if (qid === 'q_stay') t.stayAddress = r.text;
+    if (qid === 'q_stay'){ t.stayAddress = r.text; t.stayHotelName = t.s.hotelName; }
     if (qid === 'q_stay_length') t.stayDaysKnown = true;
     if (qid === 'q_replacement') t.replacementConsentKnown = true;
   } else {
     pushCustomerLine(t, q.miss);
     t.wasted++;
   }
-    if (!addStress(t, askStressBase(t, r ? 3 : 9), !r)) return;
+    if ((!necessaryCallbackStay || !r) && !addStress(t, askStressBase(t, r ? 3 : 9), !r)) return;
     if (t.s.techPenalty && !r) t.wasted++;
   }
   t.identified = identificationReady(t);
@@ -1431,7 +1486,7 @@ function startCarrierCallback(destination){
   const t = state.focus;
   const lookup = LOOKUPS.find(item => item.id === 'l_carrier');
   if (!t || !lookup || state.ui.tab !== 'lookup' || state.ui.lookup !== lookup.id || t.carrierLookupStarted || t.lookedUp.has(lookup.id)) return;
-  if (destination !== 'hotel' || !t.asked.has('q_stay')){ render(); return; }
+  if (destination !== 'hotel' || !hotelContactKnown(t)){ render(); return; }
   pushFlowLines(t, [
     { who:'me', text:CALL_FLOW_LINES.carrier.promise },
     { who:'cust', text:CALL_FLOW_LINES.carrier.consent },
@@ -1456,11 +1511,26 @@ function startCarrierCallback(destination){
 function startHotelCallback(kind = 'immediate'){
   const t = state.focus;
   if (!t || t.pendingResult || t.pendingInterruption || t.callbackStage === 'front_desk' || t.callbackPromised) return;
+  if (t.s && t.s.type === 'hurried'){
+    pushFlowLines(t, [
+      { who:'me', text:kind === 'scheduled' ? CALL_FLOW_LINES.callbackPromise.scheduled : CALL_FLOW_LINES.callbackPromise.immediate },
+      { who:'cust', text:CALL_FLOW_LINES.callbackPromise.hurriedRefusal },
+    ]);
+    if (!spendOnCall(t, 1, 0)) return;
+    if (!changeStress(t, 6, true)) return;
+    state.ui = defaultUi();
+    render();
+    return;
+  }
+  const preferredKind = kind === 'scheduled' && t.s && ['three_hours','tomorrow'].includes(t.s.callbackPreference) ? t.s.callbackPreference : kind;
+  const customerReply = preferredKind === 'three_hours' ? CALL_FLOW_LINES.callbackPromise.threeHours
+    : preferredKind === 'tomorrow' ? CALL_FLOW_LINES.callbackPromise.tomorrow
+    : CALL_FLOW_LINES.callbackPromise.consent;
   pushFlowLines(t, [
     { who:'me', text:kind === 'scheduled' ? CALL_FLOW_LINES.callbackPromise.scheduled : CALL_FLOW_LINES.callbackPromise.immediate },
-    { who:'cust', text:CALL_FLOW_LINES.callbackPromise.consent },
+    { who:'cust', text:customerReply },
   ]);
-  t.callbackPromised = kind;
+  t.callbackPromised = preferredKind;
   t.transcript.push({ who:'note', text:CALL_FLOW_LINES.callbackPromise.note });
   if (!spendOnCall(t, 1, 0)) return;
   state.ui = defaultUi();
@@ -1473,7 +1543,7 @@ function finishPromisedCallback(t, charge = true){
   const kind = t.callbackPromised;
   t.callbackPromised = null;
   // 滞在先を聞かずに切ると、折り返す先がない。客が自分から掛け直してきて責める（§40-4）。
-  if (!t.asked.has('q_stay') || !t.stayAddress){ blindCallbackRedial(t); return; }
+  if (!hotelContactKnown(t)){ blindCallbackRedial(t); return; }
   t.transcript.push({ who:'note', text:'お客様の国際通話料を止め、ホテルへ折り返す約束を記録しました。' });
   t.callbackCount++;
   t.callbackLookupCount = 0;
@@ -1483,7 +1553,8 @@ function finishPromisedCallback(t, charge = true){
   t.callbackKind = kind;
   t.callbackStage = null;
   if (charge && !spendOnCall(t, 1, 0)) return;
-  t.callbackDue = state.clock + (kind === 'scheduled' ? CALLBACK_SCHEDULED_MINUTES : 0);
+  t.callbackDue = kind === 'tomorrow' ? CALLBACK_TOMORROW_DUE
+    : state.clock + (kind === 'three_hours' ? CALLBACK_THREE_HOURS_MINUTES : kind === 'scheduled' ? CALLBACK_SCHEDULED_MINUTES : 0);
   t.state = 'callback';
   leaveCallForOffice();
 }
@@ -1522,7 +1593,7 @@ function remedyBlockReason(t, remedy){
   }
   const missing = (remedy.requiresQuestions || []).filter(id => !t.asked.has(id));
   if (missing.length) return '配送判断に必要な聞き取りが不足しています';
-  if (remedyNeedsShipping(remedy.id) && !t.stayAddress) return '配送先が未確認です。先に滞在先を確認してください';
+  if (remedyNeedsShipping(remedy.id) && !hotelContactKnown(t)) return '配送先が未確認です。先にホテル名と滞在先を確認してください';
   if (remedy.requiresLongStay && (!t.stayDaysKnown || t.s.stayDays < remedy.requiresLongStay)) return '残り滞在期間が短く、到着後に使える期間が足りません';
   if (remedy.requiresConsent && (!t.replacementConsentKnown || !t.s.wantsReplacement)) return 'お客様の代替機配送希望を確認できていません';
   return '';
@@ -1546,8 +1617,8 @@ function startShipping(remedyId){
     render();
     return;
   }
-  if (!t.stayAddress){
-    t.transcript.push({ who:'note', text:'配送先が未確認です。手配を中断して滞在先を確認します。' });
+  if (!hotelContactKnown(t)){
+    t.transcript.push({ who:'note', text:'配送先が未確認です。手配を中断してホテル名と滞在先を確認します。' });
     if (!spendOnCall(t, 2, 0)) return;
     state.ui = defaultUi('ask');
     render();
@@ -1880,24 +1951,4 @@ function causeName(id){
 function checkShiftEnd(){
   if (state.clock >= SHIFT_END) finishShiftAtTime();
   else enterOffice();
-}
-
-function nextInboundDelta(tickets, turn){
-  const future = tickets.filter(t => t.state === 'inbound').map(t => t.arrivedTurn);
-  if (!future.length) return null;
-  return Math.max(0, Math.min(...future) - turn);
-}
-
-function advanceIdleOffice(){
-  if (state.focus) return 0;
-  activateDueInbound();
-  const actionable = state.tickets.some(t => t.state === 'waiting' || (t.state === 'callback' && t.callbackDue <= state.clock));
-  if (actionable) return 0;
-  const inboundDelta = nextInboundDelta(state.tickets, state.turn);
-  const callbackDeltas = state.tickets.filter(t => t.state === 'callback' && t.callbackDue > state.clock).map(t => t.callbackDue - state.clock);
-  const callbackDelta = callbackDeltas.length ? Math.min(...callbackDeltas) : null;
-  const shiftEndDelta = SHIFT_END - state.clock;
-  const delta = [inboundDelta, callbackDelta, shiftEndDelta].filter(value => value !== null && value > 0).sort((a,b) => a - b)[0] || null;
-  if (delta && delta > 0) advance(delta);
-  return delta || 0;
 }
