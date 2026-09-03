@@ -1371,6 +1371,11 @@ body.office-view .office-scene{ gap:14px; }
   body.call-view .command-box{ padding:8px; }
   body.call-view .command-title{ display:none; }
   body.call-view .command-choice{ min-height:52px; padding:7px 8px; }
+  /* 深い質問では選択肢自身を操作領域内のスクロール箱にする。外へあふれさせず、
+     先頭を常に押せる状態に保つ。 */
+  body.call-view .actions .opts{ flex:none; height:96px; min-height:96px; max-height:96px; overflow-y:auto; }
+  body.call-view .actions .ask-group-choice{ min-height:52px; }
+  body.call-view .actions:has(.opts) .hint-bar{ display:none; }
   body.call-view .command-copy b{ font-size:17px; }
   body.call-view .hangup-box{ padding-top:7px; }
   body.call-view .hangup-button{ min-height:42px; }

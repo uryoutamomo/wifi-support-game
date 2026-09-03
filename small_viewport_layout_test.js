@@ -154,6 +154,15 @@ async function verifyViewport(cdp, viewport){
   assert.equal(call.commands.length, 4, '通話の主コマンドが4つではない');
   visibleCenters('通話4コマンド', call.commands, viewport.height);
   visibleCenters('電話を切る', [call.hangup], viewport.height);
+  await evaluate(cdp, `(() => { document.querySelector('[data-command="ask"]').click(); return null; })()`);
+  await pause(40);
+  const askGroup = await evaluate(cdp, `(() => { const node=document.querySelector('[data-ask-group]'), r=node.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { center:r.top+r.height/2, top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit) }; })()`);
+  visibleCenters('質問カテゴリの先頭', [askGroup], viewport.height);
+  await evaluate(cdp, `(() => { document.querySelector('[data-ask-group]').click(); return null; })()`);
+  await pause(40);
+  const askOption = await evaluate(cdp, `(() => { const node=document.querySelector('.actions .opts .opt'), box=document.querySelector('.actions .opts'), r=node.getBoundingClientRect(), b=box.getBoundingClientRect(), hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return { option:{ center:r.top+r.height/2, top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit === node || node.contains(hit) }, box:{ width:b.width, height:b.height } }; })()`);
+  assert(askOption.box.height > 0, '質問選択肢のスクロール箱が描画されていない');
+  visibleCenters('質問選択肢の先頭', [askOption.option], viewport.height);
 }
 
 (async () => {

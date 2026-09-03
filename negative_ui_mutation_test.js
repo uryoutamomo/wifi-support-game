@@ -2838,6 +2838,12 @@ const mutations = [
     to:'  body.call-view .call{ padding-bottom:0; }',
     expected:'固定領域と本文情報が重なっている',
   },
+  {
+    name:'小画面で質問選択肢の高さを0にする', file:'p1_head.html', layout:true,
+    from:'  body.call-view .actions .opts{ flex:none; height:96px; min-height:96px; max-height:96px; overflow-y:auto; }',
+    to:'  body.call-view .actions .opts{ flex:none; height:0; min-height:0; max-height:0; overflow-y:auto; }',
+    expected:'質問カテゴリの先頭 の中心が別要素に覆われている',
+  },
 ];
 
 const requestedMutations = process.env.MUTATION_MATCH
