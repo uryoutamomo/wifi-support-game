@@ -133,7 +133,9 @@ async function assertTopbarClear(cdp, label){
   const rects = await evaluate(cdp, `(() => {
     const textRect = (name, selector) => { const node=document.querySelector(selector), range=document.createRange(); range.selectNodeContents(node); const r=range.getBoundingClientRect(); return { name, left:r.left, right:r.right, top:r.top, bottom:r.bottom, width:r.width, height:r.height }; };
     const boxRect = node => { const r=node.getBoundingClientRect(); return { name:node.className, left:r.left, right:r.right, top:r.top, bottom:r.bottom, width:r.width, height:r.height }; };
-    return [textRect('logo', '.brand .mark'), textRect('clock', '.clock .t'), ...[...document.querySelectorAll('.topbar-inner > button')].map(boxRect)];
+    const result=[textRect('logo', '.brand .mark'), ...[...document.querySelectorAll('.topbar-inner > button')].map(boxRect)];
+    if (document.querySelector('.topbar-inner > .clock .t')) result.splice(1,0,textRect('clock', '.topbar-inner > .clock .t'));
+    return result;
   })()`);
   noTopbarOverlap(label, rects);
 }
@@ -150,11 +152,18 @@ async function verifyViewport(cdp, viewport){
   await evaluate(cdp, 'closeSheet(); enterOffice(); null');
   await pause(80);
 
-  const office = await evaluate(cdp, `(() => { const clock=document.querySelector('.topbar .clock'), r=clock.getBoundingClientRect(); return { scrollY, positions:[...document.querySelectorAll('.office-call-actions')].map(node => getComputedStyle(node).position), count:document.querySelectorAll('.office-call-action').length, clockVisible:getComputedStyle(clock).display !== 'none' && r.width > 0 && r.height > 0, shiftStrips:document.querySelectorAll('.shift-strip,#shift-strip').length }; })()`);
+  const office = await evaluate(cdp, `(() => {
+    const clock=document.querySelector('.office-wall > .clock'), r=clock.getBoundingClientRect();
+    const slogan=document.querySelector('.slogan-text'), sr=slogan.getBoundingClientRect();
+    return { scrollY, positions:[...document.querySelectorAll('.office-call-actions')].map(node => getComputedStyle(node).position), count:document.querySelectorAll('.office-call-action').length, clockVisible:getComputedStyle(clock).display !== 'none' && r.width > 0 && r.height > 0, clockBelowSlogan:r.top >= sr.bottom, clockSize:parseFloat(getComputedStyle(clock.querySelector('.t')).fontSize), sloganSize:parseFloat(getComputedStyle(slogan).fontSize), topbarClock:document.querySelectorAll('.topbar-inner > .clock').length, description:document.querySelectorAll('.office-head > p').length, shiftStrips:document.querySelectorAll('.shift-strip,#shift-strip').length };
+  })()`);
   assert.equal(office.scrollY, 0, 'オフィスが初期表示でスクロールしている');
   await assertTopbarClear(cdp, 'オフィス');
   assert.equal(office.count, 4, 'オフィス操作が4つではない');
-  assert(office.clockVisible, 'オフィスで上部の時計が消えている');
+  assert(office.clockVisible, 'オフィスでスローガン下の時計が消えている');
+  assert(office.clockBelowSlogan && office.clockSize > office.sloganSize, 'オフィス時計が小さくしたスローガンの下で読みやすく表示されていない: ' + JSON.stringify(office));
+  assert.equal(office.topbarClock, 0, 'オフィスで時計が上部バーに残っている');
+  assert.equal(office.description, 0, 'オフィス見出し下の説明文が残っている');
   assert.equal(office.shiftStrips, 0, 'オフィスに撤去したシフト帯が残っている');
   assert(office.positions.every(position => position !== 'fixed'), 'オフィス操作が固定配置のまま: ' + office.positions.join(','));
   await assertScrollReachable(cdp, 'オフィス4操作', '.office-call-action');

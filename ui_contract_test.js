@@ -331,6 +331,26 @@ assert(askGroupChoiceCss42.every(block => !/grid-template-columns\s*:\s*24px/.te
 const retiredShiftMarkers = ['shift-strip','shift-sky','shift-axis','shift-tick','shift-now','shift-pin','topbar-shift-slot','office-shift-slot','renderShiftStrip','mountShiftStrip'];
 retiredShiftMarkers.forEach(marker => assert(!page.includes(marker) && !viewSource.includes(marker), '§66 検査9: 撤去したシフト帯が残っている: ' + marker));
 assert((page.match(/id="clock"/g)||[]).length === 1 && !['office-clock','office-primary-clock','office-time-panel'].some(marker => page.includes(marker)), '§66 検査10: 共通時計が欠けるか、画面別の時計が重複している');
+assert(!page.includes('新しい電話を取るか、照会結果が出た相手へ電話をかけます。'), '§66 検査11: オフィス見出し下の説明文が残っている');
+assert(page.includes('font:800 20px/1.25 var(--display)') && page.includes('font-size:clamp(18px,5.2vw,22px)'), '§66 検査12: 今月のスローガンが指定前の大きさのまま');
+assert(page.includes('.office-wall > .clock{ margin-top:10px; justify-content:flex-start; }') && page.includes('.office-wall > .clock .t{ font-size:30px; font-weight:700; }'), '§66 検査13: オフィス時計がスローガン下で読みやすい大きさにならない');
+const mountClockSource = functionSource('mountClock');
+const clockNode66 = { parentElement:null };
+const soundNode66 = {};
+const officeWall66 = { appendChild(node){ node.parentElement = this; } };
+let insertedBefore66 = null;
+const topbar66 = {
+  querySelector(selector){ return selector === '.btn-sound' ? soundNode66 : null; },
+  insertBefore(node,before){ insertedBefore66 = before; node.parentElement = this; },
+};
+const document66 = { querySelector(selector){ return ({'.clock':clockNode66,'.office-wall':officeWall66,'.topbar-inner':topbar66})[selector] || null; } };
+const mountClock66 = new Function('document', mountClockSource + '\nreturn mountClock;')(document66);
+mountClock66(true);
+assert.equal(clockNode66.parentElement,officeWall66,'§66 検査13: オフィスで単一時計をスローガンの下へ移動しない');
+mountClock66(false);
+assert.equal(clockNode66.parentElement,topbar66,'§66 検査14: 通話・端末作業で単一時計を上部バーへ戻さない');
+assert.equal(insertedBefore66,soundNode66,'§66 検査14: 上部バーへ戻した時計の位置が操作ボタンより後ろになる');
+assert(functionSource('renderOffice').includes('mountClock(true)') && [functionSource('render'),functionSource('renderDesk')].every(source => source.includes('mountClock(false)')), '§66 検査13/14: 画面遷移に応じて単一時計を移動しない');
 assert(page.includes('.topbar-inner > .clock{ display:flex; grid-row:2; grid-column:1 / -1; justify-self:center; }') && !page.includes('.topbar-inner > .clock{ display:none; }'), '§66 検査10: 小画面で時計が消える');
 assert(!page.includes('body.office-view .topbar .clock{ display:none; }'), '§66 検査10: オフィスで共通時計が消える');
 assert(page.includes('.stress-panel'), '大きな苛立ちメーターCSSがない');

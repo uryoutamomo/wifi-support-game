@@ -222,7 +222,7 @@ body.call-view .pane.call-summary > .pane-head{ border-bottom: 0; }
   gap:12px;
 }
 .office-head h1{ margin:0; font-family:var(--display); font-size:26px; letter-spacing:.1em; color:var(--text); }
-.office-head p{ margin:0; color:var(--faint); font-size:12px; }
+.office-head .eyebrow{ margin:0; }
 .office-floor{
   position:relative;
   width:100%;
@@ -272,11 +272,13 @@ body.call-view .pane.call-summary > .pane-head{ border-bottom: 0; }
   display:block;
   margin-top:4px;
   color:var(--text);
-  font:800 24px/1.25 var(--display);
+  font:800 20px/1.25 var(--display);
   letter-spacing:.08em;
   word-break:normal;
   overflow-wrap:break-word;
 }
+.office-wall > .clock{ margin-top:10px; justify-content:flex-start; }
+.office-wall > .clock .t{ font-size:30px; font-weight:700; }
 .office-pixel-frame{ position:relative; overflow:hidden; border:4px solid #102a43; border-radius:4px; background:#07111c; box-shadow:0 5px 0 #8999a8; }
 .office-pixel-frame.ringing{ border-color:#e2a447; }
 .office-pixel-canvas{ display:block; width:100%; height:auto; aspect-ratio:192 / 168; image-rendering:crisp-edges; image-rendering:pixelated; }
@@ -1169,7 +1171,6 @@ body.playing .opts{ max-height:none; overflow:visible; }
 body.office-view .office-scene{ gap:14px; }
 .office-head{ display:block; margin:0; }
 .office-head h1{ font-size:29px; line-height:1.25; letter-spacing:.04em; }
-.office-head > p{ margin-top:10px; font-size:16px; }
 .office-floor{
   position:relative;
   display:flex;
@@ -1190,7 +1191,7 @@ body.office-view .office-scene{ gap:14px; }
 .office-call-action{ min-height:74px; font-size:21px; }.office-call-action span{ font-size:14px; }
 .office-wall{ min-height:96px; padding:15px 16px; border-radius:10px; }
 .slogan-label{ font-size:12px; }
-.slogan-text{ max-width:100%; font-size:clamp(24px,7.2vw,31px); line-height:1.25; }
+.slogan-text{ max-width:100%; font-size:clamp(18px,5.2vw,22px); line-height:1.25; }
 .office-pixel-caption{ font-size:13px; }
 .btn-primary,.btn-ghost{ min-height:58px; width:100%; padding:13px 16px; border-radius:10px; font-size:19px; }
 
@@ -1251,7 +1252,6 @@ body.office-view .office-scene{ gap:14px; }
 <section class="office-scene" id="office" aria-label="深夜のグローバルデスク オフィス">
   <div class="office-head">
     <div><p class="eyebrow">NIGHT SHIFT FIELD</p><h1>深夜のグローバルデスク</h1></div>
-    <p>新しい電話を取るか、照会結果が出た相手へ電話をかけます。</p>
   </div>
   <div class="office-floor">
     <div class="office-wall">
@@ -4903,10 +4903,23 @@ function startTyping(t){
   typeTimer = setTimeout(step, 25);
 }
 
+function mountClock(inOffice){
+  const clock = document.querySelector('.clock');
+  const officeWall = document.querySelector('.office-wall');
+  const topbar = document.querySelector('.topbar-inner');
+  if (!clock || !officeWall || !topbar) return;
+  if (inOffice){
+    if (clock.parentElement !== officeWall) officeWall.appendChild(clock);
+    return;
+  }
+  if (clock.parentElement !== topbar) topbar.insertBefore(clock, topbar.querySelector('.btn-sound'));
+}
+
 function render(){
   if (state.phase === 'office'){ renderOffice(); return; }
   if (state.phase === 'desk'){ renderDesk(); return; }
   if (state.phase !== 'call') return;
+  mountClock(false);
   $('clock').textContent = fmtClock(presentedGameClock());
   renderQueue();
   renderCall();
@@ -5166,6 +5179,7 @@ function callbackTimeLabel(t){
 function renderOffice(){
   document.body.classList.add('office-view');
   document.body.classList.remove('call-view');
+  mountClock(true);
   $('clock').textContent = fmtClock(presentedGameClock());
   $('office-slogan').textContent = state.slogan;
   const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
@@ -5228,6 +5242,7 @@ function enterDesk(){
 
 /* 折り返し待ちの案件を、通話をつながずにデスク端末だけで調べる画面。 */
 function renderDesk(){
+  mountClock(false);
   $('clock').textContent = fmtClock(presentedGameClock());
   renderQueue();
   $('line-state').textContent = '端末作業中';

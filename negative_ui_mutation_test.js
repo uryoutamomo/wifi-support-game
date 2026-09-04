@@ -2770,10 +2770,22 @@ const mutations = [
     expected:'§53 検査8: 一度目の放棄記録を保持したまま再着信待ちへ戻らない',
   },
   {
-    name:'§66 オフィスで共通時計を隠す', file:'p1_head.html',
-    from:'.office-head p{ margin:0; color:var(--faint); font-size:12px; }\n.office-floor{',
-    to:'.office-head p{ margin:0; color:var(--faint); font-size:12px; }\nbody.office-view .topbar .clock{ display:none; }\n.office-floor{',
-    expected:'§66 検査10: オフィスで共通時計が消える',
+    name:'§66 オフィスで時計を上部バーに残す', file:'p4_view.js',
+    from:'  mountClock(true);\n  $(\'clock\').textContent = fmtClock(presentedGameClock());',
+    to:'  mountClock(false);\n  $(\'clock\').textContent = fmtClock(presentedGameClock());',
+    expected:'§66 検査13/14: 画面遷移に応じて単一時計を移動しない',
+  },
+  {
+    name:'§66 オフィス見出し下の説明文を戻す', file:'p1_head.html',
+    from:'    <div><p class="eyebrow">NIGHT SHIFT FIELD</p><h1>深夜のグローバルデスク</h1></div>\n  </div>',
+    to:'    <div><p class="eyebrow">NIGHT SHIFT FIELD</p><h1>深夜のグローバルデスク</h1></div>\n    <p>新しい電話を取るか、照会結果が出た相手へ電話をかけます。</p>\n  </div>',
+    expected:'§66 検査11: オフィス見出し下の説明文が残っている',
+  },
+  {
+    name:'§66 今月のスローガンを元の大きさへ戻す', file:'p1_head.html',
+    from:'  font:800 20px/1.25 var(--display);',
+    to:'  font:800 24px/1.25 var(--display);',
+    expected:'§66 検査12: 今月のスローガンが指定前の大きさのまま',
   },
   {
     name:'§61 ホテル名から都市名を外す', file:'p2_data.js',

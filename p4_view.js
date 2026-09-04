@@ -291,10 +291,23 @@ function startTyping(t){
   typeTimer = setTimeout(step, 25);
 }
 
+function mountClock(inOffice){
+  const clock = document.querySelector('.clock');
+  const officeWall = document.querySelector('.office-wall');
+  const topbar = document.querySelector('.topbar-inner');
+  if (!clock || !officeWall || !topbar) return;
+  if (inOffice){
+    if (clock.parentElement !== officeWall) officeWall.appendChild(clock);
+    return;
+  }
+  if (clock.parentElement !== topbar) topbar.insertBefore(clock, topbar.querySelector('.btn-sound'));
+}
+
 function render(){
   if (state.phase === 'office'){ renderOffice(); return; }
   if (state.phase === 'desk'){ renderDesk(); return; }
   if (state.phase !== 'call') return;
+  mountClock(false);
   $('clock').textContent = fmtClock(presentedGameClock());
   renderQueue();
   renderCall();
@@ -554,6 +567,7 @@ function callbackTimeLabel(t){
 function renderOffice(){
   document.body.classList.add('office-view');
   document.body.classList.remove('call-view');
+  mountClock(true);
   $('clock').textContent = fmtClock(presentedGameClock());
   $('office-slogan').textContent = state.slogan;
   const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
@@ -616,6 +630,7 @@ function enterDesk(){
 
 /* 折り返し待ちの案件を、通話をつながずにデスク端末だけで調べる画面。 */
 function renderDesk(){
+  mountClock(false);
   $('clock').textContent = fmtClock(presentedGameClock());
   renderQueue();
   $('line-state').textContent = '端末作業中';
