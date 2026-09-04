@@ -392,7 +392,7 @@ const MISDIAGNOSIS_EMAIL_TEMPLATES = Object.freeze({
   hurried:Object.freeze({ lines:Object.freeze(['昨日はどうも。あのときは繋がったので、そのまま予定に向かえました。', 'で、今日また同じです。「{symptom}」。直ってなかったってことですよね。今度は原因まで突き止めてください。']) }),
 });
 
-/* §50-4: うまくやった夜にだけ届く。半分の確率でしか来ないので、来たときは嬉しい。
+/* §50-4: うまくやった夜にだけ届く。4分の1の確率でしか来ないので、来たときは嬉しい。
    何が嬉しかったかはタイプで違う。 */
 const GRATITUDE_EMAIL_TEMPLATES = Object.freeze({
   anxious:Object.freeze({ lines:Object.freeze(['昨夜は本当にありがとうございました。「{symptom}」と申し上げたとき、頭が真っ白でした。', '落ち着いて聞いてくださって、原因まで教えていただけたので、もう怖くありません。旅の続きを楽しめます。あの時間に働いてくださる方がいることに、救われました。']) }),
@@ -401,8 +401,9 @@ const GRATITUDE_EMAIL_TEMPLATES = Object.freeze({
   hurried:Object.freeze({ lines:Object.freeze(['昨日は助かりました。正直、あの時間で直るとは思っていませんでした。', '「{symptom}」の原因も一言で分かったので、予定に間に合いました。手短で的確でした。またよろしく。']) }),
 });
 
-/* §50-4: 感謝が届く確率。調整コンソールで運を切る（luckRate 1.0）と必ず届く。 */
-const GRATITUDE_RATE = 0.5;
+/* §50-4: 抽選対象の翌日メール率。調整コンソールで運を切る（luckRate 1.0）と必ず届く。 */
+const LOW_CSAT_COMPLAINT_RATE = 0.45;
+const GRATITUDE_RATE = 0.25;
 
 /* §51-3: 解決したあとに名前を伺ったときの答え。用は済んでいるので、怒っていた客も
    答える。ただし hurried は最後まで急いでいる。 */

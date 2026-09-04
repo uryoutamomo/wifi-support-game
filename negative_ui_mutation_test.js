@@ -38,7 +38,7 @@ const mutations = [
   {
     name:'§50 誤診の再発にも運を挟む', file:'p3_game.js',
     from:'  if (misdiagnosisResurfaces(result)) return true;',
-    to:'  if (misdiagnosisResurfaces(result)) return rollLuck();',
+    to:'  if (misdiagnosisResurfaces(result)) return flags.luckRate === 1 ? true : state.random() < LOW_CSAT_COMPLAINT_RATE;',
     expected:'§50 検査1: 誤診で解決しても翌日クレームが届かない',
   },
   {
@@ -52,6 +52,18 @@ const mutations = [
     from:'  return flags.luckRate === 1 ? true : state.random() < GRATITUDE_RATE;',
     to:'  return true;',
     expected:'§50 検査4: 感謝が抽選を通らずに必ず届いている',
+  },
+  {
+    name:'§50 低CSAT苦情を変更前の90%へ戻す', file:'p2_data.js',
+    from:'const LOW_CSAT_COMPLAINT_RATE = 0.45;',
+    to:'const LOW_CSAT_COMPLAINT_RATE = 0.9;',
+    expected:'§50 検査3: 低CSAT苦情の確率が45%でない',
+  },
+  {
+    name:'§50 感謝を変更前の50%へ戻す', file:'p2_data.js',
+    from:'const GRATITUDE_RATE = 0.25;',
+    to:'const GRATITUDE_RATE = 0.5;',
+    expected:'§50 検査4: 感謝の確率が25%でない',
   },
   {
     name:'§50 ファインプレーでなくても感謝を届ける', file:'p3_game.js',
@@ -560,7 +572,7 @@ const mutations = [
   },
   {
     name:'苦情メール低CSAT境界を1へ下げる', file:'p3_game.js',
-    from:"(result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false", to:"(result.kind === 'closed' || result.kind === 'refunded') && result.csat < 1 ? rollLuck() : false",
+    from:"(result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2", to:"(result.kind === 'closed' || result.kind === 'refunded') && result.csat < 1",
     expected:'不満足な返金が後日の苦情メール対象に入らない',
   },
   {
@@ -1933,8 +1945,8 @@ const mutations = [
   },
   {
     name:'不満足な返金を苦情メール対象から外す（§31）', file:'p3_game.js',
-    from:"return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false;",
-    to:"return result.kind === 'closed' && result.csat < 2 ? rollLuck() : false;",
+    from:"return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2",
+    to:"return result.kind === 'closed' && result.csat < 2",
     expected:'不満足な返金が後日の苦情メール対象に入らない',
   },
   {
@@ -2746,7 +2758,7 @@ const mutations = [
   },
   {
     name:'§53 見切り返金の苦情に運を戻す', file:'p3_game.js',
-    from:'  if (result.refundComplaint) return true;', to:'  if (result.refundComplaint) return rollLuck();',
+    from:'  if (result.refundComplaint) return true;', to:'  if (result.refundComplaint) return flags.luckRate === 1 ? true : state.random() < LOW_CSAT_COMPLAINT_RATE;',
     expected:'§53 検査7: 見切り返金の翌日苦情に運が入り、届かない場合がある',
   },
   {

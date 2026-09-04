@@ -1996,15 +1996,17 @@ function misdiagnosisResurfaces(result){
   return (result.kind === 'closed' || result.kind === 'refunded' || result.kind === 'deferred') && result.causeMatched === false;
 }
 
-function complaintEmailArrives(result){
+function complaintEmailArrives(result, flags = GAME_FLAGS){
   if (result.kind === 'complaint' || result.kind === 'hangup') return true;
   if (result.refundComplaint) return true;
   if (misdiagnosisResurfaces(result)) return true;
-  return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2 ? rollLuck() : false;
+  return (result.kind === 'closed' || result.kind === 'refunded') && result.csat < 2
+    ? (flags.luckRate === 1 ? true : state.random() < LOW_CSAT_COMPLAINT_RATE)
+    : false;
 }
 
 /* §50-4: 原因を当て、最適な対処を選び、折り返しも誤診もなく初回で終えた夜にだけ届く。
-   半分の確率でしか来ないので、来たときに嬉しい。全案件に何か届くと、届いたことの
+   4分の1の確率でしか来ないので、来たときに嬉しい。全案件に何か届くと、届いたことの
    意味がなくなる。 */
 function gratitudeEmailArrives(result, flags = GAME_FLAGS){
   if (result.kind !== 'closed') return false;
