@@ -152,85 +152,6 @@ button:focus-visible, [tabindex]:focus-visible{
 }
 .btn-help:hover,.btn-balance:hover,.btn-sound:hover{ border-color: var(--amber-deep); color: var(--amber); }
 
-/* ---------- 23:00〜07:00 タイムシフト表 ---------- */
-
-.shift-strip{
-  position: relative;
-  height: 44px;
-  overflow: hidden;
-  border-top: 1px solid var(--line-soft);
-  background: var(--panel);
-}
-.shift-sky{
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, #102a43 0%, #40566b 56%, #92aebe 100%);
-}
-.shift-axis{
-  position: absolute;
-  inset: 0 20px;
-}
-.shift-axis::after{
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 25px;
-  border-top: 1px solid var(--line);
-}
-.shift-tick{
-  position: absolute;
-  bottom: 1px;
-  transform: translateX(-50%);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: .04em;
-}
-.shift-tick.light{ color:#eef4f8; text-shadow:0 1px 1px #102a43; }
-.shift-tick.dark{ color:#102a43; text-shadow:0 1px 0 rgba(238,244,248,.42); }
-.shift-tick.first{ left: 0; transform: none; }
-.shift-tick.last{ right: auto; transform: translateX(-100%); }
-.shift-now{
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--amber-deep);
-  opacity: .75;
-}
-.shift-pin{
-  --stack: 0;
-  position: absolute;
-  top: calc(2px + var(--stack) * 10px);
-  transform: translateX(-50%);
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  min-width: max-content;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--dim);
-}
-.shift-pin-dot{
-  width: 7px;
-  height: 7px;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  background: var(--faint);
-  box-shadow: 0 0 0 2px var(--panel);
-}
-.shift-pin.waiting .shift-pin-dot{ background: var(--amber); border-color: var(--amber); animation: pinpulse 1.8s ease-in-out infinite; }
-.shift-pin.active .shift-pin-dot{ background: var(--signal); border-color: var(--signal); }
-.shift-pin.closed{ color: var(--faint); opacity: .62; }
-.shift-pin.abandoned{ color: var(--crit); opacity: 1; }
-.shift-pin.abandoned .shift-pin-dot{ background: var(--crit); border-color: var(--crit); }
-.shift-now{ will-change:left; }
-@keyframes pinpulse{
-  0%,100%{ transform: scale(.85); opacity: .62; }
-  50%{ transform: scale(1.2); opacity: 1; }
-}
-
 /* ============================================================
    コンソール ― 対応デスクと待機状況
    ============================================================ */
@@ -279,8 +200,7 @@ body.call-view .console{ animation: call-in .22s ease both; }
 }
 body.time-advancing .time-passage-indicator{ display:block; }
 
-/* §52: 通話中にも、自分の夜がどこまで来たかを判断できるようタイムシフト表を残す。
-   待機状況は、会話とコマンドを画面の外へ押し出さないよう畳み、
+/* §66: 待機状況は、会話とコマンドを画面の外へ押し出さないよう畳み、
    要点の待ち件数は電話の状態とペイン見出しへ出す。
    ペインそのものは消さない。 */
 /* §48-7: 選択肢が増えるとページ自体が伸び、会話が画面の外へ押し出されて戻らない
@@ -303,12 +223,6 @@ body.call-view .pane.call-summary > .pane-head{ border-bottom: 0; }
 }
 .office-head h1{ margin:0; font-family:var(--display); font-size:26px; letter-spacing:.1em; color:var(--text); }
 .office-head p{ margin:0; color:var(--faint); font-size:12px; }
-.office-time-panel{ width:100%; margin-top:10px; }
-.office-primary-clock{ display:flex; align-items:baseline; gap:7px; margin-bottom:6px; color:var(--amber); font-family:var(--mono); }
-.office-primary-clock .t{ font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; }
-.office-primary-clock .z{ color:var(--faint); font-size:11px; }
-.office-time-panel .shift-strip{ width:100%; border:1px solid var(--line); border-radius:6px; }
-body.office-view .topbar .clock{ display:none; }
 .office-floor{
   position:relative;
   width:100%;
@@ -1130,15 +1044,10 @@ body.sheet-open .console{ display: none; }
 /* ---------- ライト業務画面の仕上げ ---------- */
 .topbar{ background:var(--surface); box-shadow:0 1px 0 var(--line-soft),0 5px 16px rgba(21,32,43,.06); }
 .brand .mark,.clock .t{ color:var(--accent); }
-.shift-strip{ background:var(--surface); }
-.shift-axis::after{ border-color:var(--line); }.shift-now{ background:var(--accent); }
-.shift-pin{ color:var(--text-2); }.shift-pin-dot{ box-shadow:0 0 0 2px var(--surface); }
-.shift-pin.waiting .shift-pin-dot{ background:var(--accent); border-color:var(--accent); }
 .console{ background:var(--line-soft); }.pane{ background:var(--surface); }
 .office-scene{ background:var(--bg); }.office-floor{ background:var(--surface); box-shadow:none; }
 .office-object{ background:var(--surface-2); color:var(--text-2); }.office-object b{ color:var(--text-2); }
 .office-sv .lamp{ background:var(--accent); box-shadow:0 0 15px var(--accent-line); }.office-board{ background:var(--surface); color:var(--text); border-color:var(--line); }.office-board b{ color:var(--text-2); }.office-board .blank{ color:var(--text-3); }
-.office-primary-clock{ color:var(--accent); }
 .call{ background:var(--surface); border-color:var(--line); }.call.on-hold{ border-color:var(--accent-line); box-shadow:inset 0 0 0 1px var(--accent-line); background:linear-gradient(180deg,var(--accent-soft),var(--surface) 34%); }
 .call-head{ background:var(--surface); }.call-head .ctype{ color:var(--accent); border-color:var(--accent-line); }.call-guide{ width:100%; margin:2px 0 0; padding:7px 10px; border-left:3px solid var(--accent); background:var(--accent-soft); color:var(--text-2); font-size:13px; line-height:1.55; }
 .line.cust .say,.opt,.tone,.waybill,.report-auto,.report-check,.score-cell{ background:var(--surface-2); }.line.me .say{ background:var(--accent-soft); border-color:var(--accent-line); }.line.me .who,.tone .tname,.shipment h3{ color:var(--accent); }
@@ -1197,11 +1106,6 @@ body.playing{ display:block; height:auto; min-height:100dvh; overflow:auto; }
 .topbar-inner > .btn-sound{ grid-row:1; grid-column:3; align-self:center; justify-self:end; z-index:2; }
 .topbar-inner > .btn-balance{ grid-row:1; grid-column:4; align-self:center; justify-self:end; z-index:2; }
 .topbar-inner > .btn-help{ grid-row:1; grid-column:5; align-self:center; justify-self:end; z-index:2; }
-.shift-strip{ height:52px; }
-.shift-axis{ inset-inline:14px; }
-.shift-tick{ font-size:12px; }
-.shift-pin-label{ display:none; }
-
 .console{ display:flex; flex-direction:column; min-height:calc(100dvh - 170px); background:var(--bg); }
 .pane,body.playing .pane{
   display:flex;
@@ -1266,8 +1170,6 @@ body.office-view .office-scene{ gap:14px; }
 .office-head{ display:block; margin:0; }
 .office-head h1{ font-size:29px; line-height:1.25; letter-spacing:.04em; }
 .office-head > p{ margin-top:10px; font-size:16px; }
-.office-primary-clock{ margin-top:8px; margin-bottom:8px; }
-.office-primary-clock .t{ font-size:28px; }
 .office-floor{
   position:relative;
   display:flex;
@@ -1317,10 +1219,9 @@ body.office-view .office-scene{ gap:14px; }
 @media (max-width:480px){
   body{ width:100%; box-shadow:none; }
   .artifact-qr-card{ display:none; }
-  /* 375px級ではロゴと3操作を優先する。時刻は下のシフト帯で読めるため、
-     ここでは時計を畳んでロゴの実文字が操作へ食い込まないようにする。 */
+  /* シフト帯の撤去後も時計は消さない。375px級では時計を2段目へ置く。 */
   .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto; }
-  .topbar-inner > .clock{ display:none; }
+  .topbar-inner > .clock{ display:flex; grid-row:2; grid-column:1 / -1; justify-self:center; }
   .topbar-inner > .btn-sound{ grid-column:2; }
   .topbar-inner > .btn-balance{ grid-column:3; }
   .topbar-inner > .btn-help{ grid-column:4; }
@@ -1345,17 +1246,11 @@ body.office-view .office-scene{ gap:14px; }
     <button class="btn-balance" id="btn-balance" aria-label="ゲーム調整コンソール">ゲーム調整</button>
     <button class="btn-help" id="btn-manual">対応マニュアル</button>
   </div>
-  <div id="topbar-shift-slot"><div class="shift-strip" id="shift-strip" role="img" aria-label="23時から7時までの夜勤時間と、着信済み案件の状態"></div></div>
 </div>
 
 <section class="office-scene" id="office" aria-label="深夜のグローバルデスク オフィス">
   <div class="office-head">
-    <div><p class="eyebrow">NIGHT SHIFT FIELD</p><h1>深夜のグローバルデスク</h1>
-      <div class="office-time-panel" id="office-time-panel">
-        <div class="office-primary-clock"><span class="t" id="office-clock">23:00</span><span class="z">JST</span></div>
-        <div id="office-shift-slot"></div>
-      </div>
-    </div>
+    <div><p class="eyebrow">NIGHT SHIFT FIELD</p><h1>深夜のグローバルデスク</h1></div>
     <p>新しい電話を取るか、照会結果が出た相手へ電話をかけます。</p>
   </div>
   <div class="office-floor">

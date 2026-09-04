@@ -656,7 +656,7 @@ try {
   bad('日次案件の選択ロジックを検査できない: ' + error.message);
 }
 // 5. 非選択案件を参照せず、その日のstate.ticketsだけを表示する。
-if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('renderShiftStrip').includes('state.tickets.forEach') || !sourceOf('renderOffice').includes('state.tickets.filter')) bad('未選択案件が待機・タイムシフト表から除外されない');
+if (!sourceOf('renderQueue').includes('state.tickets.filter') || !sourceOf('renderOffice').includes('state.tickets.filter')) bad('未選択案件が待機状況またはオフィス表示から除外されない');
 // 6. 夜勤は23:00〜07:00で終了し、残件は放棄呼にする。
 if (SHIFT_START !== 23 * 60 || SHIFT_END - SHIFT_START !== 8 * 60 || !sourceOf('checkShiftEnd').includes('state.clock >= SHIFT_END') || !sourceOf('finishShiftAtTime').includes('abandonTicket(t')) bad('夜勤が23:00〜07:00で終わらない、または残件を放棄呼にしない');
 // 7. 集計と表示が実件数を使い、2件の日の空欄にも表示を持つ。
@@ -921,14 +921,12 @@ if (!resume55.includes('t.handoverAttempted') || !resume55.includes('t.handoverA
 if (!sourceOf('metrics').includes('const scored = finished.filter(t => !unscoredOutcome(t))') || !sourceOf('renderDebrief').includes('if (unscoredOutcome(t))')) bad('§55 不在・朝の引き継ぎを評価対象外にできない');
 if (!sourceOf('finishShiftAtTime').includes("if (t.state === 'open') handoffActiveTicket(t)") || !sourceOf('reportOptions').includes("ticket.result.kind === 'handed_off'")) bad('§55 07時の通話中案件を放棄呼でなく日勤への必須申し送りにできない');
 
-// §57: 判定済みの最終時刻を、時計とタイムシフト表へ同じ値で補間して見せる。
+// §57 / §66: 判定済みの最終時刻を共通時計へ補間し、撤去した時刻表示は更新しない。
 const duration57 = sourceOf('timePassageDuration');
 const passage57 = sourceOf('startTimePassageIfNeeded');
 const display57 = sourceOf('renderPresentedTime');
-const strip57 = sourceOf('renderShiftStrip');
 if (!duration57.includes('minutes * 25') || !duration57.includes('2800')) bad('§57 経過時間に比例する1時間1.5秒・最大2.8秒の演出でない');
-if (!display57.includes("$('clock')") || !display57.includes("$('office-clock')") || !display57.includes('renderShiftStrip(rounded)')) bad('§57 時計とタイムシフト表が同じ表示時刻で動かない');
-if (!strip57.includes('(displayClock - SHIFT_START)')) bad('§57 現在線が補間中の表示時刻を使わない');
+if (!display57.includes("$('clock')") || display57.includes('office-clock') || display57.includes('renderShiftStrip')) bad('§57 共通時計が表示時刻で動かない、または撤去した時刻表示を更新する');
 if (!passage57.includes('typewriterOff()') || !passage57.includes('requestAnimationFrame(step)')) bad('§57 reduced-motion即着地またはフレーム補間がない');
 if (/state\.(?:clock|turn)\s*=|\badvance\(|activateDueInbound|abandonTicket|resolveCarrierRequest/.test(passage57 + display57)) bad('§57 演出の途中でゲーム時刻または判定を動かしている');
 if (!gameSource.includes('if (timePassage){') || !gameSource.includes('finishTimePassage();') || !gameSource.includes("if (timePassage && (e.key === ' ' || e.key === 'Enter'))")) bad('§57 時間経過演出を飛ばせない');

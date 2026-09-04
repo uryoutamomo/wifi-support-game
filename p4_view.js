@@ -195,10 +195,7 @@ function presentedGameClock(){
 function renderPresentedTime(minute){
   const rounded = Math.round(minute);
   const topClock = $('clock');
-  const officeClock = $('office-clock');
   if (topClock) topClock.textContent = fmtClock(rounded);
-  if (officeClock) officeClock.textContent = fmtClock(rounded);
-  renderShiftStrip(rounded);
 }
 
 function resetTimePassage(){
@@ -298,18 +295,10 @@ function render(){
   if (state.phase === 'office'){ renderOffice(); return; }
   if (state.phase === 'desk'){ renderDesk(); return; }
   if (state.phase !== 'call') return;
-  mountShiftStrip(false);
   $('clock').textContent = fmtClock(presentedGameClock());
-  renderShiftStrip(presentedGameClock());
   renderQueue();
   renderCall();
   startTimePassageIfNeeded();
-}
-
-function mountShiftStrip(inOffice){
-  const strip = $('shift-strip');
-  const slot = $(inOffice ? 'office-shift-slot' : 'topbar-shift-slot');
-  if (strip && slot && strip.parentElement !== slot) slot.appendChild(strip);
 }
 
 function metrics(){
@@ -328,53 +317,6 @@ function metrics(){
   const handled = state.tickets.filter(t => t.callMinutes > 0 && !unscoredOutcome(t));
   const aht = handled.length ? handled.reduce((n,t) => n + t.callMinutes, 0) / handled.length : null;
   return { finished, scored, answered, abandoned, unscored:finished.length - scored.length, csat, fcrCount, fcr, answerRate, aht };
-}
-
-function renderShiftStrip(displayClock = state.clock){
-  const strip = $('shift-strip');
-  if (!strip) return;
-
-  const pinRecords = [];
-  state.tickets.forEach(t => {
-    const attempts = Array.isArray(t.attempts) ? t.attempts : [];
-    attempts.forEach((attempt, index) => {
-      const isCurrentAbandon = t.result && t.result.kind === 'abandoned' && index === attempts.length - 1;
-      if (attempt.kind === 'abandoned' && !isCurrentAbandon && attempt.arrivedTurn <= state.turn){
-        pinRecords.push({ t, arrivedTurn:attempt.arrivedTurn, cls:'abandoned', status:'放棄呼' });
-      }
-    });
-    if (t.handover || t.arrivedTurn <= state.turn){
-      let cls = 'closed';
-      if (t.state === 'waiting') cls = 'waiting';
-      else if (t.state === 'open') cls = 'active';
-      else if (t.state === 'callback') cls = 'callback';
-      else if (t.result && t.result.kind === 'abandoned') cls = 'abandoned';
-      const status = cls === 'waiting' ? '待ち中' : cls === 'active' ? '通話中' : cls === 'callback' ? (t.handover ? '引き継ぎ折り返し待ち' : '現地キャリア照会中') : cls === 'abandoned' ? '放棄呼' : '完了';
-      pinRecords.push({ t, arrivedTurn:t.arrivedTurn, cls, status });
-    }
-  });
-
-  const seen = new Map();
-  const pins = pinRecords.map(({ t, arrivedTurn, cls, status }) => {
-    const pos = clamp(arrivedTurn / SHIFT_DURATION * 100, 0, 100);
-    const key = pos.toFixed(3);
-    const stack = seen.get(key) || 0;
-    seen.set(key, stack + 1);
-    return '<span class="shift-pin ' + cls + '" style="left:' + pos.toFixed(2) + '%;--stack:' + stack + '" ' +
-      'title="' + esc(t.s.city) + ' ' + esc(localClock(t)) + ' ' + status + '" aria-label="' + esc(t.s.city) + ' ' + status + '">' +
-      '<i class="shift-pin-dot"></i><span class="shift-pin-label">' + esc(t.s.id) + '</span></span>';
-  }).join('');
-
-  const ticks = [
-    [0,'23'], [25,'01'], [50,'03'], [75,'05'], [100,'07'],
-  ].map(([pos,label], index) => '<span class="shift-tick ' + (index < 3 ? 'light' : 'dark') + ' ' + (index === 0 ? 'first' : index === 4 ? 'last' : '') + '" style="left:' + pos + '%">' + label + '</span>').join('');
-  const now = clamp((displayClock - SHIFT_START) / SHIFT_DURATION * 100, 0, 100);
-
-  strip.innerHTML =
-    '<div class="shift-sky"></div>' +
-    '<div class="shift-axis">' +
-      ticks + '<span class="shift-now" style="left:' + now.toFixed(2) + '%" aria-label="現在時刻"></span>' + pins +
-    '</div>';
 }
 
 function renderQueue(){
@@ -612,11 +554,8 @@ function callbackTimeLabel(t){
 function renderOffice(){
   document.body.classList.add('office-view');
   document.body.classList.remove('call-view');
-  mountShiftStrip(true);
   $('clock').textContent = fmtClock(presentedGameClock());
-  $('office-clock').textContent = fmtClock(presentedGameClock());
   $('office-slogan').textContent = state.slogan;
-  renderShiftStrip(presentedGameClock());
   const waiting = state.tickets.filter(t => t.state === 'waiting').sort((a,b) => a.arrivedTurn - b.arrivedTurn);
   const callbacks = state.tickets.filter(t => t.state === 'callback').sort((a,b) => a.callbackDue - b.callbackDue);
   const readyCallbacks = callbacks.filter(t => t.callbackDue <= state.clock);
@@ -677,9 +616,7 @@ function enterDesk(){
 
 /* 折り返し待ちの案件を、通話をつながずにデスク端末だけで調べる画面。 */
 function renderDesk(){
-  mountShiftStrip(false);
   $('clock').textContent = fmtClock(presentedGameClock());
-  renderShiftStrip(presentedGameClock());
   renderQueue();
   $('line-state').textContent = '端末作業中';
   $('call').classList.remove('on-hold');

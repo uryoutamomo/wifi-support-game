@@ -328,7 +328,11 @@ const askGroupChoiceCss42 = [...page.matchAll(/\.ask-group-choice\{([^}]*)\}/g)]
 assert(askGroupChoiceCss42.some(block => /grid-template-columns\s*:\s*minmax\(0,1fr\)/.test(block)), '§42-3 番号なしcommand-choiceが番号用の列指定を上書きしない');
 assert(askGroupChoiceCss42.every(block => !/grid-template-columns\s*:\s*24px/.test(block)), '§42-3 番号なし質問区分の本文が24px列へ押し込まれる');
 
-const shiftSource = functionSource('renderShiftStrip');
+const retiredShiftMarkers = ['shift-strip','shift-sky','shift-axis','shift-tick','shift-now','shift-pin','topbar-shift-slot','office-shift-slot','renderShiftStrip','mountShiftStrip'];
+retiredShiftMarkers.forEach(marker => assert(!page.includes(marker) && !viewSource.includes(marker), '§66 検査9: 撤去したシフト帯が残っている: ' + marker));
+assert((page.match(/id="clock"/g)||[]).length === 1 && !['office-clock','office-primary-clock','office-time-panel'].some(marker => page.includes(marker)), '§66 検査10: 共通時計が欠けるか、画面別の時計が重複している');
+assert(page.includes('.topbar-inner > .clock{ display:flex; grid-row:2; grid-column:1 / -1; justify-self:center; }') && !page.includes('.topbar-inner > .clock{ display:none; }'), '§66 検査10: 小画面で時計が消える');
+assert(!page.includes('body.office-view .topbar .clock{ display:none; }'), '§66 検査10: オフィスで共通時計が消える');
 assert(page.includes('.stress-panel'), '大きな苛立ちメーターCSSがない');
 
 const tellSource = functionSource('renderTellOptions');
@@ -855,33 +859,8 @@ assert(!page.includes('22:00') && briefing52.includes('fmtClock(SHIFT_START)') &
 const verifySource52 = fs.readFileSync(__dirname + '/verify.js', 'utf8');
 assert(verifySource52.includes('drawInboundArrivalTurns') && verifySource52.includes('SHIFT_START + arrival') && !verifySource52.includes('22 * 60 + s.arrive'), '§52 検査4: verify.jsの到着スケジュールが実際の着信を表示しない');
 
-// §52-6 検査12〜17: 帯は勤務時間を示し、未来の着信を漏らさず通話中にも残す。
-assert(page.includes('id="shift-strip"') && /aria-label="23時から7時まで/.test(page), '§52 検査12: タイムシフト表が23時から7時の帯として置かれていない');
-assert(shiftSource.includes("[0,'23'], [25,'01'], [50,'03'], [75,'05'], [100,'07']"), '§52 検査12: 帯の目盛りが23時から7時にならない');
-assert(shiftSource.includes('arrivedTurn / SHIFT_DURATION * 100'), '§52 検査14: 案件のピンが着信時刻の位置に立たない');
-const shiftStrip52 = {innerHTML:''};
-const shiftState52 = {turn:120,clock:SHIFT_START + 120,tickets:[
-  {arrivedTurn:60,state:'waiting',s:{id:'S1',city:'バンコク',localOffset:7}},
-  {arrivedTurn:180,state:'inbound',s:{id:'S2',city:'ロンドン',localOffset:0}},
-  {arrivedTurn:120,state:'closed',result:{kind:'abandoned'},s:{id:'S3',city:'台北',localOffset:8}},
-]};
-const renderShiftStrip52 = new Function('state','$','clamp','esc','localClock','fmtClock','SHIFT_START','SHIFT_DURATION', shiftSource + '\nreturn renderShiftStrip;')(
-  shiftState52, () => shiftStrip52, (v,a,b) => Math.max(a,Math.min(b,v)), value => String(value), ticket => '現地時刻', () => 'JST時刻', SHIFT_START, SHIFT_DURATION
-);
-renderShiftStrip52();
-assert(/>23<.*>01<.*>03<.*>05<.*>07</.test(shiftStrip52.innerHTML), '§52 検査12: 帯の左端23時・右端7時の目盛りがない');
-assert(shiftStrip52.innerHTML.includes('class="shift-now" style="left:25.00%" aria-label="現在時刻"></span>') && !shiftStrip52.innerHTML.includes('>いま<'), '§52 検査13: 現在時刻がラベルなしの線で帯に出ない');
-assert(!shiftStrip52.innerHTML.includes('S2'), '§52 検査15: まだ着信していない案件のピンが出る');
-assert(shiftStrip52.innerHTML.includes('S1') && shiftStrip52.innerHTML.includes('left:12.50%'), '§52 検査14: 案件のピンが着信時刻の位置に立たない');
-assert(shiftStrip52.innerHTML.includes('バンコク 現地時刻 待ち中') && shiftStrip52.innerHTML.includes('台北 現地時刻 放棄呼'), '§52 検査17: ピンに都市・現地時刻・状態が残らない');
-assert(shiftSource.includes('localClock(t)'), '§52 検査17: ピンに現地時刻が残らない');
-assert(!/body\.call-view \.shift-strip\{[^}]*height:\s*0/.test(page) && !page.includes('world-strip'), '§52 検査16: 通話中にタイムシフト表が畳まれる、または旧名称が残る');
-assert(/\.shift-tick\.last\{\s*right:\s*auto;\s*transform:\s*translateX\(-100%\)/.test(page), '§52 検査12: 右端07の目盛りが軸の外へはみ出す');
-assert(page.includes('.shift-tick.light{ color:#eef4f8;') && page.includes('.shift-tick.dark{ color:#102a43;') && shiftSource.includes("index < 3 ? 'light' : 'dark'"), '§52 検査12: 夜明けの背景で目盛りのコントラストが読めない');
-
 const queue21Source = functionSource('renderQueue');
-const shift21Source = functionSource('renderShiftStrip');
-assert(queue21Source.includes('state.tickets.filter') && shift21Source.includes('state.tickets.forEach') && functionSource('renderOffice').includes('state.tickets.filter'), '未選択案件が待機・タイムシフト表から除外されない');
+assert(queue21Source.includes('state.tickets.filter') && functionSource('renderOffice').includes('state.tickets.filter'), '未選択案件が待機状況またはオフィス表示から除外されない');
 
 assert(functionSource('checkShiftEnd').includes('state.clock >= SHIFT_END') && !functionSource('checkShiftEnd').includes("state.tickets.some(t => t.state !== 'closed')"), '§52 検査2: 全件終了で早くシフトが終わってしまう');
 
@@ -2469,8 +2448,6 @@ assert.equal(progression39.status,0,'§39 検査15: progression_testが通らな
 const customerRecord41 = functionSource('renderCustomerRecord') + functionSource('recordValue');
 assert(customerRecord41.includes('const identified = identificationReady(t);') && customerRecord41.includes('―― 未照会'), '§41-11 本人確認前または未照会欄が伏せられない');
 
-/* §52: タイムシフト表は通話中こそ必要なので、§48-7 の帯を畳む判断を置き換える。 */
-assert(!/body\.call-view \.shift-strip\{[^}]*height:\s*0/.test(page),'§52 検査16: 通話中にタイムシフト表が畳まれる');
 assert(/body\.call-view \.pane\.call-summary > \.summary-figure/.test(page) && /body\.call-view \.pane\.call-summary > \.hint-bar/.test(page),'§48-7 検査5: 通話中に待機状況の中身が畳まれない');
 assert(/body\.call-view [^{]*\.opts\{[^}]*max-height/.test(page) && /body\.call-view [^{]*\.opts\{[^}]*overflow-y:\s*auto/.test(page),'§48-7 検査6: 選択肢が枠内でスクロールせず、ページごと伸びる');
 /* §48-7: CSSのセレクタが、実際に描かれる入れ子と噛み合っているかまで見る。
@@ -2660,16 +2637,7 @@ const recoveredMetrics53 = new Function('state','unscoredOutcome',functionSource
 ]}, ticket => ['unavailable','handed_off'].includes(ticket.result && ticket.result.kind))();
 assert(recoveredMetrics53.abandoned === 1 && recoveredMetrics53.answerRate === 2/3,'§53 検査8: 再着信を取った後に最初の放棄呼が応答率から消える');
 
-const stripNode53 = {parentElement:null};
-const topSlot53 = {appendChild(node){ node.parentElement=this; }};
-const officeSlot53 = {appendChild(node){ node.parentElement=this; }};
-const mount53 = new Function('$',functionSource('mountShiftStrip') + '\nreturn mountShiftStrip;')(id => ({'shift-strip':stripNode53,'topbar-shift-slot':topSlot53,'office-shift-slot':officeSlot53})[id]);
-mount53(true); assert.equal(stripNode53.parentElement,officeSlot53,'§53 検査9: オフィスでシフト帯が見出し直下へ移らない');
-mount53(false); assert.equal(stripNode53.parentElement,topSlot53,'§53 検査9: 通話画面でシフト帯がトップバーへ戻らない');
-assert((page.match(/id="shift-strip"/g)||[]).length === 1 && (page.match(/id="office-clock"/g)||[]).length === 1,'§53 検査9: 同一画面用のシフト帯またはオフィス時計が複製されている');
-const officeHeading53 = page.indexOf('<h1>深夜のグローバルデスク</h1>');
-assert(officeHeading53 >= 0 && page.indexOf('id="office-clock"',officeHeading53) < page.indexOf('</div>\n    <p>新しい電話',officeHeading53) && page.includes('body.office-view .topbar .clock{ display:none; }'),'§53 検査9: オフィス時計・シフト帯が見出し直下でなく、トップバー時計も重複表示される');
-assert(functionSource('renderOffice').includes('mountShiftStrip(true)') && functionSource('render').includes('mountShiftStrip(false)') && functionSource('renderDesk').includes('mountShiftStrip(false)'),'§53 検査9: 画面遷移に応じて単一シフト帯を移動しない');
+assert([functionSource('render'),functionSource('renderOffice'),functionSource('renderDesk')].every(source => source.includes("$('clock').textContent")), '§66 検査10: 通話・オフィス・端末作業で共通時計を更新しない');
 
 // §52-4 / §55: 日勤から受ける0〜2件を、23時の引き継ぎから一度の直接折り返しまで通す。
 const handoverCount55 = new Function('HANDOVER_ZERO_RATE','HANDOVER_ONE_RATE', functionSource('handoverTicketCount') + '\nreturn handoverTicketCount;')(
@@ -2780,24 +2748,20 @@ assert(reportOptions55.handoff.some(item => item.required && item.id === 'mornin
 const debrief55 = functionSource('renderDebrief');
 assert(debrief55.indexOf('if (unscoredOutcome(t))') < debrief55.indexOf('const cls = r.csat') && debrief55.includes('評価対象外 ／ '), '§55 検査14: 不在・朝の引き継ぎにCSATや真の原因を表示して評価する');
 
-// §57: ゲームの判定時刻は先に確定させ、時計と現在線だけを同じ表示時刻で補間する。
+// §57 / §66: ゲームの判定時刻は先に確定させ、共通時計だけを補間する。
 const duration57 = new Function(functionSource('timePassageDuration') + '\nreturn timePassageDuration;')();
 assert(duration57(60) >= 1000 && duration57(60) <= 2000, '§57 検査1: 1時間の経過演出が1〜2秒に収まらない');
 assert(duration57(1) < duration57(2) && duration57(2) < duration57(60) && duration57(60) < duration57(120) && duration57(480) <= 3000, '§57 検査2: 経過時間に応じて演出時間が変わらない、または長時間待たせすぎる');
 const display57 = functionSource('renderPresentedTime');
-const strip57 = functionSource('renderShiftStrip');
-assert(display57.includes("$('clock')") && display57.includes("$('office-clock')") && display57.includes('renderShiftStrip(rounded)'), '§57 検査3: 時計とタイムシフト表が同じ表示時刻で動かない');
-assert(strip57.startsWith('function renderShiftStrip(displayClock = state.clock)') && strip57.includes('(displayClock - SHIFT_START)'), '§57 検査4: タイムシフト表の現在線が補間中の表示時刻を使わない');
+assert(display57.includes("$('clock')") && !display57.includes('office-clock') && !display57.includes('renderShiftStrip'), '§57 検査3: 共通時計が表示時刻で動かない、または撤去した時刻表示を更新する');
 assert(!/state\.(?:clock|turn)\s*=|\badvance\(|activateDueInbound|abandonTicket|resolveCarrierRequest/.test(functionSource('startTimePassageIfNeeded') + display57), '§57 検査7: 演出の途中でゲーム時刻または判定を動かしている');
-const displayNodes57 = {clock:{textContent:''},'office-clock':{textContent:''}};
-let stripMinute57 = null;
-const renderDisplayed57 = new Function('$','fmtClock','renderShiftStrip',display57 + '\nreturn renderPresentedTime;')(
+const displayNodes57 = {clock:{textContent:''}};
+const renderDisplayed57 = new Function('$','fmtClock',display57 + '\nreturn renderPresentedTime;')(
   id => displayNodes57[id] || null,
-  minute => 'T' + minute,
-  minute => { stripMinute57 = minute; }
+  minute => 'T' + minute
 );
 renderDisplayed57(1439.6);
-assert(displayNodes57.clock.textContent === 'T1440' && displayNodes57['office-clock'].textContent === 'T1440' && stripMinute57 === 1440, '§57 検査3: 2つの時計と現在線が同じ分へ着地しない');
+assert(displayNodes57.clock.textContent === 'T1440', '§57 検査3: 共通時計が補間後の分へ着地しない');
 const passage57 = functionSource('startTimePassageIfNeeded');
 assert(passage57.includes('typewriterOff()') && passage57.includes('finishTimePassage()'), '§57 検査5: prefers-reduced-motionで即着地しない');
 assert(passage57.includes('requestAnimationFrame(step)') && passage57.includes('timePassageDuration(minutes)'), '§57 検査6: 時間経過をフレーム補間しない');

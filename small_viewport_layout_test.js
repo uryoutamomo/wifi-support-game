@@ -150,10 +150,12 @@ async function verifyViewport(cdp, viewport){
   await evaluate(cdp, 'closeSheet(); enterOffice(); null');
   await pause(80);
 
-  const office = await evaluate(cdp, `(() => ({ scrollY, positions:[...document.querySelectorAll('.office-call-actions')].map(node => getComputedStyle(node).position), count:document.querySelectorAll('.office-call-action').length }))()`);
+  const office = await evaluate(cdp, `(() => { const clock=document.querySelector('.topbar .clock'), r=clock.getBoundingClientRect(); return { scrollY, positions:[...document.querySelectorAll('.office-call-actions')].map(node => getComputedStyle(node).position), count:document.querySelectorAll('.office-call-action').length, clockVisible:getComputedStyle(clock).display !== 'none' && r.width > 0 && r.height > 0, shiftStrips:document.querySelectorAll('.shift-strip,#shift-strip').length }; })()`);
   assert.equal(office.scrollY, 0, 'オフィスが初期表示でスクロールしている');
   await assertTopbarClear(cdp, 'オフィス');
   assert.equal(office.count, 4, 'オフィス操作が4つではない');
+  assert(office.clockVisible, 'オフィスで上部の時計が消えている');
+  assert.equal(office.shiftStrips, 0, 'オフィスに撤去したシフト帯が残っている');
   assert(office.positions.every(position => position !== 'fixed'), 'オフィス操作が固定配置のまま: ' + office.positions.join(','));
   await assertScrollReachable(cdp, 'オフィス4操作', '.office-call-action');
 
@@ -168,15 +170,18 @@ async function verifyViewport(cdp, viewport){
   await pause(80);
   const call = await evaluate(cdp, `(() => {
     const rect = (name,node) => { const r=node.getBoundingClientRect(); return { name, top:r.top+scrollY, bottom:r.bottom+scrollY, width:r.width, height:r.height }; };
-    const selectors = [['上部バー','.topbar-inner'],['シフト帯','.shift-strip'],['チケット情報','.call-head'],['満足度メーター','.stress-panel'],['顧客との会話','.transcript.recent'],['操作','.actions']];
+    const selectors = [['上部バー','.topbar-inner'],['チケット情報','.call-head'],['満足度メーター','.stress-panel'],['顧客との会話','.transcript.recent'],['操作','.actions']];
     const flow=selectors.map(([name,selector]) => rect(name,document.querySelector(selector)));
-    const positions=selectors.slice(2).map(([name,selector]) => ({ name, position:getComputedStyle(document.querySelector(selector)).position }));
+    const positions=selectors.slice(1).map(([name,selector]) => ({ name, position:getComputedStyle(document.querySelector(selector)).position }));
     const transcriptStyle=getComputedStyle(document.querySelector('.transcript.recent'));
-    return { scrollY, flow, positions, transcriptOverflow:transcriptStyle.overflowY, commands:document.querySelectorAll('.command-grid .command-choice').length, independentHangups:document.querySelectorAll('.hangup-box,.hangup-button,[data-hangup]').length };
+    const clock=document.querySelector('.topbar .clock'), clockRect=clock.getBoundingClientRect();
+    return { scrollY, flow, positions, transcriptOverflow:transcriptStyle.overflowY, clockVisible:getComputedStyle(clock).display !== 'none' && clockRect.width > 0 && clockRect.height > 0, shiftStrips:document.querySelectorAll('.shift-strip,#shift-strip').length, commands:document.querySelectorAll('.command-grid .command-choice').length, independentHangups:document.querySelectorAll('.hangup-box,.hangup-button,[data-hangup]').length };
   })()`);
   assert.equal(call.scrollY, 0, '通話が初期表示でスクロールしている');
   await assertTopbarClear(cdp, '通話');
   verticalFlow('通話の縦一列', call.flow);
+  assert(call.clockVisible, '小画面で上部の時計が消えている');
+  assert.equal(call.shiftStrips, 0, '撤去したシフト帯が画面に残っている');
   assert(call.positions.every(item => item.position !== 'fixed' && item.position !== 'sticky'), '通話要素が通常フローから外れている: ' + JSON.stringify(call.positions));
   assert(call.transcriptOverflow === 'visible', '顧客との会話が内部スクロール窓のまま: ' + call.transcriptOverflow);
   assert.equal(call.commands, 4, '通話の主コマンドが4つではない');
