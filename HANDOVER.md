@@ -80,7 +80,7 @@ node progression_test.js  # 早期解決後も次の着信へ進み、全案件�
 node typing_budget.js     # 文字送りが4秒を超える行がないか
 node negative_ui_mutation_test.js  # 検査そのものが機能しているか（壊すと赤くなるか）
 node simple_case_test.js    # 追加10件が1問＋安全操作で復旧するか
-node simple_case_mutation_test.js  # §69の3つの重要契約を壊して検出するか
+node simple_case_mutation_test.js  # §69の4つの重要契約を壊して検出するか
 ```
 
 **`negative_ui_mutation_test.js` は「検査を検査する」ものです。** ソースをわざと壊して、対応する検査が赤くなるかを確かめます。**検査が通ったという事実だけでは、検査が働いている証拠になりません。** 新しい不変条件を足したら、それを壊す変異もここへ足してください。

@@ -1824,6 +1824,8 @@ const TESTS = [
   { id:'t_move',       label:'窓際か屋外へ移動して試していただく', turns:4, wait:'場所を移っていただいています。', needsDevice:true },
   { id:'t_disconnect', label:'使っていない端末をWi-Fiから切っていただく', turns:2, wait:'不要な端末を切っていただいています。', needsDevice:true },
   { id:'t_charge',     label:'付属のケーブルとアダプタで充電していただく', turns:5, wait:'充電をお願いしました。しばらく様子を見ます。', needsDevice:true },
+  { id:'t_charge_battery', label:'電池切れの本体を付属品で十分に充電していただく', turns:5, wait:'付属品で充電し、起動が安定するまで待っていただいています。', needsDevice:true },
+  { id:'t_charge_ac',  label:'パソコンのUSBから付属ACアダプタへ給電元を替えていただく', turns:2, wait:'付属ACアダプタへ替え、残量の変化を見ていただいています。', needsDevice:true },
   { id:'t_password',   label:'本体表示のWi-Fi名とパスワードを確認し、端末を繋ぎ直していただく', turns:3, wait:'本体表示との照合と再接続をお願いしました。操作していただいています。', needsDevice:true },
   { id:'t_wake',       label:'ルーターの電源ボタンを押して休止状態を解除していただく', turns:1, wait:'電源ボタンを押していただいています。', needsDevice:true },
   { id:'t_nearby',     label:'ルーターへ近づき、電子レンジなどから離して試していただく', turns:2, wait:'距離と電波干渉の少ない場所で試していただいています。', needsDevice:true },
@@ -1886,8 +1888,8 @@ const REMEDIES = {
   power: [
     { id:'r_charge_guide', label:'接続台数による電池消耗をご説明し、付属アダプタでの充電と節電をご案内する', sub:'消耗の理由も添えて伝える', kind:'resolve' },
     { id:'r_wake', label:'省電力の休止状態だったことをご説明し、電源ボタンで復帰して利用いただく', sub:'初期化や再起動は不要', kind:'resolve', needsTest:'t_wake' },
-    { id:'r_low_battery_charge', label:'電池残量の低下が原因だったことをご説明し、付属品で十分に充電していただく', sub:'対応品で充電し、起動と通信の安定を確認する', kind:'resolve', needsTest:'t_charge' },
-    { id:'r_ac_charge', label:'パソコンからの給電不足だったことをご説明し、付属ACアダプタで充電いただく', sub:'給電元だけを安全な方法へ替える', kind:'resolve', needsTest:'t_charge' },
+    { id:'r_low_battery_charge', label:'電池残量の低下が原因だったことをご説明し、付属品で十分に充電していただく', sub:'対応品で充電し、起動と通信の安定を確認する', kind:'resolve', needsTest:'t_charge_battery' },
+    { id:'r_ac_charge', label:'パソコンからの給電不足だったことをご説明し、付属ACアダプタで充電いただく', sub:'給電元だけを安全な方法へ替える', kind:'resolve', needsTest:'t_charge_ac' },
     { id:'r_cool_down', label:'充電しながらの通信で過熱したことをご説明し、冷ましてから利用いただく', sub:'高温時は充電と通信を止める', kind:'resolve', needsTest:'t_cool_down' },
   ],
   carrier: [
@@ -2560,7 +2562,7 @@ const SCENARIOS = [
   panel:{bars:null,carrier:null,sim:'ok',throttle:false,clients:0,maxClients:5,battery:1,ssid:'Globaldesk-1564'},
   trueCause:'power',best:'r_low_battery_charge',partial:[],
   replies:{q_return:{text:'旅行は始まったばかりで、あと3日あります。'},q_battery:{text:'赤い電池が1%と出ます。昨日から充電していません。',fact:{text:'電池残量1%で起動を維持できない',hot:['power']}}},
-  tests:{t_charge:{text:'付属のケーブルとアダプタでしばらく充電したら、起動したままになり通信もできました。',fact:{text:'対応する付属品で充電すると起動と通信が安定した',hot:['power'],out:['fup','devices','geo_block','heavy','device_side','device_net','location','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  tests:{t_charge_battery:{text:'付属のケーブルとアダプタでしばらく充電したら、起動したままになり通信もできました。',fact:{text:'対応する付属品で充電すると起動と通信が安定した',hot:['power'],out:['fup','devices','geo_block','heavy','device_side','device_net','location','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
   source:{title:'SoftBank A201NE: 電源が入らない場合',url:'https://www.softbank.jp/mobile/support/manual/data-com/a201ne/detail/67211/'},
   debrief:'赤い低電池表示が出ているなら、設定ではなく<em>対応する付属品で十分に充電</em>します。'
 },
@@ -2573,7 +2575,7 @@ const SCENARIOS = [
   panel:{bars:4,carrier:'{carrier}',sim:'ok',throttle:false,clients:2,maxClients:5,battery:9,ssid:'Globaldesk-5287'},
   trueCause:'power',best:'r_ac_charge',partial:[],
   replies:{q_return:{text:'滞在はあと4日です。作業は今夜も続きます。'},q_battery:{text:'PCのUSBポートです。充電表示は出ますが、通信中は9%から減っています。',fact:{text:'PCのUSB給電では通信中の消費を補えていない',hot:['power']}}},
-  tests:{t_charge:{text:'付属ACアダプタへ替えたら、通信中でも残量が増え始めました。',fact:{text:'付属ACアダプタでは給電が消費を上回った',hot:['power'],out:['fup','devices','geo_block','heavy','device_side','device_net','location','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  tests:{t_charge_ac:{text:'付属ACアダプタへ替えたら、通信中でも残量が増え始めました。',fact:{text:'付属ACアダプタでは給電が消費を上回った',hot:['power'],out:['fup','devices','geo_block','heavy','device_side','device_net','location','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
   source:{title:'SoftBank A101ZT: パソコンからの充電',url:'https://www.softbank.jp/mobile/support/manual/data-com/pocket-wifi-5g-a101zt/detail/52807/'},
   debrief:'PCのUSBは環境により充電できない、またはACより遅いことがあります。<em>付属ACへ替えた比較</em>が安全で明確です。'
 },
@@ -4579,7 +4581,10 @@ function doClose(causeId, remedyId){
     finishDeferredArrangement(t, remedy, causeId, remedyId, causeMatched);
     return;
   }
-  const treatmentWorked = remedy.reportsRestored ? causeMatched && t.carrierRestored : treatmentSucceeds(causeMatched);
+  // 原因の大分類が同じでも、別案件用の対処では直らない。
+  // 原因自体を外したときの「運で一時的に直る」経路だけは従来どおり残す。
+  const scenarioRemedyMatched = !causeMatched || remedyMatchesScenario(s, remedyId);
+  const treatmentWorked = scenarioRemedyMatched && (remedy.reportsRestored ? causeMatched && t.carrierRestored : treatmentSucceeds(causeMatched));
 
   // ---- 対処後も解決しない ----
   if (!treatmentWorked){
@@ -4612,6 +4617,10 @@ function doClose(causeId, remedyId){
   }
 
   finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched);
+}
+
+function remedyMatchesScenario(scenario, remedyId){
+  return remedyId === scenario.best || (scenario.partial || []).includes(remedyId);
 }
 
 function resolutionOperatorClosing(grade, causeMatched){

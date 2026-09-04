@@ -487,7 +487,7 @@ const contradictedState43 = {focus:{s:s3_43,transcript:[],state:'open'},ui:null}
 let deferredCalls43 = 0;
 let refundCalls43 = 0;
 let advanced43 = 0;
-const runContradictedClose43 = new Function('state','REMEDIES','remedyBlockReason','spendOnCall','playClueSound','advance','pushCustomerLine','addStress','defaultUi','render','finishRemedyRefund','finishDeferredArrangement','treatmentSucceeds', close43 + '\nreturn doClose;')(
+const runContradictedClose43 = new Function('state','REMEDIES','remedyBlockReason','spendOnCall','playClueSound','advance','pushCustomerLine','addStress','defaultUi','render','finishRemedyRefund','finishDeferredArrangement','treatmentSucceeds', functionSource('remedyMatchesScenario') + '\n' + close43 + '\nreturn doClose;')(
   contradictedState43,REMEDIES,() => '',() => true,() => {},minutes => { advanced43 += minutes; },(ticket,text) => ticket.transcript.push({who:'cust',text}),() => true,() => ({}),() => {},() => { refundCalls43++; },() => { deferredCalls43++; },() => { throw new Error('食い違い指摘前に復旧抽選へ入った'); }
 );
 assert.doesNotThrow(() => runContradictedClose43('carrier','r_swap_unit'), '§43-6 検査13: S3のcarrier×代替機手配が食い違い指摘より先に確定する');
@@ -545,7 +545,7 @@ function runCloseContract(causeMatched, expectedOutcome, nameKnown = false, iden
     resolutionOperatorClosing:() => '失礼いたします', CALL_FLOW_LINES,
     finishRemedyRefund:() => {}, finishDeferredArrangement:() => {},
   };
-  const run = new Function(...Object.keys(deps), functionSource('finishSuccessfulClose') + '\n' + functionSource('doClose') + '\nreturn doClose;')(...Object.values(deps));
+  const run = new Function(...Object.keys(deps), functionSource('finishSuccessfulClose') + '\n' + functionSource('remedyMatchesScenario') + '\n' + functionSource('doClose') + '\nreturn doClose;')(...Object.values(deps));
   run(causeMatched ? 'right' : 'wrong', causeMatched ? 'r_right' : 'r_wrong');
   ticket.totalCost = closeState.cost;
   return ticket;

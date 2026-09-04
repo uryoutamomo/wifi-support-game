@@ -1821,7 +1821,10 @@ function doClose(causeId, remedyId){
     finishDeferredArrangement(t, remedy, causeId, remedyId, causeMatched);
     return;
   }
-  const treatmentWorked = remedy.reportsRestored ? causeMatched && t.carrierRestored : treatmentSucceeds(causeMatched);
+  // 原因の大分類が同じでも、別案件用の対処では直らない。
+  // 原因自体を外したときの「運で一時的に直る」経路だけは従来どおり残す。
+  const scenarioRemedyMatched = !causeMatched || remedyMatchesScenario(s, remedyId);
+  const treatmentWorked = scenarioRemedyMatched && (remedy.reportsRestored ? causeMatched && t.carrierRestored : treatmentSucceeds(causeMatched));
 
   // ---- 対処後も解決しない ----
   if (!treatmentWorked){
@@ -1854,6 +1857,10 @@ function doClose(causeId, remedyId){
   }
 
   finishSuccessfulClose(t, remedy, causeId, remedyId, causeMatched);
+}
+
+function remedyMatchesScenario(scenario, remedyId){
+  return remedyId === scenario.best || (scenario.partial || []).includes(remedyId);
 }
 
 function resolutionOperatorClosing(grade, causeMatched){
