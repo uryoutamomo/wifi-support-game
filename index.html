@@ -999,6 +999,29 @@ body.sheet-open .console{ display: none; }
 .audio-diagnostic b{ display:block; color:var(--text); font:800 16px/1.4 var(--display); }
 .audio-diagnostic p{ margin:6px 0 10px; color:var(--text-2); font-size:13px; line-height:1.6; }
 .audio-diagnostic .btn-ghost{ margin:0; }
+.audio-recovery-notice{
+  position:fixed;
+  left:max(14px,env(safe-area-inset-left));
+  right:max(14px,env(safe-area-inset-right));
+  bottom:max(14px,env(safe-area-inset-bottom));
+  z-index:90;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  max-width:720px;
+  margin:0 auto;
+  padding:13px 14px;
+  border:2px solid var(--warn);
+  border-radius:12px;
+  background:var(--surface);
+  box-shadow:0 10px 32px rgba(16,42,67,.24);
+}
+.audio-recovery-notice[hidden],body:not(.playing) .audio-recovery-notice{ display:none; }
+.audio-recovery-notice strong,.audio-recovery-notice span{ display:block; }
+.audio-recovery-notice strong{ color:var(--text); font-size:14px; }
+.audio-recovery-notice span{ margin-top:2px; color:var(--text-2); font:700 11px/1.4 var(--mono); }
+.audio-recovery-notice .btn-ghost{ flex:none; width:auto; margin:0; }
 .sound-quick-control{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
 .sound-quick-control span{ color:var(--text-2); font-size:14px; }
 .sound-quick-control b{ color:var(--accent); }
@@ -1220,6 +1243,8 @@ body.office-view .office-scene{ gap:14px; }
 @media (max-width:480px){
   body{ width:100%; box-shadow:none; }
   .artifact-qr-card{ display:none; }
+  .audio-recovery-notice{ align-items:stretch; flex-direction:column; gap:9px; }
+  .audio-recovery-notice .btn-ghost{ width:100%; }
   /* シフト帯の撤去後も時計は消さない。375px級では時計を2段目へ置く。 */
   .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto; }
   .topbar-inner > .clock{ display:flex; grid-row:2; grid-column:1 / -1; justify-self:center; }
@@ -1232,6 +1257,11 @@ body.office-view .office-scene{ gap:14px; }
 <body>
 
 <div class="time-passage-indicator" id="time-passage-indicator" role="status" aria-live="polite">時間が進んでいます ／ タップで進む</div>
+
+<section class="audio-recovery-notice" data-audio-recovery="1" role="status" aria-live="polite" hidden>
+  <div><strong>音声を再確認してください</strong><span data-audio-context-state="1">AudioContext: not-created</span></div>
+  <button class="btn-ghost" data-audio-unlock="1">音をテスト／再有効化</button>
+</section>
 
 <div class="topbar">
   <div class="topbar-inner">
@@ -4824,9 +4854,19 @@ function audioStatusText(){
   return '未確認です。「音をテスト」をタップすると、iPhoneで音声が開始できたか確認できます。' + context;
 }
 
+function syncAudioRecoveryNotice(){
+  const notice = document.querySelector('[data-audio-recovery]');
+  if (!notice) return;
+  const visible = GAME_FLAGS.soundEnabled && (audioUnlockStatus === 'needs_gesture' || audioUnlockStatus === 'error');
+  notice.hidden = !visible;
+  const stateNode = notice.querySelector('[data-audio-context-state]');
+  if (stateNode) stateNode.textContent = 'AudioContext: ' + currentAudioContextState();
+}
+
 function setAudioUnlockStatus(status){
   audioUnlockStatus = status;
   document.querySelectorAll('[data-audio-status]').forEach(node => { node.textContent = audioStatusText(); });
+  syncAudioRecoveryNotice();
 }
 
 function initAudio(force = false){
@@ -5690,14 +5730,10 @@ function hotelCallbackSub(t){
 function renderFrontDeskOptions(t){
   const room = hotelRoom(t);
   const options = CALL_FLOW_LINES.frontDesk.options;
-  const latestFront = t.transcript.slice().reverse().find(line => line.who === 'front');
-  const frontContext = latestFront && latestFront.typed
-    ? '<div class="line front cust front-desk-context"><span class="who">Front Desk</span><span class="say">' + esc(latestFront.text) + '</span></div>'
-    : '';
   const roomChoice = room
     ? '<button class="opt" data-front-desk="room"><span class="opt-label">' + esc(options.room.replace('{room}', room)) + '</span></button>'
     : '';
-  return '<p class="hint-bar"><b>発信先：' + esc(t.stayHotelName) + '</b></p>' + frontContext + renderCommandHead('Front Desk', 'Please choose what to say in English.') + '<div class="opts front-desk-options">' +
+  return '<p class="hint-bar"><b>発信先：' + esc(t.stayHotelName) + '</b></p>' + renderCommandHead('Front Desk', 'Please choose what to say in English.') + '<div class="opts front-desk-options">' +
     '<button class="opt" data-front-desk="guest" ' + (t.nameKnown ? '' : 'disabled') + '><span class="opt-label">' + esc(options.guest.replace('{name}', t.s.nameEn)) + '</span></button>' +
     roomChoice +
     '<button class="opt" data-front-desk="callback"><span class="opt-label">' + esc(options.callback) + '</span></button></div>';
@@ -6779,7 +6815,15 @@ function cell(k, v, n){
    イベント
    ============================================================ */
 
+function triggerAudioRecoveryFromGesture(target){
+  const button = target && target.closest('[data-audio-unlock]');
+  if (!button || button.disabled) return false;
+  unlockAudioFromGesture().then(ready => { if (ready) playAudioTestSound(); });
+  return true;
+}
+
 document.addEventListener('click', (e) => {
+  if (triggerAudioRecoveryFromGesture(e.target)) return;
   const soundToggle = e.target.closest('[data-sound-toggle]');
   if (soundToggle){ toggleSoundFromGesture(); return; }
   if (timePassage){
@@ -6788,19 +6832,22 @@ document.addEventListener('click', (e) => {
     if (!answerDuringPassage) return;
   }
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-audio-unlock],[data-office-answer],[data-office-callback],[data-office-desk],[data-office-verify],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-end-call],[data-finish-call],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
+  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-office-verify],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-end-call],[data-finish-call],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
   if (!el || el.disabled) return;
   const audioReady = unlockAudioFromGesture();
-  if (el.dataset.audioUnlock){ audioReady.then(ready => { if (ready) playAudioTestSound(); }); return; }
   audioReady.then(ready => { if (ready) playCommandSound(); });
   routeAction(el.dataset);
 });
 
-function noteAudioInterruption(){
-  if (audioContext && audioContext.state !== 'running') setAudioUnlockStatus('needs_gesture');
+function noteAudioInterruption(event){
+  if (!GAME_FLAGS.soundEnabled || !audioContext) return;
+  const backgrounded = event && event.type === 'pagehide';
+  const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+  if (backgrounded || hidden || audioContext.state !== 'running') setAudioUnlockStatus('needs_gesture');
 }
 
 document.addEventListener('visibilitychange', noteAudioInterruption);
+window.addEventListener('pagehide', noteAudioInterruption);
 window.addEventListener('pageshow', noteAudioInterruption);
 
 function firstTicketIn(stateName, orderKey){

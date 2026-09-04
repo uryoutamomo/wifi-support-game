@@ -999,6 +999,29 @@ body.sheet-open .console{ display: none; }
 .audio-diagnostic b{ display:block; color:var(--text); font:800 16px/1.4 var(--display); }
 .audio-diagnostic p{ margin:6px 0 10px; color:var(--text-2); font-size:13px; line-height:1.6; }
 .audio-diagnostic .btn-ghost{ margin:0; }
+.audio-recovery-notice{
+  position:fixed;
+  left:max(14px,env(safe-area-inset-left));
+  right:max(14px,env(safe-area-inset-right));
+  bottom:max(14px,env(safe-area-inset-bottom));
+  z-index:90;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  max-width:720px;
+  margin:0 auto;
+  padding:13px 14px;
+  border:2px solid var(--warn);
+  border-radius:12px;
+  background:var(--surface);
+  box-shadow:0 10px 32px rgba(16,42,67,.24);
+}
+.audio-recovery-notice[hidden],body:not(.playing) .audio-recovery-notice{ display:none; }
+.audio-recovery-notice strong,.audio-recovery-notice span{ display:block; }
+.audio-recovery-notice strong{ color:var(--text); font-size:14px; }
+.audio-recovery-notice span{ margin-top:2px; color:var(--text-2); font:700 11px/1.4 var(--mono); }
+.audio-recovery-notice .btn-ghost{ flex:none; width:auto; margin:0; }
 .sound-quick-control{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
 .sound-quick-control span{ color:var(--text-2); font-size:14px; }
 .sound-quick-control b{ color:var(--accent); }
@@ -1220,6 +1243,8 @@ body.office-view .office-scene{ gap:14px; }
 @media (max-width:480px){
   body{ width:100%; box-shadow:none; }
   .artifact-qr-card{ display:none; }
+  .audio-recovery-notice{ align-items:stretch; flex-direction:column; gap:9px; }
+  .audio-recovery-notice .btn-ghost{ width:100%; }
   /* シフト帯の撤去後も時計は消さない。375px級では時計を2段目へ置く。 */
   .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto; }
   .topbar-inner > .clock{ display:flex; grid-row:2; grid-column:1 / -1; justify-self:center; }
@@ -1232,6 +1257,11 @@ body.office-view .office-scene{ gap:14px; }
 <body>
 
 <div class="time-passage-indicator" id="time-passage-indicator" role="status" aria-live="polite">時間が進んでいます ／ タップで進む</div>
+
+<section class="audio-recovery-notice" data-audio-recovery="1" role="status" aria-live="polite" hidden>
+  <div><strong>音声を再確認してください</strong><span data-audio-context-state="1">AudioContext: not-created</span></div>
+  <button class="btn-ghost" data-audio-unlock="1">音をテスト／再有効化</button>
+</section>
 
 <div class="topbar">
   <div class="topbar-inner">

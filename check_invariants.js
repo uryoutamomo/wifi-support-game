@@ -862,7 +862,7 @@ if (Object.keys(CALL_FLOW_LINES.callback.blameOpenings).length !== 4 || new Set(
 if (BLIND_CALLBACK_STRESS <= REDIAL_STRESS) bad('§40 連絡先なしの切断が、ただの切断より軽い');
 if (!sourceOf('resumeCallback').includes("t.callbackStage = 'front_desk'") || !sourceOf('renderTranscript').includes("front:'Front Desk'")) bad('§39 折り返しでFront Deskの英語応対へ入らない');
 if (!Object.values(CALL_FLOW_LINES.frontDesk.options).every(line => /^[\x20-\x7E]+$/.test(line)) || !sourceOf('renderFrontDeskOptions').includes('Please choose what to say in English.')) bad('§39 Front Deskの選択肢が英語で揃っていない');
-if (!sourceOf('renderFrontDeskOptions').includes('front-desk-context') || !sourceOf('renderFrontDeskOptions').includes('latestFront.text')) bad('§39 Front Deskの発話が選択画面に固定表示されない');
+if (!sourceOf('renderTranscript').includes("front:'Front Desk'") || sourceOf('renderFrontDeskOptions').includes('front-desk-context')) bad('§71 Front Deskの発話が会話ログと選択パネルへ二重表示される');
 if (!sourceOf('renderFrontDeskOptions').includes('t.s.nameEn') || !sourceOf('handleFrontDeskChoice').includes('t.s.nameEn')) bad('§39 Front Deskへ伝える顧客名がローマ字ではない');
 if (!sourceOf('renderFrontDeskOptions').includes("const roomChoice = room") || sourceOf('renderFrontDeskOptions').includes("replace('{room}', room || '—')")) bad('§39 部屋番号不明時にroom選択肢またはダッシュが出る');
 if (!sourceOf('isLateLocalTime').includes('ticketLocalMinute(t)') || !sourceOf('ticketLocalMinute').includes('t.s.localOffset') || !sourceOf('resumeCallback').includes('CALL_FLOW_LINES.frontDesk.lateQuestion')) bad('§39 土地のlocalOffsetによる深夜判定または難色発話がない');

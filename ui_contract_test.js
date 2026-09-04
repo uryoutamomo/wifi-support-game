@@ -1235,6 +1235,57 @@ assert(audioStateText60().includes('AudioContext: interrupted'),'§60 現在のA
 assert(unlockAudioSource.includes("ctx.state !== 'running'") && !/ctx\.state === ['\"](?:suspended|interrupted)['\"]/.test(unlockAudioSource),'§60 running以外のAudioContextをすべて再開対象にしていない');
 assert(unlockAudioSource.includes("if (ctx.state !== 'running') ctx = await recreateAudioContextFromGesture(ctx)"),'§60 resumeで戻らないAudioContextを作り直さない');
 
+// §70: 画面ロック復帰は実機でしか成否を断定できない。プレイ画面では中断を見える化し、
+// 文字送りや時間経過中でも、専用ボタンを一度押せば復帰処理と試聴へ直行できる。
+const syncAudioRecoverySource70 = functionSource('syncAudioRecoveryNotice');
+const setAudioStatusSource70 = functionSource('setAudioUnlockStatus');
+const audioRecoveryState70 = { textContent:'' };
+const audioRecoveryNotice70 = {
+  hidden:true,
+  querySelector(selector){ return selector === '[data-audio-context-state]' ? audioRecoveryState70 : null; },
+};
+const audioStatusNodes70 = [{textContent:''}];
+const audioRecoveryHarness70 = new Function('GAME_FLAGS','document','currentAudioContextState','audioStatusText',
+  "let audioUnlockStatus = 'idle';\n" + syncAudioRecoverySource70 + '\n' + setAudioStatusSource70 +
+  '\nreturn { setAudioUnlockStatus, getStatus:() => audioUnlockStatus };'
+)(
+  {soundEnabled:true},
+  {
+    querySelector:selector => selector === '[data-audio-recovery]' ? audioRecoveryNotice70 : null,
+    querySelectorAll:selector => selector === '[data-audio-status]' ? audioStatusNodes70 : [],
+  },
+  () => 'interrupted',
+  () => '音声が中断されています。 AudioContext: interrupted。'
+);
+audioRecoveryHarness70.setAudioUnlockStatus('needs_gesture');
+assert.equal(audioRecoveryNotice70.hidden,false,'§70 画面ロック後の音声復帰案内がプレイ画面に現れない');
+assert.equal(audioRecoveryState70.textContent,'AudioContext: interrupted','§70 プレイ中の復帰案内でAudioContext状態を読めない');
+assert(audioStatusNodes70[0].textContent.includes('interrupted'),'§70 既存の音声診断表示と復帰案内の状態が同期しない');
+audioRecoveryHarness70.setAudioUnlockStatus('ready');
+assert.equal(audioRecoveryNotice70.hidden,true,'§70 音声復帰後も案内が画面を塞ぎ続ける');
+
+const noteAudioInterruptionSource70 = functionSource('noteAudioInterruption').split('\ndocument.addEventListener')[0];
+const interruptionStatuses70 = [];
+const noteAudioInterruption70 = new Function('GAME_FLAGS','audioContext','document','setAudioUnlockStatus',
+  noteAudioInterruptionSource70 + '\nreturn noteAudioInterruption;'
+)({soundEnabled:true},{state:'running'},{visibilityState:'visible'},status => interruptionStatuses70.push(status));
+noteAudioInterruption70({type:'pagehide'});
+assert.deepEqual(interruptionStatuses70,['needs_gesture'],'§70 AudioContextがrunningのままでも画面ロック境界を復帰待ちとして記録しない');
+assert(eventSource.includes("window.addEventListener('pagehide', noteAudioInterruption)"),'§70 pagehideの中断記録が実イベントへ接続されない');
+
+const triggerAudioRecoverySource70 = functionSource('triggerAudioRecoveryFromGesture').split('\ndocument.addEventListener')[0];
+let recoveryUnlockCalls70 = 0;
+const triggerAudioRecovery70 = new Function('unlockAudioFromGesture','playAudioTestSound',
+  triggerAudioRecoverySource70 + '\nreturn triggerAudioRecoveryFromGesture;'
+)(() => { recoveryUnlockCalls70++; return Promise.resolve(true); }, () => {});
+const recoveryTarget70 = { closest:selector => selector === '[data-audio-unlock]' ? {disabled:false} : null };
+assert.equal(triggerAudioRecovery70(recoveryTarget70),true,'§70 プレイ中の音声復帰ボタンが専用処理に到達しない');
+assert.equal(recoveryUnlockCalls70,1,'§70 音声復帰ボタンがユーザー操作内で復帰処理を始めない');
+assert.equal(triggerAudioRecovery70({closest:() => null}),false,'§70 通常タップを音声テスト専用操作として奪う');
+const audioRecoveryClickIndex70 = eventSource.indexOf('if (triggerAudioRecoveryFromGesture(e.target)) return;');
+assert(audioRecoveryClickIndex70 >= 0 && audioRecoveryClickIndex70 < eventSource.indexOf("const soundToggle = e.target.closest('[data-sound-toggle]')"),'§70 文字送り・時間経過中に音声復帰ボタンが別操作へ消費される');
+assert(page.includes('data-audio-recovery') && page.includes('data-audio-context-state') && page.includes('data-audio-unlock="1"'),'§70 実プレイ画面から音声状態とテスト／再有効化へ到達できない');
+
 const withAudioSource = functionSource('withAudio');
 let failedAudioProgress = 0;
 const safeAudio = new Function('GAME_FLAGS','audioContext','clamp','setAudioUnlockStatus', withAudioSource + '\nreturn withAudio;')(
@@ -2415,7 +2466,14 @@ const renderFront39 = new Function('CALL_FLOW_LINES','esc','renderCommandHead',f
 );
 const frontGreeting39 = CALL_FLOW_LINES.frontDesk.greeting;
 const unknownRoomFront39 = renderFront39({nameKnown:true,stayAddress:'ホテル名のみ',stayHotelName:'試験ホテル 東京',s:{name:'試験 顧客',nameEn:'Test Customer'},transcript:[{who:'front',text:frontGreeting39,typed:true}]});
-assert(unknownRoomFront39.includes('front-desk-context') && unknownRoomFront39.includes('Front Desk') && unknownRoomFront39.includes(frontGreeting39),'§39 検査7: Front Deskの発話が選択画面に表示されない');
+const renderFrontTranscript71 = new Function('pendingTypedLine','renderLookupSystemScreen','renderLookupViz','esc',
+  functionSource('recentTranscriptLines') + '\n' + functionSource('renderTranscript') + '\nreturn renderTranscript;'
+)(() => null,() => '',() => '',value => String(value));
+const frontTranscriptTicket71 = {callTranscriptStart:0,transcript:[{who:'front',text:frontGreeting39,typed:true}]};
+const frontTranscriptHtml71 = renderFrontTranscript71(frontTranscriptTicket71,false);
+assert(frontTranscriptHtml71.includes('Front Desk') && frontTranscriptHtml71.includes(frontGreeting39),'§39 検査7: Front Deskの発話が通常の会話ログに表示されない');
+assert.equal((frontTranscriptHtml71 + unknownRoomFront39).split(frontGreeting39).length - 1,1,'§71 Front Deskの同じ発話が会話ログと選択パネルへ二重表示される');
+assert(!unknownRoomFront39.includes('front-desk-context'),'§71 Front Desk選択パネルに会話ログとは別の発話描画が残る');
 assert(unknownRoomFront39.includes('Test Customer') && !unknownRoomFront39.includes('試験 顧客'),'§39 検査8: Front Deskへ伝える顧客名がローマ字になっていない');
 assert(!unknownRoomFront39.includes('data-front-desk="room"') && !unknownRoomFront39.includes('—'),'§39 検査8: 部屋番号不明時にroom選択肢またはダッシュが表示される');
 const knownRoomFront39 = renderFront39({nameKnown:true,stayAddress:'ホテル、512号室',stayHotelName:'試験ホテル 東京',s:{name:'試験 顧客',nameEn:'Test Customer'},transcript:[{who:'front',text:frontGreeting39,typed:true}]});

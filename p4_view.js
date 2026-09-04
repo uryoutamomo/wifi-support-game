@@ -31,9 +31,19 @@ function audioStatusText(){
   return '未確認です。「音をテスト」をタップすると、iPhoneで音声が開始できたか確認できます。' + context;
 }
 
+function syncAudioRecoveryNotice(){
+  const notice = document.querySelector('[data-audio-recovery]');
+  if (!notice) return;
+  const visible = GAME_FLAGS.soundEnabled && (audioUnlockStatus === 'needs_gesture' || audioUnlockStatus === 'error');
+  notice.hidden = !visible;
+  const stateNode = notice.querySelector('[data-audio-context-state]');
+  if (stateNode) stateNode.textContent = 'AudioContext: ' + currentAudioContextState();
+}
+
 function setAudioUnlockStatus(status){
   audioUnlockStatus = status;
   document.querySelectorAll('[data-audio-status]').forEach(node => { node.textContent = audioStatusText(); });
+  syncAudioRecoveryNotice();
 }
 
 function initAudio(force = false){
@@ -897,14 +907,10 @@ function hotelCallbackSub(t){
 function renderFrontDeskOptions(t){
   const room = hotelRoom(t);
   const options = CALL_FLOW_LINES.frontDesk.options;
-  const latestFront = t.transcript.slice().reverse().find(line => line.who === 'front');
-  const frontContext = latestFront && latestFront.typed
-    ? '<div class="line front cust front-desk-context"><span class="who">Front Desk</span><span class="say">' + esc(latestFront.text) + '</span></div>'
-    : '';
   const roomChoice = room
     ? '<button class="opt" data-front-desk="room"><span class="opt-label">' + esc(options.room.replace('{room}', room)) + '</span></button>'
     : '';
-  return '<p class="hint-bar"><b>発信先：' + esc(t.stayHotelName) + '</b></p>' + frontContext + renderCommandHead('Front Desk', 'Please choose what to say in English.') + '<div class="opts front-desk-options">' +
+  return '<p class="hint-bar"><b>発信先：' + esc(t.stayHotelName) + '</b></p>' + renderCommandHead('Front Desk', 'Please choose what to say in English.') + '<div class="opts front-desk-options">' +
     '<button class="opt" data-front-desk="guest" ' + (t.nameKnown ? '' : 'disabled') + '><span class="opt-label">' + esc(options.guest.replace('{name}', t.s.nameEn)) + '</span></button>' +
     roomChoice +
     '<button class="opt" data-front-desk="callback"><span class="opt-label">' + esc(options.callback) + '</span></button></div>';

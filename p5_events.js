@@ -2,7 +2,15 @@
    イベント
    ============================================================ */
 
+function triggerAudioRecoveryFromGesture(target){
+  const button = target && target.closest('[data-audio-unlock]');
+  if (!button || button.disabled) return false;
+  unlockAudioFromGesture().then(ready => { if (ready) playAudioTestSound(); });
+  return true;
+}
+
 document.addEventListener('click', (e) => {
+  if (triggerAudioRecoveryFromGesture(e.target)) return;
   const soundToggle = e.target.closest('[data-sound-toggle]');
   if (soundToggle){ toggleSoundFromGesture(); return; }
   if (timePassage){
@@ -11,19 +19,22 @@ document.addEventListener('click', (e) => {
     if (!answerDuringPassage) return;
   }
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-audio-unlock],[data-office-answer],[data-office-callback],[data-office-desk],[data-office-verify],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-end-call],[data-finish-call],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
+  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-office-verify],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-end-call],[data-finish-call],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
   if (!el || el.disabled) return;
   const audioReady = unlockAudioFromGesture();
-  if (el.dataset.audioUnlock){ audioReady.then(ready => { if (ready) playAudioTestSound(); }); return; }
   audioReady.then(ready => { if (ready) playCommandSound(); });
   routeAction(el.dataset);
 });
 
-function noteAudioInterruption(){
-  if (audioContext && audioContext.state !== 'running') setAudioUnlockStatus('needs_gesture');
+function noteAudioInterruption(event){
+  if (!GAME_FLAGS.soundEnabled || !audioContext) return;
+  const backgrounded = event && event.type === 'pagehide';
+  const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+  if (backgrounded || hidden || audioContext.state !== 'running') setAudioUnlockStatus('needs_gesture');
 }
 
 document.addEventListener('visibilitychange', noteAudioInterruption);
+window.addEventListener('pagehide', noteAudioInterruption);
 window.addEventListener('pageshow', noteAudioInterruption);
 
 function firstTicketIn(stateName, orderKey){

@@ -718,6 +718,36 @@ const mutations = [
     expected:'§60 現在のAudioContext状態が診断表示に出ない',
   },
   {
+    name:'§70 プレイ中の音声復帰案内を常に隠す', file:'p4_view.js',
+    from:"  notice.hidden = !visible;",
+    to:"  notice.hidden = true;",
+    expected:'§70 画面ロック後の音声復帰案内がプレイ画面に現れない',
+  },
+  {
+    name:'§70 pagehideを音声中断として記録しない', file:'p5_events.js',
+    from:"  const backgrounded = event && event.type === 'pagehide';",
+    to:"  const backgrounded = false;",
+    expected:'§70 AudioContextがrunningのままでも画面ロック境界を復帰待ちとして記録しない',
+  },
+  {
+    name:'§70 pagehideのイベント接続を外す', file:'p5_events.js',
+    from:"window.addEventListener('pagehide', noteAudioInterruption);",
+    to:"window.addEventListener('focus', noteAudioInterruption);",
+    expected:'§70 pagehideの中断記録が実イベントへ接続されない',
+  },
+  {
+    name:'§70 音声復帰ボタンを文字送りより後で処理する', file:'p5_events.js',
+    from:"  if (triggerAudioRecoveryFromGesture(e.target)) return;\n  const soundToggle",
+    to:"  const soundToggle",
+    expected:'§70 文字送り・時間経過中に音声復帰ボタンが別操作へ消費される',
+  },
+  {
+    name:'§71 Front Deskの挨拶を選択パネルへ重ねて戻す', file:'p4_view.js',
+    from:"  return '<p class=\"hint-bar\"><b>発信先：' + esc(t.stayHotelName) + '</b></p>' + renderCommandHead('Front Desk', 'Please choose what to say in English.')",
+    to:"  return '<div class=\"front-desk-context\">' + esc(CALL_FLOW_LINES.frontDesk.greeting) + '</div><p class=\"hint-bar\"><b>発信先：' + esc(t.stayHotelName) + '</b></p>' + renderCommandHead('Front Desk', 'Please choose what to say in English.')",
+    expected:'§71 Front Deskの同じ発話が会話ログと選択パネルへ二重表示される',
+  },
+  {
     name:'通話開始時に着信音を止めない', file:'p4_view.js',
     from:'function enterCall(){\n  stopOfficeRing();', to:'function enterCall(){',
     expected:'通話画面へ移ってもオフィス着信音が止まらない',
@@ -2437,12 +2467,6 @@ const mutations = [
     from:"t.callbackReason = 'general';",
     to:"t.callbackReason = 'carrier';",
     expected:'§32 検査9: progression_testが通らない',
-  },
-  {
-    name:'Front Deskの発話を選択画面から隠す', file:'p4_view.js',
-    from:" + frontContext + renderCommandHead('Front Desk'",
-    to:" + renderCommandHead('Front Desk'",
-    expected:'§39 検査7: Front Deskの発話が選択画面に表示されない',
   },
   {
     name:'Front Deskへ顧客名を日本語で伝える', file:'p4_view.js',
