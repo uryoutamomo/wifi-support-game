@@ -2889,7 +2889,7 @@ const mutations = [
     name:'§73 症状に合わない検査も正解にする', file:'p3_game.js',
     from:'verificationCase.correctAction === actionId',
     to:'true',
-    expected:'§73 検査3: V1で症状に合わない検査も正解になる',
+    expected:'§75 検査3: 中断した誤検査を合計60分で終え、完了台数を増やさず再選択へ戻せない',
   },
   {
     name:'§73 完了台数を無視してルーターを描かない', file:'p4_view.js',
@@ -2902,6 +2902,36 @@ const mutations = [
     from:'esc(verificationCase.symptom)',
     to:"''",
     expected:'§73 検査5: 検証画面に機器名と一行症状が出ない',
+  },
+  {
+    name:'§75 MiFi2372を返却機一覧から消す', file:'p2_data.js',
+    from:"  Object.freeze({ id:'V5', device:'MiFi2372', symptom:'使用中に電源が時々落ちる', correctAction:'tap', result:'本体を軽く叩くと電源断を再現。内部接触不良として修理判定にしました。' }),\n",
+    to:'',
+    expected:'§75 検査1: 返却機の症状パターンが5種類でない',
+  },
+  {
+    name:'§75 症状に合わない既知の検査を時間進行へ渡さない', file:'p3_game.js',
+    from:'  if (!verificationCase || !action){',
+    to:'  if (!verificationCase || !action || !deviceVerificationChoiceMatches(actionId)){',
+    expected:'§75 検査3: 症状に合わない既知の検査を受理して時間進行へ渡さない',
+  },
+  {
+    name:'§75 誤った検査でも返却機を完了扱いにする', file:'p3_game.js',
+    from:'      if (correct){',
+    to:'      if (true){',
+    expected:'§75 検査3: 中断した誤検査を合計60分で終え、完了台数を増やさず再選択へ戻せない',
+  },
+  {
+    name:'§75 検査方法を切り替えても途中分数を引き継ぐ', file:'p3_game.js',
+    from:'  if (state.deviceVerificationMinutes > 0 && state.deviceVerificationActionId && state.deviceVerificationActionId !== actionId){',
+    to:'  if (false && state.deviceVerificationMinutes > 0 && state.deviceVerificationActionId && state.deviceVerificationActionId !== actionId){',
+    expected:'§75 検査4: 別の検査へ切り替えたとき、新しい60分検証として始まらない',
+  },
+  {
+    name:'§75 誤検査の60分終了後に再選択画面を開かない', file:'p5_events.js',
+    from:'    if (!result.accepted || (result.attemptFinished && !result.completed)) showDeviceVerification();',
+    to:'    if (!result.accepted) showDeviceVerification();',
+    expected:'§75 検査7: 誤検査中は画面を閉じ、60分終了後に結果と再選択画面を表示できない',
   },
   {
     name:'§65 通話料を訴える客を半分以外にする', file:'p2_data.js',

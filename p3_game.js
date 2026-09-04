@@ -69,6 +69,7 @@ const state = {
   officeEvents: [],
   handoverMeetingComplete: false,
   deviceVerificationMinutes: 0,
+  deviceVerificationActionId: '',
   verifiedDevices: 0,
   deviceVerificationFeedback: '',
   random: Math.random,
@@ -459,6 +460,7 @@ function resetGame(){
   state.officeEvents = [];
   state.handoverMeetingComplete = false;
   state.deviceVerificationMinutes = 0;
+  state.deviceVerificationActionId = '';
   state.verifiedDevices = 0;
   state.deviceVerificationFeedback = '';
 }
@@ -612,7 +614,7 @@ function advance(turns){
   }
 }
 
-/* §73: 完了台数を順番として使うため、誤選択や着信中断では同じ返却機が残り、
+/* §73/§75: 完了台数を順番として使うため、誤選択や着信中断では同じ返却機が残り、
    完了したときだけ次の機器へ進む。 */
 function currentDeviceVerificationCase(){
   return DEVICE_VERIFICATION_CASES[state.verifiedDevices % DEVICE_VERIFICATION_CASES.length];
@@ -626,35 +628,49 @@ function deviceVerificationChoiceMatches(actionId){
 function chooseDeviceVerification(actionId){
   const verificationCase = currentDeviceVerificationCase();
   const action = DEVICE_VERIFICATION_ACTIONS.find(candidate => candidate.id === actionId);
-  if (!verificationCase || !action || !deviceVerificationChoiceMatches(actionId)){
-    state.deviceVerificationFeedback = action
-      ? '「' + action.label + '」では、この症状を優先して切り分けられません。症状に合う検査を選び直してください。'
-      : '検査項目を選び直してください。';
+  if (!verificationCase || !action){
+    state.deviceVerificationFeedback = '検査項目を選び直してください。';
     return { accepted:false, advanced:0, interrupted:false, completed:false };
   }
+  if (state.deviceVerificationMinutes > 0 && state.deviceVerificationActionId && state.deviceVerificationActionId !== actionId){
+    state.deviceVerificationMinutes = 0;
+  }
+  state.deviceVerificationActionId = actionId;
   state.deviceVerificationFeedback = '';
-  return Object.assign({ accepted:true }, runDeviceVerification());
+  return Object.assign({ accepted:true }, runDeviceVerification(actionId));
 }
 
-/* §64: 待機そのものでは時刻を進めない。返却機1台を60分かけて検証し、
-   着信した分で止める。途中までの作業は、通話後に同じ台から再開できる。 */
-function runDeviceVerification(){
+/* §64/§75: 待機そのものでは時刻を進めない。選んだ方法を60分試し、
+   着信した分で止める。誤った方法も時間は使うが、完了台数には加えない。 */
+function runDeviceVerification(actionId = state.deviceVerificationActionId || currentDeviceVerificationCase().correctAction){
   const alreadyWaiting = state.tickets.some(t => t.state === 'waiting');
   const callbackReady = state.tickets.some(t => t.state === 'callback' && t.callbackDue <= state.clock);
-  if (state.phase !== 'office' || state.focus || alreadyWaiting || callbackReady) return { advanced:0, interrupted:alreadyWaiting || callbackReady, completed:false };
+  if (state.phase !== 'office' || state.focus || alreadyWaiting || callbackReady) return { advanced:0, interrupted:alreadyWaiting || callbackReady, completed:false, attemptFinished:false };
+  state.deviceVerificationActionId = actionId;
   const remaining = DEVICE_VERIFICATION_MINUTES - state.deviceVerificationMinutes;
   let advanced = 0;
   let completed = false;
+  let attemptFinished = false;
   while (advanced < remaining && state.phase !== 'report'){
     state.deviceVerificationMinutes++;
     advance(1);
     advanced++;
     if (state.deviceVerificationMinutes >= DEVICE_VERIFICATION_MINUTES){
       const verificationCase = currentDeviceVerificationCase();
-      state.verifiedDevices++;
+      const action = DEVICE_VERIFICATION_ACTIONS.find(candidate => candidate.id === actionId);
+      const correct = deviceVerificationChoiceMatches(actionId);
       state.deviceVerificationMinutes = 0;
-      completed = true;
-      recordOfficeEvent('verification', verificationCase.device + '：' + verificationCase.result + '（検証済み ' + state.verifiedDevices + '台）');
+      state.deviceVerificationActionId = '';
+      attemptFinished = true;
+      if (correct){
+        state.verifiedDevices++;
+        completed = true;
+        state.deviceVerificationFeedback = '';
+        recordOfficeEvent('verification', verificationCase.device + '：' + verificationCase.result + '（検証済み ' + state.verifiedDevices + '台）');
+      } else {
+        state.deviceVerificationFeedback = '「' + (action ? action.label : '選んだ検査') + '」を60分試しましたが、申告症状を再現・特定できませんでした。同じ機器で別の検査を選んでください。';
+        recordOfficeEvent('verification', verificationCase.device + '：選んだ検査では症状を再現・特定できませんでした。同じ機器を継続します。');
+      }
       break;
     }
     if (state.tickets.some(t => t.state === 'waiting' || (t.state === 'callback' && t.callbackDue <= state.clock))) break;
@@ -666,7 +682,7 @@ function runDeviceVerification(){
     recordOfficeEvent('verification', (callbackInterrupted ? '折り返し時刻になったため' : '着信のため') + '機器検証を中断しました（' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分）。');
   }
   if (state.phase === 'office') renderOffice();
-  return { advanced, interrupted, completed };
+  return { advanced, interrupted, completed, attemptFinished };
 }
 
 function addFact(t, fact, src){

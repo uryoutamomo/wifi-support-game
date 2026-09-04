@@ -5,8 +5,8 @@ const { readGameSource, functionSource: extractFunctionSource } = require('./tes
 
 const game = readGameSource(__dirname);
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,QUESTIONS,LOOKUPS,TESTS,REMEDIES,SCENARIOS,COMMAND_DEFS,DEVICE_VERIFICATION_MINUTES,DEVICE_VERIFICATION_CASES};';
-const { CAUSES, QUESTIONS, LOOKUPS, TESTS, REMEDIES, SCENARIOS, COMMAND_DEFS, DEVICE_VERIFICATION_MINUTES, DEVICE_VERIFICATION_CASES } = new Function(dataSource)();
+  '\nreturn {CAUSES,QUESTIONS,LOOKUPS,TESTS,REMEDIES,SCENARIOS,COMMAND_DEFS,DEVICE_VERIFICATION_MINUTES,DEVICE_VERIFICATION_ACTIONS,DEVICE_VERIFICATION_CASES};';
+const { CAUSES, QUESTIONS, LOOKUPS, TESTS, REMEDIES, SCENARIOS, COMMAND_DEFS, DEVICE_VERIFICATION_MINUTES, DEVICE_VERIFICATION_ACTIONS, DEVICE_VERIFICATION_CASES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -17,7 +17,7 @@ assert(functionSource('enterOffice').includes('activateDueInbound()') && !functi
 assert(functionSource('activateDueInbound').includes('t.arrivedTurn <= state.turn'), '到着済み着信の判定がない');
 
 const verificationState = {
-  phase:'office', focus:null, turn:0, clock:23*60, deviceVerificationMinutes:0, verifiedDevices:0,
+  phase:'office', focus:null, turn:0, clock:23*60, deviceVerificationMinutes:0, deviceVerificationActionId:'', verifiedDevices:0,
   tickets:[{state:'inbound',arrivedTurn:7}], officeEvents:[],
 };
 const verificationAdvance = minutes => {
@@ -31,8 +31,9 @@ const verificationAdvance = minutes => {
 };
 let verificationRenders = 0;
 const currentVerification = new Function('state','DEVICE_VERIFICATION_CASES',functionSource('currentDeviceVerificationCase') + '\nreturn currentDeviceVerificationCase;')(verificationState,DEVICE_VERIFICATION_CASES);
-const runVerification = new Function('state','DEVICE_VERIFICATION_MINUTES','advance','recordOfficeEvent','renderOffice','currentDeviceVerificationCase', functionSource('runDeviceVerification') + '\nreturn runDeviceVerification;')(
-  verificationState,DEVICE_VERIFICATION_MINUTES,verificationAdvance,(kind,text) => verificationState.officeEvents.push({kind,text}),() => { verificationRenders++; },currentVerification
+const verificationMatches = new Function('state','DEVICE_VERIFICATION_CASES','DEVICE_VERIFICATION_ACTIONS','currentDeviceVerificationCase',functionSource('deviceVerificationChoiceMatches') + '\nreturn deviceVerificationChoiceMatches;')(verificationState,DEVICE_VERIFICATION_CASES,DEVICE_VERIFICATION_ACTIONS,currentVerification);
+const runVerification = new Function('state','DEVICE_VERIFICATION_MINUTES','DEVICE_VERIFICATION_ACTIONS','advance','recordOfficeEvent','renderOffice','currentDeviceVerificationCase','deviceVerificationChoiceMatches', functionSource('runDeviceVerification') + '\nreturn runDeviceVerification;')(
+  verificationState,DEVICE_VERIFICATION_MINUTES,DEVICE_VERIFICATION_ACTIONS,verificationAdvance,(kind,text) => verificationState.officeEvents.push({kind,text}),() => { verificationRenders++; },currentVerification,verificationMatches
 );
 const interruptedVerification = runVerification();
 assert(interruptedVerification.advanced === 7 && interruptedVerification.interrupted && !interruptedVerification.completed && verificationState.deviceVerificationMinutes === 7 && verificationState.tickets[0].state === 'waiting', '機器検証が着信した分で中断し、途中時間を保存できない');
@@ -41,6 +42,16 @@ assert(runVerification().advanced === 0 && verificationState.turn === blockedTur
 verificationState.tickets[0].state = 'closed';
 const completedVerification = runVerification();
 assert(completedVerification.advanced === DEVICE_VERIFICATION_MINUTES - 7 && completedVerification.completed && verificationState.verifiedDevices === 1 && verificationState.deviceVerificationMinutes === 0 && verificationRenders === 2, '中断した機器検証を再開して合計60分で1台完了できない');
+verificationState.turn = 0;
+verificationState.clock = 23 * 60;
+verificationState.deviceVerificationMinutes = 0;
+verificationState.deviceVerificationActionId = '';
+verificationState.tickets = [{state:'inbound',arrivedTurn:6}];
+const interruptedWrongVerification = runVerification('power');
+assert(interruptedWrongVerification.advanced === 6 && interruptedWrongVerification.interrupted && !interruptedWrongVerification.attemptFinished && verificationState.deviceVerificationMinutes === 6 && verificationState.deviceVerificationActionId === 'power', '§75 検査3: 誤った検査を着信で中断し、同じ方法の途中時間を保存できない');
+verificationState.tickets[0].state = 'closed';
+const finishedWrongVerification = runVerification('power');
+assert(finishedWrongVerification.advanced === DEVICE_VERIFICATION_MINUTES - 6 && finishedWrongVerification.attemptFinished && !finishedWrongVerification.completed && verificationState.verifiedDevices === 1 && verificationState.deviceVerificationMinutes === 0 && verificationState.deviceVerificationActionId === '' && verificationState.deviceVerificationFeedback.includes('別の検査'), '§75 検査3: 中断した誤検査を合計60分で終え、完了台数を増やさず再選択へ戻せない');
 verificationState.turn = 0;
 verificationState.clock = 23 * 60;
 verificationState.deviceVerificationMinutes = 0;

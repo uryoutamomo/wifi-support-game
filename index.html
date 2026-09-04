@@ -1358,19 +1358,21 @@ const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
 const DESK_LOOKUP_MINUTES = 2;  // 折り返し待ちのあいだ、デスク端末で1件調べるのにかかる時間
 const DEVICE_VERIFICATION_MINUTES = 60; // 返却機1台の検証に必要な作業時間
-/* §73: 返却機は症状に合う検査を選んでから60分の検証へ入る。
-   誤選択は症状の見立てを直すだけで、ゲーム時間も完了台数も進めない。 */
+/* §73/§75: 返却機は検査を選んでから60分の検証へ入る。
+   症状に合わない検査も時間は使うが、完了台数や電話対応の評価には加えない。 */
 const DEVICE_VERIFICATION_ACTIONS = Object.freeze([
   Object.freeze({ id:'power', label:'電池残量と給電を確認する' }),
   Object.freeze({ id:'sim', label:'SIM認識と接点を確認する' }),
   Object.freeze({ id:'wifi', label:'SSID表示とWi-Fi接続を確認する' }),
   Object.freeze({ id:'heat', label:'本体温度と充電保護を確認する' }),
+  Object.freeze({ id:'tap', label:'本体を軽く叩いて再現性を確認する' }),
 ]);
 const DEVICE_VERIFICATION_CASES = Object.freeze([
   Object.freeze({ id:'V1', device:'GD-500', symptom:'電源ボタンを押しても起動しない', correctAction:'power', result:'電池残量の低下を確認。対応アダプタで充電後、正常に起動しました。' }),
   Object.freeze({ id:'V2', device:'A201NE', symptom:'画面に「No SIM」と表示される', correctAction:'sim', result:'SIM接点を清掃して装着状態を確認。正常に認識しました。' }),
   Object.freeze({ id:'V3', device:'A101ZT', symptom:'SSIDは見えるが、検証端末が接続できない', correctAction:'wifi', result:'本体表示と検証端末の接続情報を照合。Wi-Fi接続を確認しました。' }),
   Object.freeze({ id:'V4', device:'GD-200', symptom:'通信しながら充電すると、充電が止まる', correctAction:'heat', result:'高温時の充電保護を確認。冷却後、対応アダプタで正常に充電しました。' }),
+  Object.freeze({ id:'V5', device:'MiFi2372', symptom:'使用中に電源が時々落ちる', correctAction:'tap', result:'本体を軽く叩くと電源断を再現。内部接触不良として修理判定にしました。' }),
 ]);
 /* §65/§69: 直接、国際通話料を訴えるのは24案件中12件になる2タイプだけ。 */
 const CALL_CHARGE_COMPLAINT_TYPES = Object.freeze(['hurried','expert']);
@@ -2888,6 +2890,7 @@ const state = {
   officeEvents: [],
   handoverMeetingComplete: false,
   deviceVerificationMinutes: 0,
+  deviceVerificationActionId: '',
   verifiedDevices: 0,
   deviceVerificationFeedback: '',
   random: Math.random,
@@ -3278,6 +3281,7 @@ function resetGame(){
   state.officeEvents = [];
   state.handoverMeetingComplete = false;
   state.deviceVerificationMinutes = 0;
+  state.deviceVerificationActionId = '';
   state.verifiedDevices = 0;
   state.deviceVerificationFeedback = '';
 }
@@ -3431,7 +3435,7 @@ function advance(turns){
   }
 }
 
-/* §73: 完了台数を順番として使うため、誤選択や着信中断では同じ返却機が残り、
+/* §73/§75: 完了台数を順番として使うため、誤選択や着信中断では同じ返却機が残り、
    完了したときだけ次の機器へ進む。 */
 function currentDeviceVerificationCase(){
   return DEVICE_VERIFICATION_CASES[state.verifiedDevices % DEVICE_VERIFICATION_CASES.length];
@@ -3445,35 +3449,49 @@ function deviceVerificationChoiceMatches(actionId){
 function chooseDeviceVerification(actionId){
   const verificationCase = currentDeviceVerificationCase();
   const action = DEVICE_VERIFICATION_ACTIONS.find(candidate => candidate.id === actionId);
-  if (!verificationCase || !action || !deviceVerificationChoiceMatches(actionId)){
-    state.deviceVerificationFeedback = action
-      ? '「' + action.label + '」では、この症状を優先して切り分けられません。症状に合う検査を選び直してください。'
-      : '検査項目を選び直してください。';
+  if (!verificationCase || !action){
+    state.deviceVerificationFeedback = '検査項目を選び直してください。';
     return { accepted:false, advanced:0, interrupted:false, completed:false };
   }
+  if (state.deviceVerificationMinutes > 0 && state.deviceVerificationActionId && state.deviceVerificationActionId !== actionId){
+    state.deviceVerificationMinutes = 0;
+  }
+  state.deviceVerificationActionId = actionId;
   state.deviceVerificationFeedback = '';
-  return Object.assign({ accepted:true }, runDeviceVerification());
+  return Object.assign({ accepted:true }, runDeviceVerification(actionId));
 }
 
-/* §64: 待機そのものでは時刻を進めない。返却機1台を60分かけて検証し、
-   着信した分で止める。途中までの作業は、通話後に同じ台から再開できる。 */
-function runDeviceVerification(){
+/* §64/§75: 待機そのものでは時刻を進めない。選んだ方法を60分試し、
+   着信した分で止める。誤った方法も時間は使うが、完了台数には加えない。 */
+function runDeviceVerification(actionId = state.deviceVerificationActionId || currentDeviceVerificationCase().correctAction){
   const alreadyWaiting = state.tickets.some(t => t.state === 'waiting');
   const callbackReady = state.tickets.some(t => t.state === 'callback' && t.callbackDue <= state.clock);
-  if (state.phase !== 'office' || state.focus || alreadyWaiting || callbackReady) return { advanced:0, interrupted:alreadyWaiting || callbackReady, completed:false };
+  if (state.phase !== 'office' || state.focus || alreadyWaiting || callbackReady) return { advanced:0, interrupted:alreadyWaiting || callbackReady, completed:false, attemptFinished:false };
+  state.deviceVerificationActionId = actionId;
   const remaining = DEVICE_VERIFICATION_MINUTES - state.deviceVerificationMinutes;
   let advanced = 0;
   let completed = false;
+  let attemptFinished = false;
   while (advanced < remaining && state.phase !== 'report'){
     state.deviceVerificationMinutes++;
     advance(1);
     advanced++;
     if (state.deviceVerificationMinutes >= DEVICE_VERIFICATION_MINUTES){
       const verificationCase = currentDeviceVerificationCase();
-      state.verifiedDevices++;
+      const action = DEVICE_VERIFICATION_ACTIONS.find(candidate => candidate.id === actionId);
+      const correct = deviceVerificationChoiceMatches(actionId);
       state.deviceVerificationMinutes = 0;
-      completed = true;
-      recordOfficeEvent('verification', verificationCase.device + '：' + verificationCase.result + '（検証済み ' + state.verifiedDevices + '台）');
+      state.deviceVerificationActionId = '';
+      attemptFinished = true;
+      if (correct){
+        state.verifiedDevices++;
+        completed = true;
+        state.deviceVerificationFeedback = '';
+        recordOfficeEvent('verification', verificationCase.device + '：' + verificationCase.result + '（検証済み ' + state.verifiedDevices + '台）');
+      } else {
+        state.deviceVerificationFeedback = '「' + (action ? action.label : '選んだ検査') + '」を60分試しましたが、申告症状を再現・特定できませんでした。同じ機器で別の検査を選んでください。';
+        recordOfficeEvent('verification', verificationCase.device + '：選んだ検査では症状を再現・特定できませんでした。同じ機器を継続します。');
+      }
       break;
     }
     if (state.tickets.some(t => t.state === 'waiting' || (t.state === 'callback' && t.callbackDue <= state.clock))) break;
@@ -3485,7 +3503,7 @@ function runDeviceVerification(){
     recordOfficeEvent('verification', (callbackInterrupted ? '折り返し時刻になったため' : '着信のため') + '機器検証を中断しました（' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分）。');
   }
   if (state.phase === 'office') renderOffice();
-  return { advanced, interrupted, completed };
+  return { advanced, interrupted, completed, attemptFinished };
 }
 
 function addFact(t, fact, src){
@@ -6329,9 +6347,10 @@ function showBriefing(){
 
 function showDeviceVerification(){
   const verificationCase = currentDeviceVerificationCase();
+  const activeAction = DEVICE_VERIFICATION_ACTIONS.find(action => action.id === state.deviceVerificationActionId);
   const progress = state.deviceVerificationMinutes > 0
-    ? '<p class="verification-progress">途中経過 <b>' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分</b>。同じ機器の続きです。</p>'
-    : '<p class="verification-progress">正しい検査を始めると、完了まで最大' + DEVICE_VERIFICATION_MINUTES + '分進みます。着信・折り返し時刻で中断します。</p>';
+    ? '<p class="verification-progress">途中経過 <b>' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分</b> ／ ' + esc(activeAction ? activeAction.label : '選択中の検査') + '。同じ検査の続きです。</p>'
+    : '<p class="verification-progress">検査を始めると、完了まで最大' + DEVICE_VERIFICATION_MINUTES + '分進みます。着信・折り返し時刻で中断します。</p>';
   const feedback = state.deviceVerificationFeedback
     ? '<p class="verification-feedback" role="alert">' + esc(state.deviceVerificationFeedback) + '</p>'
     : '';
@@ -6984,9 +7003,10 @@ function handleOfficeAction(d){
   if (d.officeVerify){ state.deviceVerificationFeedback = ''; showDeviceVerification(); return true; }
   if (d.deviceVerificationClose){ closeSheet(); renderOffice(); return true; }
   if (d.deviceVerificationCheck){
-    if (deviceVerificationChoiceMatches(d.deviceVerificationCheck)) closeSheet();
+    const knownAction = DEVICE_VERIFICATION_ACTIONS.some(action => action.id === d.deviceVerificationCheck);
+    if (knownAction) closeSheet();
     const result = chooseDeviceVerification(d.deviceVerificationCheck);
-    if (!result.accepted) showDeviceVerification();
+    if (!result.accepted || (result.attemptFinished && !result.completed)) showDeviceVerification();
     return true;
   }
   return false;

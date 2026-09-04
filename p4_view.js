@@ -1443,9 +1443,10 @@ function showBriefing(){
 
 function showDeviceVerification(){
   const verificationCase = currentDeviceVerificationCase();
+  const activeAction = DEVICE_VERIFICATION_ACTIONS.find(action => action.id === state.deviceVerificationActionId);
   const progress = state.deviceVerificationMinutes > 0
-    ? '<p class="verification-progress">途中経過 <b>' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分</b>。同じ機器の続きです。</p>'
-    : '<p class="verification-progress">正しい検査を始めると、完了まで最大' + DEVICE_VERIFICATION_MINUTES + '分進みます。着信・折り返し時刻で中断します。</p>';
+    ? '<p class="verification-progress">途中経過 <b>' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分</b> ／ ' + esc(activeAction ? activeAction.label : '選択中の検査') + '。同じ検査の続きです。</p>'
+    : '<p class="verification-progress">検査を始めると、完了まで最大' + DEVICE_VERIFICATION_MINUTES + '分進みます。着信・折り返し時刻で中断します。</p>';
   const feedback = state.deviceVerificationFeedback
     ? '<p class="verification-feedback" role="alert">' + esc(state.deviceVerificationFeedback) + '</p>'
     : '';

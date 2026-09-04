@@ -58,9 +58,10 @@ function handleOfficeAction(d){
   if (d.officeVerify){ state.deviceVerificationFeedback = ''; showDeviceVerification(); return true; }
   if (d.deviceVerificationClose){ closeSheet(); renderOffice(); return true; }
   if (d.deviceVerificationCheck){
-    if (deviceVerificationChoiceMatches(d.deviceVerificationCheck)) closeSheet();
+    const knownAction = DEVICE_VERIFICATION_ACTIONS.some(action => action.id === d.deviceVerificationCheck);
+    if (knownAction) closeSheet();
     const result = chooseDeviceVerification(d.deviceVerificationCheck);
-    if (!result.accepted) showDeviceVerification();
+    if (!result.accepted || (result.attemptFinished && !result.completed)) showDeviceVerification();
     return true;
   }
   return false;

@@ -2977,12 +2977,14 @@ assert(functionSource('renderOffice').includes("$('office-verify').disabled = wa
 assert(functionSource('renderReport').includes("機器検証 ' + state.verifiedDevices + '台完了") && !functionSource('metrics').includes('verifiedDevices') && !functionSource('careerShiftContext').includes('verifiedDevices'),'§64 検査7: 機器検証台数が報告に出ない、または電話対応の採点へ混ざる');
 
 // §73: 返却機は機器名と症状を見て検査を選び、完了台数だけルーターが積み上がる。
-assert.equal(DEVICE_VERIFICATION_ACTIONS.length,4,'§73 検査1: 検査の選択肢が4種類でない');
-assert.equal(DEVICE_VERIFICATION_CASES.length,4,'§73 検査1: 返却機の症状パターンが4種類でない');
+assert.equal(DEVICE_VERIFICATION_ACTIONS.length,5,'§75 検査1: 検査の選択肢が5種類でない');
+assert.equal(DEVICE_VERIFICATION_CASES.length,5,'§75 検査1: 返却機の症状パターンが5種類でない');
 assert.equal(new Set(DEVICE_VERIFICATION_ACTIONS.map(action => action.id)).size,DEVICE_VERIFICATION_ACTIONS.length,'§73 検査1: 検査IDが重複している');
 assert(DEVICE_VERIFICATION_CASES.every(item => item.device && item.symptom && item.result && DEVICE_VERIFICATION_ACTIONS.some(action => action.id === item.correctAction)),'§73 検査1: 機器名・症状・完了結果・正解検査のいずれかが欠けている');
+const mifiCase75 = DEVICE_VERIFICATION_CASES.find(item => item.device === 'MiFi2372');
+assert(mifiCase75 && mifiCase75.symptom.includes('電源が時々落ちる') && mifiCase75.correctAction === 'tap' && DEVICE_VERIFICATION_ACTIONS.some(action => action.id === 'tap' && action.label.includes('軽く叩いて')),'§75 検査1: MiFi2372の間欠電源断と叩く検査が揃っていない');
 
-const verificationState73 = {verifiedDevices:0,deviceVerificationMinutes:0,deviceVerificationFeedback:''};
+const verificationState73 = {verifiedDevices:0,deviceVerificationMinutes:0,deviceVerificationActionId:'',deviceVerificationFeedback:''};
 const currentVerification73 = new Function('state','DEVICE_VERIFICATION_CASES',functionSource('currentDeviceVerificationCase') + '\nreturn currentDeviceVerificationCase;')(verificationState73,DEVICE_VERIFICATION_CASES);
 const verificationMatches73 = new Function('state','DEVICE_VERIFICATION_CASES','DEVICE_VERIFICATION_ACTIONS','currentDeviceVerificationCase',functionSource('deviceVerificationChoiceMatches') + '\nreturn deviceVerificationChoiceMatches;')(verificationState73,DEVICE_VERIFICATION_CASES,DEVICE_VERIFICATION_ACTIONS,currentVerification73);
 assert.equal(currentVerification73().id,'V1','§73 検査2: 最初の返却機がV1でない');
@@ -2992,16 +2994,43 @@ verificationState73.verifiedDevices = DEVICE_VERIFICATION_CASES.length;
 assert.equal(currentVerification73().id,'V1','§73 検査2: 症状パターンを一巡した後に先頭へ戻らない');
 verificationState73.verifiedDevices = 0;
 assert(verificationMatches73('power') && !verificationMatches73('sim'),'§73 検査3: V1で症状に合わない検査も正解になる');
+verificationState73.verifiedDevices = 4;
+assert.equal(currentVerification73().device,'MiFi2372','§75 検査2: 5台目にMiFi2372が出ない');
+assert(verificationMatches73('tap') && !verificationMatches73('power'),'§75 検査2: MiFi2372で叩く以外の検査が正解になる');
+verificationState73.verifiedDevices = 0;
 
 let verificationRuns73 = 0;
+let verificationAction73 = '';
+let verificationMinutesAtRun73 = null;
 const chooseVerification73 = new Function('state','DEVICE_VERIFICATION_ACTIONS','currentDeviceVerificationCase','deviceVerificationChoiceMatches','runDeviceVerification',functionSource('chooseDeviceVerification') + '\nreturn chooseDeviceVerification;')(
-  verificationState73,DEVICE_VERIFICATION_ACTIONS,currentVerification73,verificationMatches73,() => { verificationRuns73++; return {advanced:60,interrupted:false,completed:true}; }
+  verificationState73,DEVICE_VERIFICATION_ACTIONS,currentVerification73,verificationMatches73,actionId => {
+    verificationRuns73++;
+    verificationAction73 = actionId;
+    verificationMinutesAtRun73 = verificationState73.deviceVerificationMinutes;
+    return {advanced:60,interrupted:false,completed:verificationMatches73(actionId),attemptFinished:true};
+  }
 );
 const wrongVerification73 = chooseVerification73('sim');
-assert(!wrongVerification73.accepted && wrongVerification73.advanced === 0 && verificationRuns73 === 0 && verificationState73.verifiedDevices === 0 && verificationState73.deviceVerificationMinutes === 0,'§73 検査3: 誤った検査で時間または完了台数が進む');
-assert(verificationState73.deviceVerificationFeedback.includes('選び直してください'),'§73 検査3: 誤った検査の再選択案内が出ない');
+assert(wrongVerification73.accepted && wrongVerification73.advanced === 60 && verificationRuns73 === 1 && verificationAction73 === 'sim','§75 検査3: 症状に合わない既知の検査を受理して時間進行へ渡さない');
+const unknownVerification73 = chooseVerification73('unknown');
+assert(!unknownVerification73.accepted && unknownVerification73.advanced === 0 && verificationRuns73 === 1,'§75 検査3: 存在しない検査でも時間を進める');
+verificationState73.deviceVerificationMinutes = 8;
+verificationState73.deviceVerificationActionId = 'sim';
 const correctVerification73 = chooseVerification73('power');
-assert(correctVerification73.accepted && correctVerification73.completed && verificationRuns73 === 1 && verificationState73.deviceVerificationFeedback === '','§73 検査4: 正しい検査から60分検証へ進めない');
+assert(correctVerification73.accepted && correctVerification73.completed && verificationRuns73 === 2 && verificationAction73 === 'power' && verificationMinutesAtRun73 === 0 && verificationState73.deviceVerificationFeedback === '','§75 検査4: 別の検査へ切り替えたとき、新しい60分検証として始まらない');
+
+const verificationRunState75 = {phase:'office',focus:null,turn:0,clock:23*60,tickets:[],officeEvents:[],verifiedDevices:0,deviceVerificationMinutes:0,deviceVerificationActionId:'',deviceVerificationFeedback:''};
+const currentVerification75 = new Function('state','DEVICE_VERIFICATION_CASES',functionSource('currentDeviceVerificationCase') + '\nreturn currentDeviceVerificationCase;')(verificationRunState75,DEVICE_VERIFICATION_CASES);
+const verificationMatches75 = new Function('state','DEVICE_VERIFICATION_CASES','DEVICE_VERIFICATION_ACTIONS','currentDeviceVerificationCase',functionSource('deviceVerificationChoiceMatches') + '\nreturn deviceVerificationChoiceMatches;')(verificationRunState75,DEVICE_VERIFICATION_CASES,DEVICE_VERIFICATION_ACTIONS,currentVerification75);
+let verificationRenders75 = 0;
+const runVerification75 = new Function('state','DEVICE_VERIFICATION_MINUTES','DEVICE_VERIFICATION_ACTIONS','advance','recordOfficeEvent','renderOffice','currentDeviceVerificationCase','deviceVerificationChoiceMatches',functionSource('runDeviceVerification') + '\nreturn runDeviceVerification;')(
+  verificationRunState75,DEVICE_VERIFICATION_MINUTES,DEVICE_VERIFICATION_ACTIONS,minutes => { verificationRunState75.turn += minutes; verificationRunState75.clock += minutes; },(kind,text) => verificationRunState75.officeEvents.push({kind,text}),() => { verificationRenders75++; },currentVerification75,verificationMatches75
+);
+const wrongAttempt75 = runVerification75('sim');
+assert(wrongAttempt75.advanced === 60 && wrongAttempt75.attemptFinished && !wrongAttempt75.completed && verificationRunState75.turn === 60 && verificationRunState75.verifiedDevices === 0 && verificationRunState75.deviceVerificationMinutes === 0 && verificationRunState75.deviceVerificationActionId === '' && currentVerification75().id === 'V1','§75 検査5: 誤った検査の60分後に同じ機器を残し、完了台数を増やさない');
+assert(verificationRunState75.deviceVerificationFeedback.includes('60分試しました') && verificationRunState75.deviceVerificationFeedback.includes('別の検査'),'§75 検査5: 誤った検査を60分試した結果と次の行動が表示されない');
+const correctAttempt75 = runVerification75('power');
+assert(correctAttempt75.advanced === 60 && correctAttempt75.attemptFinished && correctAttempt75.completed && verificationRunState75.turn === 120 && verificationRunState75.verifiedDevices === 1 && verificationRunState75.deviceVerificationFeedback === '' && verificationRenders75 === 2,'§75 検査6: 誤検査の後に正しい60分検証で同じ機器を完了できない');
 
 const verificationSheetNodes73 = {sheet:{innerHTML:''}};
 let verificationSheetOpened73 = false;
@@ -3011,6 +3040,10 @@ const showVerification73 = new Function('$','state','DEVICE_VERIFICATION_MINUTES
 showVerification73();
 assert(verificationSheetOpened73 && verificationSheetNodes73.sheet.innerHTML.includes('GD-500') && verificationSheetNodes73.sheet.innerHTML.includes('電源ボタンを押しても起動しない'),'§73 検査5: 検証画面に機器名と一行症状が出ない');
 assert.equal((verificationSheetNodes73.sheet.innerHTML.match(/data-device-verification-check=/g) || []).length,DEVICE_VERIFICATION_ACTIONS.length,'§73 検査5: 検証画面に全検査選択肢が出ない');
+verificationState73.verifiedDevices = 4;
+showVerification73();
+assert(verificationSheetNodes73.sheet.innerHTML.includes('MiFi2372') && verificationSheetNodes73.sheet.innerHTML.includes('電源が時々落ちる') && verificationSheetNodes73.sheet.innerHTML.includes('軽く叩いて'),'§75 検査7: 検証画面にMiFi2372の症状と叩く検査が出ない');
+verificationState73.verifiedDevices = 0;
 
 const routerStackLayout73 = new Function(functionSource('verifiedRouterStackLayout') + '\nreturn verifiedRouterStackLayout;')();
 assert.equal(routerStackLayout73(0).length,0,'§73 検査6: 未完了なのにルーターが描かれる');
@@ -3023,6 +3056,8 @@ drawRouterStack73({},OFFICE_PALETTE,3);
 assert.equal(routerRects73,15,'§73 検査6: 棚と3台のルーターが個別に描画されない');
 assert(functionSource('drawOfficePixelArt').includes('drawVerifiedRouterStack(ctx, p, state.verifiedDevices)'),'§73 検査6: オフィス描画が完了台数をルーター棚へ渡さない');
 assert(functionSource('handleOfficeAction').includes('showDeviceVerification()') && functionSource('handleOfficeAction').includes('chooseDeviceVerification(d.deviceVerificationCheck)'),'§73 検査7: 機器検証ボタンと検査選択がイベント配線されていない');
+const verificationOfficeAction75 = functionSource('handleOfficeAction');
+assert(verificationOfficeAction75.includes('const knownAction = DEVICE_VERIFICATION_ACTIONS.some') && verificationOfficeAction75.includes('if (knownAction) closeSheet()') && verificationOfficeAction75.includes('result.attemptFinished && !result.completed') && verificationOfficeAction75.includes('showDeviceVerification()'),'§75 検査7: 誤検査中は画面を閉じ、60分終了後に結果と再選択画面を表示できない');
 
 // §65: 急ぐ客は一般折り返しを断り、同じ通話で解決を続ける。
 const hurriedState65 = {focus:null,ui:null};
