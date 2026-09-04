@@ -1060,6 +1060,28 @@ assert(angryEmail.state === 'closed' && angryEmail.result.kind === 'complaint' &
 assert([angryRedial,angryEmail].every(ticket => ticket.transcript.length === 1 && ticket.transcript[0].who === 'note' && ticket.transcript[0].text === 'お客様との通話が切れました。'), '§67 検査F6: 最初の終話が淡々とした切断だけにならない');
 const angryRedialSource = functionSource('scheduleAngryRedial');
 assert(angryRedialSource.includes('state.turn + MIN_INBOUND_GAP') && angryRedialSource.includes('ANGRY_REDIAL_OPENINGS') && angryRedialSource.includes("t.state = 'inbound'"), '§67 検査F7: 苦情電話が時間を空けた再入電として予約されない');
+const angryScheduleState68 = {turn:40,focus:{},ui:{tab:'command'},officeEvents:[]};
+let angryDisconnects68 = 0;
+let angryOfficeEntries68 = 0;
+const scheduleAngry68 = new Function(
+  'state','MIN_INBOUND_GAP','LAST_INBOUND_TURN','ANGRY_REDIAL_OPENINGS','inboundSlotAvailable','defaultUi','playDisconnectSound','recordOfficeEvent','enterOffice',
+  angryRedialSource + '\nreturn scheduleAngryRedial;'
+)(
+  angryScheduleState68,MIN_INBOUND_GAP,LAST_INBOUND_TURN,ANGRY_REDIAL_OPENINGS,() => true,() => ({tab:'command'}),
+  () => { angryDisconnects68++; },(kind,text) => { angryOfficeEntries68++; angryScheduleState68.officeEvents.push({kind,text}); },() => {}
+);
+const hiddenAngryRedial68 = {s:{type:'expert'},redialCount:0,state:'open',greeted:true,stress:100,pendingConversation:{kind:'speech'}};
+assert(scheduleAngry68(hiddenAngryRedial68), '§68 検査I1: 苦情の再入電を通常着信として予約できない');
+assert(hiddenAngryRedial68.state === 'inbound' && hiddenAngryRedial68.arrivedTurn === 40 + MIN_INBOUND_GAP && hiddenAngryRedial68.redialOpening === ANGRY_REDIAL_OPENINGS.expert && hiddenAngryRedial68.redialCount === 1, '§68 検査I1: 苦情の再入電が通常着信と同じ待機状態にならない');
+assert(angryOfficeEntries68 === 0 && angryScheduleState68.officeEvents.length === 0, '§68 検査I1: 苦情の再入電予定を予約時点でオフィスへ予告する');
+assert(angryDisconnects68 === 1 && angryScheduleState68.focus === null, '§68 検査I1: 怒り終話後に通話画面からオフィスへ戻らない');
+const activateAngry68 = new Function('state','toast', functionSource('activateDueInbound') + '\nreturn activateDueInbound;')(angryScheduleState68,() => {});
+angryScheduleState68.tickets = [hiddenAngryRedial68];
+angryScheduleState68.turn = hiddenAngryRedial68.arrivedTurn - 1;
+assert(activateAngry68() === 0 && hiddenAngryRedial68.state === 'inbound', '§68 検査I2: 予定時刻前に苦情の再入電が現れる');
+angryScheduleState68.turn = hiddenAngryRedial68.arrivedTurn;
+assert(activateAngry68() === 1 && hiddenAngryRedial68.state === 'waiting', '§68 検査I2: 予定時刻に苦情の再入電が通常着信として現れない');
+assert(!angryRedialSource.includes("recordOfficeEvent('redial'"), '§68 検査I1: 苦情の再入電予約にオフィス予告が残っている');
 
 const complaintArrivalSource = functionSource('misdiagnosisResurfaces') + '\n' + functionSource('complaintEmailArrives');
 const complaintArrival = luck => new Function('rollLuck', complaintArrivalSource + '\nreturn complaintEmailArrives;')(() => luck);

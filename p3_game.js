@@ -913,7 +913,6 @@ function scheduleAngryRedial(t){
   state.focus = null;
   state.ui = defaultUi();
   playDisconnectSound();
-  recordOfficeEvent('redial', customerLabel(t, true) + 'から' + fmtClock(SHIFT_START + candidate) + '以降に苦情の再入電予定です。');
   enterOffice();
   return true;
 }

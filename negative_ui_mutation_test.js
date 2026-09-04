@@ -2373,6 +2373,12 @@ const mutations = [
     expected:'通常切断・折り返し約束・復旧後終話を分けられない',
   },
   {
+    name:'§68 苦情の再入電予定を予約時点で予告する', file:'p3_game.js',
+    from:"  playDisconnectSound();\n  enterOffice();\n  return true;\n}\n\nfunction endAngryCall",
+    to:"  playDisconnectSound();\n  recordOfficeEvent('redial', '苦情の再入電予定です。');\n  enterOffice();\n  return true;\n}\n\nfunction endAngryCall",
+    expected:'§68 検査I1: 苦情の再入電予定を予約時点でオフィスへ予告する',
+  },
+  {
     // §40: 連絡先を持たないまま、ふつうの折り返しとして成立させてしまう変異。
     name:'滞在先未確認でも一般折り返しを開始する', file:'p3_game.js',
     from:'if (!hotelContactKnown(t)){ blindCallbackRedial(t); return; }',
