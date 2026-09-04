@@ -19,7 +19,7 @@ document.addEventListener('click', (e) => {
     if (!answerDuringPassage) return;
   }
   if (typingLine){ finishTyping(); return; }
-  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-office-verify],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-end-call],[data-finish-call],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
+  const el = e.target.closest('[data-office-answer],[data-office-callback],[data-office-desk],[data-office-verify],[data-device-verification-check],[data-device-verification-close],[data-desk],[data-desk-ticket],[data-desk-lookup],[data-callback-destination],[data-hotel-callback],[data-front-desk],[data-command],[data-greet],[data-end-call],[data-finish-call],[data-ask-group],[data-ask],[data-smalltalk],[data-tell],[data-refund],[data-refund-confirm],[data-refund-cancel],[data-soothe],[data-apology],[data-lookup],[data-lookup-mode],[data-lookup-back],[data-test],[data-cause],[data-remedy],[data-ship-level],[data-ship-confirm],[data-report-submit],[data-close-confirm],[data-late-name]');
   if (!el || el.disabled) return;
   const audioReady = unlockAudioFromGesture();
   audioReady.then(ready => { if (ready) playCommandSound(); });
@@ -55,7 +55,14 @@ function handleOfficeAction(d){
     return true;
   }
   if (d.officeDesk){ openDeskLookup(); return true; }
-  if (d.officeVerify){ runDeviceVerification(); return true; }
+  if (d.officeVerify){ state.deviceVerificationFeedback = ''; showDeviceVerification(); return true; }
+  if (d.deviceVerificationClose){ closeSheet(); renderOffice(); return true; }
+  if (d.deviceVerificationCheck){
+    if (deviceVerificationChoiceMatches(d.deviceVerificationCheck)) closeSheet();
+    const result = chooseDeviceVerification(d.deviceVerificationCheck);
+    if (!result.accepted) showDeviceVerification();
+    return true;
+  }
   return false;
 }
 

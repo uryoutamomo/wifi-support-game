@@ -265,7 +265,7 @@ if (!denied27.includes('system-screen record-system-screen identity-denied-scree
 if (!record27.includes('system-screen record-system-screen') || !record27.includes('<b>顧客レコード</b>') || !record27.includes('renderRecordTranscript(t)')) bad('§27 通話記録が共通システム画面で全履歴を表示しない');
 if (!recordTranscript27.includes('t.transcript.map') || !recordTranscript27.includes("cust:'客'") || !recordTranscript27.includes("sys:'社内システム'") || !recordTranscript27.includes('line.text')) bad('§27 通話記録から従来の発言・メモ・システム応答が欠ける');
 
-// §28: 全案件解決の表エンディングと、8バッジの裏エンディングを独立して管理する。
+// §28互換／§74: 解決済み集合は保持しつつ、リーダー＋8バッジの統合エンディングだけを管理する。
 const freshCareer28 = sourceOf('freshCareerRecord');
 const validCareer28 = sourceOf('validCareerRecord');
 const normalizeCareer28 = sourceOf('normalizeCareerRecord');
@@ -275,21 +275,20 @@ const endingQueue28 = sourceOf('careerEndingQueue');
 const careerFlags28 = sourceOf('careerWithFlags');
 const careerContext28 = sourceOf('careerShiftContext');
 const careerDebrief28 = sourceOf('careerDebriefHtml');
-const secretEnding28 = sourceOf('showSecretEnding');
 const nextEnding28 = sourceOf('pendingCareerEndingType');
 const balance28 = sourceOf('showBalanceConsole');
-if (!freshCareer28.includes('solvedScenarios:[]') || !freshCareer28.includes('secretEnding:false') || !validCareer28.includes('value.solvedScenarios') || !validCareer28.includes("typeof value.secretEnding !== 'boolean'")) bad('§28 表裏エンディングの保存項目が揃っていない');
-if (!normalizeCareer28.includes('next.solvedScenarios === undefined') || !normalizeCareer28.includes('next.secretEnding === undefined') || !sourceOf('readCareerRecord').includes('normalizeCareerRecord')) bad('§28 旧v1勤務記録を新しい保存形式へ移行できない');
+if (!freshCareer28.includes('solvedScenarios:[]') || !freshCareer28.includes('finalEnding:false') || !validCareer28.includes('value.solvedScenarios') || !validCareer28.includes("typeof value.finalEnding !== 'boolean'")) bad('§74 統合エンディングの保存項目が揃っていない');
+if (!normalizeCareer28.includes('next.solvedScenarios === undefined') || !normalizeCareer28.includes('next.finalEnding === undefined') || !sourceOf('readCareerRecord').includes('normalizeCareerRecord')) bad('§74 旧v1勤務記録を新しい保存形式へ移行できない');
 if (!solvedIds28.includes("result.kind === 'closed'") || solvedIds28.includes("result.kind === 'refunded'") || !solvedIds28.includes('new Set')) bad('§53 返金を解決扱いせず、真の解決だけを重複なしで数えない');
 if (!appendCareer28.includes('career.solvedScenarios.concat(context.solvedScenarioIds || [])') || appendCareer28.indexOf('career.shifts = career.shifts.slice(-30)') > appendCareer28.indexOf('career.solvedScenarios =')) bad('§28 solvedScenariosが30日制限と分離されていない');
-if (endingQueue28.indexOf("queue.push('career')") < 0 || endingQueue28.indexOf("queue.push('secret')") < 0 || endingQueue28.indexOf("queue.push('career')") > endingQueue28.indexOf("queue.push('secret')")) bad('§28 表と裏の条件または同時達成時の表示順が違う');
-if (!endingQueue28.includes('career.solvedScenarios.length === SCENARIOS.length') || !endingQueue28.includes('!career.ending') || !endingQueue28.includes('career.badges.length === CAREER_BADGES.length') || !endingQueue28.includes('!career.secretEnding')) bad('§28 表・裏を独立判定できない、または閲覧済みが再発火する');
+if (!endingQueue28.includes("career.stage === 'lead'") || !endingQueue28.includes('career.badges.length === CAREER_BADGES.length') || !endingQueue28.includes('!career.finalEnding') || !endingQueue28.includes("queue.push('career')") || /solvedScenarios|SCENARIOS|secret/.test(endingQueue28)) bad('§74 統合エンディングがリーダー＋8バッジだけで一度発火しない');
 if (!careerContext28.includes('solvedScenarioIds:solvedScenarioIdsFromTickets(tickets)')) bad('§28 シフト結果から解決済み案件を保存経路へ渡さない');
-if (!secretEnding28.includes("showCareerEnding(replay, 'secret')") || secretEnding28.includes('準備中') || !sourceOf('showCareerEnding').includes("endingType === 'secret'") || !sourceOf('showCareerEnding').includes('state.career.secretEnding = true')) bad('§28 裏エンディングが表と同じ演出を使わない、または閲覧済みを保存しない');
-if (!sourceOf('careerEndingEyebrowHtml').includes("state.endingType === 'secret'") || !sourceOf('careerEndingEyebrowHtml').includes('aria-label="裏エンディング">裏</span>')) bad('§28 同じ朝礼演出の裏エンディングに小さな印がない');
-if (!nextEnding28.includes("type === 'career' ? !state.career.ending : !state.career.secretEnding") || !sourceOf('continueAfterCareerEnding').includes("if (next === 'secret')")) bad('§28 表の後に裏を続ける、または両方を一度ずつにする制御がない');
-if (!careerDebrief28.includes("解決した案件 ' + career.solvedScenarios.length + ' / ' + SCENARIOS.length") || careerDebrief28.includes('SCENARIOS.map') || careerDebrief28.includes('scenario.name')) bad('§28 レポートが解決数を出さない、または未解決案件名を漏らす');
-if (!Object.prototype.hasOwnProperty.call(GAME_FLAGS,'solvedScenarios') || GAME_FLAGS.solvedScenarios !== null || !careerFlags28.includes('flags.solvedScenarios') || !balance28.includes('showCareerEnding(true)') || !balance28.includes('showSecretEnding(true)')) bad('§28 GAME_FLAGSと調から表・裏エンディングを再現できない');
+if (!careerContext28.includes('anyRefunded:tickets.some') || !sourceOf('earnedBadgeIds').includes('context.anyRefunded')) bad('§74 1件以上の返金をお金で解決バッジへ渡さない');
+if (!sourceOf('showCareerEnding').includes('state.career.finalEnding = true') || !nextEnding28.includes("!state.career.finalEnding ? 'career' : null") || sourceOf('showCareerEnding').includes('secretEnding')) bad('§74 統合エンディングの閲覧済み制御が単一でない');
+if (!careerDebrief28.includes("career.stage === 'lead' ? '到達' : '未到達'") || !careerDebrief28.includes("career.badges.length + ' / ' + CAREER_BADGES.length") || /表エンディング|裏エンディング|解決した案件/.test(careerDebrief28)) bad('§74 レポートが統合エンディング条件を正しく示さない');
+if (!Object.prototype.hasOwnProperty.call(GAME_FLAGS,'solvedScenarios') || GAME_FLAGS.solvedScenarios !== null || !careerFlags28.includes('flags.solvedScenarios') || !balance28.includes('showCareerEnding(true, wasPhase)') || /balance-replay-secret-ending|showSecretEnding/.test(balance28)) bad('§74 GAME_FLAGS互換または調整画面の単一エンディング再生が崩れている');
+if (!sourceOf('careerEndingFinalHtml').includes('ending-second-loop') || !sourceOf('careerEndingFinalHtml').includes('二周目を始める') || !sourceOf('revealCareerEndingFinal').includes('clearCareerRecord(false)') || !sourceOf('clearCareerRecord').includes('confirmRequired = true')) bad('§74 エンディング後の二周目開始が全キャリア初期化へつながらない');
+if (!balance28.includes('showCareerEnding(true, wasPhase)') || !sourceOf('continueAfterCareerEnding').includes('state.phase = returnPhase') || !sourceOf('continueAfterCareerEnding').includes('closeSheet()') || sourceOf('continueAfterCareerEnding').indexOf('if (state.endingReplay)') > sourceOf('continueAfterCareerEnding').indexOf('resetGame()')) bad('§74 調整画面の再生終了が進行中シフトを保ったまま元画面へ戻らない');
 
 // §29: 毎夜のブリーフィングは状態と開始操作だけに絞り、説明はマニュアルへ残す。
 const careerBriefing29 = sourceOf('careerBriefingHtml');
@@ -748,7 +747,7 @@ const president23 = sourceOf('drawCompanyPresident');
 if (!ending23.includes('class="ending-line line typing"') || !ending23.includes('<span class="say"></span>') || ending23.includes('esc(PRESIDENT_ENDING_LINE)')) bad('社長の台詞が1文字ずつではなく一度に全文表示される');
 if (!ending23.includes('startTyping(state.endingSpeech)') || !sourceOf('startTyping').includes("/[、。！？!?]/.test(line.text[pos - 1]) ? 175 : 25")) bad('社長の台詞が顧客と同じstartTyping速度を通らない');
 if (PRESIDENT_ENDING_LINE.length !== 68 || duration21(PRESIDENT_ENDING_LINE) !== 2225 || duration21(PRESIDENT_ENDING_LINE) > 4000) bad('社長の確定文が68文字・2.225秒のtyping_budgetに収まらない');
-if (ending23.includes('careerEndingDetailsHtml(') || ['ending-totals','ending-badge-grid'].some(token => ending23.includes(token) || !details23.includes(token)) || !final23.includes('ending-back-to-shift') || !finishTyping23.includes("state.phase === 'ending'")) bad('社長の台詞完了前に通算・バッジ・戻るが現れる');
+if (ending23.includes('careerEndingDetailsHtml(') || ['ending-totals','ending-badge-grid'].some(token => ending23.includes(token) || !details23.includes(token)) || !final23.includes('ending-second-loop') || !finishTyping23.includes("state.phase === 'ending'")) bad('社長の台詞完了前に通算・バッジ・最終操作が現れる');
 if (!gameSource.includes("if (typingLine){ finishTyping(); return; }")) bad('社長の台詞をタップで送り切れない');
 if (!ending23.includes('setTimeout(() => startTyping(state.endingSpeech), 0)') || !ending23.includes('tapGuardTimer = setTimeout(clearEndingTapGuard, 400)') || !finishTyping23.includes("state.phase === 'ending' && endingTapGuard") || !sourceOf('showBalanceConsole').includes('event.stopImmediatePropagation()') || !sourceOf('renderDebrief').includes('event.stopImmediatePropagation()')) bad('社長の再生操作自体がタップ送りに誤認される');
 if (!president23.includes('p.paper, x + 1, y - 24, 9, 5') || !president23.includes('p.charcoal, x - 2, y - 21, 3, 8') || !president23.includes('p.charcoal, x + 10, y - 21, 3, 8') || president23.includes('p.charcoal, x - 1, y - 23, 13, 5')) bad('社長の頭頂部地肌と両サイドの髪が描き分けられていない');
@@ -757,9 +756,9 @@ if (!president23.includes('p.paper, x + 1, y - 24, 9, 5') || !president23.includ
 const reveal23 = sourceOf('revealCareerEndingFinal');
 const staff23 = sourceOf('drawMorningStaff');
 const staffMember23 = sourceOf('drawMorningStaffMember');
-if (!final23.includes('id="ending-end">END</div>') || final23.indexOf('ending-end') > final23.indexOf('ending-back-to-shift') || !pageSource.includes('.ending-end{') || /border|animation/.test(pageSource.slice(pageSource.indexOf('.ending-end{'), pageSource.indexOf('}', pageSource.indexOf('.ending-end{'))))) bad('ENDが称号一覧の下・戻るボタンの上に簡潔に表示されない');
+if (!final23.includes('id="ending-end">END</div>') || !final23.includes("return '<div class=\"ending-end\" id=\"ending-end\">END</div>' + action") || !pageSource.includes('.ending-end{') || /border|animation/.test(pageSource.slice(pageSource.indexOf('.ending-end{'), pageSource.indexOf('}', pageSource.indexOf('.ending-end{'))))) bad('ENDが称号一覧の下・最終操作の上に簡潔に表示されない');
 if (!complete23.includes("'<div id=\"ending-finale\"></div>'") || !complete23.includes('setTimeout(revealCareerEndingFinal, 1000)')) bad('ENDが通算成績と称号一覧より約1秒遅れて現れない');
-if (!reveal23.includes('slot.innerHTML = careerEndingFinalHtml()') || final23.indexOf('ending-back-to-shift') < final23.indexOf('ending-end')) bad('戻るボタンがENDより先に現れる');
+if (!reveal23.includes('slot.innerHTML = careerEndingFinalHtml()') || !final23.includes("return '<div class=\"ending-end\" id=\"ending-end\">END</div>' + action") || !reveal23.includes('clearCareerRecord(false)')) bad('最終操作がENDより先に現れる、または全キャリア初期化へつながらない');
 if (!finishTyping23.includes('skipEndingBeat = true') || !sourceOf('startTyping').includes('finishTyping(false)') || !complete23.includes('if (skipEndingBeat) revealCareerEndingFinal()')) bad('タップ送りでENDと戻るボタンまで一度に表示されない');
 if (MORNING_STAFF.length !== 10 || !staff23.includes('MORNING_STAFF.forEach')) bad('エンディングの朝礼に立った社員が10人描かれない');
 if (MORNING_STAFF.some(staff => staff.facing !== 'back') || /eye|mouth|face/.test(staffMember23) || !staffMember23.includes('後頭部・肩・背中・立ち脚')) bad('社員が社長を見る後ろ姿になっていない');

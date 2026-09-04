@@ -65,11 +65,12 @@ const state = {
   career: null,
   careerUpdate: null,
   endingReplay: false,
-  endingType: 'career',
+  endingReturnPhase: 'briefing',
   officeEvents: [],
   handoverMeetingComplete: false,
   deviceVerificationMinutes: 0,
   verifiedDevices: 0,
+  deviceVerificationFeedback: '',
   random: Math.random,
 };
 
@@ -296,6 +297,7 @@ function freshCareerRecord(){
     solvedScenarios:[],
     ending:false,
     secretEnding:false,
+    finalEnding:false,
     totals:{ days:0, averageCsat:0, complaints:0 },
   };
 }
@@ -303,15 +305,16 @@ function freshCareerRecord(){
 function normalizeCareerRecord(value){
   if (!value || typeof value !== 'object') return value;
   const next = JSON.parse(JSON.stringify(value));
-  // v1公開済み記録には§28の2項目がないため、その場合だけ安全な初期値を補う。
+  // v1公開済み記録には後から追加された項目がないため、その場合だけ安全な初期値を補う。
   if (next.version === CAREER_VERSION && next.solvedScenarios === undefined) next.solvedScenarios = [];
   if (next.version === CAREER_VERSION && next.secretEnding === undefined) next.secretEnding = false;
+  if (next.version === CAREER_VERSION && next.finalEnding === undefined) next.finalEnding = false;
   return next;
 }
 
 function validCareerRecord(value){
   if (!value || value.version !== CAREER_VERSION || !Array.isArray(value.shifts)) return false;
-  if (!Object.prototype.hasOwnProperty.call(CAREER_STAGES, value.stage) || !Array.isArray(value.badges) || !Array.isArray(value.solvedScenarios) || typeof value.ending !== 'boolean' || typeof value.secretEnding !== 'boolean') return false;
+  if (!Object.prototype.hasOwnProperty.call(CAREER_STAGES, value.stage) || !Array.isArray(value.badges) || !Array.isArray(value.solvedScenarios) || typeof value.ending !== 'boolean' || typeof value.secretEnding !== 'boolean' || typeof value.finalEnding !== 'boolean') return false;
   if (!value.totals || !Number.isInteger(value.totals.days) || value.totals.days < 0 || !Number.isFinite(value.totals.averageCsat) || !Number.isInteger(value.totals.complaints) || value.totals.complaints < 0) return false;
   const badgeIds = new Set(CAREER_BADGES.map(badge => badge.id));
   const scenarioIds = new Set(SCENARIOS.map(scenario => scenario.id));
@@ -346,8 +349,7 @@ function solvedScenarioIdsFromTickets(tickets){
 
 function careerEndingQueue(career){
   const queue = [];
-  if (career.solvedScenarios.length === SCENARIOS.length && !career.ending) queue.push('career');
-  if (career.badges.length === CAREER_BADGES.length && !career.secretEnding) queue.push('secret');
+  if (career.stage === 'lead' && career.badges.length === CAREER_BADGES.length && !career.finalEnding) queue.push('career');
   return queue;
 }
 
@@ -371,7 +373,7 @@ function earnedBadgeIds(career, shift, context){
   if (context.noRefundsOrShipments) candidates.push('frugal');
   if (context.allResolved) candidates.push('all_first');
   if (resultKinds.includes('complaint') && resultKinds.includes('hangup')) candidates.push('storm');
-  if (context.allRefunded) candidates.push('money_talks');
+  if (context.anyRefunded) candidates.push('money_talks');
   if (career.totals.days >= 5) candidates.push('ten_nights');
   if (career.shifts.length >= 2 && career.shifts.slice(-2).every(item => item.complaints === 0)) candidates.push('clean_record');
   return candidates;
@@ -458,6 +460,7 @@ function resetGame(){
   state.handoverMeetingComplete = false;
   state.deviceVerificationMinutes = 0;
   state.verifiedDevices = 0;
+  state.deviceVerificationFeedback = '';
 }
 
 function recordOfficeEvent(kind, text){
@@ -609,6 +612,30 @@ function advance(turns){
   }
 }
 
+/* §73: 完了台数を順番として使うため、誤選択や着信中断では同じ返却機が残り、
+   完了したときだけ次の機器へ進む。 */
+function currentDeviceVerificationCase(){
+  return DEVICE_VERIFICATION_CASES[state.verifiedDevices % DEVICE_VERIFICATION_CASES.length];
+}
+
+function deviceVerificationChoiceMatches(actionId){
+  const verificationCase = currentDeviceVerificationCase();
+  return Boolean(verificationCase && DEVICE_VERIFICATION_ACTIONS.some(action => action.id === actionId) && verificationCase.correctAction === actionId);
+}
+
+function chooseDeviceVerification(actionId){
+  const verificationCase = currentDeviceVerificationCase();
+  const action = DEVICE_VERIFICATION_ACTIONS.find(candidate => candidate.id === actionId);
+  if (!verificationCase || !action || !deviceVerificationChoiceMatches(actionId)){
+    state.deviceVerificationFeedback = action
+      ? '「' + action.label + '」では、この症状を優先して切り分けられません。症状に合う検査を選び直してください。'
+      : '検査項目を選び直してください。';
+    return { accepted:false, advanced:0, interrupted:false, completed:false };
+  }
+  state.deviceVerificationFeedback = '';
+  return Object.assign({ accepted:true }, runDeviceVerification());
+}
+
 /* §64: 待機そのものでは時刻を進めない。返却機1台を60分かけて検証し、
    着信した分で止める。途中までの作業は、通話後に同じ台から再開できる。 */
 function runDeviceVerification(){
@@ -623,10 +650,11 @@ function runDeviceVerification(){
     advance(1);
     advanced++;
     if (state.deviceVerificationMinutes >= DEVICE_VERIFICATION_MINUTES){
+      const verificationCase = currentDeviceVerificationCase();
       state.verifiedDevices++;
       state.deviceVerificationMinutes = 0;
       completed = true;
-      recordOfficeEvent('verification', '返却機の検証を1台完了しました（累計 ' + state.verifiedDevices + '台）。');
+      recordOfficeEvent('verification', verificationCase.device + '：' + verificationCase.result + '（検証済み ' + state.verifiedDevices + '台）');
       break;
     }
     if (state.tickets.some(t => t.state === 'waiting' || (t.state === 'callback' && t.callbackDue <= state.clock))) break;

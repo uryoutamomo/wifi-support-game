@@ -454,6 +454,26 @@ function drawOfficeStation(ctx, p, station, ringLit){
   pixelRect(ctx, p.black, x + 33, y + 29, 3, 2);
 }
 
+function verifiedRouterStackLayout(count){
+  const visible = Math.max(0, Math.min(8, Math.floor(Number(count) || 0)));
+  return Array.from({ length:visible }, (_, index) => ({ x:176, y:139 - index * 7, width:13, height:5 }));
+}
+
+function drawVerifiedRouterStack(ctx, p, count){
+  const routers = verifiedRouterStackLayout(count);
+  if (!routers.length) return;
+  // 右端の返却棚。検証が終わるたび、薄型ルーターを下から1台ずつ積む。
+  pixelRect(ctx, p.black, 173, 82, 2, 65);
+  pixelRect(ctx, p.black, 190, 82, 2, 65);
+  pixelRect(ctx, p.charcoal, 172, 146, 20, 3);
+  routers.forEach(router => {
+    pixelRect(ctx, p.black, router.x - 1, router.y - 1, router.width + 2, router.height + 2);
+    pixelRect(ctx, p.silver, router.x, router.y, router.width, router.height);
+    pixelRect(ctx, p.blue, router.x + 2, router.y + 1, 5, 2);
+    pixelRect(ctx, p.glow, router.x + router.width - 3, router.y + 1, 1, 1);
+  });
+}
+
 function drawOfficePixelArt(ringLit = false, canvasId = 'office-canvas', palette = OFFICE_PALETTE){
   const canvas = $(canvasId);
   if (!canvas) return;
@@ -466,6 +486,7 @@ function drawOfficePixelArt(ringLit = false, canvasId = 'office-canvas', palette
   drawBackWall(ctx, p);
   drawDeskIslands(ctx, p);
   OFFICE_STATIONS.forEach(station => drawOfficeStation(ctx, p, station, ringLit));
+  if (canvasId === 'office-canvas') drawVerifiedRouterStack(ctx, p, state.verifiedDevices);
 }
 
 function drawMorningStaffMember(ctx, p, staff){
@@ -1333,7 +1354,7 @@ function initializeCareer(){
   state.career = careerWithFlags(readCareerRecord());
   state.careerUpdate = null;
   state.endingReplay = false;
-  state.endingType = 'career';
+  state.endingReturnPhase = 'briefing';
 }
 
 function careerBriefingHtml(){
@@ -1418,6 +1439,27 @@ function showBriefing(){
     unlockAudioFromGesture();
     startShiftFromBriefing();
   };
+}
+
+function showDeviceVerification(){
+  const verificationCase = currentDeviceVerificationCase();
+  const progress = state.deviceVerificationMinutes > 0
+    ? '<p class="verification-progress">途中経過 <b>' + state.deviceVerificationMinutes + ' / ' + DEVICE_VERIFICATION_MINUTES + '分</b>。同じ機器の続きです。</p>'
+    : '<p class="verification-progress">正しい検査を始めると、完了まで最大' + DEVICE_VERIFICATION_MINUTES + '分進みます。着信・折り返し時刻で中断します。</p>';
+  const feedback = state.deviceVerificationFeedback
+    ? '<p class="verification-feedback" role="alert">' + esc(state.deviceVerificationFeedback) + '</p>'
+    : '';
+  $('sheet').innerHTML =
+    '<p class="eyebrow">RETURNED DEVICE ／ ' + esc(verificationCase.id) + '</p>' +
+    '<h1>返却機の検証</h1>' +
+    '<section class="verification-ticket"><span>機器名</span><b>' + esc(verificationCase.device) + '</b><span>申告症状</span><strong>' + esc(verificationCase.symptom) + '</strong></section>' +
+    progress + feedback +
+    '<h2>最初に行う検査</h2>' +
+    '<div class="verification-choice-list">' + DEVICE_VERIFICATION_ACTIONS.map(action =>
+      '<button class="verification-choice" data-device-verification-check="' + esc(action.id) + '">' + esc(action.label) + '</button>'
+    ).join('') + '</div>' +
+    '<button class="btn-ghost" data-device-verification-close="1">オフィスへ戻る</button>';
+  openSheet();
 }
 
 function showManual(){
@@ -1576,8 +1618,7 @@ function showBalanceConsole(){
     '</div>' +
     audioDiagnosticHtml() +
     '<h2>キャリア記録</h2><div class="balance-career-actions">' +
-      '<button class="btn-ghost" id="balance-replay-ending">表エンディング（翌朝の全体朝礼）を再生する</button>' +
-      '<button class="btn-ghost" id="balance-replay-secret-ending">裏エンディングを再生する</button>' +
+      '<button class="btn-ghost" id="balance-replay-ending">エンディング（翌朝の全体朝礼）を再生する</button>' +
       '<button class="btn-ghost danger" id="balance-clear-career">勤務記録を消去する</button>' +
       '<p>消去は一度確認してから実行します。次回は1日目から始まります。</p>' +
     '</div>' +
@@ -1601,8 +1642,7 @@ function showBalanceConsole(){
     setSoundVolume(event.target.value);
   };
   syncSoundControls();
-  $('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };
-  $('balance-replay-secret-ending').onclick = event => { event.stopImmediatePropagation(); showSecretEnding(true); };
+  $('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true, wasPhase); };
   $('balance-clear-career').onclick = () => clearCareerRecord();
   $('btn-close-balance').onclick = () => {
     if (wasPhase === 'briefing'){ showBriefing(); return; }
@@ -1670,7 +1710,7 @@ function careerShiftContext(){
     resultKinds:tickets.map(ticket => ticket.result && ticket.result.kind).filter(Boolean),
     noRefundsOrShipments:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind !== 'refunded' && !ticket.shipment),
     allResolved:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind === 'closed'),
-    allRefunded:tickets.length > 0 && tickets.every(ticket => ticket.result && ticket.result.kind === 'refunded'),
+    anyRefunded:tickets.some(ticket => ticket.result && ticket.result.kind === 'refunded'),
     solvedScenarioIds:solvedScenarioIdsFromTickets(tickets),
   };
 }
@@ -1764,14 +1804,13 @@ function careerDebriefHtml(){
     '<section class="career-panel"><h2>勤務記録</h2>' +
       '<div class="career-summary"><b>' + esc(stage.label) + '</b><span>通算 ' + career.totals.days + '日</span><span>直近5回 ' + esc(recent) + '</span></div>' +
       '<p class="career-next">次の段階：' + esc(stage.next || 'なし') + ' ／ ' + esc(stage.condition) + '</p>' +
-      '<div class="career-ending-progress"><b>表エンディング</b><span>解決した案件 ' + career.solvedScenarios.length + ' / ' + SCENARIOS.length + '</span></div>' +
-      '<div class="career-badge-count">裏エンディング ／ バッジ ' + career.badges.length + ' / ' + CAREER_BADGES.length + '</div>' +
+      '<div class="career-ending-progress"><b>エンディング</b><span>リーダー ' + (career.stage === 'lead' ? '到達' : '未到達') + ' ／ バッジ ' + career.badges.length + ' / ' + CAREER_BADGES.length + '</span></div>' +
       '<div class="career-badge-grid">' + badgeCards + '</div>' +
     '</section>';
 }
 
-function clearCareerRecord(){
-  if (!window.confirm('勤務記録を消去して、1日目から始めますか？')) return false;
+function clearCareerRecord(confirmRequired = true){
+  if (confirmRequired && !window.confirm('勤務記録を消去して、1日目から始めますか？')) return false;
   const storage = getCareerStorage();
   try { if (storage) storage.removeItem(CAREER_STORAGE_KEY); }
   catch (error){ /* 保存領域が使えなくても、このセッションの記録は消す */ }
@@ -1794,15 +1833,14 @@ function careerEndingDetailsHtml(career){
 }
 
 function careerEndingFinalHtml(){
-  return '<div class="ending-end" id="ending-end">END</div>' +
-    '<button class="btn-primary" id="ending-back-to-shift">深夜シフトへ戻る</button>';
+  const action = state.endingReplay
+    ? '<button class="btn-primary" id="ending-back-to-shift">再生を終える</button>'
+    : '<button class="btn-primary" id="ending-second-loop">二周目を始める</button>';
+  return '<div class="ending-end" id="ending-end">END</div>' + action;
 }
 
 function careerEndingEyebrowHtml(){
-  const secretMark = state.endingType === 'secret'
-    ? '<span class="ending-variant-mark" aria-label="裏エンディング">裏</span>'
-    : '';
-  return '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING' + secretMark + '</p>';
+  return '<p class="eyebrow">THE NEXT MORNING ／ ALL-HANDS MEETING</p>';
 }
 
 function clearEndingRevealTimer(){
@@ -1821,21 +1859,29 @@ function revealCareerEndingFinal(){
   const slot = $('ending-finale');
   if (!slot) return;
   slot.innerHTML = careerEndingFinalHtml();
-  $('ending-back-to-shift').onclick = () => continueAfterCareerEnding();
+  if (state.endingReplay) $('ending-back-to-shift').onclick = () => continueAfterCareerEnding();
+  else $('ending-second-loop').onclick = () => clearCareerRecord(false);
 }
 
 function pendingCareerEndingType(){
   if (state.endingReplay || !state.careerUpdate) return null;
-  return (state.careerUpdate.endingQueue || []).find(type =>
-    type === 'career' ? !state.career.ending : !state.career.secretEnding
-  ) || null;
+  return (state.careerUpdate.endingQueue || []).includes('career') && !state.career.finalEnding ? 'career' : null;
 }
 
 function continueAfterCareerEnding(){
+  if (state.endingReplay){
+    const returnPhase = state.endingReturnPhase;
+    state.endingReplay = false;
+    state.endingReturnPhase = 'briefing';
+    if (returnPhase === 'briefing'){ showBriefing(); return; }
+    if (returnPhase === 'debrief'){ renderDebrief(); return; }
+    state.phase = returnPhase;
+    closeSheet();
+    render();
+    return;
+  }
   const next = pendingCareerEndingType();
   if (next === 'career'){ showCareerEnding(false); return; }
-  if (next === 'secret'){ showSecretEnding(false); return; }
-  state.endingReplay = false;
   resetGame();
   showBriefing();
 }
@@ -1843,7 +1889,6 @@ function continueAfterCareerEnding(){
 function showNextCareerEnding(){
   const next = pendingCareerEndingType();
   if (next === 'career'){ showCareerEnding(false); return; }
-  if (next === 'secret'){ showSecretEnding(false); return; }
   continueAfterCareerEnding();
 }
 
@@ -1863,18 +1908,17 @@ function renderCareerEndingComplete(skipEndingBeat = false){
   else endingRevealTimer = setTimeout(revealCareerEndingFinal, 1000);
 }
 
-function showCareerEnding(replay = false, endingType = 'career'){
+function showCareerEnding(replay = false, returnPhase = 'briefing'){
   stopOfficeRing();
   clearEndingRevealTimer();
   clearEndingTapGuard();
   endingTapGuard = true;
   if (!state.career) state.career = freshCareerRecord();
   state.endingReplay = replay;
-  state.endingType = endingType;
+  state.endingReturnPhase = replay ? returnPhase : 'briefing';
   state.phase = 'ending';
   if (!replay){
-    if (endingType === 'secret') state.career.secretEnding = true;
-    else state.career.ending = true;
+    state.career.finalEnding = true;
     writeCareerRecord(state.career);
   }
   playCareerEndingSound();
@@ -1890,10 +1934,6 @@ function showCareerEnding(replay = false, endingType = 'career'){
   // 再生ボタンの同じclickが、document側の「タップで送り切る」に重ならないよう次のtaskで始める。
   setTimeout(() => startTyping(state.endingSpeech), 0);
   tapGuardTimer = setTimeout(clearEndingTapGuard, 400);
-}
-
-function showSecretEnding(replay = false){
-  showCareerEnding(replay, 'secret');
 }
 
 function renderDebrief(){

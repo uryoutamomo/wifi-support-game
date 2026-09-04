@@ -5,8 +5,8 @@ const { readGameSource, functionSource: extractFunctionSource } = require('./tes
 
 const game = readGameSource(__dirname);
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {CAUSES,QUESTIONS,LOOKUPS,TESTS,REMEDIES,SCENARIOS,COMMAND_DEFS,DEVICE_VERIFICATION_MINUTES};';
-const { CAUSES, QUESTIONS, LOOKUPS, TESTS, REMEDIES, SCENARIOS, COMMAND_DEFS, DEVICE_VERIFICATION_MINUTES } = new Function(dataSource)();
+  '\nreturn {CAUSES,QUESTIONS,LOOKUPS,TESTS,REMEDIES,SCENARIOS,COMMAND_DEFS,DEVICE_VERIFICATION_MINUTES,DEVICE_VERIFICATION_CASES};';
+const { CAUSES, QUESTIONS, LOOKUPS, TESTS, REMEDIES, SCENARIOS, COMMAND_DEFS, DEVICE_VERIFICATION_MINUTES, DEVICE_VERIFICATION_CASES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -30,8 +30,9 @@ const verificationAdvance = minutes => {
   }
 };
 let verificationRenders = 0;
-const runVerification = new Function('state','DEVICE_VERIFICATION_MINUTES','advance','recordOfficeEvent','renderOffice', functionSource('runDeviceVerification') + '\nreturn runDeviceVerification;')(
-  verificationState,DEVICE_VERIFICATION_MINUTES,verificationAdvance,(kind,text) => verificationState.officeEvents.push({kind,text}),() => { verificationRenders++; }
+const currentVerification = new Function('state','DEVICE_VERIFICATION_CASES',functionSource('currentDeviceVerificationCase') + '\nreturn currentDeviceVerificationCase;')(verificationState,DEVICE_VERIFICATION_CASES);
+const runVerification = new Function('state','DEVICE_VERIFICATION_MINUTES','advance','recordOfficeEvent','renderOffice','currentDeviceVerificationCase', functionSource('runDeviceVerification') + '\nreturn runDeviceVerification;')(
+  verificationState,DEVICE_VERIFICATION_MINUTES,verificationAdvance,(kind,text) => verificationState.officeEvents.push({kind,text}),() => { verificationRenders++; },currentVerification
 );
 const interruptedVerification = runVerification();
 assert(interruptedVerification.advanced === 7 && interruptedVerification.interrupted && !interruptedVerification.completed && verificationState.deviceVerificationMinutes === 7 && verificationState.tickets[0].state === 'waiting', '機器検証が着信した分で中断し、途中時間を保存できない');

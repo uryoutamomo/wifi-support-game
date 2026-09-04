@@ -297,6 +297,14 @@ body.call-view .pane.call-summary > .pane-head{ border-bottom: 0; }
 .office-call-action span{ display:block; margin-top:5px; color:var(--text-3); font:600 12px/1.35 var(--mono); }
 .office-call-action:hover:not(:disabled),.office-call-action:focus-visible{ background:var(--accent-soft); outline:2px solid var(--accent); outline-offset:2px; }
 .office-call-action:disabled{ opacity:.42; cursor:not-allowed; }
+.verification-ticket{ display:grid; grid-template-columns:max-content minmax(0,1fr); gap:8px 14px; margin:18px 0; padding:16px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
+.verification-ticket span{ color:var(--text-3); font:700 12px/1.5 var(--mono); }
+.verification-ticket b,.verification-ticket strong{ color:var(--text); font-weight:700; }
+.verification-progress{ padding:10px 12px; border-left:4px solid var(--accent); background:var(--accent-soft); color:var(--text-2); }
+.verification-feedback{ padding:10px 12px; border-left:4px solid var(--crit); background:var(--crit-soft); color:var(--crit); font-weight:700; }
+.verification-choice-list{ display:grid; gap:9px; margin:0 0 18px; }
+.verification-choice{ width:100%; min-height:52px; padding:11px 14px; border:1px solid var(--accent-line); border-radius:8px; background:var(--surface); color:var(--text); font-size:16px; font-weight:700; text-align:left; }
+.verification-choice:hover,.verification-choice:focus-visible{ background:var(--accent-soft); border-color:var(--accent); }
 .call-summary .summary-figure{ padding:13px 3px; color:var(--dim); line-height:1.9; }.summary-figure b{ color:var(--text); font-family:var(--mono); font-weight:500; }
 
 /* シート表示中はコンソールを隠す */
@@ -1037,7 +1045,7 @@ body.sheet-open .console{ display: none; }
 .promotion-banner{ margin:12px 0 18px; padding:14px; border:2px solid var(--amber); border-radius:10px; background:var(--amber-glow); color:var(--text); font:800 17px/1.4 var(--display); text-align:center; }
 .career-panel{ margin:18px 0 24px; padding:16px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
 .career-panel h2{ margin-top:0; }.career-summary{ display:flex; flex-wrap:wrap; gap:8px 14px; align-items:baseline; }.career-summary b{ font-size:20px; }.career-summary span{ color:var(--dim); font:600 12px/1.5 var(--mono); }
-.career-next{ margin:9px 0; color:var(--text-2); font-size:13px; }.career-badge-count{ margin:14px 0 8px; color:var(--amber-deep); font:800 14px/1.4 var(--display); }
+.career-next{ margin:9px 0; color:var(--text-2); font-size:13px; }
 .career-badge-grid,.ending-badge-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
 .career-badge,.ending-badge{ display:flex; flex-direction:column; gap:4px; min-width:0; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }.career-badge b,.ending-badge b{ color:var(--text); font-size:12px; }.career-badge span,.ending-badge span{ color:var(--dim); font-size:10.5px; line-height:1.5; }
 .career-badge.locked,.ending-badge.locked{ filter:grayscale(1); opacity:.62; }.career-badge.badge-new{ border:2px solid var(--amber); background:var(--amber-glow); box-shadow:0 0 0 3px rgba(226,164,71,.12); }
@@ -1047,7 +1055,6 @@ body.sheet-open .console{ display: none; }
 .ending-line.line{ display:block; max-width:100%; }.ending-line.line .say{ display:block; min-height:1.7em; padding:0; border:0; border-radius:0; background:transparent; color:inherit; font:inherit; }
 .ending-totals{ display:flex; flex-wrap:wrap; gap:8px 14px; margin:16px 0; padding:12px; border:1px solid var(--line); background:var(--surface-2); }.ending-totals b{ width:100%; font-size:18px; }.ending-totals span{ color:var(--dim); font:600 12px/1.5 var(--mono); }
 .career-ending-progress{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0 6px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); }.career-ending-progress b{ color:var(--text); }.career-ending-progress span{ color:var(--accent); font:700 12px/1.5 var(--mono); }
-.ending-variant-mark{ display:inline-block; margin-left:8px; padding:1px 5px; border:1px solid currentColor; border-radius:999px; font-size:9px; line-height:1.35; letter-spacing:0; vertical-align:middle; }
 .ending-end{ margin:28px 0 20px; color:var(--text); font:800 34px/1 var(--display); letter-spacing:.36em; text-align:center; text-indent:.36em; }
 
 .tbl{ width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -1289,7 +1296,7 @@ body.office-view .office-scene{ gap:14px; }
       <b class="slogan-text" id="office-slogan"></b>
     </div>
     <figure class="office-pixel-frame" id="office-phone">
-      <canvas class="office-pixel-canvas" id="office-canvas" width="192" height="168" role="img" aria-label="蛍光灯が並ぶ深夜オフィス。島型デスクにはモニターと電話、三段ワゴン、キャスター椅子が並び、自席のモニターだけが点灯している"></canvas>
+      <canvas class="office-pixel-canvas" id="office-canvas" width="192" height="168" role="img" aria-label="蛍光灯が並ぶ深夜オフィス。島型デスクにはモニターと電話、三段ワゴン、キャスター椅子が並び、自席のモニターだけが点灯している。右端の棚には検証済みルーターが積み上がる"></canvas>
       <figcaption class="office-pixel-caption"><span>あなたの自席</span><span id="office-phone-status">着信待ち</span></figcaption>
     </figure>
     <div class="office-call-actions" aria-label="電話操作">

@@ -1616,18 +1616,34 @@ const mutations = [
   },
   {
     name:'勤務記録消去の確認を外す', file:'p4_view.js',
-    from:"if (!window.confirm('勤務記録を消去して、1日目から始めますか？')) return false;", to:'if (false) return false;',
+    from:"if (confirmRequired && !window.confirm('勤務記録を消去して、1日目から始めますか？')) return false;", to:'if (false) return false;',
     expected:'勤務記録消去の確認回数が1回ではない',
   },
   {
-    name:'全案件でも表エンディングを開始しない', file:'p3_game.js',
-    from:'career.solvedScenarios.length === SCENARIOS.length', to:'career.solvedScenarios.length > SCENARIOS.length',
-    expected:'§28 全案件を解決しても表エンディングへ進まない',
+    name:'二周目開始で保存済みキャリアを残す', file:'p4_view.js',
+    from:'try { if (storage) storage.removeItem(CAREER_STORAGE_KEY); }', to:'try { void storage; }',
+    expected:'勤務記録消去後に1日目へ戻れない',
   },
   {
-    name:'1件不足で表エンディングを開始する', file:'p3_game.js',
-    from:'career.solvedScenarios.length === SCENARIOS.length', to:'career.solvedScenarios.length >= SCENARIOS.length - 1',
-    expected:'§28 1件不足で表エンディングへ進む',
+    name:'二周目開始でセッションのキャリアを残す', file:'p4_view.js',
+    from:'catch (error){ /* 保存領域が使えなくても、このセッションの記録は消す */ }\n  state.career = freshCareerRecord();\n  state.careerUpdate = null;',
+    to:'catch (error){ /* 保存領域が使えなくても、このセッションの記録は消す */ }\n  state.career = state.career;\n  state.careerUpdate = null;',
+    expected:'勤務記録消去後に1日目へ戻れない',
+  },
+  {
+    name:'1件返金してもお金で解決バッジを付けない', file:'p3_game.js',
+    from:'if (context.anyRefunded) candidates.push(\'money_talks\');', to:'if (false) candidates.push(\'money_talks\');',
+    expected:'§74 1件だけ返金した夜にお金で解決バッジが付かない',
+  },
+  {
+    name:'お金で解決バッジの表示条件を全件返金へ戻す', file:'p2_data.js',
+    from:"condition:'1件でも返金を実施'", to:"condition:'全案件で返金を実施'",
+    expected:'§24 バッジ8種の表示文言が緩和条件と一致しない',
+  },
+  {
+    name:'返金判定を全件返金へ戻す', file:'p4_view.js',
+    from:"anyRefunded:tickets.some(ticket => ticket.result && ticket.result.kind === 'refunded')", to:"anyRefunded:tickets.every(ticket => ticket.result && ticket.result.kind === 'refunded')",
+    expected:'§74 返金と通常解決が混じる実シフトから1件返金を検出できない',
   },
   {
     name:'失客と不満返金も解決へ数える', file:'p3_game.js',
@@ -1653,58 +1669,61 @@ const mutations = [
     expected:'§28 solvedScenariosが30日制限で捨てられる',
   },
   {
-    name:'同時達成時に裏から表の順で出す', file:'p3_game.js',
-    from:"  if (career.solvedScenarios.length === SCENARIOS.length && !career.ending) queue.push('career');\n  if (career.badges.length === CAREER_BADGES.length && !career.secretEnding) queue.push('secret');",
-    to:"  if (career.badges.length === CAREER_BADGES.length && !career.secretEnding) queue.push('secret');\n  if (career.solvedScenarios.length === SCENARIOS.length && !career.ending) queue.push('career');",
-    expected:'§28 同じ夜に両条件を満たしても表→裏の順にならない',
+    name:'リーダー未到達でも統合エンディングを開始する', file:'p3_game.js',
+    from:"career.stage === 'lead' && career.badges.length === CAREER_BADGES.length", to:'true && career.badges.length === CAREER_BADGES.length',
+    expected:'§74 リーダー未到達でエンディングへ進む',
   },
   {
-    name:'閲覧済みの裏エンディングを再発火する', file:'p3_game.js',
-    from:'career.badges.length === CAREER_BADGES.length && !career.secretEnding',
-    to:'career.badges.length === CAREER_BADGES.length && true',
-    expected:'§28 見た表・裏エンディングが次の夜にも自動再生される',
+    name:'7バッジでも統合エンディングを開始する', file:'p3_game.js',
+    from:'career.badges.length === CAREER_BADGES.length', to:'career.badges.length >= CAREER_BADGES.length - 1',
+    expected:'§74 7バッジでエンディングへ進む',
   },
   {
-    name:'旧v1勤務記録を移行しない', file:'p3_game.js',
-    from:'if (next.version === CAREER_VERSION && next.solvedScenarios === undefined) next.solvedScenarios = [];',
-    to:'if (false) next.solvedScenarios = [];',
+    name:'閲覧済みの統合エンディングを再発火する', file:'p3_game.js',
+    from:'&& !career.finalEnding', to:'&& true',
+    expected:'§74 見たエンディングが次の夜にも自動再生される',
+  },
+  {
+    name:'8バッジでも統合エンディングを開始しない', file:'p3_game.js',
+    from:'career.badges.length === CAREER_BADGES.length', to:'career.badges.length > CAREER_BADGES.length',
+    expected:'§74 リーダー到達＋8バッジでもエンディングへ進まない',
+  },
+  {
+    name:'全案件解決で旧エンディングを再発火する', file:'p3_game.js',
+    from:"function careerEndingQueue(career){\n  const queue = [];", to:"function careerEndingQueue(career){\n  const queue = [];\n  if (career.solvedScenarios.length === SCENARIOS.length) queue.push('career');",
+    expected:'§74 全案件解決だけで旧エンディングが再発火する',
+  },
+  {
+    name:'旧v1勤務記録へ統合エンディング項目を補わない', file:'p3_game.js',
+    from:'if (next.version === CAREER_VERSION && next.finalEnding === undefined) next.finalEnding = false;',
+    to:'if (false) next.finalEnding = false;',
     expected:'§28 旧v1勤務記録の通算日数を移行できない',
   },
   {
-    name:'8バッジでも裏エンディングを開始しない', file:'p3_game.js',
-    from:'career.badges.length === CAREER_BADGES.length', to:'career.badges.length > CAREER_BADGES.length',
-    expected:'§28 8バッジで裏エンディングへ進まない',
+    name:'終了レポートからリーダー到達条件を外す', file:'p4_view.js',
+    from:"(career.stage === 'lead' ? '到達' : '未到達')", to:"'到達'",
+    expected:'§74 終了レポートが統合エンディング条件を正しく示さない',
   },
   {
-    name:'裏エンディングで表の演出を再利用しない', file:'p4_view.js',
-    from:"  showCareerEnding(replay, 'secret');", to:'  void replay;',
-    expected:'§28 裏エンディングが表と同じ演出を再生しない',
+    name:'二周目開始で確認付き消去を呼ぶ', file:'p4_view.js',
+    from:"$('ending-second-loop').onclick = () => clearCareerRecord(false);", to:"$('ending-second-loop').onclick = () => clearCareerRecord();",
+    expected:'§74 二周目開始と非破壊の再生終了が正しい処理へつながらない',
   },
   {
-    name:'同じ朝礼演出から裏の小さな印を外す', file:'p4_view.js',
-    from:"state.endingType === 'secret'", to:'false',
-    expected:'§28 同じ朝礼演出の裏エンディングに小さな印がない',
+    name:'調整画面の再生終了で進行中シフトを初期化する', file:'p4_view.js',
+    from:'state.phase = returnPhase;\n    closeSheet();\n    render();',
+    to:'resetGame();\n    showBriefing();',
+    expected:'§74 調整画面の再生終了後に元のシフト画面へ戻らない',
   },
   {
-    name:'裏エンディング閲覧済みを保存しない', file:'p4_view.js',
-    from:"if (endingType === 'secret') state.career.secretEnding = true;", to:"if (endingType === 'secret') state.career.secretEnding = false;",
-    expected:'§28 裏エンディング閲覧済みを保存しない',
-  },
-  {
-    name:'表の後に裏エンディングへ続けない', file:'p4_view.js',
-    from:"function continueAfterCareerEnding(){\n  const next = pendingCareerEndingType();\n  if (next === 'career'){ showCareerEnding(false); return; }\n  if (next === 'secret'){ showSecretEnding(false); return; }", to:"function continueAfterCareerEnding(){\n  const next = pendingCareerEndingType();\n  if (next === 'career'){ showCareerEnding(false); return; }\n  if (next === 'secret'){ resetGame(); showBriefing(); return; }",
-    expected:'§28 表の後に裏エンディングへ続かない',
-  },
-  {
-    name:'終了レポートへ案件名を漏らす', file:'p4_view.js',
-    from:"'<div class=\"career-ending-progress\"><b>表エンディング</b><span>解決した案件 '",
-    to:"'<p>' + SCENARIOS.map(scenario => scenario.name).join('・') + '</p><div class=\"career-ending-progress\"><b>表エンディング</b><span>解決した案件 '",
-    expected:'§28 レポートが解決数を出さない、または未解決案件名を漏らす',
+    name:'通常エンディング後も旧戻るボタンを出す', file:'p4_view.js',
+    from:'id="ending-second-loop">二周目を始める</button>', to:'id="ending-back-to-shift">深夜シフトへ戻る</button>',
+    expected:'ミュート時にエンディング画面が成立しない',
   },
   {
     name:'GAME_FLAGSの強制解決済み案件を無視する', file:'p3_game.js',
     from:'next.solvedScenarios = [...new Set(flags.solvedScenarios.filter(id => known.has(id)))];', to:'next.solvedScenarios = [];',
-    expected:'§28 GAME_FLAGSから表・裏エンディングを再現できない',
+    expected:'§74 GAME_FLAGSの旧解決済み案件互換が失われる',
   },
   {
     name:'毎夜のブリーフィングへ舞台説明を戻す', file:'p4_view.js',
@@ -1750,13 +1769,13 @@ const mutations = [
   },
   {
     name:'エンディング閲覧済みを保存しない', file:'p4_view.js',
-    from:'else state.career.ending = true;', to:'else state.career.ending = false;',
-    expected:'エンディング閲覧済みを保存しない',
+    from:'state.career.finalEnding = true;', to:'state.career.finalEnding = false;',
+    expected:'§74 エンディング閲覧済みを保存しない',
   },
   {
     name:'ゲーム調整からエンディング再生を外す', file:'p4_view.js',
-    from:"$('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };", to:"$('balance-replay-ending').onclick = () => {};",
-    expected:'§28 ゲーム調整から表・裏エンディングを見返せない',
+    from:"$('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true, wasPhase); };", to:"$('balance-replay-ending').onclick = () => {};",
+    expected:'§74 ゲーム調整のエンディング再生が単一になっていない',
   },
   {
     name:'朝のオフィスを夜パレットで描く', file:'p4_view.js',
@@ -1780,13 +1799,13 @@ const mutations = [
   },
   {
     name:'ミュート時にエンディング画面を止める', file:'p4_view.js',
-    from:"function showCareerEnding(replay = false, endingType = 'career'){\n  stopOfficeRing();", to:"function showCareerEnding(replay = false, endingType = 'career'){\n  if (!GAME_FLAGS.soundEnabled) return;\n  stopOfficeRing();",
+    from:"function showCareerEnding(replay = false, returnPhase = 'briefing'){\n  stopOfficeRing();", to:"function showCareerEnding(replay = false, returnPhase = 'briefing'){\n  if (!GAME_FLAGS.soundEnabled) return;\n  stopOfficeRing();",
     expected:'ミュート時にエンディング画面が成立しない',
   },
   {
     name:'GAME_FLAGSの強制バッジを無視する', file:'p3_game.js',
     from:'next.badges = [...new Set(flags.unlockedBadges.filter(id => known.has(id)))];', to:'next.badges = flags.unlockedBadges.length === 8 ? [] : [...new Set(flags.unlockedBadges.filter(id => known.has(id)))];',
-    expected:'§28 GAME_FLAGSから表・裏エンディングを再現できない',
+    expected:'§74 GAME_FLAGSから統合エンディングを再現できない',
   },
   {
     name:'社長の確定文を最初から全文表示する', file:'p4_view.js',
@@ -1800,7 +1819,7 @@ const mutations = [
   },
   {
     name:'再生ボタンのクリック中に社長のタイプ表示を始める', file:'p4_view.js',
-    from:"$('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };", to:"$('balance-replay-ending').onclick = () => showCareerEnding(true);",
+    from:"$('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true, wasPhase); };", to:"$('balance-replay-ending').onclick = () => showCareerEnding(true, wasPhase);",
     expected:'社長の再生操作自体がタップ送りに誤認される',
   },
   {
@@ -1822,7 +1841,7 @@ const mutations = [
   {
     name:'エンディングのENDを別の文字へ変える', file:'p4_view.js',
     from:'id="ending-end">END</div>', to:'id="ending-end">FIN</div>',
-    expected:'ENDが称号一覧の下・戻るボタンの上に簡潔に表示されない',
+    expected:'ENDが称号一覧の下・最終操作の上に簡潔に表示されない',
   },
   {
     name:'ENDを称号と同時に表示する', file:'p4_view.js',
@@ -1830,10 +1849,10 @@ const mutations = [
     expected:'ENDが通算成績と称号一覧より約1秒遅れて現れない',
   },
   {
-    name:'戻るボタンをENDより先に置く', file:'p4_view.js',
-    from:'return \'<div class="ending-end" id="ending-end">END</div>\' +\n    \'<button class="btn-primary" id="ending-back-to-shift">深夜シフトへ戻る</button>\';',
-    to:'return \'<button class="btn-primary" id="ending-back-to-shift">深夜シフトへ戻る</button>\' +\n    \'<div class="ending-end" id="ending-end">END</div>\';',
-    expected:'ENDが称号一覧の下・戻るボタンの上に簡潔に表示されない',
+    name:'最終操作をENDより先に置く', file:'p4_view.js',
+    from:'return \'<div class="ending-end" id="ending-end">END</div>\' + action;',
+    to:'return action + \'<div class="ending-end" id="ending-end">END</div>\';',
+    expected:'ENDが称号一覧の下・最終操作の上に簡潔に表示されない',
   },
   {
     name:'タップ送りでもENDを1秒待たせる', file:'p4_view.js',
@@ -1913,11 +1932,6 @@ const mutations = [
     name:'S13の顧客タイプをexpertへ変える', file:'p2_data.js',
     from:"id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, ageRange:[25,42], type:'anxious'", to:"id:'S13', arrive:74, name:'秋山 美咲', nameEn:'Misaki Akiyama', age:32, ageRange:[25,42], type:'expert'",
     expected:'§30 検査10: anxiousの自己責任型第一声になっていない',
-  },
-  {
-    name:'解決数レポートの総数を12固定へ戻す', file:'p4_view.js',
-    from:"' / ' + SCENARIOS.length", to:"' / 12'",
-    expected:'§28 レポートが解決数を出さない、または未解決案件名を漏らす',
   },
   {
     name:'S13から代替機希望の返答を外す', file:'p2_data.js',
@@ -2870,6 +2884,24 @@ const mutations = [
     from:"  $('office-verify').disabled = waiting.length > 0 || readyCallbacks.length > 0;",
     to:"  $('office-verify').disabled = waiting.length > 0;",
     expected:'§67 検査C2: 着信または折り返し時刻到来中に機器検証を開始できる',
+  },
+  {
+    name:'§73 症状に合わない検査も正解にする', file:'p3_game.js',
+    from:'verificationCase.correctAction === actionId',
+    to:'true',
+    expected:'§73 検査3: V1で症状に合わない検査も正解になる',
+  },
+  {
+    name:'§73 完了台数を無視してルーターを描かない', file:'p4_view.js',
+    from:'const visible = Math.max(0, Math.min(8, Math.floor(Number(count) || 0)));',
+    to:'const visible = 0;',
+    expected:'§73 検査6: 完了3台ぶんのルーターが積まれない',
+  },
+  {
+    name:'§73 検証画面から申告症状を消す', file:'p4_view.js',
+    from:'esc(verificationCase.symptom)',
+    to:"''",
+    expected:'§73 検査5: 検証画面に機器名と一行症状が出ない',
   },
   {
     name:'§65 通話料を訴える客を半分以外にする', file:'p2_data.js',

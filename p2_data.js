@@ -17,6 +17,20 @@ const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
 const DESK_LOOKUP_MINUTES = 2;  // 折り返し待ちのあいだ、デスク端末で1件調べるのにかかる時間
 const DEVICE_VERIFICATION_MINUTES = 60; // 返却機1台の検証に必要な作業時間
+/* §73: 返却機は症状に合う検査を選んでから60分の検証へ入る。
+   誤選択は症状の見立てを直すだけで、ゲーム時間も完了台数も進めない。 */
+const DEVICE_VERIFICATION_ACTIONS = Object.freeze([
+  Object.freeze({ id:'power', label:'電池残量と給電を確認する' }),
+  Object.freeze({ id:'sim', label:'SIM認識と接点を確認する' }),
+  Object.freeze({ id:'wifi', label:'SSID表示とWi-Fi接続を確認する' }),
+  Object.freeze({ id:'heat', label:'本体温度と充電保護を確認する' }),
+]);
+const DEVICE_VERIFICATION_CASES = Object.freeze([
+  Object.freeze({ id:'V1', device:'GD-500', symptom:'電源ボタンを押しても起動しない', correctAction:'power', result:'電池残量の低下を確認。対応アダプタで充電後、正常に起動しました。' }),
+  Object.freeze({ id:'V2', device:'A201NE', symptom:'画面に「No SIM」と表示される', correctAction:'sim', result:'SIM接点を清掃して装着状態を確認。正常に認識しました。' }),
+  Object.freeze({ id:'V3', device:'A101ZT', symptom:'SSIDは見えるが、検証端末が接続できない', correctAction:'wifi', result:'本体表示と検証端末の接続情報を照合。Wi-Fi接続を確認しました。' }),
+  Object.freeze({ id:'V4', device:'GD-200', symptom:'通信しながら充電すると、充電が止まる', correctAction:'heat', result:'高温時の充電保護を確認。冷却後、対応アダプタで正常に充電しました。' }),
+]);
 /* §65/§69: 直接、国際通話料を訴えるのは24案件中12件になる2タイプだけ。 */
 const CALL_CHARGE_COMPLAINT_TYPES = Object.freeze(['hurried','expert']);
 /* §41: 通しプレイで調整できる、折り返しの約束と待機の基準。 */
@@ -152,7 +166,7 @@ const CAREER_BADGES = Object.freeze([
   Object.freeze({ id:'frugal', label:'倹約家', condition:'返金と配送をどちらも使わない' }),
   Object.freeze({ id:'all_first', label:'一発解決', condition:'全案件を解決（再入電があってもよい）' }),
   Object.freeze({ id:'storm', label:'嵐の夜', condition:'同じ夜に苦情と一方的切断の両方が発生' }),
-  Object.freeze({ id:'money_talks', label:'お金で解決', condition:'全案件で返金を実施' }),
+  Object.freeze({ id:'money_talks', label:'お金で解決', condition:'1件でも返金を実施' }),
   Object.freeze({ id:'ten_nights', label:'五夜勤', condition:'通算5シフトを完了' }),
   Object.freeze({ id:'clean_record', label:'無苦情記録', condition:'直近2シフトの苦情が0件' }),
 ]);

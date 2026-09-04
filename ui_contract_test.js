@@ -12,8 +12,8 @@ const viewSource = fs.readFileSync(__dirname + '/p4_view.js', 'utf8');
 const eventSource = fs.readFileSync(__dirname + '/p5_events.js', 'utf8');
 const handover = fs.readFileSync(__dirname + '/HANDOVER.md', 'utf8');
 const dataSource = fs.readFileSync(__dirname + '/p2_data.js', 'utf8') +
-  '\nreturn {SHIFT_START,SHIFT_DURATION,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,DEVICE_VERIFICATION_MINUTES,CALL_CHARGE_COMPLAINT_TYPES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_THREE_HOURS_MINUTES,CALLBACK_TOMORROW_DUE,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,SOUND_SETTINGS,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_REDIAL_OPENINGS,COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,LOW_CSAT_COMPLAINT_RATE,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
-const { SHIFT_START, SHIFT_DURATION, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, DEVICE_VERIFICATION_MINUTES, CALL_CHARGE_COMPLAINT_TYPES, CALLBACK_SCHEDULED_MINUTES, CALLBACK_THREE_HOURS_MINUTES, CALLBACK_TOMORROW_DUE,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, SOUND_SETTINGS, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_REDIAL_OPENINGS, COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,LOW_CSAT_COMPLAINT_RATE,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
+  '\nreturn {SHIFT_START,SHIFT_DURATION,SHIFT_END,LAST_INBOUND_TURN,MIN_INBOUND_GAP,HANDOVER_ZERO_RATE,HANDOVER_ONE_RATE,HANDOVER_ANSWER_RATE,CAUSES,LOOKUPS,TESTS,RISKY,REMEDIES,SCENARIOS,NAME_POOL,PLACE_POOL,PLACE_CONSTRAINTS,TYPES,SOOTHES,SOOTHE_EFFECTS,APOLOGIES,APOLOGY_REPLIES,FAREWELL_LINES,REDIAL_OPENINGS,REDIAL_STRESS,BLIND_CALLBACK_STRESS,BLIND_CALLBACK_CSAT_PENALTY,IDENTITY_RECORD_PENALTY,DESK_LOOKUP_MINUTES,DEVICE_VERIFICATION_MINUTES,DEVICE_VERIFICATION_ACTIONS,DEVICE_VERIFICATION_CASES,CALL_CHARGE_COMPLAINT_TYPES,CALLBACK_SCHEDULED_MINUTES,CALLBACK_THREE_HOURS_MINUTES,CALLBACK_TOMORROW_DUE,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS,COMMAND_DEFS,QUESTION_GROUPS,QUESTIONS,SMALLTALK_EFFECTS,IDENTITY_CALMING_EFFECTS,OFFICE_PALETTE,MORNING_OFFICE_PALETTE,OFFICE_STATIONS,MORNING_STAFF,ARTIFACT_URL,ARTIFACT_QR,LUCK_RATE,CARRIER_REPLY_RATE,SOUND_SETTINGS,GAME_FLAGS,CAREER_STORAGE_KEY,CAREER_VERSION,CAREER_STAGES,CAREER_BADGES,PRESIDENT_ENDING_LINE,REFUND_POLICY,ANGRY_DEFAULT_OUTCOMES,ANGRY_REDIAL_OPENINGS,COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,LOW_CSAT_COMPLAINT_RATE,GRATITUDE_RATE,LATE_NAME_REPLIES,IDENTITY_RECORD_PENALTY,CALL_FLOW_LINES};';
+const { SHIFT_START, SHIFT_DURATION, SHIFT_END, LAST_INBOUND_TURN, MIN_INBOUND_GAP, HANDOVER_ZERO_RATE, HANDOVER_ONE_RATE, HANDOVER_ANSWER_RATE, CAUSES, LOOKUPS, TESTS, RISKY, REMEDIES, SCENARIOS, NAME_POOL, PLACE_POOL, PLACE_CONSTRAINTS, TYPES, SOOTHES, SOOTHE_EFFECTS, APOLOGIES, APOLOGY_REPLIES, FAREWELL_LINES, REDIAL_OPENINGS, REDIAL_STRESS, BLIND_CALLBACK_STRESS, BLIND_CALLBACK_CSAT_PENALTY, IDENTITY_RECORD_PENALTY, DESK_LOOKUP_MINUTES, DEVICE_VERIFICATION_MINUTES, DEVICE_VERIFICATION_ACTIONS, DEVICE_VERIFICATION_CASES, CALL_CHARGE_COMPLAINT_TYPES, CALLBACK_SCHEDULED_MINUTES, CALLBACK_THREE_HOURS_MINUTES, CALLBACK_TOMORROW_DUE,CALLBACK_WAIT_REPLIES,CALLBACK_PUNCTUAL_RELIEF,CALLBACK_PUNCTUAL_REPLIES,HOLD_STRESS_PER_MINUTE,ABANDON_REDIAL_LIMIT,ABANDON_REDIAL_MIN_DELAY,ABANDON_REDIAL_STRESS, COMMAND_DEFS, QUESTION_GROUPS, QUESTIONS, SMALLTALK_EFFECTS, IDENTITY_CALMING_EFFECTS, OFFICE_PALETTE, MORNING_OFFICE_PALETTE, OFFICE_STATIONS, MORNING_STAFF, ARTIFACT_URL, ARTIFACT_QR, LUCK_RATE, CARRIER_REPLY_RATE, SOUND_SETTINGS, GAME_FLAGS, CAREER_STORAGE_KEY, CAREER_VERSION, CAREER_STAGES, CAREER_BADGES, PRESIDENT_ENDING_LINE, REFUND_POLICY, ANGRY_DEFAULT_OUTCOMES, ANGRY_REDIAL_OPENINGS, COMPLAINT_EMAIL_TEMPLATES,BLIND_REFUND_EMAIL_TEMPLATES,MISDIAGNOSIS_EMAIL_TEMPLATES,GRATITUDE_EMAIL_TEMPLATES,LOW_CSAT_COMPLAINT_RATE,GRATITUDE_RATE,LATE_NAME_REPLIES, CALL_FLOW_LINES } = new Function(dataSource)();
 
 const functionSource = (name) => {
   return extractFunctionSource(game, name);
@@ -799,7 +799,7 @@ const balanceScenarioEntriesSource = functionSource('balanceScenarioEntries');
 const balanceConsoleSource = functionSource('showBalanceConsole');
 assert(balanceConsoleSource.includes('id="balance-luck"') && balanceConsoleSource.includes('id="balance-shuffle"'), '調整コンソールに運と登場順の切り替えがない');
 assert(balanceConsoleSource.includes('GAME_FLAGS.luckRate = event.target.checked ? LUCK_RATE : 1.0') && balanceConsoleSource.includes('GAME_FLAGS.shuffleArrival = event.target.checked'), '調整コンソールの切り替えがGAME_FLAGSへ反映されない');
-const balanceNodes = { sheet:{innerHTML:''}, 'balance-luck':{}, 'balance-shuffle':{}, 'balance-identity':{}, 'balance-sound':{}, 'balance-volume':{}, 'balance-replay-ending':{}, 'balance-replay-secret-ending':{}, 'balance-clear-career':{}, 'btn-close-balance':{} };
+const balanceNodes = { sheet:{innerHTML:''}, 'balance-luck':{}, 'balance-shuffle':{}, 'balance-identity':{}, 'balance-sound':{}, 'balance-volume':{}, 'balance-replay-ending':{}, 'balance-clear-career':{}, 'btn-close-balance':{} };
 const baseBalanceScenario = SCENARIOS.find(scenario => scenario.id === 'S24');
 const currentBalanceScenario = {...baseBalanceScenario, name:'今夜の顧客', city:'現在の都市'};
 const balanceScenarioEntries = new Function('state','SCENARIOS', balanceScenarioEntriesSource + '\nreturn balanceScenarioEntries;')(
@@ -813,7 +813,7 @@ let balanceSoundWrites = 0;
 const balanceDeps = {
   state:{phase:'briefing',tickets:[{s:currentBalanceScenario}]}, GAME_FLAGS, LUCK_RATE, SHIFT_START, LAST_INBOUND_TURN, COMMAND_DEFS, SCENARIOS, TYPES, REMEDIES,
   $:id => balanceNodes[id], esc:value => String(value), causeName:id => id, scenarioRoute:() => [],
-  fmtClock:minute => String(minute), audioDiagnosticHtml:() => '<section></section>', setAudioUnlockStatus:() => {}, openSheet:() => {}, showBriefing:() => {}, renderDebrief:() => {}, closeSheet:() => {}, render:() => {}, showCareerEnding:() => {}, showSecretEnding:() => {}, clearCareerRecord:() => {},
+  fmtClock:minute => String(minute), audioDiagnosticHtml:() => '<section></section>', setAudioUnlockStatus:() => {}, openSheet:() => {}, showBriefing:() => {}, renderDebrief:() => {}, closeSheet:() => {}, render:() => {}, showCareerEnding:() => {}, clearCareerRecord:() => {},
   applySoundEnabledFromGesture:enabled => { GAME_FLAGS.soundEnabled=enabled; balanceSoundWrites++; },
   setSoundVolume:volume => { GAME_FLAGS.soundVolume=Number(volume); balanceSoundWrites++; },
   syncSoundControls:() => {},
@@ -1570,10 +1570,12 @@ const legacyCareerRecord = careerFns.freshCareerRecord();
 legacyCareerRecord.totals.days = 4;
 delete legacyCareerRecord.solvedScenarios;
 delete legacyCareerRecord.secretEnding;
+delete legacyCareerRecord.finalEnding;
 const migratedCareerRecord = readCareerRecord({getItem:() => JSON.stringify(legacyCareerRecord)});
 assert.equal(migratedCareerRecord.totals.days,4,'§28 旧v1勤務記録の通算日数を移行できない');
 assert.deepEqual(migratedCareerRecord.solvedScenarios,[],'§28 旧v1勤務記録へsolvedScenarios初期値を補えない');
 assert.equal(migratedCareerRecord.secretEnding,false,'§28 旧v1勤務記録へsecretEnding初期値を補えない');
+assert.equal(migratedCareerRecord.finalEnding,false,'§74 旧v1勤務記録へfinalEnding初期値を補えない');
 
 // §22-8 検査3: 記録なしは1日目。
 assert.equal(careerFns.freshCareerRecord().totals.days + 1, 1, '初回が1日目にならない');
@@ -1581,14 +1583,14 @@ assert(functionSource('careerBriefingHtml').includes("career.totals.days + 1") &
 
 // §22-8 検査4: 31件目で最古だけを落とす。
 let thirtyOne = careerFns.freshCareerRecord();
-for (let day=1; day<=31; day++) thirtyOne = careerFns.appendCareerShift(thirtyOne, baseShift('B',0,new Date(Date.UTC(2026,0,day)).toISOString()), {maxStresses:[80,80],redials:1,abandoned:0,resultKinds:['closed','closed'],noRefundsOrShipments:false,allResolved:false,allRefunded:false}).career;
+for (let day=1; day<=31; day++) thirtyOne = careerFns.appendCareerShift(thirtyOne, baseShift('B',0,new Date(Date.UTC(2026,0,day)).toISOString()), {maxStresses:[80,80],redials:1,abandoned:0,resultKinds:['closed','closed'],noRefundsOrShipments:false,allResolved:false,anyRefunded:false}).career;
 assert.equal(thirtyOne.shifts.length, 30, '保存シフトが直近30件に丸められない');
 assert.equal(thirtyOne.shifts[0].endedAt, new Date(Date.UTC(2026,0,2)).toISOString(), '31件目で最古のシフト以外を落としている');
 
 // §22-8 検査5: 通算値と既得バッジは30件の丸め込み後も残る。
 assert.equal(thirtyOne.totals.days, 31, '30件丸め込みで通算日数まで失われる');
 const persistentBadge = careerFns.freshCareerRecord(); persistentBadge.badges=['frugal'];
-assert(careerFns.appendCareerShift(persistentBadge,baseShift(),{maxStresses:[80,80],redials:1,abandoned:0,resultKinds:['closed'],noRefundsOrShipments:false,allResolved:false,allRefunded:false}).career.badges.includes('frugal'), '既得バッジが次のシフトで失われる');
+assert(careerFns.appendCareerShift(persistentBadge,baseShift(),{maxStresses:[80,80],redials:1,abandoned:0,resultKinds:['closed'],noRefundsOrShipments:false,allResolved:false,anyRefunded:false}).career.badges.includes('frugal'), '既得バッジが次のシフトで失われる');
 
 // §22-8 検査6: 昇格境界。B,B,Cでは本採用にはなれるが、リーダーにはなれない。
 assert.equal(careerFns.promotedCareerStage('probation',3,[baseShift('B'),baseShift('B'),baseShift('C')]),'employed','試用期間の3日境界で本採用にならない');
@@ -1604,7 +1606,14 @@ const badgeCareer = careerFns.freshCareerRecord();
 badgeCareer.totals.days=5; badgeCareer.shifts=[baseShift('B'),baseShift('B')];
 const badgeShift = baseShift();
 const requiredCareerBadges = ['quiet_night','no_redial','frugal','all_first','storm','money_talks','ten_nights','clean_record'];
-assert.deepEqual(careerFns.earnedBadgeIds(badgeCareer,badgeShift,{maxStresses:[70,40],redials:0,abandoned:0,resultKinds:['complaint','hangup'],noRefundsOrShipments:true,allResolved:true,allRefunded:true}).sort(), requiredCareerBadges.sort(), '8バッジの条件判定が揃わない');
+assert(!careerFns.earnedBadgeIds(badgeCareer,badgeShift,{maxStresses:[90,90],redials:1,abandoned:1,resultKinds:['closed','closed'],noRefundsOrShipments:false,allResolved:false,anyRefunded:false}).includes('money_talks'), '§74 返金0件でもお金で解決バッジが付く');
+assert(careerFns.earnedBadgeIds(badgeCareer,badgeShift,{maxStresses:[90,90],redials:1,abandoned:1,resultKinds:['refunded','closed'],noRefundsOrShipments:false,allResolved:false,anyRefunded:true}).includes('money_talks'), '§74 1件だけ返金した夜にお金で解決バッジが付かない');
+assert.deepEqual(careerFns.earnedBadgeIds(badgeCareer,badgeShift,{maxStresses:[70,40],redials:0,abandoned:0,resultKinds:['complaint','hangup'],noRefundsOrShipments:true,allResolved:true,anyRefunded:true}).sort(), requiredCareerBadges.sort(), '8バッジの条件判定が揃わない');
+const careerShiftContextBehavior = new Function('state','unscoredOutcome','solvedScenarioIdsFromTickets', functionSource('careerShiftContext') + '\nreturn careerShiftContext;')(
+  {tickets:[{maxStress:40,redialCount:0,abandonedCalls:0,result:{kind:'refunded'},shipment:null,s:{id:'S1'}},{maxStress:50,redialCount:0,abandonedCalls:0,result:{kind:'closed'},shipment:null,s:{id:'S2'}}]},
+  () => false, careerFns.solvedScenarioIdsFromTickets
+);
+assert.equal(careerShiftContextBehavior().anyRefunded,true,'§74 返金と通常解決が混じる実シフトから1件返金を検出できない');
 
 // §22-8 検査9: graduateという段階・バッジを作らない。
 assert(!game.includes("id:'graduate'") && !CAREER_BADGES.some(badge => badge.id === 'graduate'), '卒業バッジまたは卒業段階がある');
@@ -1627,19 +1636,32 @@ assert(!careerDebriefSource.includes('soundEnabled') && functionSource('recordCu
 const forcedCareer = careerFns.careerWithFlags(careerFns.freshCareerRecord(),{careerStage:'lead',unlockedBadges:['storm','frugal']});
 assert.equal(forcedCareer.stage,'lead','GAME_FLAGSで段階を固定できない');
 assert.deepEqual(forcedCareer.badges,['storm','frugal'],'GAME_FLAGSでバッジを固定できない');
+assert.deepEqual(careerFns.careerWithFlags(careerFns.freshCareerRecord(),{careerStage:null,unlockedBadges:null,solvedScenarios:['S1','S2']}).solvedScenarios,['S1','S2'],'§74 GAME_FLAGSの旧解決済み案件互換が失われる');
 
 // §22-8 検査15: 一度の確認後に保存とセッションを消し、1日目へ戻す。
 const clearCareerSource = functionSource('clearCareerRecord');
 assert.equal((clearCareerSource.match(/window\.confirm/g)||[]).length,1,'勤務記録消去の確認回数が1回ではない');
 assert(clearCareerSource.includes('removeItem(CAREER_STORAGE_KEY)') && clearCareerSource.includes('freshCareerRecord()') && clearCareerSource.includes('showBriefing()'), '勤務記録消去後に1日目へ戻れない');
 
-// §28-5 検査1〜2: 表は全案件の解決で発火し、1件不足では発火しない。
+// §74: 調整画面の消去は確認あり、エンディング後の二周目は確認なしで同じ完全初期化を通る。
+const clearCareerHarnessState = {career:{old:true},careerUpdate:{old:true}};
+let clearConfirmCalls = 0, clearRemoveCalls = 0, clearResetCalls = 0, clearBriefingCalls = 0;
+const clearCareerRecordBehavior = new Function('window','getCareerStorage','CAREER_STORAGE_KEY','state','freshCareerRecord','writeCareerRecord','resetGame','showBriefing', clearCareerSource + '\nreturn clearCareerRecord;')(
+  {confirm(){ clearConfirmCalls++; return true; }},
+  () => ({removeItem(){ clearRemoveCalls++; }}), CAREER_STORAGE_KEY, clearCareerHarnessState,
+  () => ({fresh:true}), () => true, () => { clearResetCalls++; }, () => { clearBriefingCalls++; }
+);
+assert.equal(clearCareerRecordBehavior(),true,'§74 調整画面から確認後に勤務記録を消去できない');
+assert.equal(clearConfirmCalls,1,'§74 調整画面からの消去確認が1回ではない');
+assert.equal(clearCareerRecordBehavior(false),true,'§74 二周目開始で勤務記録を消去できない');
+assert.equal(clearConfirmCalls,1,'§74 二周目開始で不要な確認を重ねる');
+assert.equal(clearRemoveCalls,2,'§74 二周目開始が保存済みキャリアを消去しない');
+assert.equal(clearResetCalls,2,'§74 二周目開始がゲーム状態を初期化しない');
+assert.equal(clearBriefingCalls,2,'§74 二周目開始後に1日目のブリーフィングへ戻らない');
+
+// §28-5／§53: 解決済み集合は互換用の勤務記録として保持する。
 const scenarioIds28 = SCENARIOS.map(scenario => scenario.id);
-const surfaceRecord28 = careerFns.freshCareerRecord(); surfaceRecord28.solvedScenarios=scenarioIds28.slice(0,-1);
-const neutralContext = {maxStresses:[80,80],redials:1,abandoned:0,resultKinds:['closed'],noRefundsOrShipments:false,allResolved:false,allRefunded:false,solvedScenarioIds:[]};
-const surfaceUpdate28 = careerFns.appendCareerShift(surfaceRecord28,baseShift(),Object.assign({},neutralContext,{solvedScenarioIds:[scenarioIds28.at(-1)]}));
-assert.deepEqual(surfaceUpdate28.endingQueue,['career'],'§28 全案件を解決しても表エンディングへ進まない');
-assert.deepEqual(careerFns.appendCareerShift(surfaceRecord28,baseShift(),neutralContext).endingQueue,[],'§28 1件不足で表エンディングへ進む');
+const neutralContext = {maxStresses:[80,80],redials:1,abandoned:0,resultKinds:['closed'],noRefundsOrShipments:false,allResolved:false,anyRefunded:false,solvedScenarioIds:[]};
 
 // §28-5／§53 検査3〜5: 返金・失客は解決に数えず、closedだけを重複なしで数える。
 const solvedTickets28 = [
@@ -1660,31 +1682,36 @@ assert.deepEqual(persistentSolvedUpdate28.career.solvedScenarios,['S1','S2','S3'
 const duplicateSolved28 = careerFns.freshCareerRecord(); duplicateSolved28.solvedScenarios=['S1'];
 assert.deepEqual(careerFns.appendCareerShift(duplicateSolved28,baseShift(),Object.assign({},neutralContext,{solvedScenarioIds:['S1']})).career.solvedScenarios,['S1'],'§28 保存済みの同じ案件を重複して数える');
 
-// §28-5 検査7〜11: 裏は8バッジ、両方同時なら表→裏、一度見た側は再発火しない。
-const endingRecord = careerFns.freshCareerRecord(); endingRecord.badges=CAREER_BADGES.map(b=>b.id);
-const sevenRecord = careerFns.freshCareerRecord(); sevenRecord.badges=CAREER_BADGES.slice(0,7).map(b=>b.id);
-assert.deepEqual(careerFns.appendCareerShift(endingRecord,baseShift(),neutralContext).endingQueue,['secret'],'§28 8バッジで裏エンディングへ進まない');
-assert.deepEqual(careerFns.appendCareerShift(sevenRecord,baseShift(),neutralContext).endingQueue,[],'§28 7バッジで裏エンディングへ進む');
-const bothRecord28 = careerFns.freshCareerRecord(); bothRecord28.badges=CAREER_BADGES.map(b=>b.id); bothRecord28.solvedScenarios=scenarioIds28;
-assert.deepEqual(careerFns.appendCareerShift(bothRecord28,baseShift(),neutralContext).endingQueue,['career','secret'],'§28 同じ夜に両条件を満たしても表→裏の順にならない');
-const bothSeen28 = JSON.parse(JSON.stringify(bothRecord28)); bothSeen28.ending=true; bothSeen28.secretEnding=true;
-assert.deepEqual(careerFns.appendCareerShift(bothSeen28,baseShift(),neutralContext).endingQueue,[],'§28 見た表・裏エンディングが次の夜にも自動再生される');
+// §74: 唯一のエンディングは「リーダー到達」と「8バッジ」の両方が揃ったときだけ発火する。
+const allBadges74 = CAREER_BADGES.map(badge => badge.id);
+const probationAllBadges74 = careerFns.freshCareerRecord(); probationAllBadges74.badges=allBadges74;
+const leadSevenBadges74 = careerFns.freshCareerRecord(); leadSevenBadges74.stage='lead'; leadSevenBadges74.badges=allBadges74.slice(0,-1);
+const leadAllBadges74 = careerFns.freshCareerRecord(); leadAllBadges74.stage='lead'; leadAllBadges74.badges=allBadges74;
+assert.deepEqual(careerFns.careerEndingQueue(probationAllBadges74),[],'§74 リーダー未到達でエンディングへ進む');
+assert.deepEqual(careerFns.careerEndingQueue(leadSevenBadges74),[],'§74 7バッジでエンディングへ進む');
+assert.deepEqual(careerFns.careerEndingQueue(leadAllBadges74),['career'],'§74 リーダー到達＋8バッジでもエンディングへ進まない');
+const seenFinal74 = JSON.parse(JSON.stringify(leadAllBadges74)); seenFinal74.finalEnding=true;
+assert.deepEqual(careerFns.careerEndingQueue(seenFinal74),[],'§74 見たエンディングが次の夜にも自動再生される');
+const solvedOnly74 = careerFns.freshCareerRecord(); solvedOnly74.solvedScenarios=scenarioIds28;
+assert.deepEqual(careerFns.careerEndingQueue(solvedOnly74),[],'§74 全案件解決だけで旧エンディングが再発火する');
+const legacySeen74 = JSON.parse(JSON.stringify(leadAllBadges74)); legacySeen74.ending=true; legacySeen74.secretEnding=true;
+assert.deepEqual(careerFns.careerEndingQueue(legacySeen74),['career'],'§74 旧エンディング閲覧歴のため新しい統合エンディングを見られない');
+const sameShiftUnlock74 = careerFns.freshCareerRecord();
+sameShiftUnlock74.stage='employed'; sameShiftUnlock74.totals.days=5; sameShiftUnlock74.shifts=[baseShift('B'),baseShift('B'),baseShift('B')]; sameShiftUnlock74.badges=allBadges74.filter(id => id !== 'quiet_night');
+const sameShiftUpdate74 = careerFns.appendCareerShift(sameShiftUnlock74,baseShift('B'),{maxStresses:[70,70],redials:1,abandoned:0,resultKinds:['closed','closed'],noRefundsOrShipments:false,allResolved:false,anyRefunded:false,solvedScenarioIds:[]});
+assert.equal(sameShiftUpdate74.career.stage,'lead','§74 同じシフトの成績でリーダーへ昇格しない');
+assert(sameShiftUpdate74.newBadges.includes('quiet_night'),'§74 同じシフトで8個目のバッジを取得できない');
+assert.deepEqual(sameShiftUpdate74.endingQueue,['career'],'§74 同じシフトでリーダー昇格＋8個目のバッジ達成後にエンディングへ進まない');
 
 // §23/§28: 報告提出時ではなく終了レポートを閉じた後に、キューから開始する。
 assert(!functionSource('submitReport').includes('showCareerEnding') && functionSource('renderDebrief').includes('state.careerUpdate.endingQueue.length') && functionSource('renderDebrief').includes('showNextCareerEnding()'), '§28 エンディングが終了レポートを閉じる前に始まる');
 
-// §23-6 検査3: 表の閲覧時にending=trueを保存する。
+// §23-6／§74: 統合エンディング閲覧時にfinalEnding=trueを保存する。
 const endingSource = functionSource('showCareerEnding');
-assert(endingSource.includes('state.career.ending = true') && endingSource.includes('writeCareerRecord(state.career)'), 'エンディング閲覧済みを保存しない');
-const secretEndingSource28 = functionSource('showSecretEnding');
-assert(secretEndingSource28.includes("showCareerEnding(replay, 'secret')") && !secretEndingSource28.includes('準備中'), '§28 裏エンディングが表と同じ演出を再生しない');
-assert(endingSource.includes("endingType === 'secret'") && endingSource.includes('state.career.secretEnding = true') && endingSource.includes('writeCareerRecord(state.career)'), '§28 裏エンディング閲覧済みを保存しない');
-const endingEyebrowSource28 = functionSource('careerEndingEyebrowHtml');
-assert(endingEyebrowSource28.includes("state.endingType === 'secret'") && endingEyebrowSource28.includes('aria-label="裏エンディング">裏</span>') && endingEyebrowSource28.includes('THE NEXT MORNING ／ ALL-HANDS MEETING'), '§28 同じ朝礼演出の裏エンディングに小さな印がない');
-assert(functionSource('continueAfterCareerEnding').includes("if (next === 'secret'){ showSecretEnding(false); return; }"), '§28 表の後に裏エンディングへ続かない');
+assert(endingSource.includes('state.career.finalEnding = true') && endingSource.includes('writeCareerRecord(state.career)'), '§74 エンディング閲覧済みを保存しない');
 
-// §23/§28: ゲーム調整から表・裏を明示的に再生できる。
-assert(balanceConsoleSource.includes('balance-replay-ending') && balanceConsoleSource.includes('showCareerEnding(true)') && balanceConsoleSource.includes('balance-replay-secret-ending') && balanceConsoleSource.includes('showSecretEnding(true)'), '§28 ゲーム調整から表・裏エンディングを見返せない');
+// §23/§74: ゲーム調整から統合エンディングだけを明示的に再生できる。
+assert(balanceConsoleSource.includes('balance-replay-ending') && balanceConsoleSource.includes('showCareerEnding(true, wasPhase)') && !balanceConsoleSource.includes('balance-replay-secret-ending') && !balanceConsoleSource.includes('showSecretEnding'), '§74 ゲーム調整のエンディング再生が単一になっていない');
 
 // §23-6 検査5: 同じオフィスを朝パレットで再描画する。
 assert(functionSource('drawMorningOffice').includes("drawOfficePixelArt(false, 'ending-office-canvas', MORNING_OFFICE_PALETTE)"), '朝のオフィスが夜景のパレット差し替えになっていない');
@@ -1700,13 +1727,13 @@ assert.equal(PRESIDENT_ENDING_LINE,approvedPresidentLine,'社長の確定文が�
 const endingDetailsSource = functionSource('careerEndingDetailsHtml');
 assert(endingDetailsSource.includes('totals.days') && endingDetailsSource.includes('totals.averageCsat') && endingDetailsSource.includes('totals.complaints') && functionSource('endingBadgeHtml').includes('CAREER_BADGES.map'), 'エンディングに通算成績と8バッジが揃わない');
 
-// §23-6 検査9: ミュートでも朝景・社長・戻るボタンは描画される。
-assert(!endingSource.includes('soundEnabled') && endingSource.includes('drawMorningOffice()') && functionSource('careerEndingFinalHtml').includes('ending-back-to-shift'), 'ミュート時にエンディング画面が成立しない');
+// §23-6 検査9: ミュートでも朝景・社長・最終操作は描画される。
+assert(!endingSource.includes('soundEnabled') && endingSource.includes('drawMorningOffice()') && functionSource('careerEndingFinalHtml').includes('ending-second-loop'), 'ミュート時にエンディング画面が成立しない');
 
-// §28-5 検査12〜13: レポートは解決数だけを示し、GAME_FLAGSから表・裏の条件を再現できる。
-assert(careerDebriefSource.includes("解決した案件 ' + career.solvedScenarios.length + ' / ' + SCENARIOS.length") && !careerDebriefSource.includes('SCENARIOS.map') && !careerDebriefSource.includes('scenario.name'), '§28 レポートが解決数を出さない、または未解決案件名を漏らす');
-const forcedEnding = careerFns.careerWithFlags(careerFns.freshCareerRecord(),{careerStage:null,unlockedBadges:CAREER_BADGES.map(b=>b.id),solvedScenarios:scenarioIds28});
-assert.deepEqual(careerFns.careerEndingQueue(forcedEnding),['career','secret'],'§28 GAME_FLAGSから表・裏エンディングを再現できない');
+// §74: 終了レポートは唯一の条件をそのまま示し、旧表裏・全案件条件を見せない。
+assert(careerDebriefSource.includes("career.stage === 'lead' ? '到達' : '未到達'") && careerDebriefSource.includes("career.badges.length + ' / ' + CAREER_BADGES.length") && !/表エンディング|裏エンディング|解決した案件/.test(careerDebriefSource), '§74 終了レポートが統合エンディング条件を正しく示さない');
+const forcedEnding = careerFns.careerWithFlags(careerFns.freshCareerRecord(),{careerStage:'lead',unlockedBadges:allBadges74,solvedScenarios:scenarioIds28});
+assert.deepEqual(careerFns.careerEndingQueue(forcedEnding),['career'],'§74 GAME_FLAGSから統合エンディングを再現できない');
 
 // §23-6 検査11: 初期DOMには空の発話欄だけを置き、全文を一度に表示しない。
 assert(endingSource.includes('class="ending-line line typing"') && endingSource.includes('<span class="say"></span>') && !endingSource.includes('esc(PRESIDENT_ENDING_LINE)'), '社長の台詞が1文字ずつではなく一度に全文表示される');
@@ -1723,16 +1750,35 @@ assert(functionSource('finishTyping').includes("if (state.phase === 'ending'){ r
 
 // §23-6 検査14: 全画面クリックの既存作法がtypingLineを即時完了する。
 assert(eventSource.includes("if (typingLine){ finishTyping(); return; }"), '社長の台詞をタップで送り切れない');
-assert(endingSource.includes('setTimeout(() => startTyping(state.endingSpeech), 0)') && endingSource.includes('tapGuardTimer = setTimeout(clearEndingTapGuard, 400)') && functionSource('finishTyping').includes("state.phase === 'ending' && endingTapGuard") && balanceConsoleSource.includes("$('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true); };") && balanceConsoleSource.includes("$('balance-replay-secret-ending').onclick = event => { event.stopImmediatePropagation(); showSecretEnding(true); };") && functionSource('renderDebrief').includes('event.stopImmediatePropagation()'), '社長の再生操作自体がタップ送りに誤認される');
+assert(endingSource.includes('setTimeout(() => startTyping(state.endingSpeech), 0)') && endingSource.includes('tapGuardTimer = setTimeout(clearEndingTapGuard, 400)') && functionSource('finishTyping').includes("state.phase === 'ending' && endingTapGuard") && balanceConsoleSource.includes("$('balance-replay-ending').onclick = event => { event.stopImmediatePropagation(); showCareerEnding(true, wasPhase); };") && functionSource('renderDebrief').includes('event.stopImmediatePropagation()'), '社長の再生操作自体がタップ送りに誤認される');
 
 // §23-6 検査15: 頭頂部は地肌、髪は左右の側頭部だけで、上をつながない。
 const presidentDrawSource = functionSource('drawCompanyPresident');
 assert(presidentDrawSource.includes("pixelRect(ctx, p.paper, x + 1, y - 24, 9, 5)") && presidentDrawSource.includes("pixelRect(ctx, p.charcoal, x - 2, y - 21, 3, 8)") && presidentDrawSource.includes("pixelRect(ctx, p.charcoal, x + 10, y - 21, 3, 8)"), '社長の頭頂部地肌と両サイドの髪が描き分けられていない');
 assert(!presidentDrawSource.includes("pixelRect(ctx, p.charcoal, x - 1, y - 23, 13, 5)"), '社長の頭頂部を髪が横断している');
 
-// §23-6 検査16: ENDは称号の後、戻るボタンの前に置き、簡潔な文字組みにする。
+// §23-6／§74 検査16: ENDは称号の後、最終操作の前に置き、通常到達時だけ二周目を開始できる。
 const endingFinalSource = functionSource('careerEndingFinalHtml');
-assert(endingFinalSource.includes('id="ending-end">END</div>') && endingFinalSource.indexOf('ending-end') < endingFinalSource.indexOf('ending-back-to-shift'), 'ENDが称号一覧の下・戻るボタンの上に簡潔に表示されない');
+const careerEndingFinalBehavior = new Function('state', endingFinalSource + '\nreturn careerEndingFinalHtml;');
+const normalEndingFinal74 = careerEndingFinalBehavior({endingReplay:false})();
+const replayEndingFinal74 = careerEndingFinalBehavior({endingReplay:true})();
+assert(normalEndingFinal74.includes('id="ending-second-loop">二周目を始める</button>'),'§74 通常エンディング後に二周目開始が出ない');
+assert(!normalEndingFinal74.includes('ending-back-to-shift'),'§74 通常エンディング後に旧「戻る」操作が残る');
+assert(replayEndingFinal74.includes('id="ending-back-to-shift">再生を終える</button>'),'§74 調整画面からの再生終了でキャリア消去を迫る');
+assert(normalEndingFinal74.includes('id="ending-end">END</div>') && normalEndingFinal74.indexOf('ending-end') < normalEndingFinal74.indexOf('ending-second-loop') && replayEndingFinal74.indexOf('ending-end') < replayEndingFinal74.indexOf('ending-back-to-shift'),'ENDが称号一覧の下・最終操作の上に簡潔に表示されない');
+const revealEndingSource74 = functionSource('revealCareerEndingFinal');
+assert(revealEndingSource74.includes("$('ending-second-loop').onclick = () => clearCareerRecord(false)") && revealEndingSource74.includes("if (state.endingReplay) $('ending-back-to-shift').onclick"),'§74 二周目開始と非破壊の再生終了が正しい処理へつながらない');
+const replayReturnState74 = {endingReplay:true,endingReturnPhase:'office',phase:'ending'};
+let replayResetCalls74 = 0, replayBriefingCalls74 = 0, replayCloseCalls74 = 0, replayRenderCalls74 = 0;
+const continueEndingBehavior74 = new Function('state','pendingCareerEndingType','showCareerEnding','showBriefing','renderDebrief','resetGame','closeSheet','render', functionSource('continueAfterCareerEnding') + '\nreturn continueAfterCareerEnding;')(
+  replayReturnState74, () => null, () => {}, () => { replayBriefingCalls74++; }, () => {}, () => { replayResetCalls74++; }, () => { replayCloseCalls74++; }, () => { replayRenderCalls74++; }
+);
+continueEndingBehavior74();
+assert.equal(replayReturnState74.phase,'office','§74 調整画面の再生終了後に元のシフト画面へ戻らない');
+assert.equal(replayResetCalls74,0,'§74 調整画面の再生終了で進行中シフトを初期化する');
+assert.equal(replayBriefingCalls74,0,'§74 調整画面の再生終了で1日目へ戻す');
+assert.equal(replayCloseCalls74,1,'§74 調整画面の再生終了でエンディング画面を閉じない');
+assert.equal(replayRenderCalls74,1,'§74 調整画面の再生終了で元のシフトを再描画しない');
 const endingEndCss = page.slice(page.indexOf('.ending-end{'), page.indexOf('}', page.indexOf('.ending-end{')));
 assert(/font:800 34px/.test(endingEndCss) && /letter-spacing:\.36em/.test(endingEndCss) && /text-align:center/.test(endingEndCss) && !/border|animation/.test(endingEndCss), 'ENDが大きな中央揃え・字間広めの簡潔な表示でない');
 
@@ -1741,7 +1787,7 @@ const endingCompleteSource = functionSource('renderCareerEndingComplete');
 assert(endingCompleteSource.includes("'<div id=\"ending-finale\"></div>'") && endingCompleteSource.includes('setTimeout(revealCareerEndingFinal, 1000)'), 'ENDが通算成績と称号一覧より約1秒遅れて現れない');
 
 // §23-6 検査18: 戻るボタンはENDと同じ最終開示で、その後ろにある。
-assert(functionSource('revealCareerEndingFinal').includes('slot.innerHTML = careerEndingFinalHtml()') && endingFinalSource.indexOf('ending-back-to-shift') > endingFinalSource.indexOf('ending-end'), '戻るボタンがENDより先に現れる');
+assert(functionSource('revealCareerEndingFinal').includes('slot.innerHTML = careerEndingFinalHtml()') && replayEndingFinal74.indexOf('ending-back-to-shift') > replayEndingFinal74.indexOf('ending-end'), '戻るボタンがENDより先に現れる');
 
 // §23-6 検査19: タップ完了は一拍を省略し、自然完了だけが待つ。
 assert(functionSource('finishTyping').includes('skipEndingBeat = true') && functionSource('startTyping').includes('finishTyping(false)') && endingCompleteSource.includes('if (skipEndingBeat) revealCareerEndingFinal()'), 'タップ送りでENDと戻るボタンまで一度に表示されない');
@@ -1816,7 +1862,7 @@ assert.deepEqual(CAREER_BADGES.map(badge => [badge.id,badge.condition]), [
   ['frugal','返金と配送をどちらも使わない'],
   ['all_first','全案件を解決（再入電があってもよい）'],
   ['storm','同じ夜に苦情と一方的切断の両方が発生'],
-  ['money_talks','全案件で返金を実施'],
+  ['money_talks','1件でも返金を実施'],
   ['ten_nights','通算5シフトを完了'],
   ['clean_record','直近2シフトの苦情が0件'],
 ], '§24 バッジ8種の表示文言が緩和条件と一致しない');
@@ -2090,8 +2136,8 @@ assert(s13AssignedRemedies30.every(remedy => remedy && remedy.label.includes('�
 // §30-6 検査10: 不安型の客が第一声で自分を責め、会社の手配ミスは疑わない。
 assert(s13Logistics30.type === 'anxious' && /私が.*間違え/.test(s13Logistics30.opening) && !/手配|貸出|会社|御社|違うSIM/.test(s13Logistics30.opening), '§30 検査10: anxiousの自己責任型第一声になっていない');
 
-// §30-6 検査11: 案件が増えても表エンディングとレポートは動的総数を使う。
-assert(SCENARIOS.length === 24 && functionSource('careerEndingQueue').includes('career.solvedScenarios.length === SCENARIOS.length') && functionSource('careerDebriefHtml').includes("' / ' + SCENARIOS.length"), '§30 検査11: 24件または動的な全件エンディング・集計になっていない');
+// §30-6／§74 検査11: 案件数は24件を保ち、件数をエンディング条件には使わない。
+assert(SCENARIOS.length === 24 && !/solvedScenarios|SCENARIOS/.test(functionSource('careerEndingQueue')) && !functionSource('careerDebriefHtml').includes("' / ' + SCENARIOS.length"), '§74 旧全案件エンディング条件が残っている');
 
 // §30-6 検査12: progression_testが辿る既存前提データをS13にも揃える。
 assert(s13Best30.requiresQuestions.every(id => QUESTIONS.some(question => question.id === id) && s13Logistics30.replies[id]) && s13Logistics30.stayDays >= s13Best30.requiresLongStay && s13Logistics30.wantsReplacement === true, '§30 検査12: progression_test用の正解ルート前提が揃っていない');
@@ -2929,6 +2975,54 @@ const verify64 = functionSource('runDeviceVerification');
 assert(verify64.includes('advance(1)') && verify64.includes('state.deviceVerificationMinutes++') && verify64.includes("t.state === 'waiting'") && verify64.includes("t.state === 'callback' && t.callbackDue <= state.clock") && verify64.includes('state.verifiedDevices++'),'§67 検査C1: 機器検証の1分進行・着信/折り返し中断・完了台数が揃わない');
 assert(functionSource('renderOffice').includes("$('office-verify').disabled = waiting.length > 0 || readyCallbacks.length > 0") && functionSource('renderOffice').includes('state.deviceVerificationMinutes'),'§67 検査C2: 着信または折り返し時刻到来中に機器検証を開始できる');
 assert(functionSource('renderReport').includes("機器検証 ' + state.verifiedDevices + '台完了") && !functionSource('metrics').includes('verifiedDevices') && !functionSource('careerShiftContext').includes('verifiedDevices'),'§64 検査7: 機器検証台数が報告に出ない、または電話対応の採点へ混ざる');
+
+// §73: 返却機は機器名と症状を見て検査を選び、完了台数だけルーターが積み上がる。
+assert.equal(DEVICE_VERIFICATION_ACTIONS.length,4,'§73 検査1: 検査の選択肢が4種類でない');
+assert.equal(DEVICE_VERIFICATION_CASES.length,4,'§73 検査1: 返却機の症状パターンが4種類でない');
+assert.equal(new Set(DEVICE_VERIFICATION_ACTIONS.map(action => action.id)).size,DEVICE_VERIFICATION_ACTIONS.length,'§73 検査1: 検査IDが重複している');
+assert(DEVICE_VERIFICATION_CASES.every(item => item.device && item.symptom && item.result && DEVICE_VERIFICATION_ACTIONS.some(action => action.id === item.correctAction)),'§73 検査1: 機器名・症状・完了結果・正解検査のいずれかが欠けている');
+
+const verificationState73 = {verifiedDevices:0,deviceVerificationMinutes:0,deviceVerificationFeedback:''};
+const currentVerification73 = new Function('state','DEVICE_VERIFICATION_CASES',functionSource('currentDeviceVerificationCase') + '\nreturn currentDeviceVerificationCase;')(verificationState73,DEVICE_VERIFICATION_CASES);
+const verificationMatches73 = new Function('state','DEVICE_VERIFICATION_CASES','DEVICE_VERIFICATION_ACTIONS','currentDeviceVerificationCase',functionSource('deviceVerificationChoiceMatches') + '\nreturn deviceVerificationChoiceMatches;')(verificationState73,DEVICE_VERIFICATION_CASES,DEVICE_VERIFICATION_ACTIONS,currentVerification73);
+assert.equal(currentVerification73().id,'V1','§73 検査2: 最初の返却機がV1でない');
+verificationState73.verifiedDevices = 1;
+assert.equal(currentVerification73().id,'V2','§73 検査2: 1台完了後に次の返却機へ進まない');
+verificationState73.verifiedDevices = DEVICE_VERIFICATION_CASES.length;
+assert.equal(currentVerification73().id,'V1','§73 検査2: 症状パターンを一巡した後に先頭へ戻らない');
+verificationState73.verifiedDevices = 0;
+assert(verificationMatches73('power') && !verificationMatches73('sim'),'§73 検査3: V1で症状に合わない検査も正解になる');
+
+let verificationRuns73 = 0;
+const chooseVerification73 = new Function('state','DEVICE_VERIFICATION_ACTIONS','currentDeviceVerificationCase','deviceVerificationChoiceMatches','runDeviceVerification',functionSource('chooseDeviceVerification') + '\nreturn chooseDeviceVerification;')(
+  verificationState73,DEVICE_VERIFICATION_ACTIONS,currentVerification73,verificationMatches73,() => { verificationRuns73++; return {advanced:60,interrupted:false,completed:true}; }
+);
+const wrongVerification73 = chooseVerification73('sim');
+assert(!wrongVerification73.accepted && wrongVerification73.advanced === 0 && verificationRuns73 === 0 && verificationState73.verifiedDevices === 0 && verificationState73.deviceVerificationMinutes === 0,'§73 検査3: 誤った検査で時間または完了台数が進む');
+assert(verificationState73.deviceVerificationFeedback.includes('選び直してください'),'§73 検査3: 誤った検査の再選択案内が出ない');
+const correctVerification73 = chooseVerification73('power');
+assert(correctVerification73.accepted && correctVerification73.completed && verificationRuns73 === 1 && verificationState73.deviceVerificationFeedback === '','§73 検査4: 正しい検査から60分検証へ進めない');
+
+const verificationSheetNodes73 = {sheet:{innerHTML:''}};
+let verificationSheetOpened73 = false;
+const showVerification73 = new Function('$','state','DEVICE_VERIFICATION_MINUTES','DEVICE_VERIFICATION_ACTIONS','currentDeviceVerificationCase','esc','openSheet',functionSource('showDeviceVerification') + '\nreturn showDeviceVerification;')(
+  id => verificationSheetNodes73[id],verificationState73,DEVICE_VERIFICATION_MINUTES,DEVICE_VERIFICATION_ACTIONS,currentVerification73,value => String(value),() => { verificationSheetOpened73 = true; }
+);
+showVerification73();
+assert(verificationSheetOpened73 && verificationSheetNodes73.sheet.innerHTML.includes('GD-500') && verificationSheetNodes73.sheet.innerHTML.includes('電源ボタンを押しても起動しない'),'§73 検査5: 検証画面に機器名と一行症状が出ない');
+assert.equal((verificationSheetNodes73.sheet.innerHTML.match(/data-device-verification-check=/g) || []).length,DEVICE_VERIFICATION_ACTIONS.length,'§73 検査5: 検証画面に全検査選択肢が出ない');
+
+const routerStackLayout73 = new Function(functionSource('verifiedRouterStackLayout') + '\nreturn verifiedRouterStackLayout;')();
+assert.equal(routerStackLayout73(0).length,0,'§73 検査6: 未完了なのにルーターが描かれる');
+const threeRouters73 = routerStackLayout73(3);
+assert.equal(threeRouters73.length,3,'§73 検査6: 完了3台ぶんのルーターが積まれない');
+assert(threeRouters73[0].y > threeRouters73[1].y && threeRouters73[1].y > threeRouters73[2].y,'§73 検査6: ルーターが下から上へ積み上がらない');
+let routerRects73 = 0;
+const drawRouterStack73 = new Function('pixelRect','verifiedRouterStackLayout',functionSource('drawVerifiedRouterStack') + '\nreturn drawVerifiedRouterStack;')(() => { routerRects73++; },routerStackLayout73);
+drawRouterStack73({},OFFICE_PALETTE,3);
+assert.equal(routerRects73,15,'§73 検査6: 棚と3台のルーターが個別に描画されない');
+assert(functionSource('drawOfficePixelArt').includes('drawVerifiedRouterStack(ctx, p, state.verifiedDevices)'),'§73 検査6: オフィス描画が完了台数をルーター棚へ渡さない');
+assert(functionSource('handleOfficeAction').includes('showDeviceVerification()') && functionSource('handleOfficeAction').includes('chooseDeviceVerification(d.deviceVerificationCheck)'),'§73 検査7: 機器検証ボタンと検査選択がイベント配線されていない');
 
 // §65: 急ぐ客は一般折り返しを断り、同じ通話で解決を続ける。
 const hurriedState65 = {focus:null,ui:null};
