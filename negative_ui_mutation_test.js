@@ -322,15 +322,15 @@ const mutations = [
   },
   {
     name:'§67 手配を通信復旧の抽選へ戻す', file:'p3_game.js',
-    from:"  if (remedy.outcomeMode === 'arrangement'){",
-    to:"  if (false && remedy.outcomeMode === 'arrangement'){",
-    expected:'§67 検査A4: 手配・返金が通信復旧の抽選に入る',
+    from:"  if (!t.symptomResolved && remedy.outcomeMode === 'arrangement'){",
+    to:"  if (false && !t.symptomResolved && remedy.outcomeMode === 'arrangement'){",
+    expected:'§67 検査A4: 未復旧時の手配・返金が通信復旧の抽選に入る',
   },
   {
     name:'§67 返金を通信復旧の抽選へ戻す', file:'p3_game.js',
-    from:"  if (remedy.outcomeMode === 'refund'){",
-    to:"  if (false && remedy.outcomeMode === 'refund'){",
-    expected:'§67 検査A4: 手配・返金が通信復旧の抽選に入る',
+    from:"  if (!t.symptomResolved && remedy.outcomeMode === 'refund'){",
+    to:"  if (false && !t.symptomResolved && remedy.outcomeMode === 'refund'){",
+    expected:'§67 検査A4: 未復旧時の手配・返金が通信復旧の抽選に入る',
   },
   {
     name:'§67 手配の結果待ちを即時解決へ変える', file:'p3_game.js',
@@ -346,8 +346,8 @@ const mutations = [
   },
   {
     name:'§43 手配では食い違い反論を飛ばす', file:'p3_game.js',
-    from:'if (!causeMatched && s.contradicts && s.contradicts[causeId]){',
-    to:"if (remedy.outcomeMode === 'treatment' && !causeMatched && s.contradicts && s.contradicts[causeId]){",
+    from:'if (!t.symptomResolved && !causeMatched && s.contradicts && s.contradicts[causeId]){',
+    to:"if (!t.symptomResolved && remedy.outcomeMode === 'treatment' && !causeMatched && s.contradicts && s.contradicts[causeId]){",
     expected:'§43-6 検査13: S3のcarrier×代替機手配で反論後も通話を続けられない',
   },
   {
@@ -1490,8 +1490,8 @@ const mutations = [
   },
   {
     name:'誤診2回目の謝罪と不調報告を逆転する', file:'p3_game.js',
-    from:"{ who:'cust', text:CALL_FLOW_LINES.misdiagnosis.failure },\n        { who:'me', text:CALL_FLOW_LINES.misdiagnosis.apology },",
-    to:"{ who:'me', text:CALL_FLOW_LINES.misdiagnosis.apology },\n        { who:'cust', text:CALL_FLOW_LINES.misdiagnosis.failure },",
+    from:"{ who:'cust', text:afterResolvedReply || CALL_FLOW_LINES.misdiagnosis.failure },\n        { who:'me', text:CALL_FLOW_LINES.misdiagnosis.apology },",
+    to:"{ who:'me', text:CALL_FLOW_LINES.misdiagnosis.apology },\n        { who:'cust', text:afterResolvedReply || CALL_FLOW_LINES.misdiagnosis.failure },",
     expected:'誤診2回目が「対処→不調報告→謝罪→最終怒り」の順ではない',
   },
   {
@@ -2882,6 +2882,36 @@ const mutations = [
     from:"  if (t.s && t.s.type === 'hurried'){",
     to:"  if (false && t.s && t.s.type === 'hurried'){",
     expected:'§65 検査4/5: 急ぐ客が一般折り返しを断って同じ通話で解決を続けられない',
+  },
+  {
+    name:'復旧後の誤診を未復旧の台詞へ戻す', file:'p3_game.js',
+    from:"    const afterResolvedReply = t.symptomResolved ? CALL_FLOW_LINES.misdiagnosis.afterResolved[s.type] : '';",
+    to:"    const afterResolvedReply = '';",
+    expected:'復旧後の誤診で、通信が戻ったままだと顧客が訂正しない',
+  },
+  {
+    name:'復旧確認済みの正しい説明にも運を再適用する', file:'p3_game.js',
+    from:'  const treatmentWorked = t.symptomResolved\n    ? explanationMatched',
+    to:'  const treatmentWorked = false && t.symptomResolved\n    ? explanationMatched',
+    expected:'復旧確認済みの正しい説明が運で未解決へ戻る',
+  },
+  {
+    name:'復旧後の誤診を返金処理へ進める', file:'p3_game.js',
+    from:"  if (!t.symptomResolved && remedy.outcomeMode === 'refund'){",
+    to:"  if (remedy.outcomeMode === 'refund'){",
+    expected:'復旧後の誤診がrefund処理へ進み、復旧状態との不整合を訂正できない',
+  },
+  {
+    name:'復旧後の誤診を手配処理へ進める', file:'p3_game.js',
+    from:"  if (!t.symptomResolved && remedy.outcomeMode === 'arrangement'){",
+    to:"  if (remedy.outcomeMode === 'arrangement'){",
+    expected:'復旧後の誤診がarrangement処理へ進み、復旧状態との不整合を訂正できない',
+  },
+  {
+    name:'調整コンソールを定義時の顧客名へ戻す', file:'p4_view.js',
+    from:'    scenario:currentById.get(scenario.id) || scenario,',
+    to:'    scenario,',
+    expected:'調整コンソールの先頭が今夜の案件にならない',
   },
   {
     name:'§9 引き継ぎ会議の人物を1人にする', file:'p4_view.js',

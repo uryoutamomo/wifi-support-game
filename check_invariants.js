@@ -39,8 +39,8 @@ const EXPECT = {
   S20:{ cause:'power',       best:'r_low_battery_charge',noOut:null,             partial:[],                tone:'warm' },
   S21:{ cause:'power',       best:'r_ac_charge',       noOut:null,               partial:[],                tone:'technical' },
   S22:{ cause:'power',       best:'r_cool_down',       noOut:null,               partial:[],                tone:'warm' },
-  S23:{ cause:'device_side', best:'r_unblock',         noOut:null,               partial:[],                tone:'warm' },
-  S24:{ cause:'device_net',  best:'r_airplane_off',    noOut:null,               partial:[],                tone:'technical' },
+  S23:{ cause:'device_side', best:'r_unblock',         noOut:null,               partial:[],                tone:'technical' },
+  S24:{ cause:'device_side', best:'r_phone_wifi_on',   noOut:null,               partial:[],                tone:'warm' },
 };
 
 // 依頼で渡した液晶データ
@@ -68,7 +68,7 @@ const PANEL = {
   S21:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:2, battery:9 },
   S22:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:1, battery:46 },
   S23:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:1, battery:67 },
-  S24:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:1, battery:79 },
+  S24:{ bars:4, carrier:'{carrier}',     sim:'ok',   throttle:false, clients:0, battery:79 },
 };
 
 let ng = 0;
@@ -116,11 +116,11 @@ const EXPECTED_QUESTION_GROUPS = [
   { id:'customer', no:'1', label:'顧客のこと', questionIds:['q_name','q_contract','q_stay','q_stay_length','q_replacement','q_return'] },
   { id:'local', no:'2', label:'現地のこと', questionIds:['q_destination','q_where','q_moved'] },
   { id:'device', no:'3', label:'本体のこと', questionIds:['q_lamp','q_battery','q_ssid'] },
-  { id:'symptom', no:'4', label:'症状のこと', questionIds:['q_other_device','q_when','q_count','q_what_fails'] },
+  { id:'symptom', no:'4', label:'症状のこと', questionIds:['q_other_device','q_when','q_count','q_what_fails','q_phone_connection'] },
 ];
 if (JSON.stringify(QUESTION_GROUPS) !== JSON.stringify(EXPECTED_QUESTION_GROUPS)) bad('聞くの4区分と質問の内訳が確定表と違う');
 const groupedQuestionIds = QUESTION_GROUPS.flatMap(group => group.questionIds);
-if (groupedQuestionIds.length !== QUESTIONS.length) bad('15問すべてがちょうど1区分に入っていない');
+if (groupedQuestionIds.length !== QUESTIONS.length) bad('質問がすべてちょうど1区分に入っていない');
 if (new Set(groupedQuestionIds).size !== groupedQuestionIds.length) bad('複数区分に重複している質問がある');
 const questionIdSet = new Set(QUESTIONS.map(question => question.id));
 if (groupedQuestionIds.some(id => !questionIdSet.has(id)) || QUESTIONS.some(question => !groupedQuestionIds.includes(question.id))) bad('区分と質問マスタのIDが一致しない');

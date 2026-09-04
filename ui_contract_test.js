@@ -449,7 +449,7 @@ assert(remedies43.every(remedy => ['treatment','arrangement','refund'].includes(
 });
 const deferred43 = functionSource('finishDeferredArrangement');
 const refund43 = functionSource('finishRemedyRefund');
-assert(close43.includes("if (remedy.outcomeMode === 'refund'){") && close43.includes("if (remedy.outcomeMode === 'arrangement'){") && close43.indexOf("remedy.outcomeMode === 'refund'") < close43.indexOf('treatmentSucceeds(') && close43.indexOf("remedy.outcomeMode === 'arrangement'") < close43.indexOf('treatmentSucceeds('), '§67 検査A4: 手配・返金が通信復旧の抽選に入る');
+assert(close43.includes("remedy.outcomeMode === 'refund'") && close43.includes("remedy.outcomeMode === 'arrangement'") && !close43.includes('if (false &&') && close43.indexOf("remedy.outcomeMode === 'refund'") < close43.indexOf('treatmentSucceeds(') && close43.indexOf("remedy.outcomeMode === 'arrangement'") < close43.indexOf('treatmentSucceeds('), '§67 検査A4: 未復旧時の手配・返金が通信復旧の抽選に入る');
 assert(deferred43.includes("kind:'deferred'") && deferred43.includes('通信復旧の成否は、配送・引き継ぎ後に確認') && !/繋がりました|つながりました/.test(deferred43), '§67 検査A5: 手配直後に復旧を確定する');
 assert(refund43.includes("kind:'refunded'") && refund43.includes('通信は戻っていません') && !refund43.includes('treatmentSucceeds'), '§67 検査A6: 返金が通信復旧として扱われる');
 const deferredState67 = {cost:0,escLeft:3,ui:null};
@@ -513,18 +513,18 @@ assert.equal(expectedTreatment(false), false, '本来どおり時に誤診が失
 assert.equal(adverseTreatment(true), false, '裏目時に正しい対処が未解決にならない');
 assert.equal(adverseTreatment(false), true, '裏目時に誤診が解決しない');
 
-function runCloseContract(causeMatched, expectedOutcome, nameKnown = false, identityStressSeen = false){
+function runCloseContract(causeMatched, expectedOutcome, nameKnown = false, identityStressSeen = false, symptomResolved = false, wrongOutcomeMode = 'treatment'){
   const ticket = {
     s:{ trueCause:'right', best:'r_right', partial:[], type:'hurried' }, state:'open', transcript:[],
     callMinutes:0, holdMinutes:0, stress:10, patience:100, damage:0, wasted:0, misdiagnoses:0,
-    shipment:null, pendingResult:null, extraMinutes:0, nameKnown, identityStressSeen,
+    shipment:null, pendingResult:null, extraMinutes:0, nameKnown, identityStressSeen, symptomResolved,
   };
   const closeState = { focus:ticket, cost:0, escLeft:3, ui:null };
   const deps = {
     state:closeState,
     REMEDIES:{
       right:[{id:'r_right', label:'正しい対処', cost:100, kind:'guide', verifiable:true, outcomeMode:'treatment'}],
-      wrong:[{id:'r_wrong', label:'誤った対処', cost:200, kind:'guide', verifiable:true, outcomeMode:'treatment'}],
+      wrong:[{id:'r_wrong', label:'誤った対処', cost:200, kind:'guide', verifiable:true, outcomeMode:wrongOutcomeMode}],
     },
     TYPES:{ hurried:{tone:'brief'} },
     IDENTITY_RECORD_PENALTY,
@@ -543,7 +543,8 @@ function runCloseContract(causeMatched, expectedOutcome, nameKnown = false, iden
     gradeLabel:grade => grade === 'best' ? '解決' : grade,
     defaultUi:() => ({}), closingLine:() => '解決しました', farewellLine:() => 'ありがとうございました',
     resolutionOperatorClosing:() => '失礼いたします', CALL_FLOW_LINES,
-    finishRemedyRefund:() => {}, finishDeferredArrangement:() => {},
+    finishRemedyRefund:t => { t.specialOutcomeFinished = 'refund'; },
+    finishDeferredArrangement:t => { t.specialOutcomeFinished = 'arrangement'; },
   };
   const run = new Function(...Object.keys(deps), functionSource('finishSuccessfulClose') + '\n' + functionSource('remedyMatchesScenario') + '\n' + functionSource('doClose') + '\nreturn doClose;')(...Object.values(deps));
   run(causeMatched ? 'right' : 'wrong', causeMatched ? 'r_right' : 'r_wrong');
@@ -560,6 +561,24 @@ assert.equal(wrongAdverse.misdiagnoses, 0, '裏目の誤診でmisdiagnosesが増
 const wrongExpected = runCloseContract(false, true);
 assert.equal(wrongExpected.misdiagnoses, 1, '本来どおりの誤診がmisdiagnosesに数えられない');
 const correctExpected = runCloseContract(true, true);
+const resolvedWrong = runCloseContract(false, true, false, false, true);
+assert.equal(resolvedWrong.symptomResolved, true, '復旧後の誤診が復旧状態を取り消す');
+assert.equal(resolvedWrong.pendingResult, null, '復旧後の誤診が正しい説明として終話する');
+assert.equal(resolvedWrong.misdiagnoses, 1, '復旧後の誤診が見立て違いとして記録されない');
+assert(resolvedWrong.transcript.some(line => line.who === 'cust' && line.text.includes('通信は戻ったまま')),
+  '復旧後の誤診で、通信が戻ったままだと顧客が訂正しない');
+assert(!resolvedWrong.transcript.some(line => line.who === 'cust' && /直りません|繋がらない|圏外/.test(line.text)),
+  '復旧後の誤診で未復旧・圏外の台詞へ巻き戻る');
+const resolvedCorrectAdverse = runCloseContract(true, false, false, false, true);
+assert(resolvedCorrectAdverse.pendingResult && resolvedCorrectAdverse.pendingResult.causeMatched === true,
+  '復旧確認済みの正しい説明が運で未解決へ戻る');
+for (const mode of ['refund','arrangement']){
+  const resolvedSpecialWrong = runCloseContract(false, true, false, false, true, mode);
+  assert(!resolvedSpecialWrong.specialOutcomeFinished && resolvedSpecialWrong.state === 'open' && resolvedSpecialWrong.symptomResolved,
+    '復旧後の誤診が' + mode + '処理へ進み、復旧状態との不整合を訂正できない');
+  assert(resolvedSpecialWrong.transcript.some(line => line.who === 'cust' && line.text.includes('通信は戻ったまま')),
+    '復旧後の' + mode + '誤診で、顧客が通信状態を訂正しない');
+}
 assert.deepEqual(
   [correctExpected.callMinutes + correctExpected.extraMinutes, correctAdverse.callMinutes + correctAdverse.extraMinutes, correctExpected.totalCost, correctAdverse.totalCost],
   [2,2,100,100],
@@ -776,20 +795,32 @@ for (const name of ['doAsk','doLookup','doTest']){
 }
 assert(!/trueCause\s*=/.test(game), 'プレイ中に真因を書き換える経路がある');
 
+const balanceScenarioEntriesSource = functionSource('balanceScenarioEntries');
 const balanceConsoleSource = functionSource('showBalanceConsole');
 assert(balanceConsoleSource.includes('id="balance-luck"') && balanceConsoleSource.includes('id="balance-shuffle"'), '調整コンソールに運と登場順の切り替えがない');
 assert(balanceConsoleSource.includes('GAME_FLAGS.luckRate = event.target.checked ? LUCK_RATE : 1.0') && balanceConsoleSource.includes('GAME_FLAGS.shuffleArrival = event.target.checked'), '調整コンソールの切り替えがGAME_FLAGSへ反映されない');
 const balanceNodes = { sheet:{innerHTML:''}, 'balance-luck':{}, 'balance-shuffle':{}, 'balance-identity':{}, 'balance-sound':{}, 'balance-volume':{}, 'balance-replay-ending':{}, 'balance-replay-secret-ending':{}, 'balance-clear-career':{}, 'btn-close-balance':{} };
+const baseBalanceScenario = SCENARIOS.find(scenario => scenario.id === 'S24');
+const currentBalanceScenario = {...baseBalanceScenario, name:'今夜の顧客', city:'現在の都市'};
+const balanceScenarioEntries = new Function('state','SCENARIOS', balanceScenarioEntriesSource + '\nreturn balanceScenarioEntries;')(
+  {tickets:[{s:currentBalanceScenario}]}, SCENARIOS
+);
+const balanceEntries = balanceScenarioEntries();
+assert.equal(balanceEntries[0].scenario, currentBalanceScenario, '調整コンソールの先頭が今夜の案件にならない');
+assert(balanceEntries[0].current && balanceEntries[0].scenario.name === '今夜の顧客' && balanceEntries[0].scenario.city === '現在の都市',
+  '調整コンソールがシャッフル後の名前・都市を使わない');
 let balanceSoundWrites = 0;
 const balanceDeps = {
-  state:{phase:'briefing'}, GAME_FLAGS, LUCK_RATE, SHIFT_START, LAST_INBOUND_TURN, COMMAND_DEFS, SCENARIOS, TYPES, REMEDIES,
+  state:{phase:'briefing',tickets:[{s:currentBalanceScenario}]}, GAME_FLAGS, LUCK_RATE, SHIFT_START, LAST_INBOUND_TURN, COMMAND_DEFS, SCENARIOS, TYPES, REMEDIES,
   $:id => balanceNodes[id], esc:value => String(value), causeName:id => id, scenarioRoute:() => [],
   fmtClock:minute => String(minute), audioDiagnosticHtml:() => '<section></section>', setAudioUnlockStatus:() => {}, openSheet:() => {}, showBriefing:() => {}, renderDebrief:() => {}, closeSheet:() => {}, render:() => {}, showCareerEnding:() => {}, showSecretEnding:() => {}, clearCareerRecord:() => {},
   applySoundEnabledFromGesture:enabled => { GAME_FLAGS.soundEnabled=enabled; balanceSoundWrites++; },
   setSoundVolume:volume => { GAME_FLAGS.soundVolume=Number(volume); balanceSoundWrites++; },
   syncSoundControls:() => {},
 };
-new Function(...Object.keys(balanceDeps), balanceConsoleSource + '\nreturn showBalanceConsole;')(...Object.values(balanceDeps))();
+new Function(...Object.keys(balanceDeps), balanceScenarioEntriesSource + '\n' + balanceConsoleSource + '\nreturn showBalanceConsole;')(...Object.values(balanceDeps))();
+assert(balanceNodes.sheet.innerHTML.includes('【今夜】 S24 今夜の顧客 ／ 現在の都市') && !balanceNodes.sheet.innerHTML.includes(baseBalanceScenario.name),
+  '調整コンソールの実描画が定義時の名前・都市のまま');
 assert.equal(typeof balanceNodes['balance-luck'].onchange, 'function', '運の切り替えイベントが接続されない');
 assert.equal(typeof balanceNodes['balance-shuffle'].onchange, 'function', '登場順の切り替えイベントが接続されない');
 assert.equal(typeof balanceNodes['balance-identity'].onchange, 'function', '名前・土地シャッフルの切り替えイベントが接続されない');

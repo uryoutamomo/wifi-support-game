@@ -1533,16 +1533,26 @@ function showBalanceWarning(){
   };
 }
 
+function balanceScenarioEntries(){
+  const currentById = new Map((state.tickets || []).map(ticket => [ticket.s.id, ticket.s]));
+  return SCENARIOS.map((scenario, index) => ({
+    scenario:currentById.get(scenario.id) || scenario,
+    current:currentById.has(scenario.id),
+    index,
+  })).sort((left, right) => Number(right.current) - Number(left.current) || left.index - right.index);
+}
+
 function showBalanceConsole(){
   const wasPhase = state.phase;
   const luckEnabled = GAME_FLAGS.luckRate !== 1;
   const commandRows = COMMAND_DEFS.map(command =>
     '<tr><td>' + command.no + '</td><td><b>' + esc(command.label) + '</b></td></tr>'
   ).join('');
-  const scenarioCards = SCENARIOS.map(s => {
+  const scenarioCards = balanceScenarioEntries().map(entry => {
+    const s = entry.scenario;
     const type = TYPES[s.type];
     const remedy = (REMEDIES[s.trueCause] || []).find(item => item.id === s.best);
-    return '<details class="balance-card"><summary>' + esc(s.id + ' ' + s.name + ' ／ ' + s.city + ' ／ ' + type.label) + '</summary>' +
+    return '<details class="balance-card"><summary>' + esc((entry.current ? '【今夜】 ' : '') + s.id + ' ' + s.name + ' ／ ' + s.city + ' ／ ' + type.label) + '</summary>' +
       '<div class="balance-card-body"><p>' + esc(s.opening) + '</p>' +
       '<div class="balance-facts">' +
         '<div class="balance-fact"><b>着信</b>勤務中にランダムに決まります（' + fmtClock(SHIFT_START) + '〜' + fmtClock(SHIFT_START + LAST_INBOUND_TURN) + '）</div>' +

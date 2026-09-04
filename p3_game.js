@@ -1804,7 +1804,7 @@ function doClose(causeId, remedyId){
   // 見立て違いのやり直し時間は選択内容で決まり、抽選結果では揺らさない。
   if (!causeMatched) advance(2);
 
-  if (!causeMatched && s.contradicts && s.contradicts[causeId]){
+  if (!t.symptomResolved && !causeMatched && s.contradicts && s.contradicts[causeId]){
     pushCustomerLine(t, s.contradicts[causeId]);
     if (!addStress(t, 12)){ render(); return; }
     t.state = 'open';
@@ -1813,21 +1813,27 @@ function doClose(causeId, remedyId){
     return;
   }
 
-  if (remedy.outcomeMode === 'refund'){
+  if (!t.symptomResolved && remedy.outcomeMode === 'refund'){
     finishRemedyRefund(t, remedy, causeId, remedyId, causeMatched);
     return;
   }
-  if (remedy.outcomeMode === 'arrangement'){
+  if (!t.symptomResolved && remedy.outcomeMode === 'arrangement'){
     finishDeferredArrangement(t, remedy, causeId, remedyId, causeMatched);
     return;
   }
   // 原因の大分類が同じでも、別案件用の対処では直らない。
   // 原因自体を外したときの「運で一時的に直る」経路だけは従来どおり残す。
   const scenarioRemedyMatched = !causeMatched || remedyMatchesScenario(s, remedyId);
-  const treatmentWorked = scenarioRemedyMatched && (remedy.reportsRestored ? causeMatched && t.carrierRestored : treatmentSucceeds(causeMatched));
+  const explanationMatched = causeMatched && remedyMatchesScenario(s, remedyId);
+  // 安全操作ですでに復旧している場合、ここで選ぶのは復旧操作の説明である。
+  // 正しい説明を運で失敗へ戻さず、誤った説明を「偶然直った」扱いにもしない。
+  const treatmentWorked = t.symptomResolved
+    ? explanationMatched
+    : scenarioRemedyMatched && (remedy.reportsRestored ? causeMatched && t.carrierRestored : treatmentSucceeds(causeMatched));
 
   // ---- 対処後も解決しない ----
   if (!treatmentWorked){
+    const afterResolvedReply = t.symptomResolved ? CALL_FLOW_LINES.misdiagnosis.afterResolved[s.type] : '';
     if (!causeMatched){
       t.misdiagnoses++;
     }
@@ -1836,16 +1842,16 @@ function doClose(causeId, remedyId){
 
     if (!causeMatched && t.misdiagnoses >= 2){
       pushFlowLines(t, [
-        { who:'cust', text:CALL_FLOW_LINES.misdiagnosis.failure },
+        { who:'cust', text:afterResolvedReply || CALL_FLOW_LINES.misdiagnosis.failure },
         { who:'me', text:CALL_FLOW_LINES.misdiagnosis.apology },
       ]);
       t.pendingConversation = { kind:'second_misdiagnosis', reason:'misdiagnosis' };
       state.ui = defaultUi();
     } else {
       const noSignal = s.panel && (s.panel.bars === 0 || s.panel.sim === 'none');
-      pushCustomerLine(t, noSignal
+      pushCustomerLine(t, afterResolvedReply || (noSignal
         ? CALL_FLOW_LINES.unverifiable.noSignal[s.type]
-        : (causeMatched ? '試してみましたが、変わりません…。まだ繋がらないです。' : '言われたとおりにしましたが、やっぱり直りません。まだ繋がらないんですけど。'));
+        : (causeMatched ? '試してみましたが、変わりません…。まだ繋がらないです。' : '言われたとおりにしましたが、やっぱり直りません。まだ繋がらないんですけど。')));
       if (!causeMatched) t.transcript.push({ who:'note', text:'原因の見立てが外れていました。もう一度切り分けをやり直せます。' });
       if (!addStress(t, 30)){ render(); return; }
       t.patience -= 20;

@@ -251,6 +251,12 @@ const CALL_FLOW_LINES = Object.freeze({
   misdiagnosis:Object.freeze({
     failure:'言われたとおりにしましたが、やっぱり直りません。',
     apology:'申し訳ございません。もう一度、確認させてください。',
+    afterResolved:Object.freeze({
+      anxious:'通信は戻ったままです。ただ、いま効いた操作とその説明が違うので、不安です…。',
+      novice:'つながったままではあります。でも、いま直ったやり方と説明が違うように聞こえます。',
+      expert:'通信は復旧したままです。ただし、その説明は直前の復旧操作と整合しません。',
+      hurried:'通信は戻ったまま。けど、その説明は今やった操作と違う。原因だけ正しく言って。',
+    }),
   }),
   /* §45: 折り返しは「約束」と「切る」に分かれる。約束しただけでは通話は終わらない。 */
   callbackPromise:Object.freeze({
@@ -438,6 +444,8 @@ const QUESTIONS = [
     miss:'半分くらいはあります。電池は大丈夫そうです。' },
   { id:'q_what_fails', label:'開けないのは特定のサービスだけですか、全部ですか？', needsDevice:true,
     miss:'全部です。特定のものだけ、ということはないです。' },
+  { id:'q_phone_connection', label:'スマートフォン側の機内モードとWi-Fi表示はどうなっていますか？', needsDevice:true,
+    miss:'スマートフォンの表示ですか…。どこを見ればよいか分かりません。' },
   { id:'q_stay', label:'ご滞在先（ホテル名とお部屋番号）を教えてください',
     miss:'ホテルですけど…それが何か関係あるんでしょうか。' },
   { id:'q_stay_length', label:'あと何日ほどご滞在の予定ですか',
@@ -453,7 +461,7 @@ const QUESTION_GROUPS = Object.freeze([
   Object.freeze({ id:'customer', no:'1', label:'顧客のこと', questionIds:Object.freeze(['q_name','q_contract','q_stay','q_stay_length','q_replacement','q_return']) }),
   Object.freeze({ id:'local', no:'2', label:'現地のこと', questionIds:Object.freeze(['q_destination','q_where','q_moved']) }),
   Object.freeze({ id:'device', no:'3', label:'本体のこと', questionIds:Object.freeze(['q_lamp','q_battery','q_ssid']) }),
-  Object.freeze({ id:'symptom', no:'4', label:'症状のこと', questionIds:Object.freeze(['q_other_device','q_when','q_count','q_what_fails']) }),
+  Object.freeze({ id:'symptom', no:'4', label:'症状のこと', questionIds:Object.freeze(['q_other_device','q_when','q_count','q_what_fails','q_phone_connection']) }),
 ]);
 
 const SOOTHES = [
@@ -528,7 +536,7 @@ const TESTS = [
   { id:'t_bluetooth_off', label:'BluetoothテザリングをOFFにしていただく', turns:1, wait:'BluetoothテザリングをOFFにしていただいています。', needsDevice:true },
   { id:'t_cool_down',  label:'充電と通信を止め、涼しい場所で本体を冷ましていただく', turns:4, wait:'充電と通信を止め、本体を冷ましていただいています。', needsDevice:true },
   { id:'t_unblock',    label:'本体の接続端末一覧から、この端末のブロックを解除していただく', turns:2, wait:'接続端末一覧を開き、ブロックを解除していただいています。', needsDevice:true },
-  { id:'t_airplane_off', label:'ルーター本体の機内モードをOFFにしていただく', turns:1, wait:'本体の機内モードをOFFにしていただいています。', needsDevice:true },
+  { id:'t_phone_wifi_on', label:'スマートフォンの機内モードは保ち、Wi-FiだけをONにしてルーターへ接続いただく', turns:1, wait:'機内モードは保ったまま、スマートフォンのWi-FiだけをONにしていただいています。', needsDevice:true },
 ];
 
 /* 危険な操作。選べるが、初手の正解にはならない */
@@ -570,11 +578,11 @@ const REMEDIES = {
     { id:'r_use_other', label:'ほかの端末を使っていただくよう案内する', sub:'その場はしのげるが、原因は残る', kind:'resolve' },
     { id:'r_password_reconnect', label:'誤ったWi-Fiパスワードだったことをご説明し、本体表示の値で再接続いただく', sub:'本体表示との照合後に復旧を確認する', kind:'resolve', needsTest:'t_password' },
     { id:'r_unblock', label:'端末がブロック登録されていたことをご説明し、解除後はそのまま利用いただく', sub:'対象端末だけの接続許可を戻す', kind:'resolve', needsTest:'t_unblock' },
+    { id:'r_phone_wifi_on', label:'スマートフォンの機内モードでWi-FiもOFFになっていたことをご説明し、機内モードは保ったままWi-Fi接続いただく', sub:'モバイルデータは抑止したまま、Wi-Fiだけを戻す', kind:'resolve', needsTest:'t_phone_wifi_on' },
   ],
   device_net: [
     { id:'r_vpn_off', label:'VPN／プロファイル設定が原因だったことをご説明し、無効化した状態で利用いただく', sub:'端末側の設定を戻す。低リスク', kind:'resolve' },
     { id:'r_bluetooth_off', label:'Bluetoothテザリングとの同時利用が原因だったことをご説明し、Wi-Fi利用時はOFFにしていただく', sub:'競合する共有設定だけを戻す', kind:'resolve', needsTest:'t_bluetooth_off' },
-    { id:'r_airplane_off', label:'ルーターの機内モードが原因だったことをご説明し、OFFのまま利用いただく', sub:'回線を止める設定だけを戻す', kind:'resolve', needsTest:'t_airplane_off' },
   ],
   location: [
     { id:'r_move_guide', label:'建物の遮蔽が原因だったことをご説明し、電波の入る場所で利用いただく', sub:'実際に移動して改善したことを確認してから案内する', kind:'resolve', needsTest:'t_move' },
@@ -626,7 +634,7 @@ const REMEDIES = {
 const VERIFIABLE_REMEDY_IDS = new Set([
   'r_topup','r_disconnect','r_vpn_plan','r_throttle_talk','r_forget_guide','r_use_other',
   'r_vpn_off','r_move_guide','r_window_stationary','r_charge_guide','r_sim_clean','r_reboot_again',
-  'r_carrier_reopened_explain','r_password_reconnect','r_unblock','r_bluetooth_off','r_airplane_off',
+  'r_carrier_reopened_explain','r_password_reconnect','r_unblock','r_phone_wifi_on','r_bluetooth_off',
   'r_interference_guide','r_wake','r_low_battery_charge','r_ac_charge','r_cool_down',
 ]);
 const REFUND_REMEDY_IDS = new Set([
@@ -1289,30 +1297,30 @@ const SCENARIOS = [
   debrief:'充電しながら通信すると高温保護で充電が止まる場合があります。<em>負荷を止めて冷ます</em>のが安全な第一手です。'
 },
 {
-  id:'S23', arrive:134, name:'内藤 沙織', nameEn:'Saori Naito', age:36, ageRange:[28,46], type:'novice', abandonAfter:30, callbackTo:'hotel', stayDays:2, difficulty:'easy',
+  id:'S23', arrive:134, name:'内藤 沙織', nameEn:'Saori Naito', age:36, ageRange:[28,46], type:'expert', abandonAfter:30, callbackTo:'hotel', stayDays:2, difficulty:'easy',
   deviceInHand:true, contractId:{minutes:3,text:'番号はGDW-172684です。'},
   country:'カナダ', city:'バンクーバー', cityEn:'VANCOUVER', localOffset:-15, carrierName:'Telus', device:'MiFi X PRO', plan:'{country} ／ 無制限プラン',
-  opening:'私のスマートフォンだけWi-Fiにつながらなくなりました。家族の電話は同じルーターで使えています。', handoverSymptom:'1台のスマートフォンだけWi-Fiへ接続できない',
-  smalltalk:[{id:'st_s23_family',reveal:'q_other_device',askLabel:'ご家族の端末では使えていますか？',tellLabel:'1台だけなら対象を絞って確認できます',goodReply:'はい、家族の電話は大丈夫です。少し安心しました。',badReply:'私の電話も使えるようにしてください。'}],
+  opening:'私のスマートフォンだけWi-Fiにつながりません。家族の端末は同じルーターで通信できるので、回線全体の障害ではなさそうです。', handoverSymptom:'1台のスマートフォンだけWi-Fiへ接続できない',
+  smalltalk:[{id:'st_s23_family',reveal:'q_other_device',askLabel:'ご家族の端末では使えていますか？',tellLabel:'1台だけなら対象を絞って確認できます',goodReply:'はい。回線側ではなく、この端末の接続許可を確認しましょう。',badReply:'一般論ではなく、この端末だけ失敗する理由を確認してください。'}],
   panel:{bars:4,carrier:'{carrier}',sim:'ok',throttle:false,clients:1,maxClients:5,battery:67,ssid:'Globaldesk-3906'},
   trueCause:'device_side',best:'r_unblock',partial:[],
-  replies:{q_return:{text:'あと2日は家族とこのホテルにいます。'},q_other_device:{text:'家族の電話は今も使えます。さっき接続端末の画面で、私の電話を押したかもしれません。',fact:{text:'回線と別端末は正常で、直前に対象端末を接続一覧で操作した',hot:['device_side']}}},
+  replies:{q_return:{text:'あと2日は家族とこのホテルにいます。'},q_other_device:{text:'家族の端末は今も正常です。直前に接続端末一覧を整理していて、自分の端末を誤って操作した可能性があります。',fact:{text:'回線と別端末は正常で、直前に対象端末を接続一覧で操作した',hot:['device_side']}}},
   tests:{t_unblock:{text:'ブロック済み一覧に私の電話がありました。解除したらすぐつながりました。',fact:{text:'対象端末のブロック解除だけで接続が復旧した',hot:['device_side'],out:['fup','devices','geo_block','heavy','device_net','location','power','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
   source:{title:'Inseego MiFi X PRO: Blocked Devices',url:'https://inseego.com/resources/product-documentation/mifi-x-pro/user-guide/touchscreen/managing-connected-devices/blocked-devices-unblocking/'},
   debrief:'ほかの端末が正常で、接続一覧を触った直後なら、<em>対象端末のブロック登録</em>を確認します。全設定の初期化は不要です。'
 },
 {
-  id:'S24', arrive:140, name:'相沢 康平', nameEn:'Kohei Aizawa', age:31, ageRange:[26,42], type:'expert', abandonAfter:28, callbackTo:'mobile', stayDays:4, difficulty:'easy',
+  id:'S24', arrive:140, name:'相沢 康平', nameEn:'Kohei Aizawa', age:31, ageRange:[26,42], type:'novice', abandonAfter:28, callbackTo:'mobile', stayDays:4, difficulty:'easy',
   deviceInHand:true, contractId:{minutes:1,text:'GDW-584931です。'},
   country:'ドイツ', city:'ベルリン', cityEn:'BERLIN', localOffset:-7, carrierName:'Telekom', device:'MiFi X PRO', plan:'{country} ／ 無制限プラン',
-  opening:'本体に飛行機のアイコンが出ていて、Wi-Fi接続はできますがインターネットだけ使えません。機内モードでしょうか。', handoverSymptom:'本体に飛行機アイコンが出て回線通信できない',
-  smalltalk:[{id:'st_s24_flight',reveal:'q_lamp',askLabel:'到着後から飛行機の表示が残っていますか？',tellLabel:'表示どおりの設定か確認します',goodReply:'はい。状態表示と因果が一致しそうです。',badReply:'表示は伝えました。設定の確認を進めてください。'}],
-  panel:{bars:0,carrier:null,sim:'ok',throttle:false,clients:1,maxClients:5,battery:79,ssid:'Globaldesk-6173'},
-  trueCause:'device_net',best:'r_airplane_off',partial:[],
-  replies:{q_return:{text:'出張はあと4日、同じ場所に滞在します。'},q_lamp:{text:'飛行機のアイコンが点灯しています。到着後に解除した記憶がありません。',fact:{text:'ルーター本体の機内モード表示が点灯している',hot:['device_net']}}},
-  tests:{t_airplane_off:{text:'機内モードをOFFにしたら回線名とアンテナが表示され、インターネットも戻りました。',fact:{text:'ルーターの機内モード解除だけで回線通信が復旧した',hot:['device_net'],out:['fup','devices','geo_block','heavy','device_side','location','power','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
-  source:{title:'Verizon: MiFi Airplane Mode',url:'https://www.verizon.com/support/knowledge-base-209251/'},
-  debrief:'飛行機アイコンが出てWi-Fiだけつながるなら、ルーター本体の<em>機内モードをOFF</em>にします。表示と原因が一対一です。'
+  opening:'ルーター本体は電波が立っていますが、このスマートフォンだけWi-Fiにつながりません。画面には飛行機のマークが出ています。', handoverSymptom:'スマートフォンに飛行機マークが出てWi-Fi接続できない',
+  smalltalk:[{id:'st_s24_flight',reveal:'q_phone_connection',askLabel:'スマートフォンの飛行機マークとWi-Fi表示を確認できますか？',tellLabel:'海外用の設定を保ちながらWi-Fiだけ確認します',goodReply:'はい。日本の回線は使わずにWi-Fiだけ戻せるなら安心です。',badReply:'海外で料金がかからない方法か、先に教えてください。'}],
+  panel:{bars:4,carrier:'{carrier}',sim:'ok',throttle:false,clients:0,maxClients:5,battery:79,ssid:'Globaldesk-6173'},
+  trueCause:'device_side',best:'r_phone_wifi_on',partial:[],
+  replies:{q_return:{text:'出張はあと4日、同じ場所に滞在します。'},q_phone_connection:{text:'スマートフォンの機内モードがONで、Wi-Fiの表示はOFFです。ルーター本体にはアンテナが4本出ています。',fact:{text:'ルーターは現地回線を捕捉しているが、スマートフォンは機内モードON時にWi-FiもOFFになっている',hot:['device_side']}}},
+  tests:{t_phone_wifi_on:{text:'機内モードはONのまま、スマートフォンのWi-FiだけONにしてこのルーターを選んだら、つながりました。',fact:{text:'モバイルデータを抑止したままスマートフォンのWi-Fiだけ戻すと通信が復旧した',hot:['device_side'],out:['fup','devices','geo_block','heavy','device_net','location','power','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'Google Pixel Help: 機内モード中もWi-Fi接続を保つ',url:'https://support.google.com/pixelphone/answer/12639358?hl=ja'},
+  debrief:'スマートフォンの機内モードを最初にONにすると、Wi-FiもOFFになる場合があります。海外では機内モードを保ち、<em>Wi-FiだけONにしてルーターへ接続</em>すれば、モバイルデータを抑止したまま使えます。航空機内などでは利用先の規則にも従います。'
 },
 
 ];

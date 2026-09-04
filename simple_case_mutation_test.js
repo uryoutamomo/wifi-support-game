@@ -22,8 +22,8 @@ const mutations = [
   },
   {
     name:'S24の正解から安全操作の前提を外す',
-    from:"trueCause:'device_net',best:'r_airplane_off',partial:[],",
-    to:"trueCause:'device_net',best:'r_vpn_off',partial:[],",
+    from:"trueCause:'device_side',best:'r_phone_wifi_on',partial:[],",
+    to:"trueCause:'device_side',best:'r_forget_guide',partial:[],",
     expected:'正解対処に安全操作の前提がない',
   },
   {
