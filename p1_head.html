@@ -141,7 +141,7 @@ button:focus-visible, [tabindex]:focus-visible{
 }
 .clock .z{ font-size: 11px; color: var(--faint); letter-spacing: .04em; }
 
-.btn-help,.btn-balance,.btn-sound{
+.btn-help,.btn-sound{
   background: transparent;
   border: 1px solid var(--line);
   color: var(--dim);
@@ -150,7 +150,7 @@ button:focus-visible, [tabindex]:focus-visible{
   border-radius: 2px;
   transition: border-color .15s, color .15s;
 }
-.btn-help:hover,.btn-balance:hover,.btn-sound:hover{ border-color: var(--amber-deep); color: var(--amber); }
+.btn-help:hover,.btn-sound:hover{ border-color: var(--amber-deep); color: var(--amber); }
 
 /* ============================================================
    コンソール ― 対応デスクと待機状況
@@ -1094,7 +1094,7 @@ body.sheet-open .console{ display: none; }
 .system-screen .log-customer b{ color:#78B8B3; }
 .system-screen .record-denied-message b{ color:#F6C56A; }
 .system-screen .record-denied-message p{ color:#E4F6F4; }
-.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-balance:hover,.btn-sound:hover{ border-color:var(--accent-line); color:var(--accent); }
+.sheet{ background:var(--surface); border-top-color:var(--accent); }.sheet h2,.sheet strong{ color:var(--accent); }.btn-primary{ background:var(--accent); color:#fff; }.btn-primary:hover{ background:var(--accent-hover); filter:none; }.btn-ghost:hover,.btn-help:hover,.btn-sound:hover{ border-color:var(--accent-line); color:var(--accent); }
 
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -1120,7 +1120,7 @@ body.playing{ display:block; height:auto; min-height:100dvh; overflow:auto; }
 .topbar-inner{
   position:relative;
   display:grid;
-  grid-template-columns:minmax(0,1fr) auto auto auto auto;
+  grid-template-columns:minmax(0,1fr) auto auto auto;
   gap:10px;
   padding:calc(12px + env(safe-area-inset-top)) 14px 12px;
 }
@@ -1130,14 +1130,12 @@ body.playing{ display:block; height:auto; min-height:100dvh; overflow:auto; }
 .clock{ gap:4px; }
 .clock .t{ font-size:24px; }
 .clock .z{ font-size:12px; }
-.btn-help,.btn-balance,.btn-sound{ width:44px; height:44px; min-width:44px; padding:0; border-radius:50%; font-size:0; }
+.btn-help,.btn-sound{ width:44px; height:44px; min-width:44px; padding:0; border-radius:50%; font-size:0; }
 .btn-help::after{ content:"?"; font:700 22px/1 var(--display); }
-.btn-balance::after{ content:"調"; font:700 17px/1 var(--display); }
 .btn-sound::after{ content:"音"; font:700 17px/1 var(--display); }
 .btn-sound[aria-pressed="false"]{ border-color:var(--crit); color:var(--crit); }
 .topbar-inner > .btn-sound{ grid-row:1; grid-column:3; align-self:center; justify-self:end; z-index:2; }
-.topbar-inner > .btn-balance{ grid-row:1; grid-column:4; align-self:center; justify-self:end; z-index:2; }
-.topbar-inner > .btn-help{ grid-row:1; grid-column:5; align-self:center; justify-self:end; z-index:2; }
+.topbar-inner > .btn-help{ grid-row:1; grid-column:4; align-self:center; justify-self:end; z-index:2; }
 .console{ display:flex; flex-direction:column; min-height:calc(100dvh - 170px); background:var(--bg); }
 .pane,body.playing .pane{
   display:flex;
@@ -1253,11 +1251,10 @@ body.office-view .office-scene{ gap:14px; }
   .audio-recovery-notice{ align-items:stretch; flex-direction:column; gap:9px; }
   .audio-recovery-notice .btn-ghost{ width:100%; }
   /* シフト帯の撤去後も時計は消さない。375px級では時計を2段目へ置く。 */
-  .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto; }
+  .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto; }
   .topbar-inner > .clock{ display:flex; grid-row:2; grid-column:1 / -1; justify-self:center; }
   .topbar-inner > .btn-sound{ grid-column:2; }
-  .topbar-inner > .btn-balance{ grid-column:3; }
-  .topbar-inner > .btn-help{ grid-column:4; }
+  .topbar-inner > .btn-help{ grid-column:3; }
 }
 </style>
 </head>
@@ -1281,7 +1278,6 @@ body.office-view .office-scene{ gap:14px; }
       <span class="z">JST</span>
     </div>
     <button class="btn-sound" data-sound-toggle="1" data-sound-compact="1" aria-label="効果音をOFFにする" aria-pressed="true">音 ON</button>
-    <button class="btn-balance" id="btn-balance" aria-label="ゲーム調整コンソール">ゲーム調整</button>
     <button class="btn-help" id="btn-manual">対応マニュアル</button>
   </div>
 </div>

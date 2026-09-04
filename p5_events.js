@@ -150,7 +150,6 @@ document.addEventListener('change', (e) => {
 });
 
 $('btn-manual').onclick = showManual;
-$('btn-balance').onclick = showBalanceWarning;
 
 /* ---------- 起動 ---------- */
 

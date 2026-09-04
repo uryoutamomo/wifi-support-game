@@ -257,11 +257,11 @@ const apologySource = functionSource('doApologize');
 assert(apologySource.includes("apology.kind === 'brief'") && apologySource.includes('delta = -6'), '簡単なお詫びの安全な効果がない');
 assert(apologySource.includes('t.stress >= 40') && apologySource.includes('delta = -20'), '高ストレス時の深いお詫びが効かない');
 assert(apologySource.includes('delta = 12'), '不要な深いお詫びが逆効果にならない');
-assert(page.includes('id="btn-balance"') && functionSource('showBalanceConsole').includes('scenarioRoute(s)'), 'ゲーム調整コンソールがない');
+assert(!page.includes('id="btn-balance"') && !page.includes('aria-label="ゲーム調整コンソール"'), '§76 通常プレイの上部バーに答えが見えるゲーム調整リンクが残っている');
 const balanceWarningSource = functionSource('showBalanceWarning');
 assert(balanceWarningSource.includes("SCENARIOS.length + '件の真因と正解対処がすべて表示されます。</strong>"), '調整コンソールを開く前のネタバレ警告が案件数へ追従しない');
 assert(balanceWarningSource.includes("$('btn-confirm-balance').onclick") && balanceWarningSource.includes('showBalanceConsole()'), '確認しなくても調整コンソールが開く');
-assert(game.includes("$('btn-balance').onclick = showBalanceWarning;") && !game.includes("$('btn-balance').onclick = showBalanceConsole;"), '調ボタンが確認画面を通らない');
+assert(!game.includes("$('btn-balance')") && !game.includes('data-balance'), '§76 通常プレイからゲーム調整画面へ進むイベント配線が残っている');
 
 const callSource = functionSource('renderCall');
 assert(callSource.includes('renderStressPanel(t)'), '苛立ちメーターが通話画面に常時描画されない');

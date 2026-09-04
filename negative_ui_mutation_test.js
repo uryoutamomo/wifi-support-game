@@ -940,6 +940,18 @@ const mutations = [
     expected:'調整コンソールに運と登場順の切り替えがない',
   },
   {
+    name:'§76 上部バーへゲーム調整リンクを戻す', file:'p1_head.html',
+    from:'    <button class="btn-help" id="btn-manual">対応マニュアル</button>',
+    to:'    <button class="btn-balance" id="btn-balance" aria-label="ゲーム調整コンソール">ゲーム調整</button>\n    <button class="btn-help" id="btn-manual">対応マニュアル</button>',
+    expected:'§76 通常プレイの上部バーに答えが見えるゲーム調整リンクが残っている',
+  },
+  {
+    name:'§76 ゲーム調整画面へのクリック配線を戻す', file:'p5_events.js',
+    from:"$('btn-manual').onclick = showManual;",
+    to:"$('btn-manual').onclick = showManual;\n$('btn-balance').onclick = showBalanceWarning;",
+    expected:'§76 通常プレイからゲーム調整画面へ進むイベント配線が残っている',
+  },
+  {
     name:'運なし専用の特別経路を作る', file:'p3_game.js',
     from:'return state.random() < GAME_FLAGS.luckRate;', to:'if (GAME_FLAGS.luckRate === 1) return true;\n  return state.random() < GAME_FLAGS.luckRate;',
     expected:'運なし専用の特別経路がrollLuckにある',
@@ -2995,8 +3007,8 @@ const mutations = [
   },
   {
     name:'小画面の上部バーを時計込み5列へ戻す', file:'p1_head.html', layout:true,
-    from:'  .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto; }\n  .topbar-inner > .clock{ display:flex; grid-row:2; grid-column:1 / -1; justify-self:center; }\n  .topbar-inner > .btn-sound{ grid-column:2; }\n  .topbar-inner > .btn-balance{ grid-column:3; }\n  .topbar-inner > .btn-help{ grid-column:4; }',
-    to:'  .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto auto; }\n  .topbar-inner > .clock{ display:flex; grid-row:1; grid-column:2; justify-self:end; }\n  .topbar-inner > .btn-sound{ grid-column:3; }\n  .topbar-inner > .btn-balance{ grid-column:4; }\n  .topbar-inner > .btn-help{ grid-column:5; }',
+    from:'  .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto; }\n  .topbar-inner > .clock{ display:flex; grid-row:2; grid-column:1 / -1; justify-self:center; }\n  .topbar-inner > .btn-sound{ grid-column:2; }\n  .topbar-inner > .btn-help{ grid-column:3; }',
+    to:'  .topbar-inner{ grid-template-columns:minmax(0,1fr) auto auto auto; }\n  .topbar-inner > .clock{ display:flex; grid-row:1; grid-column:2; justify-self:end; }\n  .topbar-inner > .btn-sound{ grid-column:3; }\n  .topbar-inner > .btn-help{ grid-column:4; }',
     expected:'上部バーの実描画が重なっている',
   },
   {
