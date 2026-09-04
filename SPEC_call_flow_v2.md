@@ -6246,3 +6246,45 @@ initAudio                closed ではないので同じ文脈を返す         
 3. 復旧後の終話が対応放棄の再入電へ進まず、「復旧（原因説明なし）」として閉じること。
 4. 苦情の再入電予約直後にオフィス通知が増えず、予定時刻までは画面へ現れないこと。
 5. 予定時刻には通常着信と同じ `waiting` へ移り、放棄呼側の予定通知は残ること。
+
+---
+
+## 69. 簡単で現実的な案件を10件追加する（2026-09-04 内田さん指示）
+
+**内田さんの言葉：「もっと簡単な案件を５種類くらい追加したい」「リアリティを求めるなら簡単な案件を増やした方がいい」「こんな感じで5こではなく10個増やせますかね？」**
+
+既存14件は、広域障害・エリア不一致・開通設定・機器故障・配送など、照会や判断を重ねる案件が多くなっています。現場では、表示や直前操作から原因が分かり、安全な一操作で戻る問い合わせもあります。案件総数を24件へ増やし、そのうち追加10件を明示的に `difficulty:'easy'` とします。
+
+### 69-1. 追加する10件
+
+| ID | 症状と原因 | 1問で見る事実 | 安全な確認操作 | 公式根拠 |
+| --- | --- | --- | --- | --- |
+| S15 | SSIDは見えるがパスワードエラー | 手書きメモで認証だけ失敗 | 本体表示と照合して再接続 | [SoftBank FAQ](https://www.softbank.jp/support/faq/view/18114) |
+| S16 | 放置後にSSIDが消える | 無通信後、画面も暗い | 電源ボタンで休止解除 | [SoftBank A201NE](https://www.softbank.jp/mobile/support/manual/data-com/a201ne/detail/67064/) |
+| S17 | 壁越し・電子レンジ付近で動画が止まる | ルーター近くでは速い | 距離と干渉源を避ける | [HUAWEI](https://consumer.huawei.com/jp/support/content/ja-jp15988630/) |
+| S18 | BluetoothテザリングON直後にWi-Fiが切れる | 設定変更と同時に全PC切断 | BluetoothテザリングをOFF | [SoftBank A101ZT](https://www.softbank.jp/mobile/support/manual/data-com/pocket-wifi-5g-a101zt/detail/52847/) |
+| S19 | 金属戸棚では全端末が圏外 | 窓際では受信する | 窓際・高所へ移動 | [NETGEAR](https://kb.netgear.com/000065270/Where-should-I-place-my-NETGEAR-mobile-hotspot) |
+| S20 | 電池1%で起動してもすぐ切れる | 低電池表示 | 付属品で十分に充電 | [SoftBank A201NE](https://www.softbank.jp/mobile/support/manual/data-com/a201ne/detail/67211/) |
+| S21 | PC USB給電中も残量が減る | 通信中の消費を補えない | 付属ACアダプタへ替える | [SoftBank A101ZT](https://www.softbank.jp/mobile/support/manual/data-com/pocket-wifi-5g-a101zt/detail/52807/) |
+| S22 | 充電しながら通信して高温・充電停止 | 高温保護表示 | 充電と通信を止めて冷ます | [SoftBank A503SH](https://www.softbank.jp/mobile/support/manual/data-com/a503sh/detail/173793/) |
+| S23 | 1台だけ接続不可 | ほかの端末は正常、接続一覧を直前操作 | 対象端末のブロック解除 | [Inseego MiFi X PRO](https://inseego.com/resources/product-documentation/mifi-x-pro/user-guide/touchscreen/managing-connected-devices/blocked-devices-unblocking/) |
+| S24 | 本体に飛行機アイコン、Wi-Fiだけ接続 | 機内モード表示が点灯 | ルーターの機内モードをOFF | [Verizon MiFi](https://www.verizon.com/support/knowledge-base-209251/) |
+
+### 69-2. 簡単さの定義
+
+- 本人特定用の質問とは別に、診断に必要な聞き取りは1問だけとします。
+- 正解は、初期化・APN変更・ローミングONを使わず、`TESTS` にある可逆な安全操作を1種類だけ行う経路とします。
+- 安全操作の結果は `solves:true` で、その場で復旧した事実を返します。実施前には原因説明で閉じられません。
+- 社内照会・現地キャリア照会・配送・契約変更を正解条件にしません。
+- 原因マスタは14個のまま増やしません。追加10件は既存の `device_side`・`device_net`・`location`・`power` へ割り当て、全案件の原因選択肢を不必要に増やさないためです。
+- `hurried` と `expert` を追加10件のうち5件にし、全24件でも国際通話料を直接訴えるタイプを12件（半数）に保ちます。
+
+### 69-3. 検査
+
+1. S15〜S24が存在し、全件 `difficulty:'easy'` で、公式根拠のHTTPS URLを固有に持つこと。
+2. 各案件の診断用の事実つき質問が1問だけで、真因を `hot` として指すこと。
+3. 各正解対処が安全操作を前提にし、危険操作を要求しないこと。
+4. 安全操作の結果が真因以外の13原因を除外し、`doTest` の実行経路で `symptomResolved` になること。
+5. 同じ操作を繰り返しても、復旧事実を二重に追加しないこと。
+6. 全24件が `verify.js` の「手がかりを全部集めたら候補が1つ」を満たし、`progression_test.js` で全正解経路を完走できること。
+7. §69専用検査を、easy指定・復旧フラグ・安全操作前提の3か所をそれぞれ壊す変異が赤にすること。

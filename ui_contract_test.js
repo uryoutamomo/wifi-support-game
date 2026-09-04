@@ -387,7 +387,7 @@ assert(actionsAskBranch.includes('renderAskGroups(t)') && actionsAskBranch.inclu
 
 // §8 雑談（空気を読む）
 const requiredTopicFields = ['id','reveal','askLabel','tellLabel','goodReply','badReply'];
-assert(SCENARIOS.length === 14 && SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0))), '全14シナリオの雑談話題6項目が揃っていない');
+assert(SCENARIOS.length === 24 && SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0))), '全24シナリオの雑談話題6項目が揃っていない');
 const questionIds = new Set(QUESTIONS.map(question => question.id));
 assert(SCENARIOS.every(s => s.smalltalk.every(topic => topic.reveal === 'opening' || questionIds.has(topic.reveal))), '雑談話題の解禁条件が第一声または実在質問ではない');
 assert.deepEqual(SMALLTALK_EFFECTS, { anxious:-10, novice:-12, hurried:14, expert:6 }, 'タイプ別の雑談効果が完全一致しない');
@@ -626,7 +626,7 @@ stagedByType.forEach(({type,text}) => {
 });
 assert([...stagedOwners.values()].every(owners => owners.size === 1), '顧客タイプをまたいで同じ苛立ち文言が使い回されている');
 assert.equal(SCENARIOS.filter(scenario => typeof scenario.opening === 'string' && scenario.opening.length > 0).length, SCENARIOS.length, '全シナリオの第一声が揃っていない');
-assert.equal(SCENARIOS.flatMap(scenario => scenario.smalltalk || []).length, 15, '雑談15話題が揃っていない');
+assert.equal(SCENARIOS.flatMap(scenario => scenario.smalltalk || []).length, 25, '雑談25話題が揃っていない');
 assert(typeNames.every(type => ['sootheReply','sootheMissReply','sootheRepeatReply'].every(key => TYPES[type][key])), 'なだめる反応が4タイプ分揃っていない');
 assert(typeNames.every(type => APOLOGY_REPLIES[type] && ['brief','accepted','repeated','excessive'].every(key => APOLOGY_REPLIES[type][key])), '謝罪の受け止め方が4タイプ分揃っていない');
 
@@ -765,7 +765,7 @@ const luckResetSource = functionSource('resetGame');
 assert(luckResetSource.includes('prepareShiftScenarios(SCENARIOS, state.random).map(newTicket)'), 'resetGameが入電・引き継ぎ案件の選択と時刻割り当てを通らない');
 assert(functionSource('prepareDailyScenarios').includes('flags.shuffleArrival') && functionSource('prepareDailyScenarios').includes(': scenarios.slice()'), '登場順シャッフルを元へ戻せない');
 assert(functionSource('prepareDailyScenarios').includes('{ arrive:arrivalSlots[index] }'), 'シャッフル後の順番へ固定到着枠を振り直していない');
-assert.deepEqual(SCENARIOS.map(s => s.arrive).sort((a,b) => a-b), [0,5,11,18,25,31,38,44,50,56,62,68,74,80], '14案件の固定到着枠が変わっている');
+assert.deepEqual(SCENARIOS.map(s => s.arrive).sort((a,b) => a-b), [0,5,11,18,25,31,38,44,50,56,62,68,74,80,86,92,98,104,110,116,122,128,134,140], '24案件の固定到着枠が変わっている');
 
 const luckDisclosurePattern = /運が悪|裏目|抽選結果/;
 const playerFacingLuckSource = [functionSource('renderCall'), functionSource('renderRecord'), functionSource('renderTranscript'), functionSource('pushCustomerLine')].join('\n');
@@ -819,7 +819,7 @@ assert.equal(baselineTicket.stress, 45, '運なしの同一操作列で苛立ち
 const noLuckTreatment = new Function('rollLuck', treatmentSucceedsSource + '\nreturn treatmentSucceeds;')(noLuckRoll);
 assert.equal(noLuckTreatment(true), true, '運なしで正しい対処の旧成否に戻らない');
 assert.equal(noLuckTreatment(false), false, '運なしで誤診の旧成否に戻らない');
-assert.deepEqual(SCENARIOS.map(s => s.id), ['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','S11','S12','S13','S14'], 'シャッフルOFFの定義順が確定登場順と違う');
+assert.deepEqual(SCENARIOS.map(s => s.id), ['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','S11','S12','S13','S14','S15','S16','S17','S18','S19','S20','S21','S22','S23','S24'], 'シャッフルOFFの定義順が確定登場順と違う');
 
 // §52-6 検査1〜6: 夜勤は23:00〜07:00で、案件データでなく勤務時間から着信を引く。
 assert.equal(SHIFT_START, 23 * 60, '§52 検査1: 勤務が23:00に始まらない');
@@ -1681,15 +1681,15 @@ assert(!MORNING_STAFF.some(staff => Object.keys(staff).some(key => /player|highl
 // §24-5 検査1: 主コマンドは4つだけで、「操作」「折り返す」を持たない。
 assert.deepEqual(COMMAND_DEFS.map(command => [command.id,command.label]), [['ask','聞く'],['lookup','調べる'],['tell','伝える'],['record','ログ']], '§24 主コマンドが4つ（聞く／調べる／伝える／ログ）ではない');
 
-// §24-5 検査2: TESTS 6件とRISKY 3件の内容・所要時間・危険操作の罰を保ち、「伝える」配下へ接続する。
-assert.deepEqual(TESTS.map(test => [test.id,test.label,test.turns,test.wait,test.sub || '']), [
+// §24-5 検査2: 既存TESTS 6件とRISKY 3件の内容・所要時間・危険操作の罰を保ち、「伝える」配下へ接続する。
+assert.deepEqual(TESTS.slice(0,6).map(test => [test.id,test.label,test.turns,test.wait,test.sub || '']), [
   ['t_reboot','ルーターの再起動をご案内する',3,'再起動をお願いしました。立ち上がるまで少しかかります。',''],
   ['t_simout','SIMを抜き差しし、接点を乾いた柔らかい布で清掃していただく',2,'電源はそのままで、SIMの抜き差しと接点の清掃をお願いしました。','No SIM／SIM未認識の表示があるときの重要な復旧操作'],
   ['t_forget','端末のWi-Fi設定を一度削除して、繋ぎ直していただく',3,'設定の削除と再接続をお願いしました。操作していただいています。',''],
   ['t_move','窓際か屋外へ移動して試していただく',4,'場所を移っていただいています。',''],
   ['t_disconnect','使っていない端末をWi-Fiから切っていただく',2,'不要な端末を切っていただいています。',''],
   ['t_charge','付属のケーブルとアダプタで充電していただく',5,'充電をお願いしました。しばらく様子を見ます。',''],
-], '§24 TESTS 6項目の内容または所要時間が変わっている');
+], '§24 既存TESTS 6項目の内容または所要時間が変わっている');
 assert.deepEqual(RISKY.map(test => [test.id,test.label,test.turns,test.wait,test.damage]), [
   ['t_reset','本体を初期化（工場出荷リセット）していただく',2,'初期化をお願いしました。',1.5],
   ['t_apn','スマートフォンのAPN設定を書き換えていただく',2,'端末のAPN設定を開いていただいています。',1.5],
@@ -1722,7 +1722,7 @@ assert(menuSource.includes('optional-greeting') && menuSource.includes('data-gre
 // §24-5 検査7は§25で限定折り返しを復活させたため、§25-7 検査5へ移行した。
 
 // §24-5 検査8: callbackToは全案件に持たせる。
-assert(SCENARIOS.length === 14 && SCENARIOS.every(scenario => ['hotel','mobile'].includes(scenario.callbackTo)), '§24/§25 案件データのcallbackToが揃っていない');
+assert(SCENARIOS.length === 24 && SCENARIOS.every(scenario => ['hotel','mobile'].includes(scenario.callbackTo)), '§24/§25 案件データのcallbackToが揃っていない');
 
 // §24-5 検査9: 途中切断から再着信する既存経路を保つ。
 assert(interruptSource.includes('t.pendingInterruption = true') && finishInterruptedSource.includes("t.state = 'waiting'") && finishInterruptedSource.includes('t.redialCount++'), '§24 interruptCallからの再着信が従来どおり動かない');
@@ -2009,7 +2009,7 @@ assert(s13AssignedRemedies30.every(remedy => remedy && remedy.label.includes('�
 assert(s13Logistics30.type === 'anxious' && /私が.*間違え/.test(s13Logistics30.opening) && !/手配|貸出|会社|御社|違うSIM/.test(s13Logistics30.opening), '§30 検査10: anxiousの自己責任型第一声になっていない');
 
 // §30-6 検査11: 案件が増えても表エンディングとレポートは動的総数を使う。
-assert(SCENARIOS.length === 14 && functionSource('careerEndingQueue').includes('career.solvedScenarios.length === SCENARIOS.length') && functionSource('careerDebriefHtml').includes("' / ' + SCENARIOS.length"), '§30 検査11: 14件または動的な全件エンディング・集計になっていない');
+assert(SCENARIOS.length === 24 && functionSource('careerEndingQueue').includes('career.solvedScenarios.length === SCENARIOS.length') && functionSource('careerDebriefHtml').includes("' / ' + SCENARIOS.length"), '§30 検査11: 24件または動的な全件エンディング・集計になっていない');
 
 // §30-6 検査12: progression_testが辿る既存前提データをS13にも揃える。
 assert(s13Best30.requiresQuestions.every(id => QUESTIONS.some(question => question.id === id) && s13Logistics30.replies[id]) && s13Logistics30.stayDays >= s13Best30.requiresLongStay && s13Logistics30.wantsReplacement === true, '§30 検査12: progression_test用の正解ルート前提が揃っていない');
@@ -2319,7 +2319,7 @@ spend39(resolvingChargeTicket68,1,0,true);
 assert(resolvedChargeTicket68.concerns.length === 0 && resolvingChargeTicket68.concerns.length === 0,'§68 検査G4: 復旧済みまたは復旧する操作と同時に通話料を訴える');
 assert(functionSource('doTest').includes('Boolean(def && !redundant && def.solves)'),'§68 検査G5: 復旧する操作をspendOnCallへ伝えず同時発話を防げない');
 assert.deepEqual([...CALL_CHARGE_COMPLAINT_TYPES].sort(),['expert','hurried'],'§65 検査1: 通話料を直接訴えるタイプが半分でない');
-assert.equal(SCENARIOS.filter(scenario => CALL_CHARGE_COMPLAINT_TYPES.includes(scenario.type)).length,7,'§65 検査1: 14案件のうち直接訴える客が7件でない');
+assert.equal(SCENARIOS.filter(scenario => CALL_CHARGE_COMPLAINT_TYPES.includes(scenario.type)).length,12,'§65 検査1: 24案件のうち直接訴える客が12件でない');
 
 // §40: 折り返しは滞在先の有無にかかわらず選べる。未確認なら注意書きが変わる。
 assert(hotelCallbackSub({asked:new Set(),stayAddress:null,stayHotelName:null,callChargeConcerned:true}) === 'ホテル名と滞在先はまだ伺っていません。','§40 ホテル名・滞在先未確認の折り返しに注意書きが出ない');
@@ -2685,7 +2685,7 @@ const selected55 = prepareShift55(SCENARIOS, () => .37, {dailyTickets:5,handover
 const inbound55 = selected55.filter(scenario => scenario.workOrigin === 'inbound');
 const handed55 = selected55.filter(scenario => scenario.workOrigin === 'handover');
 assert(selected55.length === 7 && inbound55.length === 5 && handed55.length === 2, '§55 検査2: 入電2〜5件とは別に引き継ぎ0〜2件を置けない');
-assert(new Set(selected55.map(scenario => scenario.id)).size === selected55.length && selected55.every(scenario => SCENARIOS.some(source => source.id === scenario.id)), '§55 検査3: 引き継ぎが既存14案件から重複なく選ばれない');
+assert(new Set(selected55.map(scenario => scenario.id)).size === selected55.length && selected55.every(scenario => SCENARIOS.some(source => source.id === scenario.id)), '§55 検査3: 引き継ぎが全24案件から重複なく選ばれない');
 assert(handed55.every(scenario => scenario.arrive >= 0 && scenario.arrive <= LAST_INBOUND_TURN && scenario.arrive % 30 === 0), '§55 検査4: 約束時刻が夜勤内の「何時ごろ」にならない');
 assert(handed55.every(scenario => inbound55.every(ticket => Math.abs(scenario.arrive-ticket.arrive) >= MIN_INBOUND_GAP)) && handed55.slice(1).every((scenario,index) => scenario.arrive-handed55[index].arrive >= MIN_INBOUND_GAP), '§55 検査4: 引き継ぎの約束時刻が着信または別の折り返しとぶつかる');
 assert((prepareShiftSource55.match(/assignScenarioIdentities\(/g) || []).length === 1 && prepareShiftSource55.includes('assignScenarioIdentities(timed'), '§55 検査3: 入電と引き継ぎを別々に人物・土地割り当てし、同じ客が重複しうる');
@@ -2799,7 +2799,7 @@ assert(functionSource('renderReport').startsWith('function renderReport(){\n  if
 assert(page.includes('id="time-passage-indicator"') && page.includes('時間が進んでいます ／ タップで進む'), '§57 検査10: 時間経過中とスキップ方法が画面に出ない');
 
 // §61: ホテル名は土地の一部として割り当て、折り返し可能判定では会話文と分けて持つ。
-assert.equal(PLACE_POOL.length,14,'§61 検査1: 14の土地すべてにホテル名を用意していない');
+assert.equal(PLACE_POOL.length,SCENARIOS.length,'§61 検査1: 全案件の土地にホテル名を用意していない');
 assert(PLACE_POOL.every(place => place.hotelName && place.hotelName.endsWith(' ' + place.city) && place.alternateHotelName && place.alternateHotelName.endsWith(' ' + place.city)),'§61 検査1: ホテル名の末尾が割り当て土地の都市名でない');
 const qStayScenarios61 = SCENARIOS.filter(scenario => scenario.replies && scenario.replies.q_stay);
 assert.equal(qStayScenarios61.length,11,'§61 検査2: q_stayの答えを持つ案件数が11件でない');

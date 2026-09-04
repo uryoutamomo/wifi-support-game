@@ -31,6 +31,16 @@ const EXPECT = {
   S12:{ cause:'provision',   best:'r_carrier_reopened_explain',noOut:null,        partial:[],                 tone:'warm' },
   S13:{ cause:'logistics',   best:'r_logistics_replacement',noOut:null,           partial:['r_logistics_refund'],tone:'warm' },
   S14:{ cause:'fup',         best:'r_topup',           noOut:null,               partial:['r_slow_ok'],      tone:'brief' },
+  S15:{ cause:'device_side', best:'r_password_reconnect',noOut:null,             partial:[],                tone:'warm' },
+  S16:{ cause:'power',       best:'r_wake',            noOut:null,               partial:[],                tone:'warm' },
+  S17:{ cause:'location',    best:'r_interference_guide',noOut:null,             partial:[],                tone:'brief' },
+  S18:{ cause:'device_net',  best:'r_bluetooth_off',   noOut:null,               partial:[],                tone:'technical' },
+  S19:{ cause:'location',    best:'r_move_guide',      noOut:null,               partial:[],                tone:'brief' },
+  S20:{ cause:'power',       best:'r_low_battery_charge',noOut:null,             partial:[],                tone:'warm' },
+  S21:{ cause:'power',       best:'r_ac_charge',       noOut:null,               partial:[],                tone:'technical' },
+  S22:{ cause:'power',       best:'r_cool_down',       noOut:null,               partial:[],                tone:'warm' },
+  S23:{ cause:'device_side', best:'r_unblock',         noOut:null,               partial:[],                tone:'warm' },
+  S24:{ cause:'device_net',  best:'r_airplane_off',    noOut:null,               partial:[],                tone:'technical' },
 };
 
 // 依頼で渡した液晶データ
@@ -49,6 +59,16 @@ const PANEL = {
   S12:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:73 },
   S13:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:82 },
   S14:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:true,  clients:1, battery:58 },
+  S15:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:0, battery:72 },
+  S16:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:0, battery:64 },
+  S17:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:2, battery:81 },
+  S18:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:0, battery:76 },
+  S19:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:2, battery:69 },
+  S20:{ bars:null, carrier:null,        sim:'ok',   throttle:false, clients:0, battery:1 },
+  S21:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:2, battery:9 },
+  S22:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:1, battery:46 },
+  S23:{ bars:4, carrier:'{carrier}',    sim:'ok',   throttle:false, clients:1, battery:67 },
+  S24:{ bars:0, carrier:null,           sim:'ok',   throttle:false, clients:1, battery:79 },
 };
 
 let ng = 0;
@@ -165,7 +185,7 @@ const hardwareSwap = D.REMEDIES.hardware.find(r => r.id === 'r_hardware_swap');
 if (!hardwareSwap || hardwareSwap.needsTestCount !== 2 || hardwareSwap.requiresLongStay !== 3 || !hardwareSwap.requiresConsent) bad('機器故障の代替機配送条件が確定仕様と違う');
 
 // §25: 折り返し先データは全案件に持たせる。
-const CALLBACK_TO = { S1:'hotel', S2:'mobile', S3:'mobile', S4:'hotel', S5:'hotel', S6:'mobile', S7:'hotel', S8:'hotel', S9:'mobile', S10:'hotel', S11:'mobile', S12:'hotel', S13:'hotel', S14:'mobile' };
+const CALLBACK_TO = { S1:'hotel', S2:'mobile', S3:'mobile', S4:'hotel', S5:'hotel', S6:'mobile', S7:'hotel', S8:'hotel', S9:'mobile', S10:'hotel', S11:'mobile', S12:'hotel', S13:'hotel', S14:'mobile', S15:'hotel', S16:'hotel', S17:'mobile', S18:'hotel', S19:'mobile', S20:'hotel', S21:'mobile', S22:'hotel', S23:'hotel', S24:'mobile' };
 SCENARIOS.forEach(s => {
   if (s.callbackTo !== CALLBACK_TO[s.id]) bad(s.id + ': callbackTo が ' + CALLBACK_TO[s.id] + ' のはずが ' + s.callbackTo);
 });
@@ -305,6 +325,8 @@ const RUSHED_REPLIES = {
   S9:'はい。で、結論は？',
   S11:'はい。場所なら動く。指示を。',
   S14:'はい。挨拶はいいです。原因を。',
+  S17:'はい。挨拶は大丈夫です。すぐ直したいです。',
+  S19:'はい。移動中なので結論からお願いします。',
 };
 SCENARIOS.forEach(s => {
   const want = RUSHED_REPLIES[s.id];
@@ -328,6 +350,16 @@ const CONTRACT_IDS = {
   S12:{ minutes:3, number:'GDW-348621' },
   S13:{ minutes:2, number:'GDW-630519' },
   S14:{ minutes:1, number:'GDW-771403' },
+  S15:{ minutes:3, number:'GDW-604215' },
+  S16:{ minutes:3, number:'GDW-918364' },
+  S17:{ minutes:1, number:'GDW-247590' },
+  S18:{ minutes:1, number:'GDW-735106' },
+  S19:{ minutes:1, number:'GDW-361842' },
+  S20:{ minutes:3, number:'GDW-806427' },
+  S21:{ minutes:1, number:'GDW-493718' },
+  S22:{ minutes:3, number:'GDW-650239' },
+  S23:{ minutes:3, number:'GDW-172684' },
+  S24:{ minutes:1, number:'GDW-584931' },
 };
 SCENARIOS.forEach(s => {
   const want = CONTRACT_IDS[s.id];
@@ -460,7 +492,7 @@ if (JSON.stringify(SOOTHE_EFFECTS) !== JSON.stringify(SOOTHE_BY_TYPE)) bad('タ�
 if (JSON.stringify(SMALLTALK_EFFECTS) !== JSON.stringify({anxious:-10,novice:-12,hurried:14,expert:6})) bad('タイプ別の雑談効果が確定表と違う');
 if (JSON.stringify(IDENTITY_CALMING_EFFECTS) !== JSON.stringify({anxious:-10,novice:-8,hurried:-4,expert:0})) bad('高ストレス本人確認のタイプ別効果が確定表と違う');
 const requiredTopicFields = ['id','reveal','askLabel','tellLabel','goodReply','badReply'];
-if (SCENARIOS.length !== 14 || !SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0)))) bad('全14シナリオの雑談話題6項目が揃っていない');
+if (SCENARIOS.length !== 24 || !SCENARIOS.every(s => Array.isArray(s.smalltalk) && s.smalltalk.length >= 1 && s.smalltalk.every(topic => requiredTopicFields.every(field => typeof topic[field] === 'string' && topic[field].length > 0)))) bad('全24シナリオの雑談話題6項目が揃っていない');
 const section13QuestionIds = new Set(QUESTIONS.map(question => question.id));
 const universallyReachableQuestions = new Set(['q_name','q_destination','q_contract']);
 if (!SCENARIOS.every(scenario => scenario.smalltalk.every(topic => topic.reveal === 'opening' || (section13QuestionIds.has(topic.reveal) && (universallyReachableQuestions.has(topic.reveal) || Boolean((scenario.replies || {})[topic.reveal])))))) bad('雑談話題のrevealが実際に到達できる質問へ接続されていない');
@@ -885,7 +917,7 @@ if (!callback41.includes('t.callbackLookupCount = 0') || !callback41.includes('t
 if (!sourceOf('doDeskLookup').includes('state.desk.recordTicketId') || !sourceOf('renderDesk').includes('renderCustomerRecord(t, false)')) bad('§41-32 端末調査後に顧客レコードが開かない');
 if (!sourceOf('lookupRecordValue').includes('lookup.defaultResult')) bad('§41-33 既定照会結果が顧客レコードから消える');
 if (!sourceOf('newTicket').includes('callbackWaitStressApplied:false') || !sourceOf('newTicket').includes('stayHintDelivered:false')) bad('§41-34 §41の新しいticket状態が初期化されない');
-const expectedHintKinds411 = {S1:'新婚旅行',S2:'旅行',S3:'移る予定',S4:'出張',S5:'仕事',S6:'資料',S7:'仕事',S8:'旅行',S9:'泊まり',S10:'出張',S11:'会議',S12:'旅行',S13:'長い滞在',S14:'移動'};
+const expectedHintKinds411 = {S1:'新婚旅行',S2:'旅行',S3:'移る予定',S4:'出張',S5:'仕事',S6:'資料',S7:'仕事',S8:'旅行',S9:'泊まり',S10:'出張',S11:'会議',S12:'旅行',S13:'長い滞在',S14:'移動',S15:'写真',S16:'旅行',S17:'会議',S18:'出張',S19:'地図',S20:'旅行',S21:'報告書',S22:'安全',S23:'家族',S24:'出張'};
 if (SCENARIOS.some(s => !(s.stayHint || '').includes(expectedHintKinds411[s.id]))) bad('§41-35 滞在のほのめかしが案件の他の台詞と矛盾する');
 if ((src.match(/stayDays:/g) || []).length !== SCENARIOS.length || /SCENARIO_RECORD_META[\s\S]*?stayDays:/.test(src)) bad('§41-36 滞在・顧客レコード属性が二重定義されている');
 const moving411 = SCENARIOS.filter(s => s.deliveryAddress);
@@ -907,7 +939,7 @@ try {
 const prepare55 = sourceOf('prepareShiftScenarios');
 if (!prepare55.includes('const total = inboundCount + handoverCount') || !prepare55.includes("workOrigin:'handover'") || !prepare55.includes('drawHandoverCallbackTurns(handoverCount, arrivalSlots, random)')) bad('§55 入電とは別の引き継ぎを既存案件から選び、約束時刻を割り当てていない');
 if ((prepare55.match(/assignScenarioIdentities\(/g) || []).length !== 1 || !prepare55.includes('assignScenarioIdentities(timed')) bad('§55 入電と引き継ぎをまとめて人物・土地割り当てせず、同じ客が重複しうる');
-if (SCENARIOS.some(scenario => typeof scenario.handoverSymptom !== 'string' || !scenario.handoverSymptom.trim())) bad('§55 既存14案件の引き継ぎ用症状が揃わない');
+if (SCENARIOS.some(scenario => typeof scenario.handoverSymptom !== 'string' || !scenario.handoverSymptom.trim())) bad('§55 全24案件の引き継ぎ用症状が揃わない');
 const ticket55 = sourceOf('newTicket');
 if (!ticket55.includes("state:handover ? 'callback' : 'inbound'") || !ticket55.includes('callbackDestination:handover ? \'direct\' : null') || !ticket55.includes('identified:handover') || !ticket55.includes('facts:[]')) bad('§55 引き継ぎ案件が本人確認済み・手がかりなしの直接折り返し待ちで始まらない');
 const meeting55 = sourceOf('showHandoverMeeting');

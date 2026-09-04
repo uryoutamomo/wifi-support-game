@@ -17,7 +17,7 @@ const LUCK_RATE = 0.9;       // 本来どおりに転ぶ確率
 const CARRIER_REPLY_RATE = 0.8; // 現地キャリアから30分後に完了連絡が届く確率
 const DESK_LOOKUP_MINUTES = 2;  // 折り返し待ちのあいだ、デスク端末で1件調べるのにかかる時間
 const DEVICE_VERIFICATION_MINUTES = 60; // 返却機1台の検証に必要な作業時間
-/* §65: 直接、国際通話料を訴えるのは14案件中7件になる2タイプだけ。 */
+/* §65/§69: 直接、国際通話料を訴えるのは24案件中12件になる2タイプだけ。 */
 const CALL_CHARGE_COMPLAINT_TYPES = Object.freeze(['hurried','expert']);
 /* §41: 通しプレイで調整できる、折り返しの約束と待機の基準。 */
 const CALLBACK_SCHEDULED_MINUTES = 60;
@@ -192,9 +192,9 @@ const CAUSES = [
   { id:'devices',    tier:'確定', label:'同時接続台数の上限超過' },
   { id:'geo_block',  tier:'確定', label:'渡航先の通信規制（特定サービスのみ不通）' },
   { id:'heavy',      tier:'有力', label:'一部端末の大容量通信による帯域の圧迫' },
-  { id:'device_side',tier:'有力', label:'端末側に保存されたWi-Fi情報の不整合' },
-  { id:'device_net', tier:'有力', label:'端末側のVPN／DNS／プロファイル設定' },
-  { id:'location',   tier:'有力', label:'電波の届きにくい場所（地下・建物構造）' },
+  { id:'device_side',tier:'有力', label:'端末側のWi-Fi接続情報／接続許可の不整合' },
+  { id:'device_net', tier:'有力', label:'通信を止める端末・ルーター側の設定' },
+  { id:'location',   tier:'有力', label:'距離・遮蔽物・電波干渉のある場所' },
   { id:'power',      tier:'有力', label:'充電・電源まわり（ケーブル／アダプタ／過熱）' },
   { id:'carrier',    tier:'要ESC', label:'現地キャリアの広域障害' },
   { id:'coverage',   tier:'要ESC', label:'契約の対象エリア外／機種と地域の不一致' },
@@ -520,6 +520,13 @@ const TESTS = [
   { id:'t_move',       label:'窓際か屋外へ移動して試していただく', turns:4, wait:'場所を移っていただいています。', needsDevice:true },
   { id:'t_disconnect', label:'使っていない端末をWi-Fiから切っていただく', turns:2, wait:'不要な端末を切っていただいています。', needsDevice:true },
   { id:'t_charge',     label:'付属のケーブルとアダプタで充電していただく', turns:5, wait:'充電をお願いしました。しばらく様子を見ます。', needsDevice:true },
+  { id:'t_password',   label:'本体表示のWi-Fi名とパスワードを確認し、端末を繋ぎ直していただく', turns:3, wait:'本体表示との照合と再接続をお願いしました。操作していただいています。', needsDevice:true },
+  { id:'t_wake',       label:'ルーターの電源ボタンを押して休止状態を解除していただく', turns:1, wait:'電源ボタンを押していただいています。', needsDevice:true },
+  { id:'t_nearby',     label:'ルーターへ近づき、電子レンジなどから離して試していただく', turns:2, wait:'距離と電波干渉の少ない場所で試していただいています。', needsDevice:true },
+  { id:'t_bluetooth_off', label:'BluetoothテザリングをOFFにしていただく', turns:1, wait:'BluetoothテザリングをOFFにしていただいています。', needsDevice:true },
+  { id:'t_cool_down',  label:'充電と通信を止め、涼しい場所で本体を冷ましていただく', turns:4, wait:'充電と通信を止め、本体を冷ましていただいています。', needsDevice:true },
+  { id:'t_unblock',    label:'本体の接続端末一覧から、この端末のブロックを解除していただく', turns:2, wait:'接続端末一覧を開き、ブロックを解除していただいています。', needsDevice:true },
+  { id:'t_airplane_off', label:'ルーター本体の機内モードをOFFにしていただく', turns:1, wait:'本体の機内モードをOFFにしていただいています。', needsDevice:true },
 ];
 
 /* 危険な操作。選べるが、初手の正解にはならない */
@@ -559,16 +566,25 @@ const REMEDIES = {
   device_side: [
     { id:'r_forget_guide', label:'端末に残ったWi-Fi設定が原因だったことをご説明し、再接続後はそのまま利用いただく', sub:'端末側の情報を作り直す。低リスク', kind:'resolve' },
     { id:'r_use_other', label:'ほかの端末を使っていただくよう案内する', sub:'その場はしのげるが、原因は残る', kind:'resolve' },
+    { id:'r_password_reconnect', label:'誤ったWi-Fiパスワードだったことをご説明し、本体表示の値で再接続いただく', sub:'本体表示との照合後に復旧を確認する', kind:'resolve', needsTest:'t_password' },
+    { id:'r_unblock', label:'端末がブロック登録されていたことをご説明し、解除後はそのまま利用いただく', sub:'対象端末だけの接続許可を戻す', kind:'resolve', needsTest:'t_unblock' },
   ],
   device_net: [
     { id:'r_vpn_off', label:'VPN／プロファイル設定が原因だったことをご説明し、無効化した状態で利用いただく', sub:'端末側の設定を戻す。低リスク', kind:'resolve' },
+    { id:'r_bluetooth_off', label:'Bluetoothテザリングとの同時利用が原因だったことをご説明し、Wi-Fi利用時はOFFにしていただく', sub:'競合する共有設定だけを戻す', kind:'resolve', needsTest:'t_bluetooth_off' },
+    { id:'r_airplane_off', label:'ルーターの機内モードが原因だったことをご説明し、OFFのまま利用いただく', sub:'回線を止める設定だけを戻す', kind:'resolve', needsTest:'t_airplane_off' },
   ],
   location: [
     { id:'r_move_guide', label:'建物の遮蔽が原因だったことをご説明し、電波の入る場所で利用いただく', sub:'実際に移動して改善したことを確認してから案内する', kind:'resolve', needsTest:'t_move' },
     { id:'r_window_stationary', label:'ルーターを地上階の窓際に置いたまま使うよう案内する', sub:'通信は戻るが、地下の会議室へ持ち込めず不便が残る', kind:'resolve' },
+    { id:'r_interference_guide', label:'距離と電波干渉が原因だったことをご説明し、ルーターの近くで利用いただく', sub:'電子レンジや厚い壁から離した状態で復旧を確認する', kind:'resolve', needsTest:'t_nearby' },
   ],
   power: [
     { id:'r_charge_guide', label:'接続台数による電池消耗をご説明し、付属アダプタでの充電と節電をご案内する', sub:'消耗の理由も添えて伝える', kind:'resolve' },
+    { id:'r_wake', label:'省電力の休止状態だったことをご説明し、電源ボタンで復帰して利用いただく', sub:'初期化や再起動は不要', kind:'resolve', needsTest:'t_wake' },
+    { id:'r_low_battery_charge', label:'電池残量の低下が原因だったことをご説明し、付属品で十分に充電していただく', sub:'対応品で充電し、起動と通信の安定を確認する', kind:'resolve', needsTest:'t_charge' },
+    { id:'r_ac_charge', label:'パソコンからの給電不足だったことをご説明し、付属ACアダプタで充電いただく', sub:'給電元だけを安全な方法へ替える', kind:'resolve', needsTest:'t_charge' },
+    { id:'r_cool_down', label:'充電しながらの通信で過熱したことをご説明し、冷ましてから利用いただく', sub:'高温時は充電と通信を止める', kind:'resolve', needsTest:'t_cool_down' },
   ],
   carrier: [
     { id:'r_outage_explain', label:'広域障害であることと復旧見込みを説明し、日割りの返金を案内する', sub:'原因が判明している場合の正規対応', kind:'resolve', needsOutage:true, cost:2400 },
@@ -608,7 +624,8 @@ const REMEDIES = {
 const VERIFIABLE_REMEDY_IDS = new Set([
   'r_topup','r_disconnect','r_vpn_plan','r_throttle_talk','r_forget_guide','r_use_other',
   'r_vpn_off','r_move_guide','r_window_stationary','r_charge_guide','r_sim_clean','r_reboot_again',
-  'r_carrier_reopened_explain',
+  'r_carrier_reopened_explain','r_password_reconnect','r_unblock','r_bluetooth_off','r_airplane_off',
+  'r_interference_guide','r_wake','r_low_battery_charge','r_ac_charge','r_cool_down',
 ]);
 const REFUND_REMEDY_IDS = new Set([
   'r_outage_explain','r_coverage_refund','r_hardware_no_swap','r_logistics_refund',
@@ -1164,6 +1181,138 @@ const SCENARIOS = [
   debrief:'いちばん件数の多い問い合わせです。<em>「無制限だと思っていた」という思い込みと、実際の契約内容の食い違い</em>が正体で、機器はどこも壊れていません。契約照会で使用量の数字を出せば、その場で確定できます。急いでいる相手なので、原因を短く言い切ってから追加購入の選択肢を示すのが最短です。容量が戻るのは翌日で、今日中に使いたいなら追加購入しかない、という順番で伝えてください。'
 },
 
+/* === 15〜24. 公式サポート情報に基づく、短い聞き取りと安全操作で解ける簡単案件 === */
+{
+  id:'S15', arrive:86, name:'岡田 真理', nameEn:'Mari Okada', age:38, ageRange:[28,48], type:'novice', abandonAfter:30, callbackTo:'hotel', stayDays:2, difficulty:'easy',
+  deviceInHand:true, contractId:{minutes:3,text:'箱を見ますね…。GDW-604215と書いてあります。'},
+  country:'韓国', city:'ソウル', cityEn:'SEOUL', localOffset:0, carrierName:'SK Telecom', device:'GD-500', plan:'{country} ／ 無制限プラン',
+  opening:'Wi-Fiの名前は出るのですが、何度入力しても「パスワードが違います」と言われます。昨日はつながったはずなのですが。', handoverSymptom:'Wi-Fiパスワードのエラーで接続できない',
+  smalltalk:[{id:'st_s15_photo',reveal:'q_when',askLabel:'昨日はどちらで写真を撮られたんですか？',tellLabel:'旅先で急につながらないと戸惑いますよね',goodReply:'市場でたくさん撮りました。落ち着いて一つずつ確認します。',badReply:'写真の話より、入力する文字を教えてください。'}],
+  panel:{bars:4,carrier:'{carrier}',sim:'ok',throttle:false,clients:0,maxClients:5,battery:72,ssid:'Globaldesk-7318'},
+  trueCause:'device_side',best:'r_password_reconnect',partial:[],
+  replies:{q_return:{text:'今夜は部屋に戻っています。明後日の朝に帰ります。'},q_when:{text:'今日、ホテルへ戻ってからです。紙のメモを見て入力しています。',fact:{text:'SSIDは見えるが、保存したメモのパスワードで認証だけ失敗する',hot:['device_side']}}},
+  tests:{t_password:{text:'本体画面の文字は最後が8でした。メモはBになっていました。本体どおりに入れたらつながりました。',fact:{text:'本体表示のパスワードを入力すると接続できた',hot:['device_side'],out:['fup','devices','geo_block','heavy','device_net','location','power','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'SoftBank FAQ: Wi-Fiのパスワード確認',url:'https://www.softbank.jp/support/faq/view/18114'},
+  debrief:'SSIDが見えて認証だけ失敗するなら、まず<em>本体画面のパスワードと入力値を照合</em>します。初期化は不要です。'
+},
+{
+  id:'S16', arrive:92, name:'青木 慎一', nameEn:'Shinichi Aoki', age:55, ageRange:[45,65], type:'anxious', abandonAfter:34, callbackTo:'hotel', stayDays:3, difficulty:'easy',
+  deviceInHand:true, contractId:{minutes:3,text:'予約番号はGDW-918364です。電源を切ってしまったのでしょうか…。'},
+  country:'シンガポール', city:'シンガポール', cityEn:'SINGAPORE', localOffset:-1, carrierName:'Singtel', device:'A201NE', plan:'{country} ／ 無制限プラン',
+  opening:'少し放っておいたらWi-Fiの名前が消えました。壊してしまったのでしょうか。画面は暗いままです。', handoverSymptom:'放置後にSSIDが消えて接続できない',
+  smalltalk:[{id:'st_s16_walk',reveal:'q_when',askLabel:'外出から戻られたところですか？',tellLabel:'放置しただけで壊れたとは限りません',goodReply:'そう聞いて安心しました。夕食から戻ったところです。',badReply:'でも名前が消えたままなので、まだ心配です。'}],
+  panel:{bars:4,carrier:'{carrier}',sim:'ok',throttle:false,clients:0,maxClients:5,battery:64,ssid:'Globaldesk-2046'},
+  trueCause:'power',best:'r_wake',partial:[],
+  replies:{q_return:{text:'あと3日は同じホテルにおります。'},q_when:{text:'夕食で2時間ほど使わず、戻ってからです。電源ボタンには触れていません。',fact:{text:'無通信で放置したあとにSSIDだけが消えた',hot:['power']}}},
+  tests:{t_wake:{text:'電源ボタンを押したら画面とWi-Fi名が戻り、スマートフォンもつながりました。',fact:{text:'休止解除だけでSSIDと通信が復帰した',hot:['power'],out:['fup','devices','geo_block','heavy','device_side','device_net','location','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'SoftBank A201NE: 休止状態の解除',url:'https://www.softbank.jp/mobile/support/manual/data-com/a201ne/detail/67064/'},
+  debrief:'無通信後にSSIDだけが消えた場合は、省電力の<em>休止状態を電源ボタンで解除</em>します。再起動や初期化は要りません。'
+},
+{
+  id:'S17', arrive:98, name:'西村 遥', nameEn:'Haruka Nishimura', age:29, ageRange:[22,38], type:'hurried', abandonAfter:22, callbackTo:'mobile', stayDays:2, difficulty:'easy',
+  deviceInHand:true, rushedReply:'はい。挨拶は大丈夫です。すぐ直したいです。', contractId:{minutes:1,text:'GDW-247590です。'},
+  country:'マレーシア', city:'クアラルンプール', cityEn:'KUALA LUMPUR', localOffset:-1, carrierName:'Maxis', device:'GD-500', plan:'{country} ／ 無制限プラン',
+  opening:'キッチン横の席だけ動画が止まります。ルーターは隣の部屋です。急いでいるので短くお願いします。', handoverSymptom:'壁越しで動画が途切れる',
+  smalltalk:[{id:'st_s17_meeting',reveal:'q_where',askLabel:'これからオンライン会議ですか？',tellLabel:'会議前に短く切り分けます',goodReply:'はい。短くお願いします。',badReply:'会議の話は後で。操作を先に。'}],
+  panel:{bars:4,carrier:'{carrier}',sim:'ok',throttle:false,clients:2,maxClients:5,battery:81,ssid:'Globaldesk-4591'},
+  trueCause:'location',best:'r_interference_guide',partial:[],
+  replies:{q_return:{text:'会議後も今夜は部屋にいます。'},q_where:{text:'厚い壁の向こうで、電子レンジも動いています。ルーターのそばなら速いです。',fact:{text:'壁と電子レンジの近くでだけWi-Fiが遅くなる',hot:['location']}}},
+  tests:{t_nearby:{text:'電子レンジを止めてルーターのそばへ移ったら、動画が止まらなくなりました。',fact:{text:'距離と干渉を避けるだけで通信が安定した',hot:['location'],out:['fup','devices','geo_block','heavy','device_side','device_net','power','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'HUAWEI: Wi-Fiの通信速度が遅い場合',url:'https://consumer.huawei.com/jp/support/content/ja-jp15988630/'},
+  debrief:'近くでは速く、壁や電子レンジのそばでだけ遅いなら、<em>距離と2.4GHz帯の干渉</em>を疑います。'
+},
+{
+  id:'S18', arrive:104, name:'岩田 浩二', nameEn:'Koji Iwata', age:48, ageRange:[40,60], type:'expert', abandonAfter:28, callbackTo:'hotel', stayDays:4, difficulty:'easy',
+  deviceInHand:true, contractId:{minutes:1,text:'GDW-735106です。'},
+  country:'カナダ', city:'トロント', cityEn:'TORONTO', localOffset:-14, carrierName:'Rogers', device:'A101ZT', plan:'{country} ／ 無制限プラン',
+  opening:'Bluetoothテザリングを有効にした直後、Wi-Fi接続のPCが全部落ちました。排他仕様か確認したいです。', handoverSymptom:'Bluetoothテザリング有効化後にWi-Fi端末が切断された',
+  smalltalk:[{id:'st_s18_work',reveal:'q_when',askLabel:'設定変更の直後からですか？',tellLabel:'変更前後を比較できるので切り分けやすいです',goodReply:'はい。直前操作は特定できています。',badReply:'観測事実は伝えました。仕様確認を進めてください。'}],
+  panel:{bars:4,carrier:'{carrier}',sim:'ok',throttle:false,clients:0,maxClients:5,battery:76,ssid:'Globaldesk-6820'},
+  trueCause:'device_net',best:'r_bluetooth_off',partial:[],
+  replies:{q_return:{text:'出張はあと4日、同じホテルです。'},q_when:{text:'BluetoothテザリングをONにした瞬間です。スマホ側はBluetooth接続できています。',fact:{text:'Bluetoothテザリング有効化と同時にWi-Fiだけが無効になった',hot:['device_net']}}},
+  tests:{t_bluetooth_off:{text:'OFFにした時点でSSIDが再表示され、PCも再接続できました。',fact:{text:'BluetoothテザリングをOFFにするとWi-Fiが復帰した',hot:['device_net'],out:['fup','devices','geo_block','heavy','device_side','location','power','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'SoftBank A101ZT: Bluetoothテザリング',url:'https://www.softbank.jp/mobile/support/manual/data-com/pocket-wifi-5g-a101zt/detail/52847/'},
+  debrief:'この機種はBluetoothテザリングをONにすると無線LANが無効になります。<em>直前の設定を戻す</em>だけで確認できます。'
+},
+{
+  id:'S19', arrive:110, name:'小野 詩織', nameEn:'Shiori Ono', age:34, ageRange:[24,40], type:'hurried', abandonAfter:22, callbackTo:'mobile', stayDays:2, difficulty:'easy',
+  deviceInHand:true, rushedReply:'はい。移動中なので結論からお願いします。', contractId:{minutes:1,text:'GDW-361842です。'},
+  country:'オーストリア', city:'ウィーン', cityEn:'VIENNA', localOffset:-7, carrierName:'A1', device:'GD-500', plan:'{country} ／ 無制限プラン',
+  opening:'Wi-Fiにはつながっていますが、戸棚に置くと全端末が圏外になります。窓際なら少し戻ります。', handoverSymptom:'戸棚に置いたルーターが圏外になる',
+  smalltalk:[{id:'st_s19_train',reveal:'q_where',askLabel:'これから移動のご予定ですか？',tellLabel:'置き場所だけ先に確認します',goodReply:'はい。列車までに地図を保存したいです。',badReply:'急いでいます。先に試す場所を言ってください。'}],
+  panel:{bars:0,carrier:null,sim:'ok',throttle:false,clients:2,maxClients:5,battery:69,ssid:'Globaldesk-9135'},
+  trueCause:'location',best:'r_move_guide',partial:[],
+  replies:{q_return:{text:'列車まで30分。夜には別の宿へ着きます。'},q_where:{text:'床に近い金属の戸棚です。窓際へ出すとアンテナが2本になります。',fact:{text:'低い金属戸棚で圏外になり、窓際では受信する',hot:['location']}}},
+  tests:{t_move:{text:'窓際の高い棚へ置いたらアンテナ4本になり、スマホもPCも通信できました。',fact:{text:'窓際の高い場所へ移動しただけで全端末の通信が復旧した',hot:['location'],out:['fup','devices','geo_block','heavy','device_side','device_net','power','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'NETGEAR: モバイルホットスポットの設置場所',url:'https://kb.netgear.com/000065270/Where-should-I-place-my-NETGEAR-mobile-hotspot'},
+  debrief:'Wi-Fi接続とモバイル回線の受信は別です。全端末が圏外なら、まず<em>窓際・高所へ置く</em>安全な比較をします。'
+},
+{
+  id:'S20', arrive:116, name:'篠原 拓也', nameEn:'Takuya Shinohara', age:32, ageRange:[24,42], type:'novice', abandonAfter:32, callbackTo:'hotel', stayDays:3, difficulty:'easy',
+  deviceInHand:true, contractId:{minutes:3,text:'箱のシールはGDW-806427です。'},
+  country:'チェコ', city:'プラハ', cityEn:'PRAGUE', localOffset:-7, carrierName:'O2', device:'A201NE', plan:'{country} ／ 無制限プラン',
+  opening:'電源を入れてもすぐ消えます。電池の絵が赤いのですが、何をつなげばよいでしょうか。', handoverSymptom:'低電池表示で起動してもすぐ切れる',
+  smalltalk:[{id:'st_s20_family',reveal:'q_battery',askLabel:'ご家族との連絡にお使いですか？',tellLabel:'赤い電池表示なら充電から確認できます',goodReply:'はい。難しい設定でなくて安心しました。',badReply:'どの線を使うのか、先に教えてください。'}],
+  panel:{bars:null,carrier:null,sim:'ok',throttle:false,clients:0,maxClients:5,battery:1,ssid:'Globaldesk-1564'},
+  trueCause:'power',best:'r_low_battery_charge',partial:[],
+  replies:{q_return:{text:'旅行は始まったばかりで、あと3日あります。'},q_battery:{text:'赤い電池が1%と出ます。昨日から充電していません。',fact:{text:'電池残量1%で起動を維持できない',hot:['power']}}},
+  tests:{t_charge:{text:'付属のケーブルとアダプタでしばらく充電したら、起動したままになり通信もできました。',fact:{text:'対応する付属品で充電すると起動と通信が安定した',hot:['power'],out:['fup','devices','geo_block','heavy','device_side','device_net','location','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'SoftBank A201NE: 電源が入らない場合',url:'https://www.softbank.jp/mobile/support/manual/data-com/a201ne/detail/67211/'},
+  debrief:'赤い低電池表示が出ているなら、設定ではなく<em>対応する付属品で十分に充電</em>します。'
+},
+{
+  id:'S21', arrive:122, name:'長谷川 佳奈', nameEn:'Kana Hasegawa', age:40, ageRange:[30,42], type:'expert', abandonAfter:28, callbackTo:'mobile', stayDays:4, difficulty:'easy',
+  deviceInHand:true, contractId:{minutes:1,text:'GDW-493718です。'},
+  country:'スウェーデン', city:'ストックホルム', cityEn:'STOCKHOLM', localOffset:-8, carrierName:'Telia', device:'A101ZT', plan:'{country} ／ 無制限プラン',
+  opening:'PCのUSBにつないでいますが、通信中は残量が減り続けます。AC給電との違いを確認したいです。', handoverSymptom:'PCのUSB給電中も電池残量が減る',
+  smalltalk:[{id:'st_s21_report',reveal:'q_battery',askLabel:'作業用PCから給電中ですか？',tellLabel:'給電元の差を比較すれば確認できます',goodReply:'はい。ACへ替えて電流差を見ます。',badReply:'一般論ではなく、確認操作を提示してください。'}],
+  panel:{bars:4,carrier:'{carrier}',sim:'ok',throttle:false,clients:2,maxClients:5,battery:9,ssid:'Globaldesk-5287'},
+  trueCause:'power',best:'r_ac_charge',partial:[],
+  replies:{q_return:{text:'滞在はあと4日です。作業は今夜も続きます。'},q_battery:{text:'PCのUSBポートです。充電表示は出ますが、通信中は9%から減っています。',fact:{text:'PCのUSB給電では通信中の消費を補えていない',hot:['power']}}},
+  tests:{t_charge:{text:'付属ACアダプタへ替えたら、通信中でも残量が増え始めました。',fact:{text:'付属ACアダプタでは給電が消費を上回った',hot:['power'],out:['fup','devices','geo_block','heavy','device_side','device_net','location','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'SoftBank A101ZT: パソコンからの充電',url:'https://www.softbank.jp/mobile/support/manual/data-com/pocket-wifi-5g-a101zt/detail/52807/'},
+  debrief:'PCのUSBは環境により充電できない、またはACより遅いことがあります。<em>付属ACへ替えた比較</em>が安全で明確です。'
+},
+{
+  id:'S22', arrive:128, name:'堀内 誠', nameEn:'Makoto Horiuchi', age:44, ageRange:[32,56], type:'anxious', abandonAfter:34, callbackTo:'hotel', stayDays:3, difficulty:'easy',
+  deviceInHand:true, contractId:{minutes:3,text:'GDW-650239です。本体が熱くて心配です。'},
+  country:'ニュージーランド', city:'オークランド', cityEn:'AUCKLAND', localOffset:3, carrierName:'Spark', device:'A503SH', plan:'{country} ／ 無制限プラン',
+  opening:'充電しながら動画を見ていたら、本体がとても熱くなって充電が止まりました。故障や発火ではないでしょうか。', handoverSymptom:'充電中の通信で本体が熱くなり充電が止まった',
+  smalltalk:[{id:'st_s22_safety',reveal:'q_battery',askLabel:'いまは充電と通信を止められますか？',tellLabel:'安全のため、まず熱を下げて確認します',goodReply:'はい、外しました。落ち着いて待ちます。',badReply:'熱いままで不安です。安全な手順を先にお願いします。'}],
+  panel:{bars:4,carrier:'{carrier}',sim:'ok',throttle:false,clients:1,maxClients:5,battery:46,ssid:'Globaldesk-8452'},
+  trueCause:'power',best:'r_cool_down',partial:[],
+  replies:{q_return:{text:'あと3日は同じ宿にいます。今夜は外出しません。'},q_battery:{text:'充電ケーブルを挿したまま高画質の動画を1時間ほど見ていました。高温の表示も出ています。',fact:{text:'充電しながら長時間通信し、高温保護で充電が停止した',hot:['power']}}},
+  tests:{t_cool_down:{text:'ケーブルを抜いて通信を止めたら冷えました。高温表示が消え、付属品で充電も再開しました。',fact:{text:'負荷を止めて冷ますと高温表示が消え充電が再開した',hot:['power'],out:['fup','devices','geo_block','heavy','device_side','device_net','location','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'SoftBank A503SH: 充電中の高温',url:'https://www.softbank.jp/mobile/support/manual/data-com/a503sh/detail/173793/'},
+  debrief:'充電しながら通信すると高温保護で充電が止まる場合があります。<em>負荷を止めて冷ます</em>のが安全な第一手です。'
+},
+{
+  id:'S23', arrive:134, name:'内藤 沙織', nameEn:'Saori Naito', age:36, ageRange:[28,46], type:'novice', abandonAfter:30, callbackTo:'hotel', stayDays:2, difficulty:'easy',
+  deviceInHand:true, contractId:{minutes:3,text:'番号はGDW-172684です。'},
+  country:'カナダ', city:'バンクーバー', cityEn:'VANCOUVER', localOffset:-15, carrierName:'Telus', device:'MiFi X PRO', plan:'{country} ／ 無制限プラン',
+  opening:'私のスマートフォンだけWi-Fiにつながらなくなりました。家族の電話は同じルーターで使えています。', handoverSymptom:'1台のスマートフォンだけWi-Fiへ接続できない',
+  smalltalk:[{id:'st_s23_family',reveal:'q_other_device',askLabel:'ご家族の端末では使えていますか？',tellLabel:'1台だけなら対象を絞って確認できます',goodReply:'はい、家族の電話は大丈夫です。少し安心しました。',badReply:'私の電話も使えるようにしてください。'}],
+  panel:{bars:4,carrier:'{carrier}',sim:'ok',throttle:false,clients:1,maxClients:5,battery:67,ssid:'Globaldesk-3906'},
+  trueCause:'device_side',best:'r_unblock',partial:[],
+  replies:{q_return:{text:'あと2日は家族とこのホテルにいます。'},q_other_device:{text:'家族の電話は今も使えます。さっき接続端末の画面で、私の電話を押したかもしれません。',fact:{text:'回線と別端末は正常で、直前に対象端末を接続一覧で操作した',hot:['device_side']}}},
+  tests:{t_unblock:{text:'ブロック済み一覧に私の電話がありました。解除したらすぐつながりました。',fact:{text:'対象端末のブロック解除だけで接続が復旧した',hot:['device_side'],out:['fup','devices','geo_block','heavy','device_net','location','power','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'Inseego MiFi X PRO: Blocked Devices',url:'https://inseego.com/resources/product-documentation/mifi-x-pro/user-guide/touchscreen/managing-connected-devices/blocked-devices-unblocking/'},
+  debrief:'ほかの端末が正常で、接続一覧を触った直後なら、<em>対象端末のブロック登録</em>を確認します。全設定の初期化は不要です。'
+},
+{
+  id:'S24', arrive:140, name:'相沢 康平', nameEn:'Kohei Aizawa', age:31, ageRange:[26,42], type:'expert', abandonAfter:28, callbackTo:'mobile', stayDays:4, difficulty:'easy',
+  deviceInHand:true, contractId:{minutes:1,text:'GDW-584931です。'},
+  country:'ドイツ', city:'ベルリン', cityEn:'BERLIN', localOffset:-7, carrierName:'Telekom', device:'MiFi X PRO', plan:'{country} ／ 無制限プラン',
+  opening:'本体に飛行機のアイコンが出ていて、Wi-Fi接続はできますがインターネットだけ使えません。機内モードでしょうか。', handoverSymptom:'本体に飛行機アイコンが出て回線通信できない',
+  smalltalk:[{id:'st_s24_flight',reveal:'q_lamp',askLabel:'到着後から飛行機の表示が残っていますか？',tellLabel:'表示どおりの設定か確認します',goodReply:'はい。状態表示と因果が一致しそうです。',badReply:'表示は伝えました。設定の確認を進めてください。'}],
+  panel:{bars:0,carrier:null,sim:'ok',throttle:false,clients:1,maxClients:5,battery:79,ssid:'Globaldesk-6173'},
+  trueCause:'device_net',best:'r_airplane_off',partial:[],
+  replies:{q_return:{text:'出張はあと4日、同じ場所に滞在します。'},q_lamp:{text:'飛行機のアイコンが点灯しています。到着後に解除した記憶がありません。',fact:{text:'ルーター本体の機内モード表示が点灯している',hot:['device_net']}}},
+  tests:{t_airplane_off:{text:'機内モードをOFFにしたら回線名とアンテナが表示され、インターネットも戻りました。',fact:{text:'ルーターの機内モード解除だけで回線通信が復旧した',hot:['device_net'],out:['fup','devices','geo_block','heavy','device_side','location','power','carrier','coverage','sim','hardware','provision','logistics']},solves:true}},
+  source:{title:'Verizon: MiFi Airplane Mode',url:'https://www.verizon.com/support/knowledge-base-209251/'},
+  debrief:'飛行機アイコンが出てWi-Fiだけつながるなら、ルーター本体の<em>機内モードをOFF</em>にします。表示と原因が一対一です。'
+},
+
 ];
 
 /* §41: 顧客レコード用の人物・渡航情報。滞在日数は案件の筋に従う。 */
@@ -1182,6 +1331,16 @@ const SCENARIO_RECORD_META = Object.freeze([
   {gender:'female',tripDay:2,tripDays:5,stayHint:'旅行の序盤なので、帰国前に連絡が取れないと困ります。'},
   {gender:'female',tripDay:1,tripDays:8,stayHint:'長い滞在の初日から、ずっと不安なんです。',deliveryAddress:'{alternateHotel}、214号室'},
   {gender:'male',tripDay:2,tripDays:4,stayHint:'明日の移動までに、必要な連絡を済ませたいです。'},
+  {gender:'female',tripDay:2,tripDays:4,stayHint:'写真を家族へ送る予定があり、帰国まで使いたいです。'},
+  {gender:'male',tripDay:2,tripDays:5,stayHint:'旅行はまだ半ばなので、壊れていないか心配です。'},
+  {gender:'female',tripDay:1,tripDays:3,stayHint:'オンライン会議のあとも、仕事の予定が続きます。'},
+  {gender:'male',tripDay:2,tripDays:6,stayHint:'出張中は複数の機器を使う予定です。'},
+  {gender:'female',tripDay:2,tripDays:4,stayHint:'今夜の移動を含め、帰国まで地図が必要です。'},
+  {gender:'male',tripDay:1,tripDays:4,stayHint:'旅行の初日なので、この先も連絡に使いたいです。'},
+  {gender:'female',tripDay:3,tripDays:7,stayHint:'報告書の作業が滞在中ずっと続く予定です。'},
+  {gender:'male',tripDay:2,tripDays:5,stayHint:'滞在はまだ続くため、安全に使えるか気になります。'},
+  {gender:'female',tripDay:2,tripDays:4,stayHint:'家族との旅行はまだ途中です。'},
+  {gender:'male',tripDay:2,tripDays:6,stayHint:'出張中ずっと回線を使える状態に戻したいです。'},
 ]);
 SCENARIOS.forEach((scenario, index) => {
   const meta = SCENARIO_RECORD_META[index];
@@ -1189,7 +1348,7 @@ SCENARIOS.forEach((scenario, index) => {
 });
 
 /* 名前・年齢・性別と土地は、シフト開始時に案件本体から切り離して割り当てる。
-   §47: 名前は14案件の切り出しをやめ、性別つきの候補48名から引く。ageBand は名前が
+   §47: 名前は案件の切り出しをやめ、性別つきの候補48名から引く。ageBand は名前が
    自然に見える年齢の幅で、案件の ageRange と重なる名前だけが候補になる。
    （71歳の「結衣」や24歳の「和子」を出さないため。） */
 const NAME_POOL = Object.freeze([
@@ -1259,6 +1418,16 @@ const PLACE_HOTEL_STEMS = Object.freeze({
   SYDNEY:'サザン・ハーバー・ホテル',
   LISBON:'テージョ・アズール・ホテル',
   TAIPEI:'玉山ガーデンホテル',
+  SEOUL:'漢江リーフ・ホテル',
+  SINGAPORE:'マーライオン・ベイ・ホテル',
+  'KUALA LUMPUR':'ムルデカ・リーフ・ホテル',
+  TORONTO:'オンタリオ・メープル・ホテル',
+  VIENNA:'ドナウ・クラウン・ホテル',
+  PRAGUE:'ヴルタヴァ・アーチ・ホテル',
+  STOCKHOLM:'ノルディック・ライト・ホテル',
+  AUCKLAND:'タマキ・ハーバー・ホテル',
+  VANCOUVER:'パシフィック・シダー・ホテル',
+  BERLIN:'シュプレー・ゲート・ホテル',
 });
 
 /* キャリア名・地域・ホテル名も土地に従属する。sourceScenarioId は shuffleIdentity:false の復元に使う。 */
